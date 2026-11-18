@@ -1,0 +1,44 @@
+name: Bug report
+description: Something does not work as the README says.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please leave out anything private: no keys (the `k=` part of a link), no QR codes, no names,
+        addresses or paths of your own. A security problem? Please report it privately instead – see SECURITY.md.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ./dream.sh --lan\n2. open the phone remote as a guest\n3. …"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Error messages from the terminal or the page help a lot (remove anything private).
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac and macOS
+      placeholder: "e.g. MacBook Pro M3, 18 GB, macOS 26.1"
+  - type: input
+    id: version
+    attributes:
+      label: Dream version
+      description: The output of `git log -1 --format=%h` in the Dream folder.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it compute?
+      options: [Locally on the Mac, Cloud GPU (Scaleway), Cloud GPU (RunPod)]

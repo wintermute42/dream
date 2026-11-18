@@ -1040,6 +1040,10 @@ and the line saving above.
 - **Red movement warning at the top:** no camera (allow access in the browser, connect a camera) or the AI model could
   not be loaded (the very first time “Hands (AI)” needs the internet). Key D shows what the detection sees.
 
+**Still stuck, or found a bug?** Open an issue on GitHub (the form asks for what helps; leave out keys, QR codes and
+your own paths). A security problem goes privately – see `SECURITY.md`. Pull requests are welcome, see
+`CONTRIBUTING.md`.
+
 <sub>[↑ Contents](#contents)</sub>
 
 ## Disk space and removal

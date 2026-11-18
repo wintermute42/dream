@@ -1099,6 +1099,10 @@ von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorscha
   ließ sich nicht laden (beim allerersten Einschalten von „Hände (KI)“ ist Internet nötig). Taste D zeigt, was die
   Erkennung sieht.
 
+**Hängt es weiter, oder ein Fehler?** Ein Issue auf GitHub öffnen (das Formular fragt, was hilft; Schlüssel, QR-Codes
+und eigene Pfade bitte weglassen). Eine Sicherheitslücke bitte privat melden – siehe `SECURITY.md`. Pull Requests sind
+willkommen, siehe `CONTRIBUTING.md`.
+
 <sub>[↑ Inhalt](#inhalt)</sub>
 
 ## Platz und Entfernen
