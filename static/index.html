@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/icons/logo.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="/static/qrbox.css">
 <style>
   :root { --ap: rgba(80,190,255,.16); --apline: rgba(80,190,255,.55); --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --panel: rgba(20,18,30,.9); --panelsolid: #141220; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 16px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -179,32 +180,7 @@
   details.sec.idle > :not(summary):not(.keep) { filter: grayscale(1); opacity: .72; transition: opacity .3s; }
   details.sec > :not(summary) { transition: opacity .3s; }
   #musicstate.warn { color: var(--warn) !important; font-size: 13px !important; }
-  #outwlanbox { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: start; margin-top: 8px; }
-  #outwlanbox[hidden] { display: none; }
-  /* #148: Dream Control (full remote) and the guests' code */
-  #ctlbox { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start; margin-top: 8px; }
-  #ctlbox .step { display: contents; }
-  #caqr { background: #fff; border-radius: 8px; padding: 4px; }
-  #castep[hidden], #ctlstep[hidden] { display: none; }
-  #ctlbox .btns { margin-top: 6px; }
-  #catext, #ctltext { font-size: .85em; overflow-wrap: anywhere; }
-  #catext b, #ctltext b { color: var(--text); }
-  #ctlbox[hidden], #guestnewq[hidden], #eyespanel[hidden], #winpanel[hidden] { display: none; }
-  /* #156: the code for the Dreamy Eyes phone, here on the Mac too */
-  #winpanel { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start; margin-top: 8px; }
-  #winpqr { background: #fff; border-radius: 8px; padding: 4px; }
-  #winpqr:not([src]) { display: none; }
-  #winptext { font-size: .85em; overflow-wrap: anywhere; }
-  #eyespanel { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start; margin-top: 8px; }
-  #eyespqr { background: #fff; border-radius: 8px; padding: 4px; }
-  #eyespqr:not([src]) { display: none; }
-  #eyesptext { font-size: .85em; overflow-wrap: anywhere; }
-  #ctlqr { background: #fff; border-radius: 8px; padding: 4px; }
-  #ctlqr:not([src]) { display: none; }
-  #outqr { background: #fff; border-radius: 8px; padding: 4px; grid-row: span 2; }
-  #outqr:not([src]) { display: none; }
-  #outwlantext { font-size: .85em; overflow-wrap: anywhere; }
-  #outwlantext code { user-select: all; }
+  #guestnewq[hidden] { display: none; }
   #makestate { font-size: .85em; color: var(--muted); margin-top: 4px; }
   #makestate.busy::before { content: ''; display: inline-block; width: .8em; height: .8em; margin-right: 6px; border-radius: 50%;
     border: 2px solid var(--accent); border-right-color: transparent; animation: spin 0.9s linear infinite; vertical-align: -1px; }
@@ -281,10 +257,6 @@
   #stage { will-change: transform, filter; }
   #stage { transition: opacity .12s linear; }   /* master brightness: the stage fades over its black background */
   body.stage-only, body.stage-only * { cursor: none; }
-  #qr { position: fixed; right: 18px; bottom: 18px; width: 210px; padding: 12px; background: #fff; border-radius: 14px; display: none;
-    color: #111; font-size: 12px; text-align: center; box-shadow: 0 6px 30px rgba(0,0,0,.5); }
-  #qr img { width: 100%; display: block; }
-  body.show-qr #qr { display: block; }
   body.wide #stage img { width: min(100cqw, 177.78cqh); aspect-ratio: 16 / 9; }
   /* direct touch: the warped picture and the light strokes lie exactly over the dream picture */
   #fxcv { opacity: 0; }
@@ -328,7 +300,7 @@
     <button class="btn" id="restart" title="Start the dream anew">↺ New</button>
     <button class="btn" id="full" title="Fullscreen (F)">⛶ Fullscreen</button>
     <button class="btn" id="save" title="Save picture (S)">⤓</button>
-    <button class="btn" id="qrbtn" title="Phone remote (Q)" style="display:none">📱 Phone</button>
+    <button class="btn" id="qrbtn" aria-haspopup="dialog" title="Phone remote (Q)" style="display:none">📱 Phone</button>
   </div>
   <div id="status" role="status">Connecting …</div>
   <div id="stats" aria-live="off"></div>
@@ -351,7 +323,6 @@
     <button class="btn" id="startdlg-cancel">Cancel</button>
   </div>
 </dialog>
-<div id="qr"><img id="qrimg" alt="QR code for the remote">Scan with your phone = remote</div>
 
 <div id="splitter" role="separator" aria-orientation="vertical" aria-label="Width of the panel" tabindex="0"></div>
 <div id="panel">
@@ -683,41 +654,18 @@
 
   <div class="row">
     <div class="btns" style="align-items:center">
-      <button class="btn" id="outwlan" aria-expanded="false" aria-controls="outwlanbox" title="Show the output on a second device in the Wi-Fi (notebook, mini PC, TV box at the projector)">📶 Output over Wi-Fi</button>
+      <button class="btn" id="outwlan" aria-haspopup="dialog" title="Show the output on a second device in the Wi-Fi (notebook, mini PC, TV box at the projector)">📶 Output over Wi-Fi</button>
       <span id="outcount" class="muted" role="status"></span>
-    </div>
-    <div id="outwlanbox" hidden>
-      <img id="outqr" alt="QR code with the address of the output in the Wi-Fi" width="150" height="150">
-      <div id="outwlantext"></div>
-      <div class="btns"><button class="btn" id="outcopy">⧉ Copy link</button></div>
     </div>
   </div>
   <div class="row">
     <div class="btns" style="align-items:center">
-      <button class="btn" id="ctlshow" aria-expanded="false" aria-controls="ctlbox" title="Your own remote with all settings (only for you, not for the audience)">🎛 Dream Control</button>
-      <button class="btn" id="eyesshow" aria-expanded="false" aria-controls="eyespanel" title="A phone of its own as dreaming eyes: show the code for it">👀 Dreamy Eyes</button>
-      <button class="btn" id="winshow" aria-expanded="false" aria-controls="winpanel" title="Old phones and tablets as extra windows to the dream: show the code for them">🪟 Dream windows</button>
+      <button class="btn" id="ctlshow" aria-haspopup="dialog" title="Your own remote with all settings (only for you, not for the audience)">🎛 Dream Control</button>
+      <button class="btn" id="eyesshow" aria-haspopup="dialog" title="A phone of its own as dreaming eyes: show the code for it">👀 Dreamy Eyes</button>
+      <button class="btn" id="winshow" aria-haspopup="dialog" title="Old phones and tablets as extra windows to the dream: show the code for them">🪟 Dream windows</button>
       <button class="btn" id="guestnew" title="The phones of the guests lose access and need the new QR code">↻ New guest code</button>
       <button class="btn" id="trancego" title="Dreamy Eyes go into trance – a third eye opens (key E)">👁 Trance now</button>
       <select id="trancefreqm" aria-label="How often the trance of Dreamy Eyes may come by itself" title="How often the trance of Dreamy Eyes may come by itself"><option value="0">Trance: only by hand</option><option value="25">Trance: rarely</option><option value="12">Trance: now and then</option><option value="5">Trance: often</option></select>
-    </div>
-    <div id="eyespanel" hidden>
-      <img id="eyespqr" alt="QR code with the address of Dreamy Eyes" width="140" height="140">
-      <div id="eyesptext"></div>
-    </div>
-    <div id="winpanel" hidden>
-      <img id="winpqr" alt="QR code with the address of the dream windows" width="140" height="140">
-      <div id="winptext"></div>
-    </div>
-    <div id="ctlbox" hidden>
-      <div class="step" id="castep" hidden>
-        <img id="caqr" alt="QR code with Dream's certificate" width="140" height="140">
-        <div><div id="catext"></div><div class="btns"><button class="btn" id="canext">Certificate is installed → next</button></div></div>
-      </div>
-      <div class="step" id="ctlstep">
-        <img id="ctlqr" alt="QR code with the address of Dream Control" width="140" height="140">
-        <div><div id="ctltext"></div><div class="btns"><button class="btn" id="caback" hidden>← Certificate</button></div></div>
-      </div>
     </div>
     <div id="guestnewq" class="btns" hidden role="group" aria-label="New guest code?">
       <span class="muted">All guests lose access and need the new QR code. Renew it?</span>
@@ -765,6 +713,7 @@
 
 <script src="/static/i18n.js"></script>
 <script src="/static/measure.js"></script>
+<script src="/static/qrbox.js"></script>
 <script src="/static/fx.js"></script>
 <script src="/static/calib.js"></script>
 <script src="/static/motion.js"></script>
@@ -1010,89 +959,56 @@
   let outWs = null;
   let outViewers = 0, outPreviews = 0;  // open output windows (/output) and remote previews (#141) – they show what the stage shows
   $('openout').onclick = () => window.open('/output', 'dream-output', 'popup,width=960,height=540');
+  // #206: every QR code opens in the lightbox (qrbox.js): loaded on opening, gone on closing – so is its key
   // output on a second device in the WLAN: address with the key as link and QR code (only with dream.sh --lan)
-  let outLink = '';
-  $('outwlan').onclick = async () => {
-    const box = $('outwlanbox'), open = box.hidden;
-    box.hidden = !open; $('outwlan').setAttribute('aria-expanded', String(open));
-    if (!open) return;
-    const t = $('outwlantext');
-    try {
-      const info = await (await fetch('/remote-info')).json();
-      if (!info.lan || !info.output) {
-        outLink = ''; $('outqr').removeAttribute('src'); $('outcopy').hidden = true;
-        t.innerHTML = T('Only when Dream is reachable in the Wi-Fi: restart it with <code>./dream.sh --lan</code>.');
-        return;
-      }
-      outLink = info.output; $('outcopy').hidden = false;
-      $('outqr').src = '/qr.svg?for=output&t=' + Date.now();
-      t.textContent = '';
-      t.append(T('Open it on the device at the projector in the same Wi-Fi (scan the QR code or type the link), then tap it or press F for fullscreen:'));
-      const c = document.createElement('code'); c.textContent = info.output; t.append(document.createElement('br'), c);
-    } catch (e) { t.textContent = T('Address not available – is Dream still running?'); }
-  };
+  $('outwlan').onclick = () => QrBox.open({ id: 'output', trigger: $('outwlan'), title: T('📶 Output over Wi-Fi'),
+    alt: T('QR code with the address of the output in the Wi-Fi'), fill(box, info) {
+      box.code('output');
+      const c = document.createElement('code'); c.textContent = info.output;
+      box.say(T('Open it on the device at the projector in the same Wi-Fi (scan the QR code or type the link), then tap it or press F for fullscreen:'), document.createElement('br'), c);
+      const copy = box.button(T('⧉ Copy link'), async () => {
+        let said;
+        try { await navigator.clipboard.writeText(info.output); said = T('Link to the output copied.'); }
+        catch (e) { said = T('Copying did not work – select the link and copy it.'); }
+        status(said); copy.textContent = said;
+        setTimeout(() => { copy.textContent = T('⧉ Copy link'); }, 2500);
+      });
+    } });
   // #148: Dream Control – the owner's full remote; the stage's QR code is for the guests (Dream Remote)
-  $('ctlshow').onclick = async () => {
-    const box = $('ctlbox'), open = box.hidden;
-    box.hidden = !open; $('ctlshow').setAttribute('aria-expanded', String(open));
-    if (!open) { $('ctlqr').removeAttribute('src'); $('caqr').removeAttribute('src'); return; }   // the key leaves the screen with the box
-    const t = $('ctltext');
-    try {
-      const info = await (await fetch('/remote-info')).json();
-      if (!info.lan || !info.control) {
-        $('ctlqr').removeAttribute('src');
-        t.innerHTML = T('Only when Dream is reachable in the Wi-Fi: restart it with <code>./dream.sh --lan</code>.');
-        return;
+  $('ctlshow').onclick = () => QrBox.open({ id: 'control', trigger: $('ctlshow'), title: T('🎛 Dream Control'), fill(box, info) {
+    // #145: over https Dream Control can be installed as an app; each device trusts Dream's certificate once.
+    // #164: one code after the other – first the certificate, then Dream Control (remembered once done)
+    const step = n => {
+      box.reset();
+      if (n === 1) {
+        box.code('ca', T("QR code with Dream's certificate"));
+        box.html(T('<b>1 · Once per device:</b> scan to download the certificate, then install it in the settings (search “CA certificate”; steps in the README).'));
+        return box.button(T('Certificate is installed → next'), () => { try { localStorage.setItem('dream-ca-done', '1'); } catch (e) { /* no storage */ } step(2).focus(); });
       }
-      $('ctlqr').src = '/qr.svg?for=control&t=' + Date.now();
-      // #145: over https Dream Control can be installed as an app; each device trusts Dream's certificate once.
-      // #164: one code after the other – first the certificate, then Dream Control (remembered once done)
-      $('caback').hidden = !info.https;
-      if (info.https) {
-        $('caqr').src = '/qr.svg?for=ca&t=' + Date.now();
-        $('catext').innerHTML = T('<b>1 · Once per device:</b> scan to download the certificate, then install it in the settings (search “CA certificate”; steps in the README).');
-        t.innerHTML = T('<b>2 · Dream Control:</b> scan with your own device; in Chrome menu → “Install app”. Not for the audience.');
-        let done = false; try { done = localStorage.getItem('dream-ca-done') === '1'; } catch (e) { /* no storage */ }
-        ctlStep(done ? 2 : 1);
-      } else {
-        ctlStep(2);
-        t.textContent = T('Scan it with your own phone or tablet: all settings, cloud and model included. Do not show this code to the audience – the QR code on the stage is for guests.')
-          + (info.https_error ? ' ' + T('https is off: {e}', { e: info.https_error }) : '');
-      }
-    } catch (e) { t.textContent = T('Address not available – is Dream still running?'); }
-  };
-  function ctlStep(n) {
-    $('castep').hidden = n !== 1; $('ctlstep').hidden = n !== 2;
-  }
-  $('canext').onclick = () => { try { localStorage.setItem('dream-ca-done', '1'); } catch (e) { /* no storage */ } ctlStep(2); $('caback').focus(); };
-  $('caback').onclick = () => { ctlStep(1); $('canext').focus(); };
+      box.code('control', T('QR code with the address of Dream Control'));
+      box.html(T('<b>2 · Dream Control:</b> scan with your own device; in Chrome menu → “Install app”. Not for the audience.'));
+      return box.button(T('← Certificate'), () => step(1).focus());
+    };
+    if (info.https) {
+      let done = false; try { done = localStorage.getItem('dream-ca-done') === '1'; } catch (e) { /* no storage */ }
+      step(done ? 2 : 1);
+    } else {
+      box.code('control', T('QR code with the address of Dream Control'));
+      box.say(T('Scan it with your own phone or tablet: all settings, cloud and model included. Do not show this code to the audience – the QR code on the stage is for guests.')
+        + (info.https_error ? ' ' + T('https is off: {e}', { e: info.https_error }) : ''));
+    }
+  } });
   // #156: the Dreamy Eyes phone's code on the Mac as well (it may only lend its front camera)
-  $('eyesshow').onclick = async () => {
-    const box = $('eyespanel'), open = box.hidden;
-    box.hidden = !open; $('eyesshow').setAttribute('aria-expanded', String(open));
-    if (!open) { $('eyespqr').removeAttribute('src'); return; }   // the key leaves the screen with the box
-    const t = $('eyesptext');
-    try {
-      const info = await (await fetch('/remote-info')).json();
-      if (!info.lan) { $('eyespqr').removeAttribute('src'); t.innerHTML = T('Only when Dream is reachable in the Wi-Fi: restart it with <code>./dream.sh --lan</code>.'); return; }
-      $('eyespqr').src = '/qr.svg?for=eyes&t=' + Date.now();
-      t.textContent = info.https ? T('Scan it with the eyes phone (once: install Dream’s certificate there, see README), tap “Open the eyes”, fix the screen (Android: pin the app).')
-        : T('Without https the eyes phone cannot lend its camera – start Dream with --lan (https comes with it).');
-    } catch (e) { t.textContent = T('Address not available – is Dream still running?'); }
-  };
+  $('eyesshow').onclick = () => QrBox.open({ id: 'eyes', trigger: $('eyesshow'), title: T('👀 Dreamy Eyes'), alt: T('QR code with the address of Dreamy Eyes'), fill(box, info) {
+    box.code('eyes');
+    box.say(info.https ? T('Scan it with the eyes phone (once: install Dream’s certificate there, see README), tap “Open the eyes”, fix the screen (Android: pin the app).')
+      : T('Without https the eyes phone cannot lend its camera – start Dream with --lan (https comes with it).'));
+  } });
   // #201: dream windows – one code for any number of old phones and tablets; one organism drifts through all of them
-  $('winshow').onclick = async () => {
-    const box = $('winpanel'), open = box.hidden;
-    box.hidden = !open; $('winshow').setAttribute('aria-expanded', String(open));
-    if (!open) { $('winpqr').removeAttribute('src'); return; }   // the key leaves the screen with the box
-    const t = $('winptext');
-    try {
-      const info = await (await fetch('/remote-info')).json();
-      if (!info.lan) { $('winpqr').removeAttribute('src'); t.innerHTML = T('Only when Dream is reachable in the Wi-Fi: restart it with <code>./dream.sh --lan</code>.'); return; }
-      $('winpqr').src = '/qr.svg?for=window&t=' + Date.now();
-      t.textContent = T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. One dream organism drifts through all of them; they only look and cannot change anything.');
-    } catch (e) { t.textContent = T('Address not available – is Dream still running?'); }
-  };
+  $('winshow').onclick = () => QrBox.open({ id: 'window', trigger: $('winshow'), title: T('🪟 Dream windows'), alt: T('QR code with the address of the dream windows'), fill(box) {
+    box.code('window');
+    box.say(T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. One dream organism drifts through all of them; they only look and cannot change anything.'));
+  } });
   // #172: the trance of Dreamy Eyes from the Mac – the button, key E, and how often it may come by itself
   $('trancego').onclick = () => sendCtl({ eyes_trance: true });
   $('trancefreqm').onchange = () => sendCtl({ eyes_cfg: { trance_every: +$('trancefreqm').value } });
@@ -1100,10 +1016,6 @@
   $('guestnew').onclick = () => { $('guestnewq').hidden = false; $('guestyes').focus(); };
   $('guestno').onclick = () => { $('guestnewq').hidden = true; $('guestnew').focus(); };
   $('guestyes').onclick = () => { sendCtl({ renew_guest: true }); $('guestnewq').hidden = true; $('guestnew').focus(); };
-  $('outcopy').onclick = async () => {
-    try { await navigator.clipboard.writeText(outLink); status(T('Link to the output copied.')); }
-    catch (e) { status(T('Copying did not work – select the link and copy it.')); }
-  };
   const showOutCount = (n, w = 0) => {               // #201: the dream windows are viewers too, but counted on their own
     const parts = [];
     if (n - w > 0) parts.push(T(n - w === 1 ? '{n} output connected' : '{n} outputs connected', { n: n - w }));
@@ -3430,7 +3342,7 @@
       srcUrl = '';
     }
     if (c === 'vidclear') $('vidclear').click();
-    if (c === 'qr') document.body.classList.toggle('show-qr');
+    if (c === 'qr') guestCode();
     if (c === 'calm') calm = true;                     // movement: nobody there – the dream calms down
     if (c === 'wake') { calm = false; wake = 1; }
     if (c === 'media' && arg) {
@@ -3465,8 +3377,7 @@
         $('plstate').textContent = (sc.count ? T('Scene {i}/{n}', { i: sc.index + 1, n: sc.count }) : T('Surprise')) + ` · ${I18N.name(sc.playlist)}` + (sc.journey ? T(' · journey') : '');
       }
       if (m.guest_renewed) {                          // #148: the new guests' code on the stage and in the panel
-        if ($('qrimg').getAttribute('src')) $('qrimg').src = '/qr.svg?t=' + Date.now();
-        if (!$('outwlanbox').hidden) { $('outwlan').click(); $('outwlan').click(); }
+        if (['guest', 'output'].includes(QrBox.showing)) QrBox.refresh();
         status(T('New guest code: the guests scan the QR code again.'));
       }
       if (m.live && 'viewers' in m.live) { outViewers = m.live.viewers || 0; outPreviews = m.live.previews || 0; showOutCount(outViewers, m.live.windows || 0); }
@@ -3477,12 +3388,19 @@
   ctlConnect();
   setInterval(() => sendCtl({ live: { fps: Math.round(fps * 10) / 10, flow_rate: flowOn() && mo ? Math.round(mo.rate) : 0 } }), 2000);
 
-  // ---------- phone remote: QR code (only when started with --lan) ----------
+  // ---------- phone remote: the guests' QR code (button, key Q, "QR on the stage" in Dream Control; only with --lan) ----------
+  function guestCode() {                              // shows it, or closes it when it is shown
+    if (QrBox.showing === 'guest') { QrBox.close(); return; }
+    QrBox.open({ id: 'guest', key: 'q', trigger: $('qrbtn'), title: T('📱 Dream Remote for the guests'), alt: T('QR code for the remote'), fill(box) {
+      box.code('remote');
+      box.say(T('Scan with your phone = remote'));
+    } });
+  }
+  $('qrbtn').onclick = guestCode;
   fetch('/remote-info').then(r => r.json()).then(info => {
     if (!info.lan) return;
-    $('qrimg').src = '/qr.svg'; $('qrbtn').style.display = '';
-    $('qrbtn').onclick = () => document.body.classList.toggle('show-qr');
-    if (params.get('stage') === '1') { document.body.classList.add('show-qr'); setTimeout(() => document.body.classList.remove('show-qr'), 30000); }
+    $('qrbtn').style.display = '';
+    if (params.get('stage') === '1') { guestCode(); setTimeout(() => { if (QrBox.showing === 'guest') QrBox.close(); }, 30000); }
   }).catch(() => {});
   // ---------- movement diagnostics (D): below the preview, a small map in the picture's format plus the values ----------
   const diagCv = $('diag'), dctx = diagCv.getContext('2d');
@@ -3637,7 +3555,7 @@
   });
   try { if (localStorage.getItem('dream-diag') === '1') setDiag(true); } catch (e) {}
 
-  addEventListener('keydown', e => { if ((e.key === 'q' || e.key === 'Q') && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') document.body.classList.toggle('show-qr'); });
+  addEventListener('keydown', e => { if ((e.key === 'q' || e.key === 'Q') && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') guestCode(); });
 
   connect();
 })();

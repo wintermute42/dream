@@ -13,7 +13,7 @@ from html.parser import HTMLParser
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = ["static/index.html", "static/remote.html", "static/output.html", "static/eyes.html", "static/window.html"]
-SCRIPTS = ["static/motion.js", "static/calib.js", "static/fx.js"]
+SCRIPTS = ["static/motion.js", "static/calib.js", "static/fx.js", "static/qrbox.js"]
 PY = ["server.py", "styles.py", "midi.py", "cloud_runpod.py", "playlists.py"]
 ATTRS = ("title", "aria-label", "placeholder", "alt", "label")
 STR = r"""(['"])((?:\\.|(?!\1).)*)\1"""
