@@ -64,6 +64,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 
 - [When something gets stuck](#when-something-gets-stuck)
 - [Disk space and removal](#disk-space-and-removal)
+- [Tests](#tests)
 - [Translations](#translations)
 - [Licences](#licences)
 
@@ -137,6 +138,18 @@ Movement detection is built into Dream; the separate program flowtrack is not ne
 ```bash
 DREAM_PORT=7860
 ```
+
+**Other folders** (a second installation on the same Mac, a test run): three settings move Dream's own folders – in
+`dream.env` or in the environment; without them everything stays where it is:
+
+| Setting | Default | Holds |
+|---|---|---|
+| `DREAM_STATE_DIR` | `~/.local/state/dream` | settings (`state.json`), the remote keys, the certificates, uploads, style pictures |
+| `DREAM_CONFIG_DIR` | `~/.config/dream` | `dream.env` itself, own playlists, MIDI, sensor and movement mappings |
+| `DREAM_SAVE_DIR` | `~/Pictures/Dream` | pictures and clips kept with 💾 |
+
+`dream.sh`, `dream-cloud` and `install-autostart.sh` use the same folders; the autostart also takes `DREAM_PORT` from
+`dream.env`.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -1055,6 +1068,16 @@ Locally: the Python environment `.venv` in the Dream folder (about 1.2 GB) and t
 ```bash
 rm -rf <Dream folder> ~/.cache/huggingface/hub/models--stabilityai--sd-turbo ~/.cache/huggingface/hub/models--stabilityai--sdxl-turbo ~/.cache/huggingface/hub/models--madebyollin--taesd*
 ```
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Tests
+
+`uv run pytest` runs the automated tests (a few seconds; no model, no GPU, no network – they use a stand-in for torch and
+a temporary home folder, so your own settings, keys and pictures are never touched). They check who may do what (every
+route of the server for this Mac, Dream Control, guests, Dreamy Eyes and devices without a key), the origin check, the
+ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers and the
+translations. GitHub runs them on every push (`.github/workflows/tests.yml`).
 
 <sub>[↑ Contents](#contents)</sub>
 

@@ -25,3 +25,20 @@ dependencies = [
     "peft>=0.17",
     "cryptography>=44",
 ]
+
+[dependency-groups]
+# `uv run pytest` (the dev group is installed by default)
+dev = ["pytest>=8", "httpx2>=2.16"]
+# #186: the CI's Linux job – only what the tests import; no torch, no image models (the tests use a stand-in for torch)
+ci = [
+    "fastapi>=0.163.0",
+    "numpy>=2.5.4",
+    "pillow>=13.0.0",
+    "python-multipart>=0.0.33",
+    "qrcode>=8.2",
+    "cryptography>=44",
+    { include-group = "dev" },
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

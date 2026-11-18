@@ -11,7 +11,17 @@ AGENTS="$HOME/Library/LaunchAgents"
 SERVER_LABEL="local.dream.server"
 STAGE_LABEL="local.dream.stage"
 LOGS="$HOME/Library/Logs"
-STATE="$HOME/.local/state/dream"
+# #186: a setting as dream.sh will see it at login: dream.env wins (read on every start), then the environment, then the
+# default. The folder variables set here are handed to the autostart, so it finds the same dream.env and folders.
+ENV_FILE="${DREAM_ENV:-${DREAM_CONFIG_DIR:-$HOME/.config/dream}/dream.env}"
+setting() { ( set +u; set -a; if [ -f "$ENV_FILE" ]; then . "$ENV_FILE" >/dev/null 2>&1 || true; fi; eval "printf '%s' \"\${$1:-$2}\"" ); }
+STATE="$(setting DREAM_STATE_DIR "$HOME/.local/state/dream")"
+PORT="$(setting DREAM_PORT 7860)"
+case "$PORT" in ''|*[!0-9]*) PORT=7860 ;; esac
+PASS=""
+for v in DREAM_ENV DREAM_CONFIG_DIR DREAM_STATE_DIR DREAM_SAVE_DIR DREAM_PORT; do
+  if [ -n "${!v:-}" ]; then PASS="$PASS<key>$v</key><string>${!v}</string>"; fi
+done
 LAN=""; X=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -40,7 +50,7 @@ cat > "$AGENTS/$SERVER_LABEL.plist" <<PLIST
     <string>/usr/bin/caffeinate</string><string>-di</string>
     <string>$DIR/dream.sh</string><string>--no-open</string>${LAN:+<string>$LAN</string>}
   </array>
-  <key>EnvironmentVariables</key><dict><key>PATH</key><string>$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string></dict>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>$PASS</dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
   <key>StandardOutPath</key><string>$LOGS/dream.log</string>
@@ -55,7 +65,7 @@ cat > "$AGENTS/$STAGE_LABEL.plist" <<PLIST
   <key>Label</key><string>$STAGE_LABEL</string>
   <key>ProgramArguments</key><array>
     <string>/bin/sh</string><string>-c</string>
-    <string>until curl -s -o /dev/null http://127.0.0.1:7860/health; do sleep 2; done; exec "$CHROME" --user-data-dir="$STATE/chrome" --no-first-run --kiosk --autoplay-policy=no-user-gesture-required --use-fake-ui-for-media-stream --window-position=$X,0 "http://127.0.0.1:7860/?stage=1"</string>
+    <string>until curl -s -o /dev/null http://127.0.0.1:$PORT/health; do sleep 2; done; exec "$CHROME" --user-data-dir="$STATE/chrome" --no-first-run --kiosk --autoplay-policy=no-user-gesture-required --use-fake-ui-for-media-stream --window-position=$X,0 "http://127.0.0.1:$PORT/?stage=1"</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
