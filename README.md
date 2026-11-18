@@ -269,6 +269,13 @@ together with the GPU, which makes the run itself a little slower than usual. On
   painting, touching or light circle, no smoothing, no music pulse. Only the effects you chose in the **Effects** card
   stay on top. It goes to the projector, Wi-Fi output and Syphon as usual. From about 0.15 the AI paints again (below
   that it does not even make a whole computing step).
+- **Motion between the pictures** (Dream card, #194): the AI makes a few pictures a second; in between, each picture
+  goes on moving the way the dream moves – zoomed and turned around the same point, as the next input will be – at the
+  full frame rate, and the next picture takes over exactly where the motion has got to. So the stage neither stands
+  still nor jumps, locally and with the cloud GPU alike; if a picture is late, the motion eases out instead of running
+  away. 100 % (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera,
+  picture, video) only the dream's share moves on; at transformation 0 nothing moves. The output window moves along;
+  Syphon gets the pictures themselves.
 - **Smoothing – against flicker** (Dream card, also on the phone and as a MIDI target): the AI paints every picture
   anew, so fine details jump a little from picture to picture – that looks like flicker. Smoothing blends each new AI
   picture softly into what is shown at the full frame rate (a moving average): small jumps vanish, big changes still

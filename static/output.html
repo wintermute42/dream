@@ -39,7 +39,13 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  let front = $('a'), back = $('b'), lastT = 0, hideHint = null, nextFade = 0;
+  let front = $('a'), back = $('b'), lastT = 0, hideHint = null, nextFade = 0, nextMorph = null;
+  (function morphLoop() {                              // #194: the motion between the pictures
+    const now = performance.now();
+    DreamFx.morph.apply(front, now); DreamFx.morph.apply(back, now);
+    DreamFx.morph.apply(front, now, $('smoothcv')); DreamFx.morph.apply(front, now, $('fxcv'));
+    requestAnimationFrame(morphLoop);
+  })();
   // effects as the stage shows them; they fade out by themselves if the stage stops sending (closed, switched off)
   let fx = null, fxAt = 0;
   const engine = DreamFx.create($('fxcv'));
@@ -92,6 +98,7 @@
         let m; try { m = JSON.parse(ev.data); } catch (e) { return; }   // a broken message: skip it
         if ('master' in m) document.documentElement.style.setProperty('--master', m.master);
         if (m.fade) nextFade = Math.min(4000, +m.fade);
+        if ('morph' in m) nextMorph = m.morph && typeof m.morph === 'object' ? m.morph : null;   // #194: for the next picture
         if (m.fx) { fx = m.fx; fxAt = performance.now(); }
         if ('smooth' in m) smoothTau = +m.smooth || 0;         // smoothing as on the stage (seconds)
         if ('calib' in m) showCalib(m.calib);
@@ -105,6 +112,7 @@
         document.documentElement.style.setProperty('--fade', (nextFade || Math.round(Math.min(900, dt * 0.9) * (1 - 0.9 * fxk))) + 'ms'); nextFade = 0;
         img.style.opacity = 1; front.style.opacity = 0;
         const old = front; front = img; back = old; smoother.push(img);
+        DreamFx.morph.start(front, nextMorph, performance.now());   // #194: it goes on moving like on the stage
         setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1500);
         document.body.classList.add('live');
         clearTimeout(hideHint);

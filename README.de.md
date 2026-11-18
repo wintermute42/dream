@@ -274,6 +274,13 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   oder Drehung, kein Malen, Anfassen oder Lichtkreis, kein Glätten, kein Musik-Puls. Nur die Effekte, die du in der
   Karte **Effekte** gewählt hast, liegen weiter darüber. Es geht wie gewohnt an Beamer, WLAN-Ausgabe und Syphon.
   Ab etwa 0,15 malt die KI wieder (darunter macht sie nicht einmal einen ganzen Rechenschritt).
+- **Bewegung zwischen den Bildern** (Karte Traum, #194): Die KI macht ein paar Bilder pro Sekunde; dazwischen bewegt
+  sich jedes Bild so weiter, wie der Traum sich bewegt – um denselben Punkt gezoomt und gedreht, wie es die nächste
+  Eingabe wird –, mit voller Bildrate, und das nächste Bild übernimmt genau dort, wo die Bewegung gerade ist. So steht
+  die Bühne nicht still und springt nicht, lokal wie mit der Cloud-GPU; kommt ein Bild spät, läuft die Bewegung sanft aus,
+  statt davonzulaufen. 100 % (Standard) = die volle Bewegung, 0 = aus (das Bild steht bis zum nächsten). Mit einem
+  Eingang (Kamera, Bild, Video) bewegt sich nur der Traum-Anteil weiter; bei Verwandlung 0 bewegt sich nichts. Das
+  Ausgabefenster bewegt sich mit; Syphon bekommt die Bilder selbst.
 - **Glätten – gegen Flackern** (Karte Traum, auch am Handy und als MIDI-Ziel): Die KI malt jedes Bild neu, feine
   Details springen deshalb von Bild zu Bild leicht – das wirkt wie Flackern. Glätten mischt jedes neue KI-Bild mit
   voller Bildrate weich in das Gezeigte (ein gleitender Mittelwert): kleine Sprünge verschwinden, große Änderungen

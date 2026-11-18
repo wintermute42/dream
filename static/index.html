@@ -480,6 +480,8 @@
     <input type="range" id="drift" min="0" max="1" step="0.05" value="0.5"></div>
     <label for="smooth" title="Blends each new AI picture softly into what is shown: small jumps (flicker) vanish, big changes come a little softer">Smoothing – against flicker <span class="val" id="v-smooth"></span></label>
     <input type="range" id="smooth" min="0" max="1" step="0.05" value="0.3">
+    <label for="morph" title="Between two AI pictures the picture goes on moving the way the dream moves (zoom, turn), so it neither stands still nor jumps">Motion between the pictures <span class="val" id="v-morph"></span></label>
+    <input type="range" id="morph" min="0" max="1" step="0.05" value="1">
     <label style="display:flex;align-items:center;gap:6px;margin:4px 0 0"><input type="checkbox" id="drift_prompt" checked> Vary the prompt gently (light, colour, material)</label>
   </div>
   </details>
@@ -805,8 +807,9 @@
     $('v-style_ref_amt').textContent = $('style_ref').value ? Math.round(+$('style_ref_amt').value * 100) + ' %' : T('off');
     $('v-drift').textContent = +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off');
     $('v-smooth').textContent = +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off');
+    $('v-morph').textContent = +$('morph').value ? Math.round($('morph').value * 100) + ' %' : T('off');
   };
-  Object.values(ui).forEach(el => el.addEventListener('input', show)); $('sens').addEventListener('input', show); $('motion_sens').addEventListener('input', show); $('pose_scale').addEventListener('input', show); $('edges_scale').addEventListener('input', show); $('edges').addEventListener('change', show); $('style').addEventListener('change', show); $('style_amt').addEventListener('input', show); $('style_ref_amt').addEventListener('input', show); $('drift').addEventListener('input', show); $('smooth').addEventListener('input', show); show();
+  Object.values(ui).forEach(el => el.addEventListener('input', show)); $('sens').addEventListener('input', show); $('motion_sens').addEventListener('input', show); $('pose_scale').addEventListener('input', show); $('edges_scale').addEventListener('input', show); $('edges').addEventListener('change', show); $('style').addEventListener('change', show); $('style_amt').addEventListener('input', show); $('style_ref_amt').addEventListener('input', show); $('drift').addEventListener('input', show); $('smooth').addEventListener('input', show); $('morph').addEventListener('input', show); show();
   // #108: to the cloud the line is the limit – WebP both ways (where the browser can write it), and live sources go
   // up at 5/8 of the size; the cloud scales them back before dreaming. A dream or picture that builds on its last
   // result keeps the full size, so it never gets softer from round to round. On this Mac nothing changes.
@@ -953,6 +956,9 @@
       img.onload = () => {
         back.src = url; back.style.opacity = 1; front.style.opacity = 0;
         const old = front; front = back; back = old;
+        const mv = morphNow(1000 / Math.max(0.3, fps));   // #194: this picture goes on moving until the next one comes
+        DreamFx.morph.start(front, mv, performance.now());
+        if (outWs && outWs.readyState === 1) outWs.send(JSON.stringify({ morph: mv }));
         setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1000);
         last = img; smoother.push(img);
         const t = performance.now(), dt = t - lastT; fps = fps * 0.8 + (1000 / dt) * 0.2; lastT = t;
@@ -975,6 +981,20 @@
     }
   }
   const status = t => { $('status').textContent = t; };
+  // #194: the motion of the dream right now (as feedback() applies it to the next input), for the pictures in between
+  function morphNow(period) {
+    const amt = +($('morph') ? $('morph').value : 1);
+    const share = mode === 'dream' ? 1 : clamp(+ui.mix.value, 0, 1);       // with an input, only the dream's share moves on
+    if (passThrough() || amt <= 0.001 || share <= 0.001) return null;
+    return { z: +(mod.zoom() * amt * share).toFixed(5), r: +(mod.rot() * amt * share).toFixed(3),
+      px: +clamp(pivot.x, 0, 1).toFixed(3), py: +clamp(pivot.y, 0, 1).toFixed(3), period: Math.round(clamp(period, 120, 3000)) };
+  }
+  (function morphLoop() {                              // the two pictures, the smoothing and the effect layer move along
+    const now = performance.now();
+    DreamFx.morph.apply(front, now); DreamFx.morph.apply(back, now);
+    DreamFx.morph.apply(front, now, $('smoothcv')); DreamFx.morph.apply(front, now, $('fxcv'));
+    requestAnimationFrame(morphLoop);
+  })();
   // Syphon: every shown frame also goes to the server, which publishes it for Resolume
   let outWs = null;
   let outViewers = 0, outPreviews = 0;  // open output windows (/output) and remote previews (#141) – they show what the stage shows
@@ -1843,11 +1863,11 @@
   if (params.get('stage') === '1') document.body.classList.add('hide', 'stage-only');
   const BIND = { prompt: 'prompt', strength: 'strength', mix: 'mix', zoom: 'zoom', rot: 'rot', hue: 'hue', sens: 'sens',
     quality: 'quality', size: 'size', seed: 'seed', model: 'model', rewrite: 'rewrite', playlist: 'playlist',
-    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
+    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
     fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
-  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
+  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
   let ctl = null, applying = false;
   const sendCtl = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };
   const readEl = (k, el) => el.type === 'checkbox' ? el.checked : (NUM.has(k) ? +el.value : el.value);
