@@ -151,7 +151,7 @@ TARGETS = {k: (s.lo, s.hi) for k, s in SETTINGS.items() if s.target}   # what a 
 def guest_changes(changes: dict) -> dict:
     """#148: the part of a guest's changes a guest may make."""
     return {k: v for k, v in changes.items()
-            if k in GUEST_KEYS and (SETTINGS[k].guest is True or v in SETTINGS[k].guest)}
+            if k in GUEST_KEYS and (SETTINGS[k].guest is True or (isinstance(v, str) and v in SETTINGS[k].guest))}
 
 
 def coerce_number(k, v):

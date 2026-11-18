@@ -4,6 +4,7 @@ and its motion sensors (#146)."""
 import asyncio
 import contextlib
 import json
+import math
 import os
 import time
 
@@ -74,7 +75,10 @@ async def ctl(sock: WebSocket):
             if raw.get("bytes") is not None:      # #146: a picture of the live camera (only its device's)
                 await feed_frame(sock, raw["bytes"])
                 continue
-            msg = json.loads(raw.get("text") or "null")
+            try:
+                msg = json.loads(raw.get("text") or "null")
+            except (ValueError, RecursionError):   # #208: not JSON, or nested too deep – not taken, the line stays
+                continue
             if not isinstance(msg, dict):
                 continue
             if sock in eyes.eyes_pages or rights.can(hub.roles.get(sock), "eyes_only"):   # #166: also eyes on a Control device
@@ -84,7 +88,7 @@ async def ctl(sock: WebSocket):
             mr = msg.get("measure_report")             # #180: a device's frames during a measurement run
             if measure.measure["run"] and isinstance(mr, dict) and len(measure.measure["reports"]) < 50:
                 kind = mr.get("kind") if mr.get("kind") in ("stage", "eyes", "remote", "output") else "other"
-                with contextlib.suppress(TypeError, ValueError):
+                with contextlib.suppress(TypeError, ValueError, OverflowError):
                     measure.measure["reports"][(kind, id(sock))] = {
                         **{k: float(min(max(float(mr.get(k) or 0), 0), 10000)) for k in ("fps", "ms_avg", "ms_p95", "slow_pct")},
                         "render": mr.get("render") if mr.get("render") in ("webgl2", "canvas") else ""}
@@ -121,11 +125,11 @@ async def ctl(sock: WebSocket):
                 msg = {k: v for k, v in msg.items() if k in ("set", "cmd", "auto")}
                 if isinstance(msg.get("set"), dict):
                     msg["set"] = settings.guest_changes(msg["set"])
-                if "cmd" in msg and msg["cmd"] not in rights.GUEST_CMDS:
-                    msg.pop("cmd")
+                if not is_name(msg.get("cmd")) or msg["cmd"] not in rights.GUEST_CMDS:
+                    msg.pop("cmd", None)
             if "set" in msg and isinstance(msg["set"], dict):
                 await hub.apply(msg["set"], exclude=sock, by=None if msg.get("auto") else kind)
-            if "cmd" in msg:                       # one-off actions, handled by the stage
+            if is_name(msg.get("cmd")):            # one-off actions, handled by the stage
                 if msg["cmd"] == "next":
                     await scenes.next_scene(force=True)
                 else:
@@ -133,9 +137,9 @@ async def ctl(sock: WebSocket):
             if "midi_learn" in msg:                # the next touched MIDI control gets this target
                 t = msg["midi_learn"]
                 inputs.midi_learn.clear()
-                if t in midi.TARGETS or t in midi.ACTIONS:
+                if is_name(t) and (t in midi.TARGETS or t in midi.ACTIONS):
                     inputs.midi_learn["target"] = t
-            if "sensor_learn" in msg and msg["sensor_learn"] in midi.TARGETS:
+            if is_name(msg.get("sensor_learn")) and msg["sensor_learn"] in midi.TARGETS:
                 inputs.sens.start_learning(msg["sensor_learn"])
             if "sensor_forget" in msg or "sensor_invert" in msg or "sensor_impulse" in msg or "sensor_sens" in msg:
                 inputs.sensor_setting(msg)
@@ -153,10 +157,10 @@ async def ctl(sock: WebSocket):
             if "rule" in msg and kind == "stage" and hub.state["flowtrack"] != "off":
                 for name in msg["rule"] if isinstance(msg["rule"], list) else [msg["rule"]]:
                     await inputs.on_rule(str(name)[:60])
-            if "live" in msg and kind == "stage":  # the stage reports fps
+            if isinstance(msg.get("live"), dict) and kind == "stage":   # the stage reports fps
                 lv = msg["live"]
-                hub.live["fps"] = float(lv.get("fps", hub.live["fps"]))
-                hub.live["flow_rate"] = float(lv.get("flow_rate", 0) or 0)
+                hub.live["fps"] = rate(lv.get("fps"), hub.live["fps"])
+                hub.live["flow_rate"] = rate(lv.get("flow_rate"), 0.0)
                 await hub.broadcast(hub.status_msg())
     except (WebSocketDisconnect, RuntimeError, ValueError):
         pass
@@ -168,6 +172,23 @@ async def ctl(sock: WebSocket):
         outbox.drop(sock)
         await feeds_end(sock)
         await hub.broadcast(hub.status_msg())
+
+
+def is_name(v) -> bool:
+    """#208: a command, a target, a key is a text. Anything else a device sends in its place (a list, a number) is not
+    looked up anywhere – a value that cannot be hashed would end the device's connection."""
+    return isinstance(v, str)
+
+
+def rate(v, default: float) -> float:
+    """#208: a rate the stage reports (pictures a second): a finite number that is not negative, else the default."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return default
+    try:
+        v = float(v)
+    except OverflowError:
+        return default
+    return v if math.isfinite(v) and v >= 0 else default
 
 
 def role_msg(sock) -> dict:
