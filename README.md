@@ -205,7 +205,8 @@ together with the GPU, which makes the run itself a little slower than usual. On
   picture of the new model grows out of the last one of the old, stage and projector blend over softly in 2.5 s.
   Then Dream frees the old model. If memory is not enough for both at once, Dream frees the old one first and holds
   the last picture meanwhile (the chip says so). If the new model does not load (not downloaded, no network), the old
-  one runs on and the chip reports it.
+  one runs on and the chip reports it. “Keep outlines” and “Pose shapes the figure” dream on meanwhile too; only
+  switching one of them on for the first time while a model loads waits for that load.
 - **Input & prompt** (one card, two levels): at the top **“Input – what does the AI paint from?”** as tabs: **Dream
   only** (no input picture, the AI dreams on from its last picture), **Camera**, **Picture**, **Video**, **Light trails**
   (from the movement detection). Each tab shows what belongs to it: in Picture or Video you choose your own file or
@@ -455,7 +456,8 @@ Good to know:
 - **Autostart:** `./install-autostart.sh --lan --x 1920` starts Dream after every login, keeps the display awake and
   opens the stage fullscreen in a Chrome window of its own on the projector (`--x` = the projector display's left edge
   in macOS). Remove: `install-autostart.sh --remove`.
-- All settings survive a restart (`~/.local/state/dream/state.json`).
+- All settings survive a restart (`~/.local/state/dream/state.json`). Dream writes the file about a second after the
+  last change (while a slider is dragged for long, every 5 seconds) and when it is stopped.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -471,8 +473,8 @@ Good to know:
 - **Output over Wi-Fi (optional):** instead of an HDMI cable from the Mac, a **second device at the projector** can
   show the picture (old notebook, mini PC, Raspberry Pi, Android TV box or Fire TV stick with a browser – Apple TV
   does not work, it has no browser). Start Dream with `./dream.sh --lan`, tap **“📶 Output over Wi-Fi”** in the panel
-  under “Output”: scan the QR code or type the link on the device (the link contains the access key, like the phone's
-  QR code; “⧉ Copy link” puts it on the clipboard). Tap the picture once on the device or press F for fullscreen. Next
+  under “Output”: its QR code opens large with the link below it – scan it or type the link on the device (the link
+  contains the access key, like the phone's QR code; “⧉ Copy link” puts it on the clipboard). Tap the picture once on the device or press F for fullscreen. Next
   to the button it says how many outputs are connected.
   - Data and delay are uncritical (about 1–2 MB/s, a fraction of a second; the blend smooths it).
   - On Wi-Fi drop-outs the picture holds briefly, the page says “Connection to Dream lost – reconnecting …” and goes
@@ -510,9 +512,16 @@ Resolume just leave it off.
 ```
 
 Then Dream is also reachable in the home Wi-Fi – but only with a secret link. Press **Q** on the stage (or
-“📱 Phone”): a QR code appears, scan it with the phone, done. The phone remembers the access. Everything you change on
-the phone happens at once on the stage. To speak on the phone: the keyboard's dictation. Several phones at once work
-too.
+“📱 Phone”): a QR code appears in a corner of the stage, scan it with the phone, done. The phone remembers the access. Everything you
+change on the phone happens at once on the stage. To speak on the phone: the keyboard's dictation. Several phones at
+once work too.
+
+**The other QR codes open in a lightbox:** large on white – easy to scan from a distance and with old phones – with
+their explanation below. This goes for Dream Control, the output over Wi-Fi, the certificate, Dreamy Eyes and the dream
+windows, in the panel and in Dream Control alike. Close it with **Esc**, a click beside it or “Close”; the keys of the
+stage rest meanwhile. A code is only loaded while its lightbox is open, so its key is never on the screen longer than
+needed. The guests' code stays small in the corner of the stage (Q, “📱 Phone” or “QR on the stage” in Dream Control
+show and hide it): the dream goes on behind it and the keys keep working.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -529,8 +538,8 @@ There are two keys, so the audience may play along without being able to cost yo
   saving or deleting in the gallery. The remote shows a guest only what a
   guest may use, and the server refuses the rest anyway (“Only Dream Control may do this.”).
 - **Dream Control is your own remote with every setting.** In the panel under “Output”: **🎛 Dream Control** shows its
-  QR code – scan it with your own phone or tablet, never in front of the audience (the code disappears again when you
-  close it). Only one device is Dream Control at a time: a second one starts as a guest with the button
+  QR code – scan it with your own phone or tablet, never in front of the audience (the code is gone again when you
+  close its lightbox). Only one device is Dream Control at a time: a second one starts as a guest with the button
   **“Take over Dream Control”**; the first then steers as a guest and may take it back the same way.
 - **↻ New guest code** (panel, under “Output”) asks once, then makes a new guests' key: every guest phone and every
   output window opened with the old one loses access at once, the stage shows the new QR code. Dream Control keeps its
@@ -570,7 +579,7 @@ address changes (on the next start) and before it runs out.
 
    Then “Install anyway”, unlock (a screen lock is required) and choose **Downloads → `dream-ca.crt`**. Check:
    settings search “Trusted credentials” → tab **User** shows “Dream home network CA”.
-3. Tap **“Certificate is installed → next”** – the panel shows the codes one after the other and remembers this step
+3. Tap **“Certificate is installed → next”** – the lightbox shows the codes one after the other and remembers this step
    (next time it starts with code 2; “← Certificate” goes back). Scan code **2** (Dream Control). In Chrome: menu ⋮ →
    **Install app** (or the remote's own “⤓ Install as app” button). From then on it starts from the home screen like an
    app. A tablet with device management (work or school) may forbid own certificates altogether.
@@ -598,8 +607,9 @@ The remote is made for a tablet as well, upright and lying, best in **Chrome** (
   preview**, **Pause**, **Next**, **Autopilot**, **Blackout** and large sliders for **Transformation** and
   **Master brightness**. **Lying:** three columns, the bar as a column on the left. The cards keep their order and
   are only placed anew when you turn the tablet – folding a card moves nothing to another column.
-- **Live preview:** what the stage shows, about 4 pictures per second (about as much Wi-Fi as the Wi-Fi output, or
-  less). Tap it to switch it off and on (remembered), hold it to see it large.
+- **Live preview:** what the stage shows, about 4 pictures per second, as a small picture (320 px, a fraction of the
+  Wi-Fi the Wi-Fi output needs). Tap it to switch it off and on (remembered), hold it to see it large – while it is
+  large, the remote gets the stage's full picture.
 - **⛶ Fullscreen:** a tap fills the whole screen without address and status bar (on a phone the button is in the
   header). Coming back from another app, a button asks “⛶ Fullscreen again?” – browsers allow fullscreen only after
   a tap. A home screen shortcut (Chrome menu → “Add to home screen”) opens it with one tap, with Dream's icon (the
@@ -638,6 +648,11 @@ Dream Control (over https, see above) has a card **“This device”**:
 5. VPN or ad blocker on the phone off.
 6. Test without the link: `http://<Mac's IP>:7860/health` on the phone – if anything answers (also “forbidden”), the
    connection stands. The Mac's IP: `ipconfig getifaddr en0`.
+
+**A phone with a weak connection** (at the edge of the Wi-Fi) does not slow down anyone else: every device has its
+own small queue, the stage, the projector and the other remotes go on. Of the pictures it only gets the latest; if its
+line does not move for 10 seconds, Dream disconnects it, and its page connects again by itself (“Connection lost –
+trying again …”) and gets all settings anew.
 
 Photos and short clips also work via “Upload a picture or video” → camera. The live camera of the phone or tablet:
 see the next section.
@@ -1159,8 +1174,9 @@ rm -rf <Dream folder> ~/.cache/huggingface/hub/models--stabilityai--sd-turbo ~/.
 `uv run pytest` runs the automated tests (a few seconds; no model, no GPU, no network – they use a stand-in for torch and
 a temporary home folder, so your own settings, keys and pictures are never touched). They check who may do what (every
 route of the server for this Mac, Dream Control, guests, Dreamy Eyes and devices without a key), the origin check, the
-ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers and the
-translations. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
+ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers, the
+translations and what keeps Dream running smoothly (the prompt encoded once per prompt, no waiting for a loading model
+or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software

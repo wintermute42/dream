@@ -7,7 +7,7 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 
 - `server.py` – FastAPI, role "app" (Mac: pages, voice, control state, cloud control, local rendering) or "worker"
   (cloud: rendering only). `static/index.html` is the stage (with optional panel), `static/remote.html` the phone
-  remote, `static/output.html` the output window. `tls.py` makes the certificates for https in the home network (#145). `dream-cloud` starts/stops the cloud GPU (scw CLI or
+  remote, `static/output.html` the output window. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`, never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or
   `cloud_runpod.py`, SSH tunnel); `styles.py` holds the style models and the reference adapter.
 - Everything in the repository is English: code, identifiers, values and saved names, comments, log messages, commit
   messages, README. Text a person sees goes through the translation files: English in the code, the German in

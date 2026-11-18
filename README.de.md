@@ -211,7 +211,9 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   Das erste Bild des neuen Modells entsteht aus dem letzten des alten, Bühne und Beamer blenden 2,5 s weich über.
   Danach gibt Dream das alte Modell frei, der Speicher ist wieder da. Reicht der Speicher nicht für beide zugleich,
   gibt Dream erst das alte frei und hält solange das letzte Bild an (der Chip sagt das). Lädt das neue Modell nicht
-  (z. B. nicht heruntergeladen, kein Netz), läuft das alte weiter und der Chip meldet es.
+  (z. B. nicht heruntergeladen, kein Netz), läuft das alte weiter und der Chip meldet es. „Umrisse erhalten“ und
+  „Pose formt die Figur“ träumen währenddessen ebenfalls weiter; nur wer eins davon zum ersten Mal einschaltet, während
+  ein Modell lädt, wartet auf dieses Laden.
 - **Eingang & Prompt** (eine Karte, zwei Ebenen): Oben **„Eingang – woraus malt die KI?“** als Reiter: **Nur Traum**
   (kein Eingangsbild, die KI träumt aus ihrem letzten Bild weiter), **Kamera**, **Bild**, **Video**, **Leuchtspuren** (aus der Bewegungserkennung).
   Jeder Reiter zeigt, was zu ihm gehört: Im Reiter Bild bzw. Video wählst du eine eigene Datei oder lässt die KI ein
@@ -471,7 +473,8 @@ Gut zu wissen:
 - **Autostart:** `./install-autostart.sh --lan --x 1920` startet Dream nach jeder Anmeldung,
   hält den Bildschirm wach und öffnet die Bühne im Vollbild in einem eigenen Chrome-Fenster auf dem Beamer
   (`--x` = linke Kante des Beamer-Bildschirms in macOS). Entfernen: `install-autostart.sh --remove`.
-- Alle Einstellungen bleiben nach einem Neustart erhalten (`~/.local/state/dream/state.json`).
+- Alle Einstellungen bleiben nach einem Neustart erhalten (`~/.local/state/dream/state.json`). Dream schreibt die Datei
+  etwa eine Sekunde nach der letzten Änderung (beim langen Ziehen eines Reglers alle 5 Sekunden) und beim Beenden.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -487,8 +490,8 @@ Gut zu wissen:
 - **Ausgabe im WLAN (optional):** Statt eines HDMI-Kabels vom Mac kann ein **zweites Gerät am Beamer** das Bild zeigen
   (altes Notebook, Mini-PC, Raspberry Pi, Android-TV-Box oder Fire TV Stick mit Browser – Apple TV geht nicht, es hat
   keinen Browser). Dream mit `./dream.sh --lan` starten, im Bedienfeld unter „Ausgabe“ **„📶 Ausgabe im WLAN“**
-  antippen: QR-Code scannen oder den Link am Gerät eingeben (der Link enthält den Zugangsschlüssel, wie der QR-Code
-  fürs Handy; „⧉ Link kopieren“ legt ihn in die Zwischenablage). Am Gerät einmal ins Bild tippen bzw. F für Vollbild.
+  antippen: Der QR-Code öffnet sich groß, darunter steht der Link – scannen oder den Link am Gerät eingeben (er enthält
+  den Zugangsschlüssel, wie der QR-Code fürs Handy; „⧉ Link kopieren“ legt ihn in die Zwischenablage). Am Gerät einmal ins Bild tippen bzw. F für Vollbild.
   Neben dem Knopf steht, wie viele Ausgaben gerade verbunden sind.
   - Datenmenge und Verzögerung sind unkritisch (etwa 1–2 MB/s, Bruchteil einer Sekunde; die Überblendung glättet).
   - Bei WLAN-Aussetzern bleibt das Bild kurz stehen, die Seite sagt „Verbindung zu Dream weg – verbinde neu …“ und
@@ -525,9 +528,17 @@ dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
 ```
 
 Dann ist Dream zusätzlich im Heim-WLAN erreichbar – aber nur mit einem geheimen Link. Auf der Bühne **Q** drücken
-(oder „📱 Handy“): ein QR-Code erscheint, mit dem Handy scannen, fertig. Das Handy merkt sich den Zugang.
+(oder „📱 Handy“): ein QR-Code erscheint in einer Ecke der Bühne, mit dem Handy scannen, fertig. Das Handy merkt sich den Zugang.
 Alles, was du am Handy änderst, passiert sofort auf der Bühne. Sprechen am Handy: Diktierfunktion der Tastatur.
 Mehrere Handys gleichzeitig gehen auch.
+
+**Die anderen QR-Codes öffnen sich in einer Lightbox:** groß auf weißem Grund – gut aus der Entfernung und mit alten
+Handys zu scannen –, darunter ihre Erklärung. Das gilt für Dream Control, die Ausgabe im WLAN, das Zertifikat, Dreamy
+Eyes und die Traum-Fenster, im Bedienfeld genauso wie in Dream Control. Schließen mit **Esc**, einem Klick daneben oder
+„Schließen“; die Tasten der Bühne ruhen so lange. Ein Code wird nur geladen, solange seine Lightbox offen ist – sein
+Schlüssel steht nie länger als nötig auf dem Bildschirm. Der Code der Gäste bleibt klein in der Ecke der Bühne (Q,
+„📱 Handy“ oder „QR auf Bühne“ in Dream Control zeigen und verbergen ihn): Der Traum läuft dahinter weiter, und die
+Tasten wirken wie gewohnt.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -545,7 +556,7 @@ Es gibt zwei Schlüssel, damit das Publikum mitspielen kann, ohne dich Geld zu k
   zeigt einem Gast nur, was er darf, und der Server lehnt den Rest ohnehin ab („Das darf nur Dream Control.“).
 - **Dream Control ist deine eigene Fernbedienung mit allen Einstellungen.** Im Bedienfeld unter „Ausgabe“ zeigt
   **🎛 Dream Control** ihren QR-Code – mit dem eigenen Handy oder Tablet scannen, nie vor dem Publikum (der Code
-  verschwindet wieder, wenn du ihn zuklappst). Es ist immer nur ein Gerät Dream Control: Ein zweites startet als Gast mit
+  ist wieder weg, sobald du seine Lightbox schließt). Es ist immer nur ein Gerät Dream Control: Ein zweites startet als Gast mit
   dem Knopf **„Dream Control übernehmen“**; das erste steuert dann als Gast weiter und kann es auf dieselbe Weise
   zurückholen.
 - **↻ Neuer Gast-Code** (Bedienfeld, unter „Ausgabe“) fragt einmal nach und erzeugt dann einen neuen Gast-Schlüssel:
@@ -589,7 +600,7 @@ Server-Zertifikat erneuert sich selbst, wenn sich die Adresse des Macs ändert (
 
    Dann „Trotzdem installieren“, entsperren (eine Displaysperre ist nötig) und **Downloads → `dream-ca.crt`** wählen.
    Prüfen: Einstellungen-Suche „Vertrauenswürdige Anmeldedaten“ → Reiter **Nutzer** zeigt „Dream home network CA“.
-3. **„Zertifikat ist installiert → weiter“** tippen – das Bedienfeld zeigt die Codes nacheinander und merkt sich diesen
+3. **„Zertifikat ist installiert → weiter“** tippen – die Lightbox zeigt die Codes nacheinander und merkt sich diesen
    Schritt (beim nächsten Mal beginnt es mit Code 2; „← Zertifikat“ geht zurück). Code **2** (Dream Control) scannen. In
    Chrome: Menü ⋮ → **App installieren** (oder der Knopf „⤓ Als App installieren“ in der Fernbedienung). Danach startet es
    vom Startbildschirm wie eine App. Ein Tablet mit Geräteverwaltung (Firma, Schule) verbietet eigene Zertifikate unter
@@ -619,8 +630,9 @@ unten):
   **Live-Vorschau**, **Pause**, **Weiter**, **Autopilot**, **Blackout** und große Regler für **Verwandlung** und
   **Master-Helligkeit**. **Quer:** drei Spalten, die Leiste als Spalte links. Die Karten behalten ihre Reihenfolge und
   werden nur beim Drehen neu verteilt – Zuklappen verschiebt nichts in eine andere Spalte.
-- **Live-Vorschau:** was die Bühne zeigt, etwa 4 Bilder pro Sekunde (ungefähr so viel WLAN wie die WLAN-Ausgabe oder
-  weniger). Antippen schaltet sie aus und an (wird gemerkt), gedrückt halten zeigt sie groß.
+- **Live-Vorschau:** was die Bühne zeigt, etwa 4 Bilder pro Sekunde, als kleines Bild (320 px, ein Bruchteil des WLANs,
+  das die WLAN-Ausgabe braucht). Antippen schaltet sie aus und an (wird gemerkt), gedrückt halten zeigt sie groß –
+  solange sie groß ist, bekommt die Fernbedienung das volle Bühnenbild.
 - **⛶ Vollbild:** ein Tipp füllt den ganzen Bildschirm ohne Adress- und Statusleiste (am Handy ist der Knopf oben in
   der Kopfzeile). Kommst du aus einer anderen App zurück, fragt ein Knopf „⛶ Wieder Vollbild?“ – Browser erlauben
   Vollbild nur nach einem Tipp. Eine Verknüpfung auf dem Startbildschirm (Chrome-Menü → „Zum Startbildschirm
@@ -660,6 +672,11 @@ Dream Control (über https, siehe oben) hat eine Karte **„Dieses Gerät“**:
 5. VPN oder Werbeblocker am Handy aus.
 6. Test ohne Link: `http://<IP des Macs>:7860/health` am Handy – antwortet etwas (auch „forbidden“), steht die
    Verbindung. Die IP des Macs: `ipconfig getifaddr en0`.
+
+**Ein Handy mit schwacher Verbindung** (am Rand des WLANs) bremst niemanden sonst: Jedes Gerät hat seine eigene kleine
+Warteschlange, Bühne, Beamer und die anderen Fernbedienungen laufen weiter. Von den Bildern bekommt es nur das
+neueste; bewegt sich seine Leitung 10 Sekunden lang nicht, trennt Dream es, und seine Seite verbindet sich von selbst
+neu („Verbindung weg – versuche erneut …“) und bekommt alle Einstellungen frisch.
 
 Fotos und kurze Clips gehen auch über „Bild/Video hochladen“ → Kamera. Die Live-Kamera von Handy oder Tablet: siehe den
 nächsten Abschnitt.
@@ -1228,7 +1245,9 @@ Lizenzen: SD-Turbo und SDXL-Turbo stehen unter der Stability AI Community Licens
 Ersatz für torch und einen temporären Home-Ordner, deine Einstellungen, Schlüssel und Bilder bleiben unberührt). Sie
 prüfen, wer was darf (jede Route des Servers für diesen Mac, Dream Control, Gäste, Dreamy Eyes und Geräte ohne
 Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung, die Ordner, die Zertifikate fürs Heimnetz, die
-MIDI-, Sensor- und Playlist-Helfer und die Übersetzungen. `node --test tests/js/beat.test.mjs` prüft die Takterkennung
+MIDI-, Sensor- und Playlist-Helfer, die Übersetzungen und was Dream flüssig hält (der Prompt wird einmal je Prompt
+kodiert, niemand wartet auf ein ladendes Modell oder ein langsames Gerät, der Zustand wird erst geschrieben, wenn die
+Hände ruhen, die kleine Vorschau). `node --test tests/js/beat.test.mjs` prüft die Takterkennung
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
 `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
