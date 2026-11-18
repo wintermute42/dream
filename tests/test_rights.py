@@ -1,8 +1,11 @@
 """Rights (#148, #156, #175): every role against every route of the app (rights.py), the origin/host check, the /ctl filter and the
 guests' message allowance. The server runs with --lan in the test sandbox; the requests come from invented home-network
 addresses."""
+import asyncio
+import itertools
 import json
 import time
+import types
 
 import pytest
 from starlette.testclient import TestClient
@@ -150,6 +153,20 @@ def test_key_from_the_address_is_kept_as_a_cookie(server, reached):
     r = client(server, "guest").get("/remote", params={"k": server.rights.keys["guest"]})
     cookie = r.headers["set-cookie"]
     assert cookie.startswith(f"dream_k={server.rights.keys['guest']}") and "HttpOnly" in cookie and "SameSite=lax" in cookie
+
+
+@pytest.mark.parametrize("role,path,name", [("window", "/window", "dream_w"), ("eyes", "/eyes", "dream_e"),
+                                            ("guest", "/remote", "dream_k")])
+def test_a_page_renews_only_the_cookie_it_signed_in_with(server, reached, role, path, name):
+    """#170: a key that works is renewed on every page. A device that keeps several valid keys gets back the one this
+    page signed in with – a dream window its dream_w (#201), the eyes' page its dream_e (#166) – and no other."""
+    kept = {"dream_k": server.rights.keys["guest"], "dream_e": server.rights.keys["eyes"],
+            "dream_w": server.rights.keys["window"]}
+    r = client(server, role, cookies=kept).get(path, headers={"accept": "text/html"})
+    assert r.text == "reached"
+    renewed = r.headers.get_list("set-cookie")
+    assert len(renewed) == 1, renewed
+    assert renewed[0].startswith(f"{name}={kept[name]};") and "HttpOnly" in renewed[0] and "SameSite=lax" in renewed[0]
 
 
 def test_a_device_without_a_key_gets_the_pairing_page(server):
@@ -378,6 +395,64 @@ def test_ctl_poisoned_numbers_are_not_taken(server, saved_state):
                 done=lambda: server.hub.state["prompt"] == "after")
     assert (server.hub.state["strength"], server.hub.state["zoom"]) == (0.5, saved_state["zoom"])
     assert json.load(open(server.hub.STATE_FILE))["strength"] == 0.5
+
+
+# #208: what a broken or hostile page may send instead of a plain value – not hashable, the wrong type, too big
+ODD = [[], {}, [[]], {"a": [1]}, None, True, 0, -1, 1.5, 10 ** 400, float("nan"), float("inf"), "", "no-such", "x" * 3000]
+ODD_FIELDS = ["set", "cmd", "arg", "auto", "feed", "feed_end", "motion_in", "eyes_trance", "eyes_cfg", "eyes_mood",
+              "seen", "arrived", "fire", "take_control", "renew_guest", "midi_learn", "midi_forget", "sensor_learn",
+              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "moved", "rule", "live",
+              "measure_report"]
+ODD_INSIDE = {"feed": ("cam", "motion", "facing"), "motion_in": ("acc", "gyro"), "eyes_cfg": ("trance_every",),
+              "live": ("fps", "flow_rate"), "measure_report": ("kind", "fps", "ms_avg", "render")}
+ODD_FRAMES = ["", "{not json", "[1]", '"text"', "null", "[" * 100000]
+
+
+def odd_messages(server) -> list:
+    """Every field /ctl reads, and every setting, with every odd value – alone, in a list and inside its dictionary."""
+    msgs = [{f: v} for f in ODD_FIELDS for v in ODD]
+    msgs += [{f: [v]} for f in ("rule", "cams") for v in ODD]
+    msgs += [{f: {k: v}} for f, keys in ODD_INSIDE.items() for k in keys for v in ODD]
+    msgs += [{f: {k: [v]}} for f, keys in ODD_INSIDE.items() for k in keys for v in ODD]
+    msgs += [{"set": {k: v}} for k in server.settings.SETTINGS for v in ODD if not isinstance(v, (str, bool))]
+    return msgs
+
+
+@pytest.mark.parametrize("role", sorted(WS["/ctl"]))
+def test_ctl_ignores_invalid_values_and_stays_open(server, monkeypatch, saved_state, role):
+    """#208: a value /ctl cannot use is not taken, whoever sends it – no error in the loop, and the connection stays:
+    the message after all the odd ones still arrives."""
+    for part, name in ((server.eyes, "eyes_cfg"), (server.inputs, "midi_map"), (server.inputs.sens, "mapping"),
+                       (server.hub, "live"), (server.measure, "measure")):
+        monkeypatch.setattr(part, name, dict(getattr(part, name)))
+    monkeypatch.setattr(server.inputs.sens, "sensitivity", server.inputs.sens.sensitivity)
+    monkeypatch.setitem(server.measure.measure, "run", True)       # reports are only read during a measurement run
+    monkeypatch.setitem(server.measure.measure, "reports", {})
+    monkeypatch.setattr(server.ctl, "renew_guest", lambda: asyncio.sleep(0))
+    monkeypatch.setattr(server.hub, "save_soon", lambda: None)
+    ticks = itertools.count()                                      # a second per message: a guest's allowance never runs out
+    monkeypatch.setattr(server.ctl, "time", types.SimpleNamespace(monotonic=lambda: next(ticks), time=time.time))
+    noted = []
+    note = server.eyes.eyes_note
+    monkeypatch.setattr(server.eyes, "eyes_note", lambda msg: (note(msg), noted.append(msg))[0])
+    server.hub.state.update(flowtrack="on", prompt="before", mode="dream")
+    url = ws_url(server, "/ctl", role) + ("?role=stage" if role == "local" else "")   # this Mac: as the stage
+    with client(server, role).websocket_connect(url) as ws:
+        assert ws.receive_json()["role"] == role
+        for frame in ODD_FRAMES:
+            ws.send_text(frame)
+        ws.send_bytes(b"")
+        ws.send_bytes(b"not a picture")
+        for m in odd_messages(server):
+            ws.send_text(json.dumps(m))
+        ws.send_text(json.dumps({"set": {"prompt": "still here"}, "seen": "last"}))
+        if role == "eyes":
+            wait_until(lambda: any(m.get("seen") == "last" for m in noted))
+        else:
+            wait_until(lambda: server.hub.state["prompt"] == "still here")
+    assert server.hub.state["mode"] in server.settings.CHOICES["mode"]
+    if role == "guest":
+        assert server.hub.state["mode"] == "dream" and server.hub.state["flowtrack"] == "on"
 
 
 def test_ctl_second_control_is_a_guest_until_it_takes_over(server):
