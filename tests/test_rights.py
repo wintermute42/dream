@@ -29,6 +29,8 @@ HTTP = {
     ("GET", "/energy_words"): ("/energy_words", LC),
     ("POST", "/voice"): ("/voice", LC),
     ("GET", "/cloud"): ("/cloud", LC),
+    ("GET", "/measure"): ("/measure", LC),
+    ("POST", "/measure"): ("/measure", LC),
     ("POST", "/cloud/start"): ("/cloud/start", LC),
     ("POST", "/cloud/stop"): ("/cloud/stop", LC),
     ("GET", "/mp/{name:path}"): ("/mp/wasm/vision_wasm_internal.js", LCGE),
