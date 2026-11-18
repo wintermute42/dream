@@ -1271,6 +1271,7 @@ if ROLE == "app":
         "drift": 0.5, "drift_prompt": True,                        # keeps the dream alive without new input (0 = off)
         "music_patterns": True, "music_drop": True,                # music: changing patterns, drop → next scene
         "smooth": 0.3,                                             # smoothing: moving average of the shown pictures (0 = off)
+        "morph": 1.0,                                              # #194: motion between two AI pictures (0 = off)
         "music_pattern": "auto",                                   # auto, or a fixed pattern (Pulse, Jolt, Jump, Flow)
         "aspect": "square",                                        # picture format: square | wide (16:9)
         "touch_amt": 0.6, "touch_paint": True, "touch_warp": True,  # direct touch: hands paint and stir the dream
@@ -1292,7 +1293,7 @@ if ROLE == "app":
     # outside is clamped, NaN or Inf is refused, so nobody can poison the saved state
     RANGES = {**midi.TARGETS, "quality": (1, 4), "size": (256, 1024), "seed": (0, 2**31 - 1), "interval": (5, 3600),
               "auto_level": (0.0, 1.0), "edges_scale": (0.2, 1.5), "style_amt": (0.0, 2.0), "style_ref_amt": (0.0, 1.0),
-              "touch_amt": (0.0, 1.0)}
+              "touch_amt": (0.0, 1.0), "morph": (0.0, 1.0)}
 
     def coerce_number(k, v):
         """#175: a number of the default's type, finite and inside its range – or ValueError."""
