@@ -9,11 +9,12 @@ from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 BASE = "http://127.0.0.1:7860"
-ROLES = ("local", "control", "guest", "eyes", "none")
+ROLES = ("local", "control", "guest", "eyes", "window", "none")
 A = set(ROLES)
 LC = {"local", "control"}
 LCG = {"local", "control", "guest"}
 LCGE = {"local", "control", "guest", "eyes"}
+LCGEW = LCGE | {"window"}                               # #201: the dream windows look, nothing more
 
 # (method, route path) → (a concrete path, the roles that get past the guard). Written down by hand on purpose: a change
 # of the rules (or a new route) has to change this table too.
@@ -24,7 +25,7 @@ HTTP = {
     ("GET", "/redoc"): ("/redoc", LC),
     ("GET", "/health"): ("/health", LCG),
     ("GET", "/stats"): ("/stats", LC),
-    ("GET", "/static"): ("/static/remote.html", LCGE),
+    ("GET", "/static"): ("/static/remote.html", LCGEW),
     ("GET", "/"): ("/", LC),
     ("GET", "/energy_words"): ("/energy_words", LC),
     ("POST", "/voice"): ("/voice", LC),
@@ -34,7 +35,7 @@ HTTP = {
     ("POST", "/cloud/start"): ("/cloud/start", LC),
     ("POST", "/cloud/stop"): ("/cloud/stop", LC),
     ("GET", "/mp/{name:path}"): ("/mp/wasm/vision_wasm_internal.js", LCGE),
-    ("GET", "/eyes/mask/{name}"): ("/eyes/mask/0123456789ab.jpg", {"local", "control", "eyes"}),
+    ("GET", "/eyes/mask/{name}"): ("/eyes/mask/0123456789ab.jpg", {"local", "control", "eyes", "window"}),
     ("GET", "/output"): ("/output", LCG),
     ("GET", "/playlists/{name}"): ("/playlists/Calm", LC),
     ("POST", "/playlists"): ("/playlists", LC),
@@ -42,6 +43,7 @@ HTTP = {
     ("POST", "/playlists/generate"): ("/playlists/generate", LC),
     ("GET", "/remote"): ("/remote", LCG),
     ("GET", "/eyes"): ("/eyes", {"local", "control", "eyes"}),
+    ("GET", "/window"): ("/window", {"local", "control", "window"}),
     ("GET", "/control"): ("/control", LC),
     ("GET", "/dream-ca.crt"): ("/dream-ca.crt", A),
     ("GET", "/remote-info"): ("/remote-info", LCG),
@@ -62,14 +64,14 @@ EXTRA = [
     ("GET", "/static/remote.webmanifest", A),
     ("GET", "/static/control.webmanifest", A),
     ("GET", "/static/icons/remote-192.png", A),
-    ("GET", "/static/index.html", LCGE),
+    ("GET", "/static/index.html", LCGEW),
     ("GET", "/eyes/mask/not-a-mask.jpg", LC),
     ("GET", "/no-such-page", LC),
     ("POST", "/no-such-action", LC),
     ("POST", "/health", LC),
     ("PUT", "/playlists/Calm", LC),
 ]
-WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGE}
+WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW}
 
 
 def client(server, role: str, scheme: str = "http", host: str = "192.168.1.30", **kw) -> TestClient:
@@ -124,11 +126,12 @@ def test_http_rights(server, reached, role, method, path, want):
         assert r.text != "reached"
 
 
-@pytest.mark.parametrize("role", ["control", "guest", "eyes"])
+@pytest.mark.parametrize("role", ["control", "guest", "eyes", "window"])
 def test_key_in_a_cookie(server, reached, role):
-    """A paired device brings its key as a cookie: dream_k over http, dream_c over https, dream_e for the eyes."""
-    path = {"control": "/stats", "guest": "/remote", "eyes": "/eyes"}[role]
-    name = {"control": "dream_c", "guest": "dream_k", "eyes": "dream_e"}[role]
+    """A paired device brings its key as a cookie: dream_k over http, dream_c over https, dream_e for the eyes,
+    dream_w for a dream window (#201)."""
+    path = {"control": "/stats", "guest": "/remote", "eyes": "/eyes", "window": "/window"}[role]
+    name = {"control": "dream_c", "guest": "dream_k", "eyes": "dream_e", "window": "dream_w"}[role]
     scheme = "https" if role == "control" else "http"
     c = client(server, role, scheme=scheme, cookies={name: server.keys[role]})
     assert c.get(path).text == "reached"
@@ -159,6 +162,7 @@ def test_role_of(server):
     assert server.role_of("192.168.1.30", k["control"], None) == "control"
     assert server.role_of("192.168.1.30", None, k["guest"]) == "guest"
     assert server.role_of("192.168.1.30", k["eyes"], k["control"]) == "eyes"      # the address wins over the cookie
+    assert server.role_of("192.168.1.30", k["window"], None) == "window"          # #201
     assert server.role_of("192.168.1.30", None, None) is None
     assert server.role_of("192.168.1.30", "", "") is None
     assert server.role_of("192.168.1.30", k["guest"] + "x", None) is None
@@ -178,6 +182,7 @@ def test_cookie_of(server):
     assert server.cookie_of(both, "wss") == "control-key"
     assert server.cookie_of(both, "https", eyes=True) == "eyes-key"   # #166: the eyes' page asks for the eyes' key first
     assert server.cookie_of({"dream_e": "eyes-key"}, "http") == "eyes-key"
+    assert server.cookie_of({**both, "dream_w": "window-key"}, "http", window=True) == "window-key"   # #201
     assert server.cookie_of({}, "http") is None
 
 
@@ -389,3 +394,50 @@ def test_render_allowed_only_for_the_stage_side(server):
     assert not server.render_allowed(Sock("192.168.1.30", k["guest"]))
     assert not server.render_allowed(Sock("192.168.1.30", k["eyes"]))
     assert not server.render_allowed(Sock("192.168.1.30"))
+
+
+# ---------- dream windows (#201): any number, one organism over all of them, they only look ----------
+def test_dream_windows_get_seeds_and_cannot_steer(server):
+    k = server.keys["window"]
+    c = client(server, "window")
+    with c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as a, \
+            c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as b:
+        def first(ws, key):
+            for _ in range(20):
+                m = json.loads(ws.receive_text())
+                if key in m:
+                    return m[key]
+        assert {first(a, "window")["index"], first(b, "window")["index"]} <= {0, 1}
+    with pytest.raises(WebSocketDisconnect):                           # a window may not open /ctl
+        with c.websocket_connect(f"ws://192.168.1.20:7860/ctl?role=remote&k={k}") as w:
+            w.receive_text()
+
+
+def test_window_seeds_wander_from_window_to_window(server, monkeypatch):
+    """A wanderer that leaves one window comes into the next one from the other side – the same being."""
+    import asyncio
+    sent = []
+
+    class Sock:
+        def __init__(self, n): self.n = n
+        async def send_text(self, text): sent.append((self.n, json.loads(text)))
+    one, two = Sock(1), Sock(2)
+    ws, wd = server.windows, server.wanderers
+    ws.clear(); ws.update({one: {"next": 0}, two: {"next": 1e12}}); wd.clear()
+    monkeypatch.setattr(server.random, "random", lambda: 0.0)          # a wanderer, surely
+    asyncio.run(server.windows_tick(100.0))
+    seed = next(m["life"] for n, m in sent if n == 1)
+    assert seed["kind"] in server.WANDER_KINDS and seed["exit"] != "in"
+    sent.clear()
+    asyncio.run(server.windows_tick(100.0 + seed["life"] + 0.1))
+    nxt = next(m["life"] for n, m in sent if n == 2)
+    assert nxt["seed"] == seed["seed"] and nxt["kind"] == seed["kind"]
+    assert nxt["enter"] == {"left": "right", "right": "left", "top": "bottom", "bottom": "top"}[seed["exit"]]
+    ws.clear(); wd.clear()
+
+
+def test_window_seeds_are_only_what_a_window_needs(server):
+    """A seed carries no prompt, no setting, no picture – only what to draw."""
+    for wander in (True, False):
+        s = server.window_seed("cloud", wander, "left" if wander else "in")
+        assert set(s) == {"id", "kind", "variant", "seed", "life", "enter", "exit", "hue", "size"}

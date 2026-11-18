@@ -12,7 +12,7 @@ import sys
 from html.parser import HTMLParser
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PAGES = ["static/index.html", "static/remote.html", "static/output.html", "static/eyes.html"]
+PAGES = ["static/index.html", "static/remote.html", "static/output.html", "static/eyes.html", "static/window.html"]
 SCRIPTS = ["static/motion.js", "static/calib.js", "static/fx.js"]
 PY = ["server.py", "styles.py", "midi.py", "cloud_runpod.py", "playlists.py"]
 ATTRS = ("title", "aria-label", "placeholder", "alt", "label")
