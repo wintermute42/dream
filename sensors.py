@@ -13,7 +13,9 @@ import math
 import os
 import time
 
-MAP_FILE = os.path.expanduser("~/.config/dream/sensors.json")
+import paths
+
+MAP_FILE = os.path.join(paths.config_dir(), "sensors.json")
 IMPULSE_ACTIONS = ("flash", "jolt", "reseed", "next", "blackout")
 
 

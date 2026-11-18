@@ -16,9 +16,10 @@ import random
 import re
 import urllib.request
 
+import paths
 from midi import FX
 
-USER_FILE = os.path.expanduser("~/.config/dream/playlists.json")
+USER_FILE = os.path.join(paths.config_dir(), "playlists.json")
 SURPRISE = "✨ Surprise"
 AI_PREFIX = "AI: "                 # the name of a playlist made from a keyword
 # #133: the German names of earlier versions → the English ones

@@ -41,6 +41,7 @@ from PIL import Image
 
 import i18n
 import midi
+import paths
 import playlists
 import sensors
 import styles
@@ -1217,7 +1218,7 @@ if ROLE == "app":
     from fastapi import Request
     from fastapi.responses import Response
 
-    STATE_DIR = os.path.expanduser("~/.local/state/dream")
+    STATE_DIR = paths.state_dir()                              # #186: DREAM_STATE_DIR, default ~/.local/state/dream
     os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
     STATE_FILE = os.path.join(STATE_DIR, "state.json")
     TOKEN_FILE = os.path.join(STATE_DIR, "remote-token")      # #148: the guests' key (Dream Remote, the stage's QR code)
@@ -2276,7 +2277,7 @@ if ROLE == "app":
     def load_rule_actions() -> dict:
         """Optional ~/.config/dream/motion.json: {"rules": {"<flowtrack rule name>": "next" | {"playlist": "Feuer"} | {"prompt": "…"}}}"""
         try:
-            with open(os.path.expanduser("~/.config/dream/motion.json")) as f:
+            with open(os.path.join(paths.config_dir(), "motion.json")) as f:
                 return json.load(f).get("rules", {})
         except (FileNotFoundError, ValueError):
             return {}
@@ -2571,7 +2572,7 @@ if ROLE == "app":
     # ---------- gallery: the last pictures and clips made on request (only until Dream restarts) ----------
     GALLERY_MAX = 5
     gallery: list = []
-    SAVE_DIR = os.path.expanduser("~/Pictures/Dream")
+    SAVE_DIR = paths.save_dir()                                # #186: DREAM_SAVE_DIR, default ~/Pictures/Dream
     for old in os.listdir(MEDIA_DIR):                          # a new run starts with an empty gallery
         if old.startswith("g-"):
             with contextlib.suppress(OSError):
@@ -2726,7 +2727,7 @@ if ROLE == "app":
             src = g["files"][0]
             dest = os.path.join(SAVE_DIR, f"dream-{time.strftime('%Y%m%d-%H%M%S')}-{slug}{os.path.splitext(src)[1]}")
             shutil.copyfile(src, dest)
-            g["saved"] = "~/Pictures/Dream/" + os.path.basename(dest)
+            g["saved"] = paths.shown(dest)
             await broadcast({"gallery": gallery_list()})
         return {"saved": g["saved"]}
 

@@ -44,7 +44,7 @@ HELP
 for a in "$@"; do
   case "$a" in -h|--help) usage; exit 0 ;; esac
 done
-ENV_FILE="${DREAM_ENV:-$HOME/.config/dream/dream.env}"
+ENV_FILE="${DREAM_ENV:-${DREAM_CONFIG_DIR:-$HOME/.config/dream}/dream.env}"   # #186: DREAM_CONFIG_DIR
 if [ -f "$ENV_FILE" ]; then set -a; . "$ENV_FILE"; set +a; fi
 PORT="${DREAM_PORT:-7860}"
 HOST=127.0.0.1; PAGE="http://127.0.0.1:$PORT/"; OPEN=0; BEAMER=""
@@ -77,7 +77,7 @@ if [ -n "$BEAMER" ]; then
   CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
   ( for _ in $(seq 1 120); do curl -s -o /dev/null "http://127.0.0.1:$PORT/health" && break; sleep 2; done
     if [ -x "$CHROME" ]; then         # own profile, so the kiosk window doesn't join an open Chrome
-      exec "$CHROME" --user-data-dir="$HOME/.local/state/dream/chrome-output" --no-first-run --kiosk \
+      exec "$CHROME" --user-data-dir="${DREAM_STATE_DIR:-$HOME/.local/state/dream}/chrome-output" --no-first-run --kiosk \
         --window-position="$BEAMER,0" "$OUT" >/dev/null 2>&1
     else
       open "$OUT"; tx "Output opened: drag it to the second display, F = fullscreen (for it to happen by itself: Google Chrome)."
