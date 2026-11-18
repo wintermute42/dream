@@ -937,5 +937,7 @@
  "part": "Teil",
  "mean": "Mittel",
  "Also in the terminal and saved in ~/.local/state/dream/measure/.": "Auch im Terminal und gespeichert in ~/.local/state/dream/measure/.",
- "A measurement is running already.": "Es läuft schon eine Messung."
+ "A measurement is running already.": "Es läuft schon eine Messung.",
+ "Motion between the pictures": "Bewegung zwischen den Bildern",
+ "Between two AI pictures the picture goes on moving the way the dream moves (zoom, turn), so it neither stands still nor jumps": "Zwischen zwei KI-Bildern bewegt sich das Bild so weiter, wie der Traum sich bewegt (Zoom, Drehung) – es steht nicht still und springt nicht"
 }
