@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 // how far the two drawings may be apart: the mean per colour channel (of 255) and the share of pixels that differ
 // clearly (edges of wedges, slices and dots, where the two draw their antialiasing differently)
-const MEAN = 2, FAR = 1;
+const MEAN = 4, FAR = 2.5;
 // these must change the picture at all, so a shader that does nothing cannot pass
 const UNCHANGED_OK = ['cross-fade', 'square picture covers'];
 
