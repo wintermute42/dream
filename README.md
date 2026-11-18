@@ -461,8 +461,8 @@ Good to know:
 - **Output over Wi-Fi (optional):** instead of an HDMI cable from the Mac, a **second device at the projector** can
   show the picture (old notebook, mini PC, Raspberry Pi, Android TV box or Fire TV stick with a browser – Apple TV
   does not work, it has no browser). Start Dream with `./dream.sh --lan`, tap **“📶 Output over Wi-Fi”** in the panel
-  under “Output”: scan the QR code or type the link on the device (the link contains the access key, like the phone's
-  QR code; “⧉ Copy link” puts it on the clipboard). Tap the picture once on the device or press F for fullscreen. Next
+  under “Output”: its QR code opens large with the link below it – scan it or type the link on the device (the link
+  contains the access key, like the phone's QR code; “⧉ Copy link” puts it on the clipboard). Tap the picture once on the device or press F for fullscreen. Next
   to the button it says how many outputs are connected.
   - Data and delay are uncritical (about 1–2 MB/s, a fraction of a second; the blend smooths it).
   - On Wi-Fi drop-outs the picture holds briefly, the page says “Connection to Dream lost – reconnecting …” and goes
@@ -500,9 +500,16 @@ Resolume just leave it off.
 ```
 
 Then Dream is also reachable in the home Wi-Fi – but only with a secret link. Press **Q** on the stage (or
-“📱 Phone”): a QR code appears, scan it with the phone, done. The phone remembers the access. Everything you change on
-the phone happens at once on the stage. To speak on the phone: the keyboard's dictation. Several phones at once work
-too.
+“📱 Phone”): a QR code appears in a corner of the stage, scan it with the phone, done. The phone remembers the access. Everything you
+change on the phone happens at once on the stage. To speak on the phone: the keyboard's dictation. Several phones at
+once work too.
+
+**The other QR codes open in a lightbox:** large on white – easy to scan from a distance and with old phones – with
+their explanation below. This goes for Dream Control, the output over Wi-Fi, the certificate, Dreamy Eyes and the dream
+windows, in the panel and in Dream Control alike. Close it with **Esc**, a click beside it or “Close”; the keys of the
+stage rest meanwhile. A code is only loaded while its lightbox is open, so its key is never on the screen longer than
+needed. The guests' code stays small in the corner of the stage (Q, “📱 Phone” or “QR on the stage” in Dream Control
+show and hide it): the dream goes on behind it and the keys keep working.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -519,8 +526,8 @@ There are two keys, so the audience may play along without being able to cost yo
   saving or deleting in the gallery. The remote shows a guest only what a
   guest may use, and the server refuses the rest anyway (“Only Dream Control may do this.”).
 - **Dream Control is your own remote with every setting.** In the panel under “Output”: **🎛 Dream Control** shows its
-  QR code – scan it with your own phone or tablet, never in front of the audience (the code disappears again when you
-  close it). Only one device is Dream Control at a time: a second one starts as a guest with the button
+  QR code – scan it with your own phone or tablet, never in front of the audience (the code is gone again when you
+  close its lightbox). Only one device is Dream Control at a time: a second one starts as a guest with the button
   **“Take over Dream Control”**; the first then steers as a guest and may take it back the same way.
 - **↻ New guest code** (panel, under “Output”) asks once, then makes a new guests' key: every guest phone and every
   output window opened with the old one loses access at once, the stage shows the new QR code. Dream Control keeps its
@@ -560,7 +567,7 @@ address changes (on the next start) and before it runs out.
 
    Then “Install anyway”, unlock (a screen lock is required) and choose **Downloads → `dream-ca.crt`**. Check:
    settings search “Trusted credentials” → tab **User** shows “Dream home network CA”.
-3. Tap **“Certificate is installed → next”** – the panel shows the codes one after the other and remembers this step
+3. Tap **“Certificate is installed → next”** – the lightbox shows the codes one after the other and remembers this step
    (next time it starts with code 2; “← Certificate” goes back). Scan code **2** (Dream Control). In Chrome: menu ⋮ →
    **Install app** (or the remote's own “⤓ Install as app” button). From then on it starts from the home screen like an
    app. A tablet with device management (work or school) may forbid own certificates altogether.
