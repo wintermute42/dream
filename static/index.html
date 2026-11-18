@@ -22,6 +22,10 @@
   #dock { position: fixed; left: var(--pw); right: 0; top: var(--ph, 100vh); bottom: 0; overflow: auto; padding: 12px 16px;
     background: var(--panelsolid); border-top: 1px solid var(--line); font-size: var(--fs); }
   body.hide #dock, body.stage-only #dock { display: none; }
+  #measureout { margin-top: 6px; font-size: .85em; overflow-x: auto; }
+  #measureout table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  #measureout td, #measureout th { padding: 2px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+  #measureout td:first-child, #measureout th:first-child { text-align: left; }
   #stats { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; margin-top: 8px; }   /* rows keep their height when the area was taller */
   #stats div { border: 1px solid var(--line); border-radius: 8px; padding: 2px 9px; display: flex; gap: 6px; align-items: baseline; }
   #stats b { font-size: 1.05em; font-variant-numeric: tabular-nums; }
@@ -317,6 +321,8 @@
   </div>
   <div id="status" role="status">Connecting …</div>
   <div id="stats" aria-live="off"></div>
+  <div class="btns" style="margin-top:6px"><button class="btn" id="measure" title="Measure for 60 s with fixed settings where the time of a picture goes (the dream changes meanwhile)">📏 Measure</button></div>
+  <div id="measureout" hidden role="status" aria-live="polite"></div>
   <div id="diagbox" hidden>
     <canvas id="diag" role="img" aria-label="Movement diagnostics: detected points, trail and pivot in the picture"></canvas>
     <div id="diagtext"></div>
@@ -737,6 +743,7 @@
 <video id="vid" playsinline muted loop style="display:none"></video>
 
 <script src="/static/i18n.js"></script>
+<script src="/static/measure.js"></script>
 <script src="/static/fx.js"></script>
 <script src="/static/calib.js"></script>
 <script src="/static/motion.js"></script>
@@ -2419,6 +2426,29 @@
   }
   setInterval(showStats, 1000);
 
+  // ---------- #180: a measurement run – where the time of a picture goes, and how smoothly the pages draw ----------
+  const measureMe = DreamMeasure('stage', m => sendCtl(m));
+  const STEP_LABELS = () => ({ queue: T('waiting before rendering'), decode_in: T('decoding the incoming picture'), wait_gpu: T('waiting for the GPU'),
+    prompt: T('prompt encoding'), unet: T('UNet (diffusion)'), controlnet: 'ControlNet', decode: T('decoder (latents → picture)'),
+    render: T('picture in all'), encode_out: T('JPEG/WebP encoding'), send: T('sending'), server: T('server time per picture') });
+  function measureShow(r, runningMs) {
+    const out = $('measureout'), esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    out.hidden = false;
+    if (!r) { $('measure').disabled = true; out.textContent = T('Measuring for {s} s with fixed settings …', { s: Math.round(runningMs / 1000) }); return; }
+    $('measure').disabled = false;
+    const L = STEP_LABELS(), rows = Object.keys(L).filter(k => r.steps[k] && r.steps[k].n)
+      .map(k => `<tr><td>${esc(L[k])}</td><td>${r.steps[k].mean}</td><td>${r.steps[k].p50}</td><td>${r.steps[k].p95}</td></tr>`).join('');
+    const dev = Object.entries(r.devices || {}).map(([k, d]) => `<tr><td>${esc(k)} ×${d.n}</td><td colspan="3">${T('{fps} fps · frame {ms} ms (p95 {p95}) · slow {slow} %', { fps: d.fps, ms: d.ms_avg, p95: d.ms_p95, slow: d.slow_pct })}</td></tr>`).join('');
+    out.innerHTML = `<b>${esc(T('{fps} AI pictures/s', { fps: r.fps }))}</b> · ${esc(r.model)} ${esc(r.size)} · ${esc(T('{n} steps', { n: r.ai_steps }))}`
+      + `<table><tr><th>${T('part')}</th><th>${T('mean')}</th><th>p50</th><th>p95 (ms)</th></tr>${rows}${dev}</table>`
+      + `<div class="muted">${esc(T('Also in the terminal and saved in ~/.local/state/dream/measure/.'))}</div>`;
+  }
+  $('measure').onclick = async () => {
+    const r = await fetch('/measure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seconds: 60, fixed: true }) }).then(x => x.json()).catch(() => ({}));
+    if (r.error) { $('measureout').hidden = false; $('measureout').textContent = r.error; }
+    else if (r.started) measureShow(null, r.seconds * 1000);   // at once, not only when the run begins after settling
+  };
+
   // ---------- #152: relieve – take back softly what costs the most, step by step, until Dream runs smoothly ----------
   var rel = { busy: false, step: 0, total: 0, undo: [], done: [], face: '🔮', say: '' };
   const relTarget = () => backend === 'cloud' ? 4 : 3;            // pictures per second that feel smooth
@@ -3314,6 +3344,7 @@
     ctl.onmessage = ev => {
       if (typeof ev.data !== 'string') { devFrameIn(ev.data); return; }   // #146: a picture of the live camera
       const m = JSON.parse(ev.data);
+      measureMe(m); if (m.measure) measureShow(null, m.measure.ms); if (m.measure_result) measureShow(m.measure_result);   // #180
       if (m.feeds) { feedsNow = m.feeds; if (!m.feeds.cam && devFrame) { devFrame.close(); devFrame = null; } chips(); }
       if (m.playlists) fillPlaylists(m.playlists);
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server

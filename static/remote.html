@@ -356,6 +356,7 @@
 </main>
 
 <script src="/static/i18n.js"></script>
+<script src="/static/measure.js"></script>
 <script>
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
@@ -427,6 +428,7 @@
     for (const [cls, t] of c) { const sp = document.createElement('span'); if (cls) sp.className = cls; sp.textContent = t; box.append(sp); }
   }, 700);
   const send = m => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
+  const measureMe = DreamMeasure('remote', send);     // #180: its frames during a measurement run
   const setKey = (k, v) => { state[k] = v; send({ set: { [k]: v } }); };
 
   const show = () => {
@@ -820,6 +822,7 @@
     ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ctl?role=remote`);
     ws.onmessage = ev => {
       const m = JSON.parse(ev.data);
+      measureMe(m);                                    // #180
       if (m.playlists) ['playlist'].forEach(id => {
         const sel = $(id), first = sel.options[0].outerHTML;
         const esc = v => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');

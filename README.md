@@ -188,6 +188,14 @@ and of the whole Mac, memory of Dream, GPU memory and total memory (and movement
 on). Red means: at the limit. If there is room below the preview (mostly with 16:9), cards like Computing and Output
 move there. The values are also available as JSON at http://127.0.0.1:7860/stats.
 
+**📏 Measure** (below the load, #180) runs for 60 s with fixed settings (a fixed prompt and seed, 512 px, 2 steps, no
+effects, outlines, pose or style; afterwards everything is as before) and shows where the time of a picture goes: waiting,
+decoding the incoming picture, waiting for the GPU, prompt encoding, UNet, decoder, encoding and sending – mean, median
+and the slowest 5 % in milliseconds – plus how smoothly every open page drew meanwhile (the stage, Dream Remote, Dreamy
+Eyes: frames per second, frame time, share of slow frames). The table also goes to the terminal and into
+`~/.local/state/dream/measure/` as JSON, to compare a change before and after. While measuring, the parts are timed
+together with the GPU, which makes the run itself a little slower than usual. Only Dream Control and the Mac can start it.
+
 - **Compute on:** “Local (Mac)” or “Cloud GPU”. Switching works at any time, without a restart.
 - **Model:** SD-Turbo (fast) or SDXL-Turbo (nicer; very slow locally, good in the cloud). You can switch in the middle
   of a show: the new model loads in the background (SD-Turbo seconds, SDXL-Turbo locally about 20–60 s, much longer
