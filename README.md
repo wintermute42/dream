@@ -737,7 +737,7 @@ window gets its motif from Dream by itself, and the windows together look like o
   runs through all windows in turn, and with music they pulse to the beat. They dim with the stage's master fader.
 - **Old devices:** the page draws with fewer pixels when the device can't keep up and goes back up when it can. It
   needs no certificate (plain http in the home Wi-Fi) and keeps the screen on.
-- **Setting up:** panel → “Output” → **🪟 Dream windows** → scan the code with each device and tap its screen for
+- **Setting up:** panel → “Output” → **🪟 Dream windows** (or Dream Control → card **“🪟 Dream windows”**) → scan the code with each device and tap its screen for
   fullscreen. The output line in the panel counts the connected windows.
 - **They only look:** a window's key (`~/.local/state/dream/window-token`, a cookie of its own) opens the window page,
   the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money.

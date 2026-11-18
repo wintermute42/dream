@@ -763,7 +763,7 @@ Fenster bekommt sein Motiv von Dream selbst, und die Fenster wirken zusammen wie
   Bühne werden sie dunkler.
 - **Alte Geräte:** Kommt ein Gerät nicht mit, zeichnet die Seite mit weniger Pixeln und geht wieder hoch, sobald es
   geht. Sie braucht kein Zertifikat (einfaches http im WLAN zu Hause) und hält den Bildschirm an.
-- **Einrichten:** Bedienfeld → „Ausgabe“ → **🪟 Traum-Fenster** → den Code mit jedem Gerät scannen und für Vollbild auf
+- **Einrichten:** Bedienfeld → „Ausgabe“ → **🪟 Traum-Fenster** (oder Dream Control → Karte **„🪟 Traum-Fenster“**) → den Code mit jedem Gerät scannen und für Vollbild auf
   den Bildschirm tippen. Die Ausgabe-Zeile im Bedienfeld zählt die verbundenen Fenster.
 - **Sie schauen nur zu:** Der Schlüssel der Fenster (`~/.local/state/dream/window-token`, ein eigenes Cookie) öffnet
   die Fensterseite, die Bilder des Traums und die gemalten Gesichter – keine Einstellungen, keine Befehle, keine
