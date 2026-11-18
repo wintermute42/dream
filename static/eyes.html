@@ -26,7 +26,7 @@
     background: rgba(20, 14, 30, .78); border: 1px solid var(--line); color: var(--text); font-size: .85em; text-align: center; }
   #note.on { opacity: 1; transform: translate(-50%, 0); }
 </style>
-<script>/* #175: the key stays in the cookie, not in the address bar, history or a shared link */ try { const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch (e) {}</script>
+<script src="/static/common.js" data-hide-key></script><!-- #175: the key stays in the cookie, not in the address bar; and what the pages share -->
 </head>
 <body>
 <canvas id="eyes" role="img" aria-label="Two dreaming eyes that look at you"></canvas>
@@ -98,7 +98,7 @@
   }
 
   // ---------- the camera: lent to the stage (front camera only) and faintly seen in the eyes ----------
-  const cam = { stream: null, timer: 0, cv: document.createElement('canvas'), encoding: false, lent: false, wait: false };
+  const cam = { stream: null, timer: 0, lent: false, wait: false };
   let ctl = null;
   const send = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };
   const measureMe = DreamMeasure('eyes', send);       // #180: its frames during a measurement run
@@ -209,15 +209,7 @@
     if (why) say(why, 0);
   }
   function announce() { if (cam.lent) { cam.wait = true; send({ feed: { cam: true, facing: 'user' } }); } }
-  function frame() {                                   // about 12 pictures a second, 640 px wide
-    const v = $('cam');
-    if (!ctl || ctl.readyState !== 1 || ctl.bufferedAmount > 300000 || cam.encoding || !v.videoWidth) return;
-    const W = 640, H = Math.round(W * v.videoHeight / v.videoWidth);
-    if (cam.cv.width !== W || cam.cv.height !== H) { cam.cv.width = W; cam.cv.height = H; }
-    cam.cv.getContext('2d').drawImage(v, 0, 0, W, H);
-    cam.encoding = true;
-    cam.cv.toBlob(b => { cam.encoding = false; if (b && ctl && ctl.readyState === 1 && cam.lent) ctl.send(b); }, 'image/jpeg', 0.7);
-  }
+  const frame = DreamCommon.cameraSender($('cam'), () => ctl, () => cam.lent);   // about 12 pictures a second
   function connect() {
     ctl = new WebSocket(`${proto}://${location.host}/ctl?role=remote&as=eyes`);   // #166: as the eyes, even on a Control device
     ctl.onopen = () => announce();
@@ -1442,10 +1434,7 @@
   requestAnimationFrame(draw);
 
   // ---------- start: one tap opens the eyes (fullscreen, screen stays on, camera lent) ----------
-  let lock = null;
-  async function keepAwake() {
-    try { if ('wakeLock' in navigator && !lock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); } } catch (e) { /* not granted */ }
-  }
+  const keepAwake = DreamCommon.wakeLock(false);       // the screen stays on (where the browser grants it)
   document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
   async function start() {
     $('start').classList.add('gone'); $('note').classList.remove('on');

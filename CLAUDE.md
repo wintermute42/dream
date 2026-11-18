@@ -5,10 +5,26 @@ prompt, camera, picture, video, voice, music and movement (built-in detection in
 Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (CUDA: Scaleway or RunPod) via
 `dream-cloud`.
 
-- `server.py` – FastAPI, role "app" (Mac: pages, voice, control state, cloud control, local rendering) or "worker"
-  (cloud: rendering only). `static/index.html` is the stage (with optional panel), `static/remote.html` the phone
-  remote, `static/output.html` the output window. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`, never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or
-  `cloud_runpod.py`, SSH tunnel); `styles.py` holds the style models and the reference adapter.
+- `server.py` is the entry point (`uvicorn server:app`) and only puts the parts together (#189); role "app" (Mac: pages,
+  voice, control state, cloud control, local rendering) or "worker" (cloud: rendering only – it loads `render.py`,
+  `render_api.py` and nothing of the app). The parts, each one file: `render.py` (the image models and one picture; with
+  `styles.py`, the style models and the reference adapter, the only code that loads PyTorch), `render_api.py` (`/ws`,
+  `/make`, `/health`, `/stats`), `rights.py` (keys, roles, the middleware), `settings.py` (the settings table),
+  `hub.py` (shared state, who is connected, `apply`, `broadcast`), `ctl.py` (`/ctl`, the feeds a device lends),
+  `scenes.py`, `inputs.py` (MIDI, sensors, movement rules), `output.py` (Syphon, `/out`, `/view`), `eyes.py`,
+  `windows.py`, `cloud.py`, `measure.py`, `media.py` (uploads, gallery, style references), `voice.py`, `mpfiles.py`,
+  `net.py` (addresses, links, the https listener), `pages.py`; `web.py` holds the one FastAPI `app` every part hangs
+  its routes on, `config.py` the environment of the run, `models.py` the model names. A part names what it takes from
+  another part with the part (`hub.state`, `rights.can(...)`), never `from part import name` – tests replace such names.
+- `static/index.html` is the stage (with optional panel), `static/remote.html` the phone remote, `static/output.html`
+  the output window; what the pages share is in `static/common.js` (#189: no page keeps its own copy of a helper that
+  is there). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
+  every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
+  never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).
+- A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
+  whether a MIDI controller or sensor can move it); the defaults, ranges, guests' keys and `midi.TARGETS` are read from
+  it. A role is one entry in `rights.ROLES` (its capabilities, its key, what it may request); every check asks
+  `rights.can(role, capability)`, and the remote page gets its role's capabilities with the role.
 - Everything in the repository is English: code, identifiers, values and saved names, comments, log messages, commit
   messages, README. Text a person sees goes through the translation files: English in the code, the German in
   `static/i18n/de.json` (pages: `T('text {x}', { x })`; server and scripts: `i18n.t(...)`, `tx "..."` in shell).
@@ -18,15 +34,17 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - No secrets in the repo (Scaleway key lives in `~/.config/scw`, the RunPod key in the macOS keychain, the remote keys
   and the key of Dream's home-network certificate authority (#145, `tls.py`) in `~/.local/state/dream`).
 - The app binds to 127.0.0.1 unless started with `--lan`; then every non-local request needs a key (#148): the guests'
-  key (Dream Remote) may only change `GUEST_KEYS` and send `GUEST_CMDS`; the Dream Control key has full rights; the
-  Dreamy Eyes key (#156) may only GET its page and lend its front camera (`EYES_PATHS`, the `/ctl` filter). Rights
-  are checked in `server.py` (middleware `CONTROL_ONLY`/`LOCAL_ONLY`, the `/ctl` filter), never only in the page: a
+  key (Dream Remote) may only change `settings.GUEST_KEYS` and send `rights.GUEST_CMDS`; the Dream Control key has full
+  rights; the Dreamy Eyes key (#156) may only GET its page and lend its front camera (`EYES_PATHS`, the `/ctl` filter).
+  Rights are checked in the server (`rights.py`: the roles table, the middleware with `CONTROL_ONLY`/`LOCAL_ONLY`; the
+  `/ctl` filter in `ctl.py`), never only in the page: a
   new route or setting that costs money, changes the owner's files or uses the Mac's camera stays Control-only.
 - Tests (#186): `uv run pytest` (no model, no GPU: a stand-in for torch, a temporary HOME and Dream folders – never the
   real ones) and `python3 scripts/i18n_check.py`; CI runs both on Linux, and the JavaScript tests in `tests/js/`
   (`node --test`). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
   from `static/fx.js` as fallback); an effect is changed in both, `tests/js/gl-stage.test.mjs` compares their pictures. `tests/test_rights.py` lists every route with the
-  roles that may use it: a new route or a change of rights changes that table. Folders come from `paths.py`
+  roles that may use it and every role with its capabilities: a new route or a change of rights changes those tables.
+  The tests reach a name where it lives (`server.hub.state`, `server.rights.role_of`). Folders come from `paths.py`
   (`DREAM_STATE_DIR`, `DREAM_CONFIG_DIR`, `DREAM_SAVE_DIR`).
 
 ## Public repository rules

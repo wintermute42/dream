@@ -1,4 +1,4 @@
-"""Rights (#148, #156, #175): every role against every route of server.py, the origin/host check, the /ctl filter and the
+"""Rights (#148, #156, #175): every role against every route of the app (rights.py), the origin/host check, the /ctl filter and the
 guests' message allowance. The server runs with --lan in the test sandbox; the requests come from invented home-network
 addresses."""
 import json
@@ -72,6 +72,14 @@ EXTRA = [
     ("PUT", "/playlists/Calm", LC),
 ]
 WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW}
+# what each role may do (rights.ROLES), written down by hand too: the pages are told it with their role
+CAN = {
+    "local": ["control", "ctl", "eyes", "faces", "feed", "render", "set:all", "stage", "state", "view"],
+    "control": ["control", "ctl", "eyes", "faces", "feed", "pair_eyes", "render", "set:all", "state", "take_over", "view"],
+    "guest": ["ctl", "set:guest", "state", "view"],
+    "eyes": ["ctl", "eyes", "eyes_only", "faces", "feed", "view"],
+    "window": ["faces", "view"],
+}
 
 
 def client(server, role: str, scheme: str = "http", host: str = "192.168.1.30", **kw) -> TestClient:
@@ -84,7 +92,7 @@ def client(server, role: str, scheme: str = "http", host: str = "192.168.1.30", 
 def key_of(server, role: str) -> dict:
     if role in ("local", "none"):
         return {} if role == "local" else {"k": "not-a-key"}
-    return {"k": server.keys[role]}
+    return {"k": server.rights.keys[role]}
 
 
 @pytest.fixture
@@ -99,7 +107,7 @@ def reached(server, monkeypatch):
 
 
 def test_every_route_is_in_the_table(server):
-    """A new route must be classified here (and in server.py's rules) before it ships."""
+    """A new route must be classified here (and in the rules of rights.py) before it ships."""
     http, ws = set(), set()
     for r in server.app.routes:
         if type(r).__name__ == "Mount":
@@ -133,57 +141,86 @@ def test_key_in_a_cookie(server, reached, role):
     path = {"control": "/stats", "guest": "/remote", "eyes": "/eyes", "window": "/window"}[role]
     name = {"control": "dream_c", "guest": "dream_k", "eyes": "dream_e", "window": "dream_w"}[role]
     scheme = "https" if role == "control" else "http"
-    c = client(server, role, scheme=scheme, cookies={name: server.keys[role]})
+    c = client(server, role, scheme=scheme, cookies={name: server.rights.keys[role]})
     assert c.get(path).text == "reached"
     assert client(server, role, cookies={name: "stolen"}).get(path).status_code == 403
 
 
 def test_key_from_the_address_is_kept_as_a_cookie(server, reached):
-    r = client(server, "guest").get("/remote", params={"k": server.keys["guest"]})
+    r = client(server, "guest").get("/remote", params={"k": server.rights.keys["guest"]})
     cookie = r.headers["set-cookie"]
-    assert cookie.startswith(f"dream_k={server.keys['guest']}") and "HttpOnly" in cookie and "SameSite=lax" in cookie
+    assert cookie.startswith(f"dream_k={server.rights.keys['guest']}") and "HttpOnly" in cookie and "SameSite=lax" in cookie
 
 
 def test_a_device_without_a_key_gets_the_pairing_page(server):
     r = client(server, "none").get("/remote", headers={"accept": "text/html"})
-    assert r.status_code == 403 and "<html" in r.text.lower() and server.keys["guest"] not in r.text
+    assert r.status_code == 403 and "<html" in r.text.lower() and server.rights.keys["guest"] not in r.text
 
 
 def test_without_lan_only_this_mac(server, reached, monkeypatch):
-    monkeypatch.setattr(server, "LAN", False)
+    monkeypatch.setattr(server.config, "LAN", False)
     assert client(server, "control").get("/stats", params=key_of(server, "control")).status_code == 403
     assert client(server, "local").get("/stats").text == "reached"
 
 
 def test_role_of(server):
-    k = server.keys
-    assert server.role_of("127.0.0.1", None, None) == "local"
-    assert server.role_of("::1", "wrong", None) == "local"
-    assert server.role_of("192.168.1.30", k["control"], None) == "control"
-    assert server.role_of("192.168.1.30", None, k["guest"]) == "guest"
-    assert server.role_of("192.168.1.30", k["eyes"], k["control"]) == "eyes"      # the address wins over the cookie
-    assert server.role_of("192.168.1.30", k["window"], None) == "window"          # #201
-    assert server.role_of("192.168.1.30", None, None) is None
-    assert server.role_of("192.168.1.30", "", "") is None
-    assert server.role_of("192.168.1.30", k["guest"] + "x", None) is None
+    k = server.rights.keys
+    assert server.rights.role_of("127.0.0.1", None, None) == "local"
+    assert server.rights.role_of("::1", "wrong", None) == "local"
+    assert server.rights.role_of("192.168.1.30", k["control"], None) == "control"
+    assert server.rights.role_of("192.168.1.30", None, k["guest"]) == "guest"
+    assert server.rights.role_of("192.168.1.30", k["eyes"], k["control"]) == "eyes"      # the address wins over the cookie
+    assert server.rights.role_of("192.168.1.30", k["window"], None) == "window"          # #201
+    assert server.rights.role_of("192.168.1.30", None, None) is None
+    assert server.rights.role_of("192.168.1.30", "", "") is None
+    assert server.rights.role_of("192.168.1.30", k["guest"] + "x", None) is None
+
+
+def test_roles_table_is_pinned(server):
+    """Changing what a role may do is a decision: this table changes only with it (#189)."""
+    table = server.rights.ROLES
+    assert {name: sorted(r.can) for name, r in table.items()} == CAN
+    assert set(table) | {"none"} == set(ROLES)
+    for name, r in table.items():
+        assert r.can <= set(server.rights.CAPABILITIES)
+        assert (r.key is None) == (name == "local")           # every role but this Mac comes with a key
+    assert len(set(server.rights.keys.values())) == 4
+    assert not any(server.rights.can(None, c) or server.rights.can("stranger", c) for c in server.rights.CAPABILITIES)
+    assert (table["guest"].http, table["eyes"].cookie, table["window"].cookie) == (server.rights.GUEST_HTTP, "dream_e", "dream_w")
+    assert table["eyes"].pairs and table["window"].pairs and not table["guest"].pairs
+
+
+def test_rights_load_without_torch(tmp_path):
+    """The rights and the settings can be read and checked where no model library is installed (#189)."""
+    import os
+    import subprocess
+    import sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    code = ("import sys; sys.modules['torch'] = None; import rights, settings; "
+            "assert rights.can('guest', 'set:guest') and not rights.can('guest', 'render'); "
+            "assert rights.role_of('127.0.0.1', None, None) == 'local'; print(sorted(rights.keys))")
+    env = {**os.environ, "HOME": str(tmp_path), "DREAM_STATE_DIR": str(tmp_path / "state"), "DREAM_LAN": "1"}
+    out = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, timeout=60, env=env)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.split() == ["['control',", "'eyes',", "'guest',", "'window']"]
 
 
 def test_needs(server):
-    assert server.needs("POST", "/gallery") == {"local"}
-    assert server.needs("POST", "/cloud/start") == {"local", "control"}
-    assert server.needs("POST", "/cloud/start/") is None          # fullmatch: the route itself does not exist
-    assert server.needs("GET", "/health") is None
+    assert server.rights.needs("POST", "/gallery") == {"local"}
+    assert server.rights.needs("POST", "/cloud/start") == {"local", "control"}
+    assert server.rights.needs("POST", "/cloud/start/") is None          # fullmatch: the route itself does not exist
+    assert server.rights.needs("GET", "/health") is None
 
 
 def test_cookie_of(server):
     both = {"dream_k": "guest-key", "dream_c": "control-key", "dream_e": "eyes-key"}
-    assert server.cookie_of(both, "http") == "guest-key"
-    assert server.cookie_of(both, "https") == "control-key"
-    assert server.cookie_of(both, "wss") == "control-key"
-    assert server.cookie_of(both, "https", eyes=True) == "eyes-key"   # #166: the eyes' page asks for the eyes' key first
-    assert server.cookie_of({"dream_e": "eyes-key"}, "http") == "eyes-key"
-    assert server.cookie_of({**both, "dream_w": "window-key"}, "http", window=True) == "window-key"   # #201
-    assert server.cookie_of({}, "http") is None
+    assert server.rights.cookie_of(both, "http") == "guest-key"
+    assert server.rights.cookie_of(both, "https") == "control-key"
+    assert server.rights.cookie_of(both, "wss") == "control-key"
+    assert server.rights.cookie_of(both, "https", eyes=True) == "eyes-key"   # #166: the eyes' page asks for the eyes' key first
+    assert server.rights.cookie_of({"dream_e": "eyes-key"}, "http") == "eyes-key"
+    assert server.rights.cookie_of({**both, "dream_w": "window-key"}, "http", window=True) == "window-key"   # #201
+    assert server.rights.cookie_of({}, "http") is None
 
 
 # ---------- origin and host (#175): DNS rebinding and foreign pages ----------
@@ -209,7 +246,7 @@ def test_cookie_of(server):
 ])
 def test_origin_ok(server, host, origin, ok):
     headers = {"host": host, **({"origin": origin} if origin is not None else {})}
-    assert server.origin_ok(headers) is ok
+    assert server.rights.origin_ok(headers) is ok
 
 
 def test_foreign_host_or_origin_is_refused_before_anything(server, reached):
@@ -255,20 +292,20 @@ def no_ghost_sockets(server):
     """The test client cancels a socket's handler right after it closes, maybe while it still greets: no session
     leaves its registration behind for the next test."""
     yield
-    for d in (server.clients, server.roles, server.key_roles):
+    for d in (server.hub.clients, server.hub.roles, server.hub.key_roles):
         d.clear()
-    server.eyes_pages.clear()
-    server.viewers.clear()
-    server.previews.clear()
+    server.eyes.eyes_pages.clear()
+    server.hub.viewers.clear()
+    server.hub.previews.clear()
 
 
 @pytest.fixture
 def saved_state(server):
-    before = dict(server.state)
-    yield server.state
-    server.state.clear()
-    server.state.update(before)
-    server.save_state()
+    before = dict(server.hub.state)
+    yield server.hub.state
+    server.hub.state.clear()
+    server.hub.state.update(before)
+    server.hub.save_state()
 
 
 def wait_until(cond, secs: float = 5.0) -> None:
@@ -289,13 +326,13 @@ def ctl_session(server, role: str, messages: list, done) -> dict:
 
 
 def test_ctl_guest_changes_only_guest_keys(server, saved_state):
-    server.state.update(running=True, backend="local", mode="dream", quality=2)
+    server.hub.state.update(running=True, backend="local", mode="dream", quality=2)
     first = ctl_session(server, "guest", [{"set": {"prompt": "a quiet lake at dawn", "backend": "cloud", "running": False,
                                                     "quality": 4, "mode": "cam", "zoom": 0.02}},
                                            {"set": {"mode": "img"}}],
-                        done=lambda: server.state["mode"] == "img")
-    assert first == {"role": "guest", "can_take": False}
-    s = server.state
+                        done=lambda: server.hub.state["mode"] == "img")
+    assert first == {"role": "guest", "can_take": False, "can": CAN["guest"]}
+    s = server.hub.state
     assert (s["prompt"], s["zoom"], s["mode"]) == ("a quiet lake at dawn", 0.02, "img")
     assert (s["backend"], s["running"], s["quality"]) == ("local", True, 2)
 
@@ -305,42 +342,42 @@ def test_ctl_guest_commands(server, monkeypatch, saved_state):
 
     async def broadcast(msg, exclude=None, only=None):
         sent.append(msg)
-    monkeypatch.setattr(server, "broadcast", broadcast)
+    monkeypatch.setattr(server.hub, "broadcast", broadcast)
     renewed = []
-    monkeypatch.setattr(server, "renew_guest", lambda: renewed.append(1))
+    monkeypatch.setattr(server.ctl, "renew_guest", lambda: renewed.append(1))
     ctl_session(server, "guest", [{"cmd": "restart"}, {"renew_guest": True}, {"midi_forget": "c1:cc7"},
                                   {"midi_learn": "strength"}, {"cmd": "tap"}],
                 done=lambda: any(m.get("cmd") == "tap" for m in sent))
     assert [m["cmd"] for m in sent if "cmd" in m] == ["tap"]
-    assert not any("midi" in m for m in sent) and not renewed and not server.midi_learn
+    assert not any("midi" in m for m in sent) and not renewed and not server.inputs.midi_learn
 
 
 def test_ctl_eyes_change_nothing(server, monkeypatch, saved_state):
-    server.state["prompt"] = "unchanged"
+    server.hub.state["prompt"] = "unchanged"
     noted = []
-    monkeypatch.setattr(server, "eyes_note", noted.append)
+    monkeypatch.setattr(server.eyes, "eyes_note", noted.append)
     first = ctl_session(server, "eyes", [{"set": {"prompt": "taken over"}, "cmd": "restart"}, {"take_control": True},
                                          {"done": 1}],
                         done=lambda: {"done": 1} in noted)
     assert first["role"] == "eyes"
-    assert server.state["prompt"] == "unchanged"
+    assert server.hub.state["prompt"] == "unchanged"
 
 
 def test_ctl_control_changes_everything(server, saved_state):
-    server.state.update(running=True, quality=2)
+    server.hub.state.update(running=True, quality=2)
     first = ctl_session(server, "control", [{"set": {"running": False, "quality": 3}}],
-                        done=lambda: server.state["quality"] == 3)
-    assert first == {"role": "control", "can_take": False}
-    assert server.state["running"] is False
+                        done=lambda: server.hub.state["quality"] == 3)
+    assert first == {"role": "control", "can_take": False, "can": CAN["control"]}
+    assert server.hub.state["running"] is False
 
 
 def test_ctl_poisoned_numbers_are_not_taken(server, saved_state):
-    server.state.update(strength=0.5, prompt="before")
+    server.hub.state.update(strength=0.5, prompt="before")
     ctl_session(server, "control", [{"set": {"strength": "NaN", "zoom": 1e400, "seed": "1e999", "hue": float("inf")}},
                                     {"set": {"prompt": "after"}}],
-                done=lambda: server.state["prompt"] == "after")
-    assert (server.state["strength"], server.state["zoom"]) == (0.5, saved_state["zoom"])
-    assert json.load(open(server.STATE_FILE))["strength"] == 0.5
+                done=lambda: server.hub.state["prompt"] == "after")
+    assert (server.hub.state["strength"], server.hub.state["zoom"]) == (0.5, saved_state["zoom"])
+    assert json.load(open(server.hub.STATE_FILE))["strength"] == 0.5
 
 
 def test_ctl_second_control_is_a_guest_until_it_takes_over(server):
@@ -349,10 +386,10 @@ def test_ctl_second_control_is_a_guest_until_it_takes_over(server):
     with c.websocket_connect(url) as one:
         assert one.receive_json()["role"] == "control"
         with c.websocket_connect(url) as two:
-            assert two.receive_json() == {"role": "guest", "can_take": True}
+            assert two.receive_json() == {"role": "guest", "can_take": True, "can": CAN["guest"]}
             two.send_text(json.dumps({"take_control": True}))
-            assert next_with(two, "role") == {"role": "control", "can_take": False}
-            assert next_with(one, "taken") == {"role": "guest", "can_take": True, "taken": True}
+            assert next_with(two, "role") == {"role": "control", "can_take": False, "can": CAN["control"]}
+            assert next_with(one, "taken") == {"role": "guest", "can_take": True, "can": CAN["guest"], "taken": True}
 
 
 def next_with(ws, key: str) -> dict:
@@ -367,13 +404,13 @@ def next_with(ws, key: str) -> dict:
 def test_ctl_guest_allowance(server, monkeypatch, saved_state):
     """#175: a guest gets about 20 messages a second; the rest is dropped."""
     taken = []
-    apply = server.apply
+    apply = server.hub.apply
 
     async def counting(changes, **kw):
         taken.append(changes)
         await apply(changes, **kw)
-    monkeypatch.setattr(server, "apply", counting)
-    monkeypatch.setattr(server, "save_state", lambda: None)
+    monkeypatch.setattr(server.hub, "apply", counting)
+    monkeypatch.setattr(server.hub, "save_state", lambda: None)
     burst = [{"set": {"seed": i}} for i in range(1, 101)]
     ctl_session(server, "guest", burst + [{"done": 1}], done=lambda: len(taken) >= 20)
     time.sleep(0.2)
@@ -388,17 +425,17 @@ def test_render_allowed_only_for_the_stage_side(server):
             self.query_params = {"k": k} if k else {}
             self.cookies = {}
             self.url = type("U", (), {"scheme": "ws"})()
-    k = server.keys
-    assert server.render_allowed(Sock("127.0.0.1"))
-    assert server.render_allowed(Sock("192.168.1.30", k["control"]))
-    assert not server.render_allowed(Sock("192.168.1.30", k["guest"]))
-    assert not server.render_allowed(Sock("192.168.1.30", k["eyes"]))
-    assert not server.render_allowed(Sock("192.168.1.30"))
+    k = server.rights.keys
+    assert server.rights.ws_can(Sock("127.0.0.1"), "render")
+    assert server.rights.ws_can(Sock("192.168.1.30", k["control"]), "render")
+    assert not server.rights.ws_can(Sock("192.168.1.30", k["guest"]), "render")
+    assert not server.rights.ws_can(Sock("192.168.1.30", k["eyes"]), "render")
+    assert not server.rights.ws_can(Sock("192.168.1.30"), "render")
 
 
 # ---------- dream windows (#201): any number, one organism over all of them, they only look ----------
 def test_dream_windows_get_seeds_and_cannot_steer(server):
-    k = server.keys["window"]
+    k = server.rights.keys["window"]
     c = client(server, "window")
     with c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as a, \
             c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as b:
@@ -422,14 +459,14 @@ def test_window_seeds_wander_from_window_to_window(server, monkeypatch):
         def __init__(self, n): self.n = n
         async def send_text(self, text): sent.append((self.n, json.loads(text)))
     one, two = Sock(1), Sock(2)
-    ws, wd = server.windows, server.wanderers
+    ws, wd = server.hub.windows, server.windows.wanderers
     ws.clear(); ws.update({one: {"next": 0}, two: {"next": 1e12}}); wd.clear()
-    monkeypatch.setattr(server.random, "random", lambda: 0.0)          # a wanderer, surely
-    asyncio.run(server.windows_tick(100.0))
+    monkeypatch.setattr(server.windows.random, "random", lambda: 0.0)          # a wanderer, surely
+    asyncio.run(server.windows.windows_tick(100.0))
     seed = next(m["life"] for n, m in sent if n == 1)
-    assert seed["kind"] in server.WANDER_KINDS and seed["exit"] != "in"
+    assert seed["kind"] in server.windows.WANDER_KINDS and seed["exit"] != "in"
     sent.clear()
-    asyncio.run(server.windows_tick(100.0 + seed["life"] + 0.1))
+    asyncio.run(server.windows.windows_tick(100.0 + seed["life"] + 0.1))
     nxt = next(m["life"] for n, m in sent if n == 2)
     assert nxt["seed"] == seed["seed"] and nxt["kind"] == seed["kind"]
     assert nxt["enter"] == {"left": "right", "right": "left", "top": "bottom", "bottom": "top"}[seed["exit"]]
@@ -439,5 +476,5 @@ def test_window_seeds_wander_from_window_to_window(server, monkeypatch):
 def test_window_seeds_are_only_what_a_window_needs(server):
     """A seed carries no prompt, no setting, no picture – only what to draw."""
     for wander in (True, False):
-        s = server.window_seed("cloud", wander, "left" if wander else "in")
+        s = server.windows.window_seed("cloud", wander, "left" if wander else "in")
         assert set(s) == {"id", "kind", "variant", "seed", "life", "enter", "exit", "hue", "size"}

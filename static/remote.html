@@ -137,7 +137,7 @@
   #rolebox.control { color: var(--ok); }
   #takectl, #installapp { min-height: 44px; flex: 0 0 auto; }
 </style>
-<script>/* #175: the key stays in the cookie, not in the address bar, history or a shared link */ try { const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch (e) {}</script>
+<script src="/static/common.js" data-hide-key></script><!-- #175: the key stays in the cookie, not in the address bar; and what the pages share -->
 </head>
 <body>
 <main>
@@ -373,7 +373,7 @@
 (() => {
   'use strict';
   // sections open/close (remembered), show view, font size, night mode – per phone
-  const uiPref = (k, v) => { try { if (v === undefined) return localStorage.getItem('dream-rui-' + k); localStorage.setItem('dream-rui-' + k, v); } catch (e) { return null; } };
+  const uiPref = DreamCommon.prefs('dream-rui-');
   document.querySelectorAll('section').forEach((sec, i) => {
     const h = sec.querySelector('h2'); if (!h) return;
     const key = sec.dataset.sec || 'sec' + i;
@@ -525,7 +525,7 @@
     $('pleditor').style.display = 'block'; $('plname').value = name || ''; $('pltext').value = '';
     if (!name) return;
     try {
-      const r = await (await fetch('/playlists/' + encodeURIComponent(name))).json();
+      const r = await DreamCommon.playlists.read(name);
       $('pltext').value = r.text || '';
       plState(r.temp ? T('AI playlist (temporary) – Save keeps it for good.') : r.builtin && !r.own ? T('Built in – Save creates your own version.') : T('Your playlist.'));
     } catch (err) { plState(T('Could not load the playlist.')); }
@@ -534,31 +534,26 @@
   $('plnew').onclick = () => plOpen('');
   $('plclose').onclick = () => { $('pleditor').style.display = 'none'; };
   $('plsave').onclick = async () => {
-    const res = await fetch('/playlists', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: $('plname').value, text: $('pltext').value }) });
-    const r = await res.json().catch(() => ({}));
-    if (res.ok) { plState(T('Saved: “{name}” ({n} scenes).', { name: r.name, n: r.count })); $('pleditor').style.display = 'none'; setKey('playlist', r.name); setTimeout(() => { $('playlist').value = r.name; }, 300); }
+    const { ok, r } = await DreamCommon.playlists.save($('plname').value, $('pltext').value);
+    if (ok) { plState(T('Saved: “{name}” ({n} scenes).', { name: r.name, n: r.count })); $('pleditor').style.display = 'none'; setKey('playlist', r.name); setTimeout(() => { $('playlist').value = r.name; }, 300); }
     else plState(T('Not saved: a name and at least one scene are needed.'));
   };
   $('pldelete').onclick = async () => {
     const n = $('plname').value.trim(); if (!n) return;
-    await fetch('/playlists/' + encodeURIComponent(n), { method: 'DELETE' });
+    await DreamCommon.playlists.remove(n);
     plState(T('Your own version of “{n}” deleted.', { n })); $('pleditor').style.display = 'none';
   };
   $('plkeep').onclick = async () => {
     const name = $('playlist').value;
     if (!name.startsWith('AI: ')) { plState(T('Choose an AI playlist first.')); return; }
-    const r = await (await fetch('/playlists/' + encodeURIComponent(name))).json();
-    const res = await fetch('/playlists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, text: r.text }) });
-    plState(res.ok ? T('“{name}” stays for good now.', { name }) : T('Could not save.'));
+    plState(await DreamCommon.playlists.keep(name) ? T('“{name}” stays for good now.', { name }) : T('Could not save.'));
   };
   $('plgen').onclick = async () => {
     const topic = $('pltopic').value.trim(); if (!topic) { plState(T('Type a keyword first.')); return; }
     plState(T('The language model on the Mac writes scenes … (up to a minute)')); $('plgen').disabled = true;
     try {
-      const res = await fetch('/playlists/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic }) });
-      const r = await res.json().catch(() => ({}));
-      if (res.ok) { plState(T('New playlist “{name}” with {n} scenes – running.', { name: r.name, n: r.prompts.length })); setKey('playlist', r.name); setTimeout(() => { $('playlist').value = r.name; }, 300); send({ cmd: 'next' }); }
+      const { ok, r } = await DreamCommon.playlists.generate(topic);
+      if (ok) { plState(T('New playlist “{name}” with {n} scenes – running.', { name: r.name, n: r.prompts.length })); setKey('playlist', r.name); setTimeout(() => { $('playlist').value = r.name; }, 300); send({ cmd: 'next' }); }
       else plState(r.error === 'ollama' ? T('The language model on the Mac is not running (Ollama).') : T('Too few usable scenes – try again.'));
     } catch (err) { plState(T('Error: {e}', { e: err.message })); }
     $('plgen').disabled = false;
@@ -573,7 +568,7 @@
   }
   // #176: the server pushes the cloud's status to Dream Control over /ctl; asked once at the start, after an action
   async function pollCloud() {
-    if (document.body.classList.contains('guest')) return;   // a guest has no cloud
+    if (role && !can('control')) return;              // a guest has no cloud
     try { showCloud(await cloud('/cloud')); } catch (e) { $('cloudstate').textContent = ''; }
   }
   function showCloud(c) {
@@ -583,30 +578,10 @@
     $('cloudstart').disabled = c.busy || c.ready || c.state === 'setup';
     $('cloudstop').disabled = c.state === 'off' && !c.busy;
   }
-  // #110: if the chosen RunPod GPU is not free, the other RTX one – only with consent, its price shown first
-  const FALLBACK = { 'runpod:RTX-4090': 'runpod:RTX-5090', 'runpod:RTX-5090': 'runpod:RTX-4090',
-    'runpod:RTX-4090-community': 'runpod:RTX-5090-community', 'runpod:RTX-5090-community': 'runpod:RTX-4090-community' };
-  const optText = v => { const o = [...document.querySelectorAll('#gpu option')].find(x => x.value === v); return o ? o.textContent : v; };
-  // #135: one question before a cloud GPU starts – the other GPU as its own button; "Cancel" (or Esc) starts nothing
-  function askStart(gpu) {
-    const alt = FALLBACK[gpu], d = $('startdlg');
-    $('startdlg-text').textContent = T('Start the cloud GPU: {gpu}?', { gpu: optText(gpu) });
-    $('startdlg-note').textContent = (gpu.endsWith('-community') ? T('Community Cloud: a private provider processes your pictures.') + ' ' : '')
-      + T('Costs money while it runs; deleted automatically after 2 hours at the latest.');
-    $('startdlg-alt').hidden = !alt;
-    if (alt) $('startdlg-alt').textContent = T('Start – if not free: {gpu}', { gpu: optText(alt) });
-    $('startdlg-only').textContent = alt ? T('Try only {gpu}', { gpu: optText(gpu).split(' · ').slice(0, 2).join(' · ') }) : T('Start');
-    return new Promise(res => {
-      const done = v => { d.close(); res(v); };
-      $('startdlg-alt').onclick = () => done({ fallback: alt });
-      $('startdlg-only').onclick = () => done({ fallback: '' });
-      $('startdlg-cancel').onclick = () => done(null);
-      d.oncancel = e => { e.preventDefault(); done(null); };
-      d.showModal();
-    });
-  }
   $('cloudstart').onclick = async () => {
-    const choice = await askStart($('gpu').value);
+    // #135: one question before a cloud GPU starts (the dialog is DreamCommon's; these are the remote's words for it)
+    const choice = await DreamCommon.askCloudStart($('gpu').value, { community: T('Community Cloud: a private provider processes your pictures.'),
+      costs: T('Costs money while it runs; deleted automatically after 2 hours at the latest.') });
     if (!choice) return;                                         // cancelled: nothing starts
     const fd = new FormData(); fd.append('gpu', $('gpu').value); fd.append('model', $('model').value); fd.append('fallback', choice.fallback);
     await cloud('/cloud/start', fd); pollCloud();
@@ -628,23 +603,8 @@
   $('autobtn').onclick = () => { $('auto').checked = !$('auto').checked; setKey('auto', $('auto').checked); show(); };
   $('makeimg').onclick = () => askMake('img', $('makeprompt').value);
   $('makeclip').onclick = () => askMake('clip', $('makeprompt').value);
-  async function galleryAct(id, act) {
-    const r = await fetch(id ? `/gallery/${id}/${act}` : `/gallery/${act}`, { method: 'POST' });
-    const j = await r.json().catch(() => ({}));
-    if (r.ok && j.undo) return galleryUndo(j);
-    makeHint(!r.ok ? (j.error || T('Did not work.')) : act === 'save' ? T('Saved: {p}', { p: j.saved }) : T('Fed in.'));
-  }
-  // #142: a deletion can be taken back for a few seconds
-  let undoTimer = 0;
-  function galleryUndo(j) {
-    const box = $('gundo'); box.textContent = '';
-    box.append(T(j.count === 1 ? 'Deleted.' : '{n} deleted.', { n: j.count }) + ' ');
-    const b = document.createElement('button'); b.textContent = T('↶ Undo');
-    b.onclick = async () => { clearTimeout(undoTimer); box.textContent = ''; const r = await fetch('/gallery/undo/' + j.undo, { method: 'POST' });
-      if (!r.ok) makeHint(((await r.json().catch(() => ({}))).error) || T('Did not work.')); };
-    box.append(b);
-    clearTimeout(undoTimer); undoTimer = setTimeout(() => { box.textContent = ''; }, (j.secs || 6) * 1000 - 300);
-  }
+  // feed in, save, delete – and #142: a deletion can be taken back for a few seconds
+  const { act: galleryAct } = DreamCommon.gallery({ say: makeHint, undoBox: $('gundo'), fedIn: T('Fed in.') });
   $('gclear').onclick = () => { if (confirm(T('Delete all pictures and clips of the gallery? (Saved copies in ~/Pictures/Dream stay.)'))) galleryAct('', 'clear'); };
   function renderGallery(list) {
     const box = $('gallery'); box.textContent = '';
@@ -670,11 +630,12 @@
     $('gclear').hidden = !list.length;
   }
 
-  // #148: guest (Dream Remote) or Dream Control – one Control at a time, the second one may take over
+  // #148: guest (Dream Remote) or Dream Control – one Control at a time, the second one may take over.
+  // #189: what this device may do comes with its role, from the server's table of rights (rights.py)
   function setRole(m) {
-    const guest = m.role === 'guest';
-    document.body.classList.toggle('guest', guest);
-    $('rolebox').hidden = m.role === 'local';
+    rights = m.can || [];
+    document.body.classList.toggle('guest', can('set:guest'));
+    $('rolebox').hidden = can('stage');
     $('rolebox').classList.toggle('control', m.role === 'control');
     $('roletext').textContent = m.role === 'control' ? T('Dream Control – all settings.')
       : m.taken ? T('Dream Control was taken over on another device – you steer as a guest now.')
@@ -682,7 +643,7 @@
       : T('Guest – you steer the dream; some settings only Dream Control changes.');
     $('takectl').hidden = !m.can_take;
     role = m.role; showInstall();
-    if (m.role === 'guest') { devStop('cam', false); devStop('motion', false); }   // #146: feeds end with the rights
+    if (!can('feed')) { devStop('cam', false); devStop('motion', false); }   // #146: feeds end with the rights
     else send({ cmd: 'relieve_ask' });                // #152: the stage tells how it is doing
   }
   $('takectl').onclick = () => send({ take_control: true });
@@ -705,14 +666,15 @@
   $('relieve').onclick = () => send({ cmd: 'relieve' });
   $('relieveundo').onclick = () => send({ cmd: 'relieve_undo' });
   // #145: Dream Control as an app of its own (Chrome offers it over https); the button only where it can work
-  let role = null, installEvt = null;
+  let role = null, installEvt = null, rights = [];
+  const can = what => rights.includes(what);
   const showInstall = () => { $('installapp').hidden = !(installEvt && role === 'control' && location.pathname === '/control'); };
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; showInstall(); });
   addEventListener('appinstalled', () => { installEvt = null; showInstall(); });
   $('installapp').onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice.catch(() => {}); installEvt = null; showInstall(); };
 
   // ---------- #146: live camera and motion of this device (Dream Control, over https) ----------
-  const dev = { stream: null, timer: 0, cv: document.createElement('canvas'), encoding: false, motion: false,
+  const dev = { stream: null, timer: 0, motion: false,
     wait: { cam: false, motion: false }, m: {}, mAt: 0 };
   const secure = window.isSecureContext && navigator.mediaDevices;
   $('devsecure').hidden = !!secure;
@@ -788,15 +750,7 @@
     dev.wait.cam = true; send({ feed: { cam: true, facing: $('devfacing').value } });
     devSay(T('The stage dreams from this camera.')); devShow();
   }
-  function devFrame() {                                // about 12 pictures a second, 640 px wide – smooth in the Wi-Fi
-    const v = $('devvid');
-    if (!ws || ws.readyState !== 1 || ws.bufferedAmount > 300000 || dev.encoding || !v.videoWidth) return;
-    const W = 640, H = Math.round(W * v.videoHeight / v.videoWidth);
-    if (dev.cv.width !== W || dev.cv.height !== H) { dev.cv.width = W; dev.cv.height = H; }
-    dev.cv.getContext('2d').drawImage(v, 0, 0, W, H);
-    dev.encoding = true;
-    dev.cv.toBlob(b => { dev.encoding = false; if (b && ws && ws.readyState === 1 && dev.stream) ws.send(b); }, 'image/jpeg', 0.7);
-  }
+  const devFrame = DreamCommon.cameraSender($('devvid'), () => ws, () => dev.stream);
   $('devcam').onclick = () => dev.stream ? (devStop('cam', true), devSay(T('Live camera off.'))) : devCamStart();
   $('devfacing').onchange = () => { if (dev.stream) devCamStart(); };
   const nums = o => o ? [o.x ?? o.alpha, o.y ?? o.beta, o.z ?? o.gamma].filter(v => typeof v === 'number' && isFinite(v)) : [];
@@ -829,11 +783,7 @@
     ws.onmessage = ev => {
       const m = JSON.parse(ev.data);
       measureMe(m);                                    // #180
-      if (m.playlists) ['playlist'].forEach(id => {
-        const sel = $(id), first = sel.options[0].outerHTML;
-        const esc = v => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-        sel.innerHTML = first + m.playlists.map(n => `<option value="${esc(n)}">${esc(I18N.name(n))}</option>`).join('');   // #132
-      });
+      if (m.playlists) DreamCommon.fillPlaylists($('playlist'), m.playlists);
       if (m.role) { setRole(m); pollCloud(); }
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server
       if (m.eyes_cfg) tranceSeg(m.eyes_cfg.trance_every);
@@ -972,18 +922,7 @@
 
   // the screen stays on: the Wake Lock API where the browser offers it (https), otherwise a tiny silent video
   // loop, which keeps Android's screen awake as well (started by the first tap)
-  let lock = null, awakeVid = null;
-  async function keepAwake() {
-    try { if ('wakeLock' in navigator && !lock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); return; } } catch (e) { /* fall back */ }
-    if (lock) return;
-    if (!awakeVid) {
-      awakeVid = Object.assign(document.createElement('video'), { muted: true, loop: true, playsInline: true, src: '/static/awake.webm' });
-      awakeVid.setAttribute('aria-hidden', 'true');
-      Object.assign(awakeVid.style, { position: 'fixed', width: '2px', height: '2px', opacity: '0.01', left: '0', bottom: '0', pointerEvents: 'none' });
-      document.body.append(awakeVid);
-    }
-    awakeVid.play().catch(() => {});
-  }
+  const keepAwake = DreamCommon.wakeLock(true);
   document.addEventListener('pointerdown', keepAwake, { once: true });
   keepAwake();
   pvShow();

@@ -17,7 +17,6 @@ import re
 import urllib.request
 
 import paths
-from midi import FX
 
 USER_FILE = os.path.join(paths.config_dir(), "playlists.json")
 SURPRISE = "✨ Surprise"
@@ -43,7 +42,8 @@ SETTINGS = {"strength": (0.15, 0.95), "drift": (0.0, 1.0), "hue": (0.0, 20.0), "
 # picture styles (#123, style models for SDXL-Turbo; the same keys as styles.LORAS): "style=watercolour", "style=off"
 # for none; a style reference picture by its id: "style_ref=3f2a9c0d1e4b" (pictures in ~/.local/state/dream/refs)
 PICTURE_STYLES = ("watercolour", "crayon", "pixel", "papercut", "sticker", "illustration")
-# effects of a scene: "fx=tunnel+waves" (names as in static/fx.js), "fx=off" switches them off
+# the 60 fps effects (static/fx.js); a scene names them as "fx=tunnel+waves", "fx=off" switches them off
+FX = ("kaleido", "mandala", "mirror", "tunnel", "waves", "feedback", "trails", "pixel", "raster", "rgb", "glitch", "hue")
 
 
 def _fx(v):

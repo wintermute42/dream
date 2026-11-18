@@ -21,8 +21,8 @@ conftest.fake_torch()
 import midi
 midi.Listener.start = lambda self: None
 import playlists, sensors, server
-print(json.dumps({{"state_dir": server.STATE_DIR, "save_dir": server.SAVE_DIR, "midi": midi.MAP_FILE,
-                  "sensors": sensors.MAP_FILE, "playlists": playlists.USER_FILE, "state": server.state}}))
+print(json.dumps({{"state_dir": server.hub.STATE_DIR, "save_dir": server.media.SAVE_DIR, "midi": midi.MAP_FILE,
+                  "sensors": sensors.MAP_FILE, "playlists": playlists.USER_FILE, "state": server.hub.state}}))
 """
 
 
@@ -180,3 +180,26 @@ def test_shell_scripts_use_the_variables(script):
         for m in re.finditer(r"\$HOME/(\.local/state/dream|\.config/dream|Pictures/Dream)", line):
             before = line[:m.start()]
             assert before.endswith(("${" + var[m.group(1)] + ":-", f'setting {var[m.group(1)]} "')), f"{script}:{ln}"
+
+
+def test_worker_loads_only_the_renderer(tmp_path):
+    """#189: the cloud worker is the renderer and its lines – no keys, no state folder, none of the app's parts."""
+    home = str(tmp_path / "home")
+    os.makedirs(home, exist_ok=True)
+    code = f"""
+import json, os, sys
+sys.path[:0] = [{ROOT!r}, {os.path.join(ROOT, "tests")!r}]
+import conftest
+conftest.fake_torch()
+import server
+app_parts = sorted(m for m in ("rights", "settings", "hub", "ctl", "cloud", "media", "eyes", "net", "pages") if m in sys.modules)
+print(json.dumps({{"routes": sorted(r.path for r in server.app.routes), "app_parts": app_parts,
+                  "state": os.path.exists(os.path.join({home!r}, ".local", "state", "dream"))}}))
+"""
+    out = subprocess.run([sys.executable, "-c", code], env=child_env(home, DREAM_ROLE="worker"), cwd=home,
+                         capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stderr
+    got = json.loads(out.stdout.strip().splitlines()[-1])
+    assert got["app_parts"] == [] and got["state"] is False
+    assert {"/ws", "/make", "/health", "/stats"} <= set(got["routes"])
+    assert not {"/ctl", "/", "/remote", "/static", "/cloud/start"} & set(got["routes"])
