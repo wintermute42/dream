@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="__LANG__">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a10">
+<title>Dream</title>
+<style>
+  /* #170: the page a device without a (valid) key sees – served inline, it may load nothing else */
+  :root { --bg: #0b0a10; --card: #17141f; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16); --warn: #ff6b7d; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font: 18px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; justify-content: center; padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); }
+  main { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 18px; }
+  .logo { font-size: 56px; text-align: center; line-height: 1; animation: float 4s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-6px) rotate(-4deg); } }
+  @media (prefers-reduced-motion: reduce) { .logo { animation: none; } }
+  h1 { margin: 0; font-size: 1.5em; text-align: center; text-wrap: balance; }
+  p { margin: 0; color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  button { font: inherit; color: var(--bg); background: var(--accent); border: 0; border-radius: 12px; padding: 14px 16px; min-height: 48px; cursor: pointer; font-weight: 600; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .row { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  video { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: #000; }
+  .msg { color: var(--warn); min-height: 1.2em; }
+  .where { font-size: .9em; }
+  .where b { color: var(--text); font-weight: 600; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="logo" aria-hidden="true">🔮</div>
+  <h1 id="title"></h1>
+  <p id="checking" hidden></p>
+  <div id="pair" hidden>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <p id="lead"></p>
+      <div class="card">
+        <button id="scan" type="button"></button>
+        <video id="cam" playsinline muted hidden></video>
+        <button id="stop" class="ghost" type="button" hidden></button>
+        <p id="noscan" hidden></p>
+      </div>
+      <form class="card" id="form">
+        <label for="link" id="linkLabel"></label>
+        <div class="row"><input id="link" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://…?k=…"><button id="go" type="submit"></button></div>
+      </form>
+      <p class="msg" id="msg" role="alert" aria-live="assertive"></p>
+      <p class="where" id="where"></p>
+    </div>
+  </div>
+</main>
+<script>
+(() => {
+  const TX = __TEXTS__;
+  const $ = id => document.getElementById(id);
+  $('title').textContent = TX.title; $('checking').textContent = TX.checking; $('lead').textContent = TX.lead;
+  $('scan').textContent = TX.scan; $('stop').textContent = TX.stop; $('linkLabel').textContent = TX.paste; $('go').textContent = TX.pair;
+  $('where').innerHTML = TX.where;                     // the server's own translated text, escaped there
+  // 1. once by itself: a key cookie set before #168 was "strict" and stays behind when the app is opened from the home
+  //    screen; a reload started by this page is same-site and brings it along (the server renews it as "lax" then)
+  let last = 0; try { last = +sessionStorage.getItem('dream-pair-retry') || 0; } catch (e) {}
+  if (Date.now() - last > 15000) {
+    try { sessionStorage.setItem('dream-pair-retry', String(Date.now())); } catch (e) {}
+    $('checking').hidden = false;
+    setTimeout(() => location.replace(location.href), 250);
+    return;
+  }
+  $('pair').hidden = false;
+  // 2. pairing: only the key is taken from a link; the page stays on this Dream
+  const PAGES = new Set(['/control', '/remote', '/eyes', '/output', '/']);
+  function pairWith(text) {
+    let u; try { u = new URL(String(text).trim()); } catch (e) { $('msg').textContent = TX.notLink; return false; }
+    const k = u.searchParams.get('k');
+    if (!k || !/^[\w-]{8,128}$/.test(k)) { $('msg').textContent = TX.notLink; return false; }
+    const path = PAGES.has(u.pathname) ? u.pathname : location.pathname;
+    location.replace(path + '?k=' + encodeURIComponent(k));
+    return true;
+  }
+  $('form').addEventListener('submit', ev => { ev.preventDefault(); pairWith($('link').value); });
+  let stream = null, timer = 0;
+  function stop() {
+    clearTimeout(timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
+    $('cam').hidden = true; $('stop').hidden = true; $('scan').hidden = false;
+  }
+  $('stop').addEventListener('click', stop);
+  const canScan = 'BarcodeDetector' in window && window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  if (!canScan) { $('scan').hidden = true; $('noscan').hidden = false; $('noscan').textContent = TX.noScan; }
+  $('scan').addEventListener('click', async () => {
+    $('msg').textContent = '';
+    try {
+      const det = new BarcodeDetector({ formats: ['qr_code'] });
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      const v = $('cam'); v.srcObject = stream; v.hidden = false; $('stop').hidden = false; $('scan').hidden = true; await v.play();
+      const look = async () => {
+        if (!stream) return;
+        try { for (const c of await det.detect(v)) if (c.rawValue && pairWith(c.rawValue)) { stop(); return; } } catch (e) {}
+        timer = setTimeout(look, 250);
+      };
+      look();
+    } catch (e) { stop(); $('msg').textContent = TX.noCamera; }
+  });
+})();
+</script>
+</body>
+</html>

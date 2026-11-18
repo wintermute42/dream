@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dream · Output</title>
+<link rel="icon" type="image/svg+xml" href="/static/icons/logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  img { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; opacity: 0;
+    transition: opacity var(--fade, 400ms) linear; }
+  body { --master: 1; }
+  #pics { opacity: var(--master); transition: opacity .12s linear; }
+  /* autopilot effects on driving music (sent by the stage): kaleidoscope over the picture, pulse and flash on the beat */
+  #fxcv { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; opacity: 0; pointer-events: none; }
+  #smoothcv { position: fixed; left: 0; top: 0; display: none; pointer-events: none; }
+  #hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 8px 14px; border-radius: 10px;
+    background: rgba(20, 18, 30, .8); color: #ece8f6; font: 14px/1.4 -apple-system, system-ui, sans-serif;
+    transition: opacity .6s; }
+  body.live #hint { opacity: 0; }
+  /* calibration (#92): black, one white point where the stage asks for it */
+  #calib { position: fixed; inset: 0; background: #000; z-index: 10; }
+  #calib i { position: absolute; width: 6vmin; height: 6vmin; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); }
+</style>
+<script>/* #175: the key stays in the cookie, not in the address bar, history or a shared link */ try { const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch (e) {}</script>
+</head>
+<body>
+<div id="pics"><img id="a" alt=""><img id="b" alt=""><canvas id="smoothcv" aria-hidden="true"></canvas><canvas id="fxcv" aria-hidden="true"></canvas></div>
+<div id="calib" hidden><i hidden></i></div>
+<div id="hint" role="status">Dream · output – waiting for pictures (the stage or panel must be open). Tap or F = fullscreen</div>
+<script src="/static/i18n.js"></script>
+<script src="/static/fx.js"></script>
+<script>
+  const T = I18N.t;   // #132
+  I18N.apply();
+// Output window for a beamer or second monitor: shows exactly what the stage shows, renders nothing itself.
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  let front = $('a'), back = $('b'), lastT = 0, hideHint = null, nextFade = 0;
+  // effects as the stage shows them; they fade out by themselves if the stage stops sending (closed, switched off)
+  let fx = null, fxAt = 0;
+  const engine = DreamFx.create($('fxcv'));
+  // smoothing: the same moving average as on the stage, drawn over the picture area ("contain")
+  const smoother = DreamFx.smoother($('smoothcv'), 1920);
+  let smoothTau = 0, smoothAt = performance.now();
+  (function smoothLoop() {
+    const now = performance.now(), dt = Math.min(0.1, (now - smoothAt) / 1000), cv = $('smoothcv'); smoothAt = now;
+    if (smoothTau > 0.02 && front.naturalWidth) {
+      const iw = front.naturalWidth, ih = front.naturalHeight, s = Math.min(innerWidth / iw, innerHeight / ih);
+      Object.assign(cv.style, { display: 'block', width: iw * s + 'px', height: ih * s + 'px', left: (innerWidth - iw * s) / 2 + 'px', top: (innerHeight - ih * s) / 2 + 'px' });
+      smoother.step(dt, smoothTau);
+    } else if (cv.style.display !== 'none') { cv.style.display = 'none'; smoother.reset(); }
+    requestAnimationFrame(smoothLoop);
+  })();
+  (function fxLoop() {
+    const cv = $('fxcv'), stale = performance.now() - fxAt > 1000, f = fx && !stale ? fx : null;
+    const k = f ? Math.max(0, Math.min(1, +f.k || 0)) : 0;
+    if (k > 0.005) {
+      // only over the picture itself (it is shown "contain": a square picture on a 16:9 beamer has black sides)
+      const iw = front.naturalWidth || 16, ih = front.naturalHeight || 9, s = Math.min(innerWidth / iw, innerHeight / ih);
+      Object.assign(cv.style, { width: iw * s + 'px', height: ih * s + 'px', left: (innerWidth - iw * s) / 2 + 'px', top: (innerHeight - ih * s) / 2 + 'px' });
+      if (smoothTau > 0.02 && smoother.ready) engine.render($('smoothcv'), f); else engine.render(front, f, back, +getComputedStyle(front).opacity);
+      cv.style.filter = DreamFx.cssFilter(f);
+    } else if (cv.width) { engine.reset(); cv.style.filter = ''; }
+    cv.style.opacity = k.toFixed(3);
+    const sc = f ? +f.sc || 1 : 1, br = f ? +f.br || 1 : 1;
+    $('pics').style.transform = sc !== 1 ? `scale(${sc.toFixed(4)})` : '';
+    $('pics').style.filter = br !== 1 ? `brightness(${br.toFixed(3)})` : '';
+    requestAnimationFrame(fxLoop);
+  })();
+  const WAIT = $('hint').textContent;
+  const hint = t => { $('hint').textContent = t; document.body.classList.remove('live'); };
+  function connect() {
+    // the key from the QR code comes along as a cookie (set by the first page request); on a second device in the WLAN
+    // a lost connection (WLAN gap, Dream restarted) reconnects by itself
+    const ws = new WebSocket(`ws://${location.host}/view`);
+    ws.onopen = () => { if ($('hint').textContent !== WAIT) hint(WAIT); };
+    ws.binaryType = 'blob';
+    // the calibration point in the picture's coordinates: where the picture lies in this window (letterboxed)
+    function showCalib(c) {
+      const box = $('calib'), dot = box.firstElementChild;
+      box.hidden = !c; if (!c) return;
+      dot.hidden = c.x == null; if (c.x == null) return;
+      const iw = front.naturalWidth || 1, ih = front.naturalHeight || 1, W = innerWidth, H = innerHeight, s = Math.min(W / iw, H / ih);
+      dot.style.left = ((W - iw * s) / 2 + c.x * iw * s) + 'px'; dot.style.top = ((H - ih * s) / 2 + c.y * ih * s) + 'px';
+    }
+    ws.onmessage = ev => {
+      if (typeof ev.data === 'string') {                 // master brightness from the stage's fader, slow fade at a model switch
+        let m; try { m = JSON.parse(ev.data); } catch (e) { return; }   // a broken message: skip it
+        if ('master' in m) document.documentElement.style.setProperty('--master', m.master);
+        if (m.fade) nextFade = Math.min(4000, +m.fade);
+        if (m.fx) { fx = m.fx; fxAt = performance.now(); }
+        if ('smooth' in m) smoothTau = +m.smooth || 0;         // smoothing as on the stage (seconds)
+        if ('calib' in m) showCalib(m.calib);
+        return;
+      }
+      const url = URL.createObjectURL(ev.data), img = back;
+      img.onload = () => {
+        const t = performance.now(), dt = lastT ? t - lastT : 400; lastT = t;
+        // cross-fade over most of the time until the next picture: smooth even at 2–3 pictures per second
+        const fxk = fx && performance.now() - fxAt < 1000 ? +fx.k || 0 : 0;    // stage effects on: snappier, like the stage
+        document.documentElement.style.setProperty('--fade', (nextFade || Math.round(Math.min(900, dt * 0.9) * (1 - 0.9 * fxk))) + 'ms'); nextFade = 0;
+        img.style.opacity = 1; front.style.opacity = 0;
+        const old = front; front = img; back = old; smoother.push(img);
+        setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1500);
+        document.body.classList.add('live');
+        clearTimeout(hideHint);
+        hideHint = setTimeout(() => document.body.classList.remove('live'), 5000);   // no pictures for 5 s: hint again
+      };
+      img.src = url;
+    };
+    ws.onclose = async () => {
+      // the browser does not tell why; a page request does (403 = the key is not valid any more)
+      const r = await fetch('/remote-info', { cache: 'no-store' }).catch(() => null);
+      if (r && r.status === 403) { hint(T('No access – scan the QR code in Dream (Output → “Output over Wi-Fi”) again.')); setTimeout(connect, 10000); return; }
+      hint(T('Connection to Dream lost – reconnecting …'));
+      setTimeout(connect, 1500);
+    };
+  }
+  connect();
+  const full = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') full(); });
+  // a tap (TV box, tablet) or click goes full screen; a double click leaves it again
+  let fullAt = 0;
+  addEventListener('click', () => { if (!document.fullscreenElement && document.documentElement.requestFullscreen) { fullAt = Date.now(); full(); } });
+  addEventListener('dblclick', () => { if (document.fullscreenElement && Date.now() - fullAt > 600) full(); });
+})();
+</script>
+</body>
+</html>

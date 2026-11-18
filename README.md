@@ -1,0 +1,1094 @@
+<p align="center"><img src="static/icons/logo.svg" alt="Dream – a dreaming, glowing mandala" width="128" height="128"></p>
+
+<h1 align="center">Dream</h1>
+
+<p align="center"><b>Live AI visuals for VJs, artists and installations</b><br>
+<i>English · Deutsch: <a href="README.de.md">README.de.md</a></i></p>
+
+<p align="center"><a href="#at-a-glance">Quick start</a> · <a href="#starting">Start</a> · <a href="#using-dream">Use</a> · <a href="#phone-remote">Phones</a> · <a href="#dreamy-eyes--a-phone-as-dreaming-eyes-installation">Dreamy Eyes</a> · <a href="#movement">Movement</a> · <a href="#cloud-gpu">Cloud GPU</a> · <a href="#when-something-gets-stuck">Help</a> · <a href="#licences">Licences</a></p>
+
+Dream is an endless, ever-changing stream of pictures: a fast image model (SD-Turbo or SDXL-Turbo) turns each picture
+into the next. It runs on a Mac with Apple Silicon, in the browser, only on `127.0.0.1` (the phone remote and a
+second output device join over the home Wi-Fi when you allow it). It computes either **locally** on the Mac's GPU or
+on a **cloud GPU** you rent by the hour (Scaleway in Paris or RunPod in Europe). It reacts to music, to a camera, to
+movement (hands, fire, LEDs), to MIDI controllers and body sensors, and can be driven by an autopilot.
+
+The whole interface is available in English and German (switch **DE | EN** at the top right).
+
+<p align="center"><img src="docs/images/stage-en.webp" alt="A dream on the stage – SD-Turbo turns each picture into the next" width="420"></p>
+
+## Contents
+
+**Get started**
+
+- [At a glance](#at-a-glance)
+- [Starting](#starting)
+  - [Updating](#updating)
+- [Folder and own settings](#folder-and-own-settings)
+
+**Play**
+
+- [Using Dream](#using-dream)
+  - [Autopilot](#autopilot)
+  - [Pictures and clips on request](#pictures-and-clips-on-request)
+- [Playlists and autostart](#playlists-and-autostart)
+- [Output on a projector or second monitor (16:9)](#output-on-a-projector-or-second-monitor-169)
+- [As a source in Resolume (Syphon)](#as-a-source-in-resolume-syphon)
+
+**Phones and tablets**
+
+- [Phone remote](#phone-remote)
+  - [Dream Remote (guests) and Dream Control (you)](#dream-remote-guests-and-dream-control-you)
+  - [Dream Control over https and as an app](#dream-control-over-https-and-as-an-app)
+  - [On a tablet (Android)](#on-a-tablet-android)
+  - [Live camera and motion of the Control device](#live-camera-and-motion-of-the-control-device)
+  - [If the phone does not connect](#if-the-phone-does-not-connect)
+- [Dreamy Eyes – a phone as dreaming eyes (installation)](#dreamy-eyes--a-phone-as-dreaming-eyes-installation)
+
+**Movement and controllers**
+
+- [Movement](#movement)
+  - [Dreaming light trails (input “Light trails”)](#dreaming-light-trails-input-light-trails)
+  - [Keep outlines (ControlNet)](#keep-outlines-controlnet)
+  - [Pose shapes the figure (ControlNet)](#pose-shapes-the-figure-controlnet)
+- [MIDI controller](#midi-controller)
+- [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
+
+**Cloud GPU**
+
+- [Cloud GPU](#cloud-gpu)
+  - [Scaleway: set up once](#scaleway-set-up-once)
+  - [RunPod: set up once](#runpod-set-up-once)
+
+**Help and more**
+
+- [When something gets stuck](#when-something-gets-stuck)
+- [Disk space and removal](#disk-space-and-removal)
+- [Translations](#translations)
+- [Licences](#licences)
+
+---
+
+## At a glance
+
+| What | Command / address |
+|---|---|
+| Start (this Mac only) | `./dream.sh` |
+| Start with the phone remote | `./dream.sh --lan` |
+| Panel and stage | http://127.0.0.1:7860 (open it yourself, or `./dream.sh --open`) |
+| Picture output for a projector (does not compute) | http://127.0.0.1:7860/output, button “⧉ Open output” or `dream.sh --beamer` |
+| Stage only, without controls | http://127.0.0.1:7860/?stage=1 (or `dream.sh --stage`), then **F** |
+| Connect a phone | on the stage press **Q** → scan the QR code (see below) |
+| All options | `./dream.sh --help` |
+| Stop | Ctrl+C in the terminal |
+| Check a cloud GPU | `./dream-cloud status` |
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Starting
+
+**What you need:**
+
+| | Needed | What for |
+|---|---|---|
+| Mac with Apple Silicon (M1 or newer), 16 GB memory or more | yes | computing locally (SD-Turbo; SDXL-Turbo wants more memory or the cloud) |
+| [uv](https://docs.astral.sh/uv/) (`brew install uv`) | yes | `dream.sh` installs the Python packages by itself |
+| about 3 GB free disk (SDXL-Turbo: about 7 GB more) | yes | the models, downloaded on first use |
+| Chrome (or another current browser) | yes | panel and stage; Chrome for `--beamer` and the installable apps |
+| [Ollama](https://ollama.com) with `llama3.2:3b` | optional | prompt ideas and generated playlists |
+| `ffmpeg` (`brew install ffmpeg`) | optional | saving clips as video |
+| [Scaleway CLI](https://www.scaleway.com/en/cli/) or a RunPod account | optional | a cloud GPU instead of the Mac's |
+
+```bash
+./dream.sh
+```
+
+Dream opens **no** browser window by itself; after about 15 seconds the terminal says “Dream is ready” with the
+addresses. Then open http://127.0.0.1:7860 in the browser (or use `./dream.sh --open`). **Dream computes only while
+the panel or the stage is open in a browser** – the output window alone does not compute. Stop with Ctrl+C. The first
+local picture downloads SD-Turbo (about 2.6 GB, once) – the stage says so with a badge, the terminal shows the progress;
+the first picture after each start takes a few seconds.
+
+If Dream runs in the background (without a terminal), stop it with `pkill -f "uvicorn server:app"`.
+
+<sub>[↑ Contents](#contents)</sub>
+
+### Updating
+
+After new features (or when something described here is missing):
+
+```bash
+cd <Dream folder> && git switch main && git pull
+```
+
+Then stop Dream with Ctrl+C and start it again – a running Dream keeps the old version otherwise. New Python packages
+are installed by `dream.sh` on start.
+
+To try a ticket before it is accepted: `git switch <branch>` (named in the ticket), back with `git switch main`.
+
+## Folder and own settings
+
+All commands here run in the **Dream folder** (where this repository lies): `cd <Dream folder>`, then `./dream.sh`.
+Movement detection is built into Dream; the separate program flowtrack is not needed any more.
+
+**Settings of this Mac** (paths, ports, camera) belong in `~/.config/dream/dream.env` – not in the repository.
+`dream.sh` reads the file on every start, one line per setting:
+
+```bash
+DREAM_PORT=7860
+```
+
+<sub>[↑ Contents](#contents)</sub>
+
+---
+
+## Using Dream
+
+<p align="center"><img src="docs/images/panel-en.webp" alt="The panel on the Mac: the controls on the left, the stage and its load on the right" width="900"></p>
+
+The panel is a wide column on the left, the preview sits next to it on the right (key H hides the panel, then the
+preview fills the screen). Drag the edge to change the width; it is remembered. The areas (Input & prompt · Dream ·
+Scenes & playlists · Movement · Direct interaction · Music · Output · Computing) are open cards in columns side by
+side. The layout fits the screen so that everything is visible without scrolling: the cards are spread over the
+columns as evenly as possible in their order, the panel's type gets a little smaller if needed (down to 12 px), and
+if that is not enough, the panel gets a little wider and the preview smaller (only on very small screens does the
+panel scroll).
+
+**Fixed layout:** the cards are placed only when the shape of the panel changes – at start, when the window size
+changes, when you drag the edge and when the picture format changes. Otherwise every card stays in its column:
+folding a card, new texts, the diagnostics or key H move nothing to another column (only the cards below it in the
+same column move up), and the type no longer changes by itself. If a card gets longer later, the card area scrolls
+instead of rearranging.
+- **🔓/🔒 Lock the layout** (top right in the panel, remembered per device) – for the show: a folded card keeps its
+  place as a dashed outline, so nothing moves up in its column either, and window size or picture format only adjust
+  the preview, the cards stay. Only dragging the edge places them anew while locked. Unlocking catches up on what
+  changed meanwhile.
+- **DE | EN – language:** top right in the panel and on the phone. The whole interface (stage, phone, output, the
+  messages of Dream and of the cloud GPU) is available in English and German; remembered per device, the first time
+  by the browser's language. Switching reloads the page (briefly, the settings stay). Terminal messages
+  (`dream.sh`, `dream-cloud`, autostart) follow the system language or `DREAM_LANG=de`.
+
+**Below the preview** there are always **Pause, New, Fullscreen, Save**, the coloured **status chips** (pause, cloud
+GPU running, movement without camera, playlist, music, Syphon) and the **load**, updated every second: AI pictures per
+second, GPU time per picture, how much of the time the AI is busy, display fps, picture size and model, CPU of Dream
+and of the whole Mac, memory of Dream, GPU memory and total memory (and movement values per second while movement is
+on). Red means: at the limit. If there is room below the preview (mostly with 16:9), cards like Computing and Output
+move there. The values are also available as JSON at http://127.0.0.1:7860/stats.
+
+- **Compute on:** “Local (Mac)” or “Cloud GPU”. Switching works at any time, without a restart.
+- **Model:** SD-Turbo (fast) or SDXL-Turbo (nicer; very slow locally, good in the cloud). You can switch in the middle
+  of a show: the new model loads in the background (SD-Turbo seconds, SDXL-Turbo locally about 20–60 s, much longer
+  the very first time with the download), the old one dreams on meanwhile, a chip says “⏳ … is loading”. The first
+  picture of the new model grows out of the last one of the old, stage and projector blend over softly in 2.5 s.
+  Then Dream frees the old model. If memory is not enough for both at once, Dream frees the old one first and holds
+  the last picture meanwhile (the chip says so). If the new model does not load (not downloaded, no network), the old
+  one runs on and the chip reports it.
+- **Input & prompt** (one card, two levels): at the top **“Input – what does the AI paint from?”** as tabs: **Dream
+  only** (no input picture, the AI dreams on from its last picture), **Camera**, **Picture**, **Video**, **Light trails**
+  (from the movement detection). Each tab shows what belongs to it: in Picture or Video you choose your own file or
+  let the AI make a picture or a clip; the gallery is there too. “✕” takes the picture or video out again, then it
+  dreams on from the current picture. **Camera:** which of the Mac's cameras Dream takes (e.g. a 60 fps webcam or a
+  phone via Continuity, Iriun or DroidCam), also selectable on the phone. Below it **“Prompt – what does the AI paint
+  from it?”**: the one text field for the dream (at transformation 0: “AI off”, the prompt rests).
+- **The AI gets:** right below the prompt it says what the AI really gets: your text, and after it every addition as
+  a coloured chip – purple **Vary the prompt gently** (the two variants and how far it is from one to the other),
+  green **Content reacts to energy** (calm ⇄ wild, how wild right now), blue **Autopilot: words for the music**, grey
+  a running **scene change**. A ✕ in the chip switches that addition off at once (the same as the checkbox at its
+  place; for the music words: “Add words for the music to the prompt” in the Autopilot card). When it says “exactly
+  the prompt above, nothing added”, nobody mixes anything in. Style model and reference picture never change the
+  prompt; “rephrase in English” only acts on speaking – its result already stands in the text field.
+- **Now running:** below the preview it always says what the AI paints from and with – e.g. “Input: Picture from the
+  gallery “lighthouse …” · AI paints: “raining cats and dogs” · transformation 0.40”, with “(Autopilot)” when the
+  autopilot chose the input – next to a small picture of what goes into the AI. The same line is on the phone below
+  the connection status.
+- **Speak:** hold the button or key V. Whisper transcribes locally, a small local model (Ollama, `llama3.2:3b`)
+  turns it into an English image prompt. That always stays on the Mac.
+- **Music:** microphone or music file. The bass pulls the zoom, the mids shift the colours, the highs scatter sparks
+  and turn the picture. Beats give short impulses – which ones depends on the **pattern**: Pulse (flash and stronger
+  transformation), Jolt (spin jolt), Jump (new seed every second beat), Flow (soft, lots of colour). The **Pattern**
+  selection in the Music card (also on the phone, or as MIDI button “next pattern”) sets it: **Automatic** (with
+  “change pattern” every 16–32 bars and another one on drops; playlist scenes and the autopilot may set it too) or a
+  fixed pattern that then stays – nothing else changes it. Quiet passages react calmly and softly, loud ones wildly
+  and fast. After a **break** (clearly quieter) the **drop** turns the dream over: new seed, flash, new pattern and –
+  with “Drop → next scene” – the playlist's next prompt. Below the level meter: pattern, bar, approximate tempo and
+  loudness. With the microphone Dream switches off the browser's speech filters (noise suppression, echo
+  cancellation, auto gain – they dampen the kick drum) and checks that the browser really does: it then says
+  “Microphone unfiltered”, or warns if the browser still filters (then better use Chrome).
+- **Tap tempo:** when the beat detection over the microphone struggles (room echo, little bass, talking): press
+  **“👆 Tap”** in the Music card (or key **T**, on the phone under Music, or learn it as a MIDI button) on the beat.
+  From 2 taps the tempo stands (the mean of the last up to 8 intervals), the last tap sets the beat. Then a beat clock
+  runs on in that tempo – also without music – and everything follows it: music reaction, autopilot, effects. Beats
+  detected in the music only pull it gently, missed beats do not disturb. To adjust: just tap again. **✕** ends tap
+  tempo, then only the music's beats count again.
+- **Sliders:** transformation, dream share, zoom pull, rotation, colour drift, quality (1 to 3 steps), resolution,
+  seed. **“acts …” below transformation:** shows what the transformation is made of right now, e.g. “acts 0.52 =
+  slider 0.03 · music +0.21 · movement +0.13 · minimum 0.15” – so you see at once who turns it up (the AI needs at
+  least 0.15, below that it does not make a whole step). Empty while the slider acts alone.
+
+  **Real styles (Dream card, SDXL-Turbo only):** both change the AI's look, **never the prompt**.
+  - **Style model:** Watercolour, Crayon, Pixel art, Paper cut, Sticker or Illustration, with strength up to 200 %
+    (above 100 % the style is pushed harder than it was trained – Pixel art needs about 200 %). They are small add-on
+    models (LoRAs, 10–320 MB each, free licences: Apache 2.0, MIT, CreativeML OpenRAIL-M), downloaded on first choice
+    and then built into the model: a style switch takes 1–3 s (the picture holds meanwhile), changing the strength
+    about 1 s, pictures per second stay the same.
+  - **Style reference picture:** “🖼️ Picture …” or drag a picture onto the row – the AI takes over its colours,
+    strokes and textures, not its content (IP-Adapter in “style only” mode). Strength next to it, ✕ removes it. The
+    technique for it (about 3 GB) comes in the background with the first reference picture – in the cloud as on the
+    Mac.
+  - The higher the transformation, the clearer the style (well visible from about 0.7). With SD-Turbo both rows are
+    greyed out: there are hardly any such style models for SD-Turbo and no reference adapter.
+  - In scenes: `| style=crayon style_amt=1.5 style_ref=6dade65bd6cc style_ref_amt=0.8` (`off` for none; style names:
+    watercolour, crayon, pixel, papercut, sticker, illustration). The picture id shows when you point at the small
+    preview; the pictures lie in `~/.local/state/dream/refs`.
+
+  **Transformation 0 = AI off:** the input picture (camera, picture, video, light trails) goes through unchanged and
+  sharp, without delay, at about 30 pictures per second; the GPU rests. **Camera pure:** then none of Dream's own
+  picture effects acts either – no dream share, no swirl from movement or music, no colour drift or rotation, no
+  painting, touching or light circle, no smoothing, no music pulse. Only the effects you chose in the **Effects** card
+  stay on top. It goes to the projector, Wi-Fi output and Syphon as usual. From about 0.15 the AI paints again (below
+  that it does not even make a whole computing step).
+- **Smoothing – against flicker** (Dream card, also on the phone and as a MIDI target): the AI paints every picture
+  anew, so fine details jump a little from picture to picture – that looks like flicker. Smoothing blends each new AI
+  picture softly into what is shown at the full frame rate (a moving average): small jumps vanish, big changes still
+  come, only softer. 0 = off, 30 % (default) takes about half the flicker, 60 % a good four fifths, 100 % almost all
+  (then it gets sluggish). Projector window and Wi-Fi output smooth the same way, the effects sit on the smoothed
+  picture; the AI itself still gets the real pictures, Syphon the unsmoothed picture.
+- **Drift – the dream stays alive:** without new input (prompt only) the picture-to-picture loop would freeze after a
+  while. Drift lets the noise wander softly from seed to seed, moves the picture a little by itself (breathing,
+  swaying, wandering) and gives a push when the picture hardly changes for a few seconds. “Vary the prompt gently”
+  blends the prompt slowly between variants (light, colour, material). Slider 0 = off, default 50 %. Also on the phone.
+- **Keys:** H panel off/on, F fullscreen, Space pause, hold V = speak, S save picture, T tap tempo, Q phone QR,
+  D movement diagnostics, E Dreamy Eyes' trance.
+
+Speed locally (M2 Max, 512 px): about 4 to 5 pictures per second with 1 step, about 2 with 2 steps.
+
+**Tips:**
+- The dream freezes or gets static → turn drift up (30–60 %) or lower the transformation to 0.5–0.65.
+- Too restless → lower the transformation, raise the dream share, lower drift.
+- 🎲 gives a new seed: the dream jumps somewhere else.
+- If a second Dream or another GPU program runs at the same time, everything gets much slower.
+
+<sub>[↑ Contents](#contents)</sub>
+
+### Autopilot
+
+The autopilot runs Dream by itself, varied, led by the music. Switch it on with **“🤖 Autopilot”** below the preview
+(or on the phone in the Autopilot card). In the Autopilot card: **Liveliness** (calm … wild) – it has priority: it
+sets how dynamic the picture is (slider swings, pace of changes, effects, speed before quality); the music detection
+only comes on top. **Calm** means calm and flowing: no flicker, no flashes, no jolts or jumps (only the soft pattern
+“Flow”), long blends, sliders glide slowly, changes only every 16 bars, at most gentle effects (waves, afterglow,
+mirror, mandala). **Wild** means power: full slider swings, all effects at full strength, strong pulse and flash on
+the beat, the hard patterns (Pulse, Jolt, Jump) changing faster, changes every 4 bars. **Make pictures & clips**,
+**Include the camera**, **Include light trails** (only when movement is on): camera and light trails are only used
+when ticked.
+
+- **The music leads:** switch music on under “Music” (microphone or file). Phrases of 8 bars are its moments for
+  changes; the loudness (measured against the music itself) sets the mood from calm to wild; a break calms, a drop
+  turns things over (next scene, or back into the dream). Without music it has its own calm beat (every 12–26 s). It
+  does not need calm phases: if the music stays equally loud, a slow wave of its own keeps the mood moving, and
+  pictures/clips still come (at the latest a minute after their time). The beat detection also handles very loud,
+  dense music reliably.
+- **Dream:** transformation, dream share, zoom (sometimes out), rotation (changes direction), colour drift and drift
+  glide softly to the mood – never jumps.
+- **Music character:** from tempo, beat regularity, dynamics and the balance of bass to highs it roughly recognises
+  how the music feels: **calm/flat** (no beat or slow), **driving** (steady beat from ~112 BPM), **broken** (the beat
+  often falls out of the grid), **dark/bassy**, **bright/glittering**. The character changes only after it has lasted
+  6 s and shows in the chip. It colours the sliders, adds fitting words to the prompt the AI gets (the visible prompt
+  stays, e.g. “psychedelic tunnel, kaleidoscope, fractal patterns, neon” when driving) and chooses fitting playlists
+  (driving: Psychedelic, Retro, City …; calm: Calm, Water, Nature …).
+- **Effects:** from about a third of liveliness it lays effects over the picture, plus tunnel pulse and light flash –
+  on the music's beats, without a beat on a pulse of its own (the wilder, the faster). The palette: kaleidoscope,
+  mandala, mirror, endless tunnel, waves, feedback, afterglow, pixel, grid (dots or lines), RGB shift, glitch stripes,
+  colour rotation and – rarely and briefly, only on drops – invert. It builds sets from them (calm: 1 effect, wild: 3)
+  fitting the music character (driving e.g. tunnel, feedback, mandala; broken glitch, RGB shift, pixel; calm waves,
+  afterglow, mirror), changes them on phrases, drops and a new character, blends over in ~1.5 s and does not repeat
+  the last sets. Which set is running shows briefly in the chip. The strength follows the liveliness; a beat and
+  driving (or broken) music add a little, calm music takes a little away. No strobe, no hard black frames. The
+  effects run at the full frame rate (60 fps) however fast the AI computes (measured on a Mac with graphics chip: 60
+  fps with three effects) and appear in the output window too (projector, Wi-Fi output), not in Syphon.
+- **Effects by hand:** the same effects without the autopilot in the **Effects** card (below Dream): twelve tiles to
+  switch on and off (one of each family at a time – kaleidoscope/mandala/mirror, pixel/grid, feedback/afterglow),
+  **Effect strength** for all, **Pulse on the beat** (only on real beats of music or tap; off = the effects stand
+  still), **🎲 Roll** (a fitting mix of 2–3 effects) and **All off**. While the autopilot runs, the card shows dashed
+  what it chose; when you tap something yourself (also strength or pulse), you take over exactly that and it leaves
+  the effects alone for 1 minute. The choice stays after a restart.
+- **Liveliness wild** (from about two thirds): changes every 4 instead of 8 bars, sliders follow faster, short blends
+  and **speed before quality**: 1 step and 384 px (about twice the AI pictures per second, coarser). Below wild it sets
+  quality and resolution back. If you changed them yourself, it leaves them alone.
+- **Driving music** (steady beat from ~100 BPM) colours further: more tunnel pull, faster rotation and colour drift,
+  psychedelic words in the prompt, playlists like “Psychedelic”. A break does not switch the character to calm at once.
+- **Scenes & playlists:** next scene every 2–4 phrases (the wilder, the more often) and on drops; every few minutes
+  another playlist. If none is chosen, it chooses one.
+- **Input:** mostly the prompt dream. Every few minutes (rather in calm moments) it makes a picture or a clip from the
+  current scene or takes something from the gallery, lets it run for a phrase or two and then returns seamlessly into
+  the dream (out of the picture, without a restart).
+- **Your hand has priority:** what you change on the Mac, on the phone or by MIDI it leaves alone for 1 minute; an
+  input, playlist or typed prompt you chose yourself for 2 minutes.
+- **What it steers is tinted:** while the autopilot runs, everything it may change has a subtle blue tone behind it,
+  and the card shows 🤖 in its title. Tinted are the dream sliders (transformation, dream share, zoom pull, rotation,
+  colour drift, drift), input, prompt, playlist, the effects, the ticked interactions and, when wild, quality and
+  resolution. What you hold yourself right now is neutral, dashed and marked with ✋ while it is yours. Liveliness,
+  directness, master, MIDI and output it never touches.
+- **Direct interaction with the autopilot:** it uses only the ticked interactions and doses them by liveliness: calm
+  only painting and light, from medium also touching and content-reacts, wild also impulses. What it leaves out right
+  now stands pale. Directness stays your own slider.
+- **What it is doing** shows in the green chip below the preview, in the card and on the phone (e.g. “🤖 wild ·
+  ♪ follows the beat · next scene”).
+- The switch survives a restart (for installations). Pause stops the autopilot too.
+
+### Pictures and clips on request
+
+Instead of preparing your own pictures, let Dream make a picture or a short clip (card **“Input & prompt”**, tab
+**Picture** or **Video**; on the phone the card “Make picture & clip”):
+
+- It is made from the **dream's prompt**. To show something else, open “a text other than the prompt …” and type it
+  there (leave empty = the dream's prompt).
+- **✨ Picture:** the same model as the dream computes a single picture from the text: 4 steps, then a finishing pass
+  at 1.5× size (square 768×768, 16:9 1344×768 at 512 px). That takes about 3–15 s locally (longer the very first time
+  while the model loads). The picture becomes the input “Picture” at once, the dream paints on it.
+- **✨ Clip:** first the picture, from it Dream computes 48 pictures in which the camera slowly zooms in and turns a
+  little while the dream paints on (each picture stays close to the starting picture so nothing blurs). Played forward
+  and backward that gives a seamless loop of about 8 s that runs as input “Video”. About 20–30 s locally. The button
+  🎞 below a picture in the gallery makes a clip from exactly that picture.
+- **Gallery:** the last 5 pictures and clips. Tapping feeds them in again; what is running is marked (“running”).
+  **💾** saves for good to `~/Pictures/Dream/` (file name with date and prompt), ✓ means: already saved. The gallery
+  itself is temporary: it is empty after Dream restarts.
+- **🗑 Delete** (on the stage, phone and tablet) takes a picture or clip out of the gallery at once – also those the
+  autopilot made; **“↶ Undo”** brings it back within a few seconds, then the file is gone. **🗑 Delete all** below the
+  gallery asks once. If the deleted one is the input right now, Dream dreams on from the current picture. Copies saved
+  with 💾 in `~/Pictures/Dream/` stay.
+
+Good to know:
+- It is computed where the dream computes (Mac or cloud GPU). The dream stutters a little meanwhile because both
+  share the GPU.
+- The stage or panel must be open, also when you tap “Make” on the phone.
+- Clips need **ffmpeg** on the Mac (`brew install ffmpeg`); if it is missing, Dream says so in the card.
+- It is not a real video model: the movement is a camera ride through the dream.
+
+## Playlists and autostart
+
+- **Playlists:** choose a playlist in the panel or on the phone – the scenes change automatically (interval,
+  optionally random), “Next” jumps at once. Every scene change blends the prompt softly from the old to the new one.
+  Built in: Psychedelic, Fire, Water, Cosmos, Calm, Nature, City, Myths, Deep sea, Crystal, Retro, Organic, Figures and
+  Abstract (8 scenes each), **Mix** (28 scenes across all moods) and three **dream journeys** (see below). A drop in
+  the music jumps on too with “Drop → next scene”.
+- **✨ Surprise:** a playlist choice of its own – takes a random scene from all playlists on every change and adds one
+  or two random styles (e.g. watercolour, ink, stained glass, neon, Bauhaus).
+- **Dream journeys** (“Journey: Ocean”, “Journey: Fire”, “Journey: Cosmos”): a fixed order as an arc – calm start,
+  peak, calm end – with long transitions (8–10 s). Each scene brings its own settings (transformation, drift, colour
+  drift, music pattern, duration); random does not apply to journeys.
+- **Editing:** “✎ Edit” (chosen playlist) or “＋ New” in the panel or on the phone. One scene per line, in English;
+  optionally settings after “|”, e.g.
+  `glowing glass forest at night | strength=0.6 drift=0.4 hue=6 pattern=Flow secs=40`
+  (allowed: strength, drift, hue, zoom, rot, mix, fx = effects like `tunnel+waves` or `off`, fx_amt = effect strength
+  0–1, style, style_amt, style_ref, style_ref_amt, pattern = Pulse/Jolt/Jump/Flow, secs = the scene's duration).
+  Effect names: kaleido, mandala, mirror, tunnel, waves, feedback, trails, pixel, raster, rgb, glitch, hue. First line
+  `# Journey` (optionally `# Journey fade=10`) makes it a dream journey. Saved in `~/.config/dream/playlists.json`
+  (never in the repository); a built-in playlist gets your own version this way, “Delete” removes only that again.
+  The German keywords of earlier versions (`aus`, `Fluss`, `# Reise`, German playlist names) keep working.
+- **✨ AI playlist:** type a keyword (or speak it with 🎙 on the Mac, with the keyboard's microphone on the phone),
+  “Make” – the local language model (Ollama, `llama3.2:3b`) writes 8 scenes, the playlist “AI: …” starts at once. AI
+  playlists are **temporary**: they live only in memory, vanish when Dream restarts, and there are at most 5 at a time
+  (the oldest goes). **“📌 Keep”** (or “Save” in the editor) makes the chosen one your own, lasting playlist. If Ollama
+  is not running, Dream says so (start it with `ollama serve`, get the model once with `ollama pull llama3.2:3b`).
+  Everything stays on the Mac.
+- **Autostart:** `./install-autostart.sh --lan --x 1920` starts Dream after every login, keeps the display awake and
+  opens the stage fullscreen in a Chrome window of its own on the projector (`--x` = the projector display's left edge
+  in macOS). Remove: `install-autostart.sh --remove`.
+- All settings survive a restart (`~/.local/state/dream/state.json`).
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Output on a projector or second monitor (16:9)
+
+- **Format:** in the panel or on the phone “Format” → **16:9 (projector)** or square. 16:9 computes e.g. 896×512 (at
+  512 px) or 1344×768 (at 768 px, cloud). All inputs, zoom, drift, movement and Syphon use the format. 16:9 has about
+  1.75× as many pixels: locally somewhat fewer pictures per second, the output blends over softly.
+- **Output window:** button **“⧉ Open output”** in the panel (or http://127.0.0.1:7860/output) – shows only the
+  picture, without controls and mouse pointer, and does **not** compute itself: it shows exactly what the stage on the
+  Mac shows. Drag the window to the projector, **F** (or a click) for fullscreen, a double click ends it. The panel on
+  the Mac must stay open for it.
+- **Output over Wi-Fi (optional):** instead of an HDMI cable from the Mac, a **second device at the projector** can
+  show the picture (old notebook, mini PC, Raspberry Pi, Android TV box or Fire TV stick with a browser – Apple TV
+  does not work, it has no browser). Start Dream with `./dream.sh --lan`, tap **“📶 Output over Wi-Fi”** in the panel
+  under “Output”: scan the QR code or type the link on the device (the link contains the access key, like the phone's
+  QR code; “⧉ Copy link” puts it on the clipboard). Tap the picture once on the device or press F for fullscreen. Next
+  to the button it says how many outputs are connected.
+  - Data and delay are uncritical (about 1–2 MB/s, a fraction of a second; the blend smooths it).
+  - On Wi-Fi drop-outs the picture holds briefly, the page says “Connection to Dream lost – reconnecting …” and goes
+    on by itself. Safer for shows: a LAN cable or a router of your own at the projector.
+  - “No access” means: the key no longer fits (e.g. a new guest code) – scan the QR code again.
+  - The stage (panel) on the Mac must stay open, the Mac must not be locked or asleep.
+  - Switch off screen saver and power saving on the receiving device, otherwise the projector goes black at some point.
+- **Automatically at start:** `dream.sh --lan --beamer` opens the output window fullscreen (Chrome kiosk) on the
+  second display. If the projector is not to the right of a 1920 px wide main display: `--beamer=X` with X = the
+  projector's left edge in macOS (System Settings → Displays → Arrange). Without Google Chrome the window opens
+  normally; then drag it over by hand. End the kiosk: Cmd+Q.
+- **Alternative** without the panel on the Mac: `dream.sh --stage` (or `?stage=1`) on the projector and control it
+  from the phone. Do not open both as a stage at the same time – every open stage computes itself, the GPU would run
+  twice.
+
+<sub>[↑ Contents](#contents)</sub>
+
+## As a source in Resolume (Syphon)
+
+Switch “Syphon output “Dream” for Resolume” (stage or phone). Then the source **“Python – Dream”** appears in Resolume
+under **Sources → Syphon**. Dream sends it at 30 pictures per second and blends softly between the AI pictures, so it
+looks fluid even at 2–5 AI pictures per second. The stage must be open for it (it delivers the pictures). Without
+Resolume just leave it off.
+
+<sub>[↑ Contents](#contents)</sub>
+
+---
+
+## Phone remote
+
+<p align="center"><img src="docs/images/control-en.webp" alt="Dream Control on a phone" width="260"></p>
+
+```bash
+./dream.sh --lan
+```
+
+Then Dream is also reachable in the home Wi-Fi – but only with a secret link. Press **Q** on the stage (or
+“📱 Phone”): a QR code appears, scan it with the phone, done. The phone remembers the access. Everything you change on
+the phone happens at once on the stage. To speak on the phone: the keyboard's dictation. Several phones at once work
+too.
+
+<sub>[↑ Contents](#contents)</sub>
+
+### Dream Remote (guests) and Dream Control (you)
+
+There are two keys, so the audience may play along without being able to cost you money or switch anything off:
+- **Dream Remote – the QR code on the stage – is for guests.** A guest steers the dream: prompt, next scene,
+  new seed, sliders (transformation, zoom, drift …), styles, effects, music reaction, pattern and tap, making
+  pictures and clips, using pictures from the gallery. A guest cannot: pause, “New”, the QR code on the stage, blackout
+  or master brightness, the autopilot, the Mac's camera (inputs “Camera” and “Light trails”), removing the picture or
+  video you set, the playlist (choice, interval, random), the whole movement card (movement steers the dream, painting,
+  touching, directness, content, impulses at the hand, light in the dark, mirror, movement reaction, the pose), the music's automatic pattern change and
+  “Drop → next scene”, uploading, MIDI, Syphon, model, quality, size, the cloud GPU, editing or keeping playlists,
+  saving or deleting in the gallery. The remote shows a guest only what a
+  guest may use, and the server refuses the rest anyway (“Only Dream Control may do this.”).
+- **Dream Control is your own remote with every setting.** In the panel under “Output”: **🎛 Dream Control** shows its
+  QR code – scan it with your own phone or tablet, never in front of the audience (the code disappears again when you
+  close it). Only one device is Dream Control at a time: a second one starts as a guest with the button
+  **“Take over Dream Control”**; the first then steers as a guest and may take it back the same way.
+- **↻ New guest code** (panel, under “Output”) asks once, then makes a new guests' key: every guest phone and every
+  output window opened with the old one loses access at once, the stage shows the new QR code. Dream Control keeps its
+  access. Handy after an event, or when a link went round further than it should.
+
+The keys lie in `~/.local/state/dream/remote-token` (guests) and `control-token` (Dream Control). Deleting one and
+restarting Dream creates a new one. The output on a second device over Wi-Fi uses the guests' key.
+
+**Safety nets (#175):** every number a device sends is checked (finite, inside the slider's range – nothing can break
+the saved state, and a broken `state.json` heals at the start). Only Dream's own pages count: a web page of another
+site open in a browser on the Mac can neither start the cloud GPU nor steer Dream (the Host must be this Mac, an
+Origin must match it). A guest may only ask for what Dream Remote and the output window need – everything else needs
+Dream Control – and not faster than about 20 messages a second. The key leaves the address bar right after the page
+has opened (it stays in the cookie), and the log never shows it (nor the polling of `/stats`, `/cloud`, `/health`).
+
+### Dream Control over https and as an app
+
+With `--lan`, Dream also listens with **https** on port 7443 (`DREAM_HTTPS_PORT`; not 7861, that is the cloud GPU's tunnel). Guests keep
+using plain http – their QR code needs no setup. Dream Control uses https: then Chrome can install it as an app of its
+own (“Dream Control”, cloud mandala icon, fullscreen), the screen stays on through the browser's official Wake Lock,
+and it works on phones with strict security settings (“Always use secure connections”).
+
+https needs a certificate the device trusts. Dream makes its own small certificate authority on the Mac the first time
+it starts with `--lan` (in `~/.local/state/dream/tls/`, nothing to install on the Mac, no admin password). It may only
+vouch for addresses inside a home network (private IP ranges and `*.local`) – even if its key ever got out, it could
+not stand in for any website. The key never leaves the Mac. The server certificate is renewed by itself when the Mac's
+address changes (on the next start) and before it runs out.
+
+**Once per device** (Android):
+1. Panel → “Output” → **🎛 Dream Control**. Code **1** downloads the certificate `dream-ca.crt` – scan it.
+2. Install it **in the settings** – since Android 11, tapping the download only says “CA certificates can't be
+   installed” (or similar). Settings → search for **“CA certificate”**, or:
+   - most devices: Settings → Security (and privacy) → More settings → **Encryption & credentials** → **Install a
+     certificate** → **CA certificate**
+   - Samsung: Settings → Security and privacy → More security settings → **Install from device storage** → **CA
+     certificate**
+
+   Then “Install anyway”, unlock (a screen lock is required) and choose **Downloads → `dream-ca.crt`**. Check:
+   settings search “Trusted credentials” → tab **User** shows “Dream home network CA”.
+3. Tap **“Certificate is installed → next”** – the panel shows the codes one after the other and remembers this step
+   (next time it starts with code 2; “← Certificate” goes back). Scan code **2** (Dream Control). In Chrome: menu ⋮ →
+   **Install app** (or the remote's own “⤓ Install as app” button). From then on it starts from the home screen like an
+   app. A tablet with device management (work or school) may forbid own certificates altogether.
+
+Firefox on Android uses its own certificates: Settings → About Firefox → tap the logo five times → back → Secret
+settings → “Use third party CA certificates” on. iPhone/iPad: open the code in Safari → install the profile in
+Settings → General → VPN & Device Management, then Settings → General → About → Certificate Trust Settings → turn on
+“Dream home network CA”.
+
+**Pairing inside the app (#170):** a device without a valid key – an installed app too – no longer gets a white “No
+access” page but **“Pair with Dream”**: it first looks once more by itself (that also heals a key from before 17 Nov
+2026, whose cookie was too strict for an app started from the home screen; a key that works is renewed on every page),
+then offers **📷 Scan the QR code** right in the page (Chrome on Android reads QR codes itself; elsewhere it says to use
+the camera app) or pasting the code's link, and says where each code is shown. A device that only holds the eyes'
+key and opens Dream Control gets this page too (no bare “Only Dream Control may do this.”). Only the key is taken from
+the code; the page stays on this Dream.
+
+To start over (new authority): delete `~/.local/state/dream/tls/` and restart Dream; every device then needs the new
+certificate. Without `--lan` there is no https and no certificate.
+
+### On a tablet (Android)
+
+The remote is made for a tablet as well, upright and lying, best in **Chrome** (Firefox as a fallback, see below):
+- **Upright:** the cards in two columns, a **show bar** at the top that stays while scrolling: a small **live
+  preview**, **Pause**, **Next**, **Autopilot**, **Blackout** and large sliders for **Transformation** and
+  **Master brightness**. **Lying:** three columns, the bar as a column on the left. The cards keep their order and
+  are only placed anew when you turn the tablet – folding a card moves nothing to another column.
+- **Live preview:** what the stage shows, about 4 pictures per second (about as much Wi-Fi as the Wi-Fi output, or
+  less). Tap it to switch it off and on (remembered), hold it to see it large.
+- **⛶ Fullscreen:** a tap fills the whole screen without address and status bar (on a phone the button is in the
+  header). Coming back from another app, a button asks “⛶ Fullscreen again?” – browsers allow fullscreen only after
+  a tap. A home screen shortcut (Chrome menu → “Add to home screen”) opens it with one tap, with Dream's icon (the
+  cloud mandala) and the name “Dream”. Installing it is optional – the remote stays a normal web page.
+- **The screen stays on** while the remote is open (Wake Lock where the browser offers it, otherwise a tiny silent
+  video loop).
+- **Blackout** in the bar sets the master to 0 and back, like the MIDI button.
+
+### Live camera and motion of the Control device
+
+Dream Control (over https, see above) has a card **“This device”**:
+- **📷 Live camera** sends what the phone's or tablet's camera sees to the stage (back or front camera), about 12
+  pictures a second at 640 px – smooth in the home Wi-Fi, about 0.5 MB/s. The stage switches to the input
+  “Camera” with “📱 Live camera of a phone” and shows the chip “📱 Live camera: Dream Control” (orange when no
+  picture came for 2 s). Nothing is stored; the pictures go from the device to the stage only. Switching it off, closing
+  the page or losing the connection ends it, and the stage goes back to the dream – never by itself to the Mac's
+  camera.
+- **🧭 Motion** sends the device's sensors (acceleration, rotation, tilt) like a sensor on the arm (see “Sensor input”):
+  choose what it steers, tap **📡 Learn** and move the device for 2 seconds; **a strike** (swinging the device
+  sharply) becomes an impulse (flash, spin jolt, new motif, next scene, blackout). The stage shows “📱 Motion: Dream
+  Control”; the learned assignments appear in the panel under “Control (MIDI, sensors, master)” like those of OSC.
+- **Always one device:** live camera and motion come from one device only – the one that is Dream Control. Taking over
+  Dream Control on another device ends both on the first. Guests cannot send either.
+- Over plain http the card explains that the browser releases camera and motion only over https.
+- The stage's camera source is called “📱 Live camera of a phone” – it is the Control device's or the Dreamy Eyes'.
+
+### If the phone does not connect
+
+1. Started Dream with `--lan`? (Without `--lan` Dream is only reachable on the Mac.)
+2. The phone in the **same Wi-Fi** as the Mac – not the guest Wi-Fi, not mobile data. The phone's IP address (Wi-Fi
+   details) must start with the same first three numbers as the Mac's (`ipconfig getifaddr en0`).
+3. **Android:** in a test, Chrome reached no devices in the home network (not even the router), **Firefox worked at
+   once**. So open the link in Firefox. In Chrome, these may help: Settings → Privacy and security → “Always use
+   secure connections” off, “Secure DNS” off; no work profile (briefcase).
+4. **iPhone:** open it in Safari; Chrome needs Settings → Privacy & Security → Local Network → on.
+5. VPN or ad blocker on the phone off.
+6. Test without the link: `http://<Mac's IP>:7860/health` on the phone – if anything answers (also “forbidden”), the
+   connection stands. The Mac's IP: `ipconfig getifaddr en0`.
+
+Photos and short clips also work via “Upload a picture or video” → camera. The live camera of the phone or tablet:
+see the next section.
+
+## Dreamy Eyes – a phone as dreaming eyes (installation)
+
+<p align="center"><img src="docs/images/eyes-en.webp" alt="Dreamy Eyes" width="420"> <img src="docs/images/trance-en.webp" alt="Dreamy Eyes in trance: the third eye opens" width="420"></p>
+
+A phone of its own stands at eye height, its **front camera** feeds the dream, and its screen shows **two dreaming
+eyes** that invite people to step up and play:
+- **In the iris lies the dream** as the stage shows it right now, curved like in an eyeball, with a soft highlight –
+  and very faintly whoever stands in front of the camera.
+- **The eyes react to the dream:** the pupils widen in dark, calm scenes and narrow in bright ones; much movement in the
+  dream opens them wide and makes them lively, calm passages leave them dreamily half closed. Now and then they blink
+  (sometimes twice), glance around, and a tap on the screen wakes them up a little.
+- **They look at you:** the phone finds the face in front of its camera (MediaPipe Face Landmarker, on the phone itself –
+  nothing of it is sent or kept) and the eyes follow the person; when someone steps up they open, very close they go
+  wide with surprise, and interest widens the pupils. Without anyone in front they dream around by themselves.
+- **Smile at them, and they grin back:** a floating grin of its own (two rows of teeth, glowing in the dream's colours)
+  appears while someone smiles, the eyes smile along, then it fades. Now and then it comes by itself.
+- **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
+  shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
+  come only now and then, for a feeling** – like the grin: surprise (someone very close, waking up, a dream turning
+  wild), joy (with the grin), sadness (with the tear of light), doubt (one up, one flat, when they cross their eyes),
+  a frown (rarely, in a dark wild dream) or curiosity – then they fade again. **Their look changes softly** every minute or so: rose, smoky (grey
+  with a long wing), golden (with glitter), nymph (turquoise, long lashes) or doll (no wing, very long lashes, round
+  brows).
+- **Behind the eyes the dream shines through the night** – through drifting clouds, a huge breathing spiral of soft
+  lights, a kaleidoscopic flower of rings, or a face only hinted in light around the eyes – a goddess with a diadem and
+  flowing hair, a cat with ears and twitching whiskers, Medusa with writhing snakes, a mermaid with hair drifting like
+  seaweed and a crown of shells, a fairy with pointed ears, beating butterfly wings and antennae, a moon priestess with a
+  crescent on her brow, a swaying veil and long earrings; the masks change every half minute
+  or so (upright a little calmer), the dream behind them slowly
+  zooms and wanders, a little brighter than on the stage. Every minute or two a **dream window** opens for 6–10
+  seconds: the night opens wide and the dream shows clearly behind the eyes, then it softly withdraws behind the masks. Right behind the eyes it stays darker, so they stay clear.
+- **You in the dream:** whoever stands in front is mirrored in the iris – clearly, and every minute or two for a few
+  seconds very clearly, as in real eyes. Now and then the person appears behind the eyes, cut out from the background
+  (on the phone), in the dream's colours and patterns, rippling like a reflection on water, and fades again. And about
+  every three minutes the Mac paints a **dream portrait** of the person from the eyes' camera picture (a quick
+  picture-to-picture step, about 0.3–0.6 s) that comes through the pupils like the other painted faces, but stays only
+  a moment (about 2.5–4 s) – only while someone is there. The camera picture is kept in memory for seconds only, the
+  portrait for two minutes at the most; nothing goes into the gallery, only the eyes (and Dream Control) may fetch it.
+  `DREAM_YOU_EVERY=…` changes the interval (seconds). **Someone who just comes** (after a while with nobody) is
+  greeted at once – very clearly in the iris or as the water moment, in turn – and their dream portrait follows within
+  seconds (at most one every two minutes).
+- **Now and then they mirror you:** for a few seconds, every minute or two while someone stands in front, the eyes
+  copy their expression – a blink or wink (the matching eye), a squint, eyes opened wide, raised or lowered brows – then
+  they go their own way again.
+- **Your silhouette as a mask:** now and then, only while someone is there, the dream shines through the outline of
+  the person in front (selfie segmentation on the phone, about 250 KB, nothing is sent or kept).
+- **Dreamy loves fire ❤️‍🔥:** when the camera sees flames (very bright, saturated red-orange-yellow that flickers –
+  found on the phone; a face or a still orange lamp is no fire), the eyes are enchanted: wide open, they cannot look
+  away, glowing heart pupils beat, flames dance in the iris, the cheeks blush, embers and little burning hearts rise,
+  the brows are joyful. Flames rise from the bottom of the screen and the night glows warm. The Mac quickly paints the
+  fire spirit anew, and after a few seconds she comes burning through the pupils (once per fire); while the fire lasts,
+  every painted face is surrounded by flames and embers. When the fire is gone (after 1.5 s without), a moment of
+  longing – then they go on as before.
+- **Rarely a trance – the third eye 👁 (#172):** when much is intense at once – the dream much livelier than usual
+  and someone looking at the eyes for a while or seen lately (or fire, mirroring, the dream window, petting) – or the
+  dream simply stays that lively for about 8 s (in a dark room the camera may see nobody) – and at most about every 12
+  minutes (now and then without a reason): the two eyes calm down and close, a glowing third eye opens above them with
+  an iris of the dream, mandala rings turn against each other around it, a tunnel of rings flies towards it, then
+  everything is pulled spiralling into its pupil and the dream shows large and clear through it; it closes into a
+  glowing dot that fades, and the two open again (about 18 s, drawn on the phone only). In Dream Control on the card
+  “👀 Dreamy Eyes”: **👁 Trance now**, and how often it may come by itself (only by hand, rarely ≈ 25 min, now and
+  then ≈ 12 min, often ≈ 5 min; kept in `~/.local/state/dream/eyes.json`); on the Mac the same in the panel under
+  “Output” (button, choice, key **E**). Before it opens, the third eye can be sensed: while petting deepens (from about
+  4.5 s on) it shows faintly and opens a crack, more and more – and now and then it shimmers through for a moment by itself.
+- **Touch the screen:** they look at your finger and follow it; a soft light glows under it, a ring of light opens where
+  it lands and a trail of sparkles follows it; poke an eye and it
+  flinches shut (three quick pokes and they frown and cross their eyes); stroke over the screen (anywhere) and they half close
+  contentedly, with heart pupils – keep petting and it grows: they blush, little hearts rise, a rosy glow and a purr,
+  by the time of petting – blushing after about 2 s, hearts
+  about 3 s, a glow about 5 s, a purr about 6 s – and after about 10 s of petting the third eye opens (the trance, see below); it ebbs away when you
+  stop; tap the night and a bloom of light opens there, a double tap makes them sparkle; a
+  long press turns the iris into another world; two fingers apart or together widen or narrow the pupils.
+- **An organic rhythm:** a temperament that drifts slowly over minutes – sometimes calm and dreamy, sometimes playful –
+  sets how often moods, feelings, masks and apparitions come; nothing follows a fixed beat.
+- **Now and then a face painted by the AI takes the eyes' place:** while Dreamy Eyes look on and the Mac computes
+  locally, it paints a face about every 50 seconds – 24 dream faces in a shuffled round, about a third of them men:
+  goddess, cat, Medusa, moon goddess, dryad, siren, fire spirit, ice queen, star woman, blossom fairy, oracle, clockwork
+  lady, owl woman, masked lady, aurora, raven witch, nebula, and sun god, green man, sea king, star sage, faun, dream
+  pharaoh and moon knight – in the mood of the dream's
+  current prompt (a single quick AI step, about 0.4 s, the first one a few seconds; the stage barely notices). Every
+  two to four minutes one of them comes through the pupils: it appears inside them as if seen through them,
+  the two windows grow with glowing rims, turn a little and open into a **dream cloud** – the face inside soft puffs that
+  drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays three to five seconds,
+  breathing, swaying and drifting a little; then it shrinks back into the pupils, and the eyes are there again.
+  The pictures stay in memory only and never go into the gallery; only the eyes (and Dream Control) may fetch them.
+  `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds). With the cloud GPU
+  there are no painted faces.
+- **The pupils change shape:** a cat's slit while the grin is there, hearts when someone keeps smiling, stars when they
+  are surprised, a turning spiral when they hypnotise.
+- **The iris is a world that changes** every half minute or so: the dream itself, the dream folded into a kaleidoscope,
+  a vortex of the dream with rings turning against each other, or a spiral galaxy in the dream's colours.
+- **Moods now and then:** they wink, cross their eyes, roll them, hypnotise, shed a tear of light that bursts into
+  stars, or sparkle. Nobody there for a long while and a calm dream: they slowly fall asleep and little z's drift up –
+  whoever comes wakes them with a start (star pupils, sparkles). Livelier dream: more often.
+- **The grin comes in three kinds** – with teeth, as a smile of little lights, or as glowing neon with a dreamy
+  tongue – and draws itself onto the air from one side.
+- **Around the eyes** appear clouds, blooming light spirals, mandalas, growing fractal trees of light, fluttering light
+  moths, iridescent bubbles, ribbons of northern light and little moons circling an eye – all in the dream's colours,
+  more often when the dream is lively. If the phone runs short, these go first (never the camera).
+- The face model (about 4 MB) is fetched once by the Mac with the other movement files and cached in
+  `~/.cache/dream/mediapipe`.
+- **Setting up:** Dream Control → card **“👀 Dreamy Eyes”** → “Show the code for the eyes phone” (or on the Mac: panel →
+  “Output” → **👀 Dreamy Eyes**) → scan it with the eyes phone. Once on that phone: install Dream's certificate (see “Dream Control over https and as an app”) – the browser
+  gives the camera out only over https. Tap **“Open the eyes”** (fullscreen, the screen stays on). To keep it there:
+  Android “App pinning” (Settings → Security → App pinning, then pin the browser via the app overview), the phone on
+  power, in a holder at eye height.
+- **Its code may only lend the front camera** and see the dream – no settings, no commands, nothing that costs money; it
+  does not even learn the prompt. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
+  trying the eyes on your own phone never replaces Dream Control.
+- **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
+  who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
+  takes over. The stage then goes back to the dream, never to the Mac's camera by itself.
+
+<sub>[↑ Contents](#contents)</sub>
+
+---
+
+## Movement
+
+Movement detection is **built into Dream**: the stage detects movement itself on the camera picture, without a second
+program, a picture stream or OSC. That saves a lot: the earlier flowtrack program alone needed more than one CPU core
+(measured 115–135 %), the built-in detection in the browser about 7–10 % extra, the graphics chip does the rest.
+
+Switch it on and off in the panel or on the phone with the big switch **“Movement: ON/OFF”** (Movement card). Dream
+remembers the switch across a restart, like the autopilot. Next to it the kind:
+- **Hands (AI):** a body model (MediaPipe Pose, runs on the graphics chip) finds both hands, also in half-light. The
+  very first time Dream downloads the model once (about 15 MB, to `~/.cache/dream/mediapipe`), then everything works
+  offline.
+- **Fire/LED/light trails:** bright points in the picture, up to four. The threshold follows the room's brightness: in
+  the dark a torch is enough, in a bright hall only really bright lights count.
+
+**Calibrate (camera ↔ projector):** if the camera stands at an angle or to the side, effects, painting and light land
+a little beside the person without matching. **📐 Calibrate** in the Movement card (movement must be on, camera and
+projector fixed): stage and output window turn black and show four white points one after another; Dream finds each
+point itself in the camera picture (it compares the picture with and without the point) and measures the delay
+projector → camera on the way. If the camera does not see the projector (infrared camera), hold a lamp at the point or
+click it in the camera picture of the diagnostics (it opens by itself for this). Afterwards all movement values –
+points, hands, skeleton, light trails – lie in the projector picture. The calibration is saved, **Reset** deletes it,
+**✕ Cancel** ends the run. Calibrate again after moving the camera or the projector.
+
+**Subtract the projection** (checkbox below Calibrate, needs the calibration): a normal camera also sees the
+projector's picture – the light detection would take bright parts of the projection for fire, changing pictures for
+movement. With the checkbox Dream subtracts its own picture: it knows exactly what it shows, maps it into the camera
+picture with the calibration, takes the picture from before the measured delay (±40 ms leeway), matches the brightness
+itself and subtracts it from the light detection and the movement tracking. The hands AI gets the unchanged picture
+(the projection hardly disturbs it). The diagnostics (D) show how much is subtracted. In a test with a simulated
+projection the false detection fell from over 80 % of the pictures to 0 %, a light point was still always found. An
+infrared camera does not need it (it does not see the projector at all).
+
+**Camera for movement** (next to the switch, also on the phone): “as picture” or its own, e.g. an infrared camera
+with an IR lamp that sees in the dark and does not notice the projection, while the normal camera gives the picture.
+Dream remembers the cameras by name, also across a restart. If a chosen camera is not connected, it stands in the list
+with “(not connected)”, Dream takes the default camera meanwhile and says so; when it is plugged in, Dream switches by
+itself. The names appear once the browser was allowed to use a camera.
+
+**More reliable light:** in the fire/LED mode Dream searches at 320×180 (small, distant LEDs are found). **Light
+colour:** “anything bright” (fire, any LED) or an **LED token** in green, magenta, blue or red – then only that colour
+counts, lamps, windows and white walls no longer disturb (in a test with a bright room and a window: “anything bright”
+stuck to the window 86 % of the time, the green token was found in 100 % of the pictures). Best a colour that rarely
+occurs in the visuals. **Short exposure:** where the camera lets the browser do it, Dream sets a short, fixed exposure
+in the light mode – the room turns almost black, only lights remain, hardly any motion blur; for hands it goes back to
+automatic. The diagnostics say “short exposure” or “the camera allows no fixed exposure” (some cameras, e.g. the
+iPhone, do not allow it).
+
+**Fast movements:** the camera runs at up to 60 pictures per second, every picture is analysed. The AI model computes
+at most about 30 times per second (less on slower graphics); in between, and when a fast hand is only a blurred
+streak, Dream follows the moving pixels (picture difference) near the hand – speed and direction are kept. A prediction
+makes up for the delay: without calibration 80 ms, with calibration exactly the measured delay projector → camera plus
+the computing time (at most 150 ms, so a jolt does not overshoot).
+
+**Delay (latency) – where it comes from and what helps:** the last line of the diagnostics (D) shows how old the
+camera picture is, how long the detection computes, the measured delay projector → camera (after calibrating) and the
+prediction.
+- **⚡ Fast (dance/flow)** in the Movement card (also on the phone): the movement values follow at once instead of
+  calmly smoothed, smoothing off, 1 step and 384 px (more AI pictures per second), little dream share. Pressing again
+  restores the previous values; the switch survives a restart.
+- **Visible at once** are the effects, touching and light (60 pictures/s, to the output window 60 times a second).
+  Everything the AI paints anew (painting, content, pose) always has the delay of one AI picture.
+- **Smoothing** drags the picture behind (at 45 % about half a second) – for dance set it to 0. **Transformation 0**
+  shows the camera picture without AI at the full frame rate; even 0.02 sends every picture through the AI.
+- **A USB camera** instead of iPhone/Continuity (often saves over 100 ms), best with 60–120 fps. **Projector** in game
+  mode if it has one; the stage directly on the projector saves the transfer to the output window.
+
+**Poor light:** for the detection Dream brightens the camera picture automatically (up to ×4) and raises the
+contrast; the thresholds for hands are low, a smoothing (One Euro filter) prevents jitter. The picture on the
+projector does not change.
+
+**Off really means off:** camera closed, no detection; movement, diagnostics, pose and direct interaction have no
+effect and cost nothing. If there is no camera or no model, the stage shows a red warning at the top. **Key D** shows
+below the preview what the detection sees: the camera picture faintly in the background, the points with their trail,
+speed, values per second, light (how much brightened), “fast (blurred)” when the picture-difference tracking helps,
+and the model's computing time.
+
+**Direct interaction** (panel below “Movement” and on the phone): the hands act exactly where they are – at once and
+fitting the content.
+- **Paint:** the hands draw glowing trails in the colours of the picture under the hand (faster = wider and brighter).
+  The trails appear at once and go into the next AI picture – the AI dreams them on to fit the prompt: with fire into
+  tongues of flame, with an ocean into waves, with cosmos into star trails. They fade after about a second.
+- **Touch:** the hands push and swirl the picture like a liquid, at the full frame rate; the AI paints the swirl on.
+  When you let go, it glides back.
+- **Content reacts to energy:** for each prompt the local language model writes a calm and a wild addition fitting
+  the scene (ocean: “moonlit waves, soft mist” ↔ “raging tempest, crashing waves, foam”; visible in the panel). The
+  faster the hands, the more the content turns wild – not just “more effect”. Without Ollama general additions apply.
+- **Impulses:** a fast hit or an abrupt stop sets off a wave with a bright core exactly at the hand, in the picture's
+  colours; the AI dreams it along.
+- **Light in the dark** (off by default): the dream is bright and alive only around the hands, the rest lies in the
+  dark – the faster, the larger the light circle. Fits fire and poi.
+- **Directness** controls it all (0 = off), **Mirror** flips left/right if the camera sees mirrored.
+- **Movement shapes the effects** (the more direct, the more; 0 = as without movement): tunnel, kaleidoscope, mandala,
+  waves and feedback have their centre at the hand and move with it, fast hands make the effects stronger and faster,
+  calm ones let them fade. The swipe direction sets the turning direction of kaleidoscope and mandala and the
+  direction of the RGB shift. A hit or abrupt stop is a beat from the movement (effect push and a short flash). If no
+  effect is chosen, movement brings a light effect of its own from about half directness (RGB shift and afterglow)
+  that vanishes when still. Projector and Wi-Fi output show it too. Clearest with “On: hands by AI” and a little less
+  drift.
+
+**Diagnostics:** key **D** (or “Diagnostics below the preview” in the panel) shows below the preview what the
+detection sees: a small map (the camera picture faintly behind) in the picture format with the tracked point and its
+trail, all points and the cross the dream turns around, next to it speed, spread, values per second, light and whether
+someone is there. The picture itself stays free; the display does not go to the output, Syphon or the AI. Switched
+off, it draws nothing and frees its memory. With the panel hidden (H) the diagnostics are not visible either.
+
+With the detection on, Dream reacts (switch “react to movement”, slider “Movement” up to 3× – also on the phone). The
+movement makes a pull of its own around the tracked point – also in camera and video mode and when zoom and rotation
+are at 0; while moving, more of the previous dream picture flows along. The values are smoothed, a calm hand gives a
+calm dream:
+- **x/y** of the tracked point becomes the centre of zoom pull and rotation – the dream swirls around fire, poi or hand.
+- **speed** → stronger transformation, faster rotation and colour drift.
+- **spread** (distance of props/hands) → more zoom.
+- **present** → nobody there: calm; someone comes: a light impulse.
+- **Rules** trigger scene changes if you want: “Fire on” (someone/something there, 0.3 s), “Fire off” (2 s nothing),
+  “Fast” (speed above 1 for 0.5 s, at most every 4 s), in `~/.config/dream/motion.json`:
+
+```json
+{"rules": {"Fast": "next", "Fire on": {"playlist": "Fire"}, "Fire off": {"playlist": "Calm"}}}
+```
+
+<sub>[↑ Contents](#contents)</sub>
+
+### Dreaming light trails (input “Light trails”)
+
+Switch movement on (best fire/LED) and choose the input **“Light trails”**: Dream draws the light trails itself
+(orange, glowing, fading after about a second), and the AI dreams on the real fire, poi or body trails – dragons, mist,
+tendrils, depending on the prompt. Tips: transformation 0.65–0.8 (the trails are bright on black, the AI needs some
+freedom), dream share 0.3–0.5 for flowing transitions.
+
+### Keep outlines (ControlNet)
+
+In the card “Input & prompt” (with camera, picture, video, light trails): **Keep outlines (the body stays
+recognisable)**. Dream takes the outlines (thin edge lines) from the input picture and gives them to the AI as
+guidance: body, arms, furniture, stage stay recognisable even with a strong transformation, only surface and content
+are dreamed – the most direct link between your movement and the picture. **Outline strength** 0.6–1.0 is a good range
+(more = closer to the camera picture, less freedom for the dream). Combines with “Pose shapes the figure”.
+
+Drawbacks: the first time Dream loads an extra model (SD-Turbo ~0.7 GB, SDXL-Turbo in the cloud ~2.5 GB); every picture
+needs a little more computing time (measured on the Mac 275 → 296–318 ms) and memory; the outlines come from the whole
+picture, so also from room and furniture, not only from the body; in the dark (noisy camera) they get more restless.
+Best with a cloud GPU.
+
+### Pose shapes the figure (ControlNet)
+
+With the movement kind “Hands (AI)” Dream knows the person's whole skeleton and draws it in OpenPose style. Switch on
+“Pose shapes the figure”: a ControlNet makes a figure appear in the dream in exactly this posture – it dances along.
+The prompt decides *what* kind of figure (e.g. “dancer made of glowing fire ribbons”). “Pose strength” sets how
+strictly the posture is kept (0.8–1.2 good).
+
+- Locally with SD-Turbo: ControlNet `thibaud/controlnet-sd21-openpose-diffusers` (~0.7 GB, downloaded once), about
+  0.5 s per picture on the M2 Max – jerky, but clearly visible.
+- In the cloud with SDXL-Turbo: `xinsir/controlnet-openpose-sdxl-1.0` (~2.5 GB, Apache 2.0) – more fluid and nicer.
+- Pose does not raise the transformation: the figure comes only from the pose strength. With a strong transformation
+  the stage pulls the starting picture a little towards grey so that the figure stands out against the colourful
+  dream; with a gentle one the picture stays as it is. For a clear figure: transformation 0.6+ and pose strength
+  0.8–1.2.
+
+## MIDI controller
+
+A MIDI controller with faders and knobs (e.g. an older USB controller with 8 faders, a master fader, 24 knobs and
+transport buttons) controls Dream live. Dream reads it directly on the Mac – whatever browser, also with the output on
+the projector. USB controllers macOS recognises without a driver (“class compliant”) work at once; check under Audio
+MIDI Setup → Window → Show MIDI Studio. Devices with round 5-pin sockets need a USB MIDI interface. Plugging in and out
+during operation works; Dream looks for devices every 3 s.
+
+**Mapping (MIDI learn):** in the panel under “MIDI controller” (or on the phone under “MIDI · master”) choose a target,
+click **🎛 Learn**, then turn the knob or press the button on the controller – done. The list below shows all mappings,
+✕ deletes one. Saved in `~/.config/dream/midi.json` (not in the repository), so they also hold after a restart. Which
+numbers the controller sends depends on its preset – just choose a preset and stay with it.
+
+- **Slider targets:** transformation, dream share, zoom pull, rotation, colour drift, drift, music reaction,
+  movement, pose strength, **master brightness** (0 = black; acts on stage, output window and Syphon) and effect
+  strength.
+- **Button targets:** pause/start, next scene, new, new seed, **blackout on/off** (master to 0 and back), tap tempo,
+  next pattern, each of the twelve effects on/off, roll effects anew, effects off.
+- Sliders glide softly to the new value (no jumps) and move along in the panel and on the phone. Endless knobs (that
+  only send “more/less”) are recognised by Dream after a few clicks.
+- Suggestion for 8 faders + master: transformation, dream share, zoom pull, rotation, colour drift, drift, music
+  reaction, movement; master fader = master brightness; buttons ▶ pause/start, ▶▶ next scene, ◀◀ new, ■ blackout.
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Sensor input (movement in the dark: phone on the arm, later a wristband)
+
+Movement sensors on the body work in the dark and with very fast movements too. Dream takes anything that sends
+numbers by OSC (UDP, port **7020**; another port: `DREAM_SENSOR_PORT=…` in `~/.config/dream/dream.env`) – only from
+devices in the home network. Without an extra app: the Dream Control device itself sends its motion (“🧭 Motion”, see
+“Live camera and motion of the Control device”); its channels are called `/device/…`.
+
+**With the phone on the forearm** (Android e.g. the app *Sensors2OSC*; iPhone e.g. *ZIG SIM*):
+1. Start Dream with `./dream.sh --lan` (otherwise it only accepts data from the Mac itself).
+2. In the app enter the Mac's IP (`ipconfig getifaddr en0`) and port 7020 as the target; switch on acceleration,
+   gyroscope and orientation (or rotation), start sending.
+3. In the panel under **Sensor input** “… values/s from …” appears, below it the readings as bars.
+
+**Mapping:** choose a target (e.g. zoom pull), click **📡 Learn** and make exactly the movement it should control for
+2 seconds (e.g. arm up/down). Dream takes the reading that now moves clearly more than before. ⇅ reverses the
+direction, ✕ deletes. Every reading is smoothed and adapts its range by itself – no calibration. Saved in
+`~/.config/dream/sensors.json` (not in the repository).
+
+**Hit (whip):** a strong, jerky movement is an impulse (at most every 0.25 s). Under “Hit →” set what it triggers:
+flash, spin jolt, new motif, next scene or blackout; “Hit sensitivity” sets how strong it must be. **Swing** (how
+fast the wrist turns) shows in the panel. The values run through the same soft gliding as with the MIDI controller.
+
+Ideas: arm height → zoom pull or master brightness, turning the wrist (roll) → rotation, tilting → colour drift,
+hit → flash. A planned wristband and finger glove send in the same format.
+
+<sub>[↑ Contents](#contents)</sub>
+
+---
+
+## Cloud GPU
+
+A rented GPU computes much faster than the Mac, especially SDXL-Turbo and the style models. Two providers:
+**Scaleway** (Paris, billed in €) and **RunPod** (data centres in Europe, billed in $ per second). Under “Computing” →
+**Cloud GPU** the list has both; start, delete, the cost display and the automatic deletion after 2 hours work the
+same way. After every restart Dream first computes locally again – the cloud is not remembered, so it is never chosen
+by accident. Camera, picture and video frames and the prompt then go to your own machine at the provider; speech and
+music analysis stay on the Mac.
+
+**Starting:** choose the GPU, **Start**. A question shows the price and three buttons: **“Start – if not free: RTX
+5090 …”** (falls back to the other RTX, 4090 ↔ 5090, each in the same kind secure or community), **“Try only RTX
+4090”** and **“Cancel”** – Cancel (or Esc) starts nothing. A running GPU is never switched, the H100 has no fallback.
+The card Computing shows what is happening; **Delete** ends it at once.
+
+**Compiling and the compile cache:** on the cloud GPU the model is compiled for the card before its first picture
+(torch.compile, TF32), slim in one variant. `dream-cloud` brings the compiled code to the Mac as a **cache**
+(`~/.cache/dream/compile`, per GPU type, PyTorch version and model) and takes it to the next machine: the **first**
+start on a GPU type takes a good 6 minutes until the first picture, later ones about 4 (measured on an RTX 4090). With
+a style reference picture in the cloud, its technique comes with the first reference picture; the cloud then paints
+uncompiled (measured about 4.5 instead of 5 pictures/s) – if a reference picture is chosen at the next start, it is
+compiled in at once. If compiling fails, the model simply runs normally (switch it off: `DREAM_COMPILE=0`).
+
+**Overlapping pictures:** with live inputs (camera, video, light trails) two to three pictures are on their way at the
+same time, so the GPU does not wait for the way over the internet; with “Dream only” and “Picture” each picture builds
+on the previous one, so it stays one. Below the preview it says “… pictures/s · GPU … ms · way … ms · overlapping”:
+GPU = computing time per picture, way = transfer.
+
+**Saving the line (automatically, cloud GPU only):** pictures go both ways as WebP instead of JPEG, live inputs go up
+at 5/8 of the size, the cloud scales them back to full size before dreaming; the picture comes back at full size, the
+projector stays sharp. “Dream only” and “Picture” stay at full size (they build on the last picture and would get
+softer round by round). With a camera picture the upload fell from about 57 to 25 KB per picture, the download from
+79 to 46 KB. Below the preview: “↑ … KB ↓ … KB”.
+
+- The machine is **deleted automatically after 2 hours at the latest** (a timer on the Mac; in addition the machine
+  switches itself off). If the Mac is off in that time, check yourself: `./dream-cloud status`.
+- The panel and Dream Control show the GPU's state without asking all the time (#176): Dream looks itself – every
+  few seconds while a GPU starts, stops or is in use, every half minute otherwise, rarely while no provider is set up –
+  and tells them. Guests see nothing of the cloud.
+- In the terminal:
+
+```bash
+./dream-cloud status
+./dream-cloud start --type runpod:RTX-4090 --model sdxl-turbo
+./dream-cloud stop
+```
+
+`stop` deletes machine, disk and IP. Nothing costs afterwards.
+
+<sub>[↑ Contents](#contents)</sub>
+
+### Scaleway: set up once
+
+```bash
+brew install scw
+scw init
+```
+
+`scw init` asks for access key and secret key (they stay in `~/.config/scw/config.yaml` on the Mac); choose the default
+zone **fr-par-2**, telemetry **no**, **add** the local SSH key. `dream-cloud` creates machines only in the default
+project of this configuration (`scw config get default-project-id`).
+
+**SSH key:** Scaleway console → IAM → SSH keys – the key from `~/.ssh/id_rsa.pub` must be there, otherwise Dream does
+not get onto the machine (it costs anyway, until `dream-cloud stop`).
+
+**GPU quota:** new accounts are often not allowed to create a GPU (“quota exceeded … 0/0”). Check in the Scaleway
+console → Organization → Organization Dashboard → tab **Quotas**, product “Instances”, search “L4”: if L4-1-24G shows at
+least 1, it works. Otherwise have it unlocked: **“Verify ID”** at the top or **“Contact support”** with “Instances,
+L4-1-24G, fr-par-2, quota 1”. Prices: L4 (24 GB) about €0.79 per hour, L40S (48 GB) about €1.47, H100 (80 GB) about
+€2.87; every type needs its own quota.
+
+### RunPod: set up once
+
+1. An account on runpod.io, top up credit under **Billing** (from $10 for many hours). Without credit nothing starts.
+2. Under **Settings → API Keys** create a key: REST API → **read and write pods** (optionally read billing), nothing
+   else. Put it into the keychain on the Mac (it asks for the key; never in files or chat):
+   ```bash
+   security add-generic-password -a dream -s runpod-api-key -w
+   ```
+3. An SSH key on the Mac (`~/.ssh/id_ed25519.pub` or `id_rsa.pub`) is enough – Dream gives it to the pod, nothing needs
+   to be stored at RunPod. Do not create anything in the RunPod web interface itself (“Deploy” costs at once).
+
+Recommended: RTX 4090 (for Dream as fast as more expensive cards). Billed by the second; a started GPU is yours until
+“Delete” (no spot machines). The pod also deletes itself if the Mac is off. Error messages in the card: no credit, no
+fitting GPU free in Europe right now (choose another GPU or try later), key without rights. Dream's PyTorch is built for
+CUDA 13; on machines with an older driver (12.6 or newer) `dream-cloud` installs the matching PyTorch.
+
+**Measured (RTX 4090):** the GPU computes a picture (512 px, 1 step) in **26 ms** – seven times faster than the Mac
+(≈ 190 ms). The picture rate depends mostly on the line, not the GPU: each picture must go up and come back, the way to
+the data centre costs ~35 ms. What helps: a faster upload (cable instead of Wi-Fi, fibre), **384 px** instead of 512,
+and the line saving above.
+
+---
+
+## When something gets stuck
+
+- **🔮 Relieve** (title bar of the panel and of Dream Control, not for guests): when Dream gets slow and you don't want
+  to hunt for the cause. The face on the button is the load right now – 😌 plenty of power, 🔮 dreams smoothly, 😬 getting
+  tight, 🥵 overloaded, 🤯 far overloaded, 😴 paused (smooth means about 3 AI pictures a second on the Mac, 4 in the
+  cloud). A tap takes back, one step after the other, what costs most: diagnostics → style model and style reference
+  picture (only with SDXL, faded out first – the style goes early) → quality “Fluid” → outlines and pose (their strength
+  slides to zero first, then they switch off) → hand detection “Hands (AI)” → “Fire/LED” → resolution 512 px. The model is never
+  switched – that stays your choice. After every step it waits a few seconds and measures; as soon as Dream
+  runs smoothly it stops, the rest stays as it was. While it works the face exhales (😮‍💨) and the button counts the
+  steps with a bar underneath. The chip “🐢 relieved: …” says what was taken back; **↶** puts everything back as it
+  was. **The autopilot presses it too** when Dream stays overloaded (🥵/🤯) for 15 seconds, at most every two minutes
+  (“🤖 Autopilot relieved: …”).
+- **“⚠ Memory short” (red chip, red tile “swapping”):** the Mac pushes memory onto the disk, everything gets sluggish.
+  Most common reason: a big language model in Ollama that is still loaded (e.g. from another program). `ollama ps`
+  shows it, `ollama stop <name>` frees it (it loads again on next use). Also helps: close unused programs and browser
+  tabs, SD-Turbo instead of SDXL-Turbo, 512 px instead of more.
+- **The stage stays black or dark:** restart and update Dream (see above). In prompt mode drift helps; an entirely black
+  picture after an update usually means the old version still runs.
+- **The controls are extremely slow:** is a second Dream, a second stage or another GPU program running? Keep only one
+  stage open.
+- **“site can't be reached” on the phone:** see “If the phone does not connect”. The macOS firewall was not the reason
+  in a test; Firefox instead of Chrome on Android helped.
+- **“Not enough memory for this picture”** (#177): the Mac's GPU memory ran out – choose a smaller size, SD-Turbo,
+  or close other programs and AI models (e.g. Ollama). Dream logs every failed picture and dreams on with the next one.
+- **“No answer from the AI for a while – reconnecting …”** (#177): the stage got no answer for 10 s (the first
+  picture of a connection: 3 minutes) and opens the line anew by itself; a single broken picture never stops it.
+- **Speech input shows an error:** restart Dream; really hold key V (too short → “Too short”).
+- **Scaleway “quota exceeded”:** the GPU quota is missing, see “Scaleway: set up once”. Dream says so in the Computing
+  card (“Start failed: no GPU quota for … – … Quotas”) and switches back to “Local” by itself; nothing costs. The ID
+  verification alone is not enough – the quota must also be requested from the support.
+- **Chip “☁ …” below the preview:** red means a GPU runs or starts (it costs money); neutral “not started” means the
+  cloud is only chosen as the computer. “Delete” is active only when something runs, and shows “Deleting …” and
+  “Deleted ✓”.
+- **Red movement warning at the top:** no camera (allow access in the browser, connect a camera) or the AI model could
+  not be loaded (the very first time “Hands (AI)” needs the internet). Key D shows what the detection sees.
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Disk space and removal
+
+Locally: the Python environment `.venv` in the Dream folder (about 1.2 GB) and the models in the Hugging Face cache
+(SD-Turbo about 2.6 GB, SDXL-Turbo about 7 GB if used locally, style models 10–320 MB each, the reference adapter about
+3 GB). Saved pictures and clips lie in `~/Pictures/Dream/`. To remove:
+
+```bash
+rm -rf <Dream folder> ~/.cache/huggingface/hub/models--stabilityai--sd-turbo ~/.cache/huggingface/hub/models--stabilityai--sdxl-turbo ~/.cache/huggingface/hub/models--madebyollin--taesd*
+```
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Translations
+
+The code and this README are English; the German texts of the interface lie in `static/i18n/de.json` (English text →
+German), used by the pages (`static/i18n.js`, `T('text {x}', { x })`) and by the server and the scripts (`i18n.py`).
+The names of built-in playlists and music patterns are stored in English; `de.json` gives their German names under
+`_names`. `python3 scripts/i18n_check.py` reports every shown text without a German version.
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Licences
+
+**Dream's own code** is free software under the **GNU Affero General Public License v3.0 or later** (`LICENSE`).
+You may use, change and pass it on; whoever passes on a changed version, or lets other people use a changed version
+over a network (Dream Remote counts), must offer them its source code under the same licence. The remote shows a
+“Source code” link for that (`DREAM_SOURCE_URL=…` in `~/.config/dream/dream.env` points it to your own copy).
+
+The licence covers the code only. **The AI models are not part of this repository** – Dream downloads them on first
+use, and each comes with its own licence:
+
+| Model | Used for | Licence | Commercial use |
+|---|---|---|---|
+| [SD-Turbo](https://huggingface.co/stabilityai/sd-turbo), [SDXL-Turbo](https://huggingface.co/stabilityai/sdxl-turbo) | the dream | [Stability AI Community License](https://stability.ai/community-license-agreement) | free below USD 1 million annual revenue, after [registering](https://stability.ai/community-license); above that, an enterprise licence from Stability AI |
+| [TAESD](https://huggingface.co/madebyollin/taesd), [TAESDXL](https://huggingface.co/madebyollin/taesdxl) | fast decoder | MIT | yes |
+| [ControlNet SD 2.1 openpose/canny](https://huggingface.co/thibaud/controlnet-sd21-openpose-diffusers) (local) | pose, outlines | “other” – the card refers to the preprocessors' licences (OpenPose: non-commercial) | check yourself; for commercial work use the SDXL ones |
+| [ControlNet SDXL openpose/canny](https://huggingface.co/xinsir/controlnet-openpose-sdxl-1.0) (cloud) | pose, outlines | Apache 2.0 | yes |
+| [IP-Adapter](https://huggingface.co/h94/IP-Adapter) | style reference picture | Apache 2.0 | yes |
+| Style LoRAs: watercolour, crayon ([ostris](https://huggingface.co/ostris)), illustration | styles | Apache 2.0 | yes |
+| Style LoRAs: pixel art, paper cut | styles | CreativeML OpenRAIL-M | yes, with its use restrictions |
+| Style LoRA: sticker | style | MIT | yes |
+| [Whisper large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) (MLX) | speech | MIT | yes |
+| [Llama 3.2 3B](https://www.llama.com/llama3_2/license/) via Ollama (optional) | prompt ideas, playlists | Llama 3.2 Community License | yes (below 700 million monthly users; “Built with Llama”) |
+| [MediaPipe](https://ai.google.dev/edge/mediapipe) models (pose, face, segmentation) | movement, Dreamy Eyes | Apache 2.0 | yes |
+
+The Python libraries (PyTorch, diffusers, transformers, FastAPI, uvicorn, Pillow, NumPy, cryptography, qrcode,
+python-osc, mido, python-rtmidi, syphon-python, mlx-whisper, psutil, …) are under permissive licences (BSD, MIT,
+Apache 2.0, MIT-CMU, Unlicense). This list is a guide, not legal advice; the model cards are what counts.
+
+<sub>[↑ Contents](#contents)</sub>

@@ -1,0 +1,307 @@
+#!/bin/bash
+# dream-cloud – runs the Dream renderer on a cloud GPU and tunnels it to 127.0.0.1:7861 on this Mac.
+#
+#   dream-cloud start [--type L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community]
+#                     [--model sd-turbo|sdxl-turbo]
+#   dream-cloud stop          deletes the instance/pod together with its disk (nothing left that costs)
+#   dream-cloud status [--json]
+#
+# Two providers (#104): Scaleway (Paris; the CLI configured once with `scw init`, the local SSH key registered there)
+# and RunPod (pods in European data centers; the API key in the macOS keychain, see cloud_runpod.py – the Mac's
+# public key goes into the pod, nothing needs registering). The renderer listens on 127.0.0.1; only SSH is used.
+# Cost guard: the instance is deleted automatically after DREAM_AUTO_OFF_MIN minutes (default 120) by a local
+# timer, and halts itself on the instance as a fallback.
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ZONE="${DREAM_ZONE:-fr-par-2}"
+STATE_DIR="$HOME/.local/state/dream"
+STATE="$STATE_DIR/cloud.env"
+NAME="dream-gpu"
+TAG="dream"
+LOCAL_PORT=7861
+REMOTE_PORT=7860
+COMPILE_CACHE="${DREAM_COMPILE_CACHE_DIR:-$HOME/.cache/dream/compile}"   # #131: compiled code per GPU type
+AUTO_OFF_MIN="${DREAM_AUTO_OFF_MIN:-120}"
+mkdir -p "$STATE_DIR"; chmod 700 "$STATE_DIR"
+SSH_PORT=22
+ssh_opts() {   # a pod gets a new host key on every start: its own known_hosts file per pod
+  SSH_OPTS=(-4 -p "$SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$STATE_DIR/known_hosts${1:+_$1}"
+            -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=4)
+}
+ssh_opts
+
+# #132: messages in the user's language (DREAM_LANG from the panel, else the system's); English is the text itself
+tx() { python3 "$HERE/i18n.py" "${DREAM_LANG:-}" "$@" 2>/dev/null || printf "%s\n" "$1"; }
+say() { printf '%s  %s\n' "$(date +%H:%M:%S)" "$*"; }
+die() { printf '✖ %s\n' "$*" >&2; exit 1; }
+price() { case "$1" in L4-1-24G) echo 0.79 ;; L40S-1-48G) echo 1.47 ;; H100-1-80G) echo 2.87 ;; *) echo 0 ;; esac; }
+
+RUNPOD=(python3 -I "$HERE/cloud_runpod.py")
+provider_of() { case "$1" in runpod:*) echo runpod ;; *) echo scaleway ;; esac; }
+
+# Scaleway: id state type ip creation (one line, empty if there is no Dream instance)
+find_scaleway() {
+  command -v scw >/dev/null || return 0
+  { scw instance server list zone="$ZONE" tags="$TAG" -o json 2>/dev/null || true; } | python3 -I -c '
+import json, sys
+try:
+    servers = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for s in servers or []:
+    ip = (s.get("public_ip") or {}).get("address") or ""
+    if not ip:
+        ips = s.get("public_ips") or []
+        ip = ips[0].get("address", "") if ips else ""
+    print(s["id"], s["state"].replace(" ", "_"), s["commercial_type"], ip or "-", s.get("creation_date", "-"))
+    break'
+}
+
+# The Dream machine of either provider, one line: provider id state type host port price_per_h currency
+find_server() {
+  local line id st type ip
+  line="$(find_scaleway)"
+  if [ -n "$line" ]; then
+    read -r id st type ip _ <<<"$line"; echo "scaleway $id $st $type $ip 22 $(price "$type") EUR"; return
+  fi
+  if runpod_ok; then
+    line="$("${RUNPOD[@]}" find 2>/dev/null || true)"
+    if [ -n "$line" ]; then
+      read -r id st type ip port cost <<<"$line"
+      echo "runpod $id $(echo "$st" | tr '[:upper:]' '[:lower:]') runpod:$type $ip ${port:-0} $cost USD"
+    fi
+  fi
+}
+runpod_ok() { [ -n "${DREAM_RUNPOD_KEY:-}" ] || security find-generic-password -a dream -s runpod-api-key >/dev/null 2>&1; }
+
+tunnel_pid() { pgrep -f "ssh .*-L 127.0.0.1:$LOCAL_PORT:127.0.0.1:$REMOTE_PORT" | head -n1 || true; }
+ready() { curl -fsS -m 3 "http://127.0.0.1:$LOCAL_PORT/health" >/dev/null 2>&1; }
+state_get() { [ -f "$STATE" ] && sed -n "s/^$1=//p" "$STATE" | tail -n1 || true; }
+
+open_tunnel() {
+  local ip="$1"
+  [ -n "$(tunnel_pid)" ] && return 0
+  ssh "${SSH_OPTS[@]}" -f -N -o ExitOnForwardFailure=yes -L "127.0.0.1:$LOCAL_PORT:127.0.0.1:$REMOTE_PORT" "root@$ip"
+}
+
+scw_ok() { command -v scw >/dev/null && scw instance server list zone="$ZONE" -o json >/dev/null 2>&1; }
+
+cmd_status() {
+  local json=0; [ "${1:-}" = "--json" ] && json=1
+  local line prov id st type ip port p cur
+  if ! scw_ok && ! runpod_ok; then
+    if [ "$json" = 1 ]; then echo '{"state":"setup"}'; else tx "No cloud provider set up (scw init or RunPod key)."; fi
+    return 0
+  fi
+  line="$(find_server)"
+  if [ -z "$line" ]; then
+    if [ "$json" = 1 ]; then echo '{"state":"off"}'; else tx "No Dream GPU machine (nothing costs)."; fi
+    return 0
+  fi
+  read -r prov id st type ip port p cur <<<"$line"
+  local started now mins cost tun rdy sym
+  started="$(state_get STARTED)"; now="$(date +%s)"
+  [ -n "$started" ] || started="$now"
+  mins=$(( (now - started) / 60 ))
+  cost="$(awk -v m="$mins" -v p="$p" 'BEGIN { printf "%.2f", m / 60 * p }')"
+  tun=false; [ -n "$(tunnel_pid)" ] && tun=true
+  rdy=false; ready && rdy=true
+  sym="€"; [ "$cur" = USD ] && sym='$'
+  if [ "$json" = 1 ]; then
+    # price_eur_h/cost_eur keep their names for the panel; "currency" says what they are in
+    printf '{"state":"%s","provider":"%s","type":"%s","ip":"%s","minutes":%d,"price_eur_h":%s,"cost_eur":%s,"currency":"%s","tunnel":%s,"ready":%s,"auto_off_min":%d,"port":%d}\n' \
+      "$st" "$prov" "$type" "$ip" "$mins" "$p" "$cost" "$cur" "$tun" "$rdy" "$AUTO_OFF_MIN" "$LOCAL_PORT"
+  else
+    tx "Dream GPU ({0}): {1}, state {2}, for {3} min (about {4} {5}, {6} {5}/h), tunnel {7}, ready {8}." "$prov" "$type" "$st" "$mins" "$cost" "$sym" "$p" "$tun" "$rdy"
+    tx "Automatic deletion after {0} min. Delete now: {1} stop" "$AUTO_OFF_MIN" "$0"
+  fi
+}
+
+gpu_image() {
+  scw marketplace image list -o json | python3 -I -c '
+import json, sys
+labels = [i.get("label", "") for i in json.load(sys.stdin)]
+gpu = [l for l in labels if "gpu" in l and "ubuntu" in l]
+pref = [l for l in gpu if "noble" in l] or [l for l in gpu if "jammy" in l] or gpu
+print(sorted(pref)[-1] if pref else "")'
+}
+
+remote_setup() {
+  local ip="$1" model="$2" withref="${3:-0}"
+  say "$(tx "Loading Dream onto the machine …")"
+  rsync -az --delete --exclude .venv --exclude __pycache__ --exclude .git --exclude compile-cache -e "ssh ${SSH_OPTS[*]}" "$HERE/" "root@$ip:/opt/dream/"
+  # #131: the compiled code from earlier starts (per GPU type), so the model is ready in about a minute
+  mkdir -p "$COMPILE_CACHE"
+  rsync -az -e "ssh ${SSH_OPTS[*]}" "$COMPILE_CACHE/" "root@$ip:/opt/dream-cache/" 2>/dev/null || true
+  say "$(tx "Setting up Python, PyTorch and the model (some minutes the first time) …")"
+  # shellcheck disable=SC2087  # the variables below are meant to be filled in here, on the Mac
+  ssh "${SSH_OPTS[@]}" "root@$ip" bash -s <<REMOTE
+set -euo pipefail
+# fallback cost guard on the machine itself: a VM halts, a pod (a container, no shutdown) ends its main process
+if ! shutdown -h +$AUTO_OFF_MIN "Dream: automatic shutdown" >/dev/null 2>&1; then
+  # a RunPod pod: it may remove itself (runpodctl and a pod-scoped key come with RunPod's images)
+  command -v runpodctl >/dev/null && [ -n "\${RUNPOD_POD_ID:-}" ] \
+    && nohup sh -c "sleep $((AUTO_OFF_MIN * 60)); runpodctl remove pod \$RUNPOD_POD_ID" >/dev/null 2>&1 &
+fi
+nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+command -v uv >/dev/null || [ -x /root/.local/bin/uv ] || curl -LsSf https://astral.sh/uv/install.sh | sh >/dev/null
+export PATH=/root/.local/bin:\$PATH
+cd /opt/dream
+uv sync --frozen --no-dev >/var/log/dream-setup.log 2>&1 || { tail -20 /var/log/dream-setup.log; exit 1; }
+# Dream's locked PyTorch is built for CUDA 13; a machine with an older driver (many RunPod hosts) gets the newest
+# PyTorch build its driver can run (#104)
+drv=\$(nvidia-smi | sed -n 's/.*CUDA Version: *\([0-9]*\.[0-9]*\).*/\1/p' | head -n1)
+case "\$drv" in
+  13.*) pick="" ;;
+  12.9) pick="2.13.0 cu129" ;;
+  12.8) pick="2.11.0 cu128" ;;
+  12.6|12.7) pick="2.14.1 cu126" ;;
+  *) echo "✖ Driver with CUDA \$drv is too old for Dream (12.6 at least)"; exit 1 ;;
+esac
+if [ -n "\$pick" ]; then
+  set -- \$pick
+  echo "CUDA \$drv: PyTorch \$1 (\$2)"
+  uv pip install --python .venv/bin/python "torch==\$1" --index-url "https://download.pytorch.org/whl/\$2" >>/var/log/dream-setup.log 2>&1 \
+    || { tail -20 /var/log/dream-setup.log; exit 1; }
+fi
+pkill -f "uvicorn server:app" 2>/dev/null || true
+nohup env DREAM_ROLE=worker DREAM_PRELOAD=$model DREAM_WITH_REF=$withref DREAM_COMPILE_CACHE=/opt/dream-cache \
+  HF_HUB_DISABLE_TELEMETRY=1 DO_NOT_TRACK=1 \
+  .venv/bin/python -m uvicorn server:app --host 127.0.0.1 --port $REMOTE_PORT </dev/null >/var/log/dream.log 2>&1 &
+echo started
+REMOTE
+}
+
+cmd_start() {
+  local type="L4-1-24G" model="sd-turbo" fallback="" withref=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --type) type="$2"; shift 2 ;;
+      --model) model="$2"; shift 2 ;;
+      --fallback) fallback="$2"; shift 2 ;;
+      --with-ref) withref=1; shift ;;
+      *) die "$(tx "unknown option {0}" "$1")" ;;
+    esac
+  done
+  case "$type" in L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community) ;; *) die "$(tx "unknown GPU type {0}" "$type")" ;; esac
+  case "$model" in sd-turbo|sdxl-turbo) ;; *) die "$(tx "unknown model {0}" "$model")" ;; esac
+  local prov; prov="$(provider_of "$type")"
+  if [ "$prov" = scaleway ]; then scw_ok || die "$(tx "Scaleway is not set up: brew install scw, then scw init.")"
+  else runpod_ok || die "$(tx "No RunPod key in the keychain: security add-generic-password -a dream -s runpod-api-key -w")"; fi
+
+  local line p id st t ip port pr cur
+  line="$(find_server)"
+  if [ -z "$line" ]; then
+    if [ "$prov" = scaleway ]; then
+      local img; img="$(gpu_image)"
+      [ -n "$img" ] || die "$(tx "No GPU image found at Scaleway.")"
+      say "$(tx "Creating {0} in {1} (image {2}, about {3} €/h) …" "$type" "$ZONE" "$img" "$(price "$type")")"
+      scw instance server create zone="$ZONE" type="$type" image="$img" name="$NAME" tags.0="$TAG" \
+        root-volume=sbs:80GB ip=new -w -o json >/dev/null \
+        || die "$(tx "Creating failed. Check the GPU quota: console.scaleway.com → Organization → Quotas.")"
+    else
+      case "$type" in *-community) say "$(tx "Creating a pod with {0} at RunPod (Community Cloud, private provider) in Europe …" "${type#runpod:}")" ;;
+        *) say "$(tx "Creating a pod with {0} at RunPod in Europe …" "${type#runpod:}")" ;; esac
+      # #110: not free and the owner agreed to an alternative (with its price) – that one, once; any other error stops
+      local rc=0; "${RUNPOD[@]}" create "${type#runpod:}" >/dev/null 2>"$STATE_DIR/runpod.err" || rc=$?
+      if [ "$rc" = 3 ] && [ -n "$fallback" ]; then
+        say "$(tx "{0} is not free right now – taking {1} instead …" "${type#runpod:}" "${fallback#runpod:}")"
+        type="$fallback"; rc=0
+        "${RUNPOD[@]}" create "${type#runpod:}" >/dev/null 2>"$STATE_DIR/runpod.err" || rc=$?
+        [ "$rc" = 3 ] && die "$(tx "Neither the chosen GPU nor {0} is free in Europe right now – try again in a few minutes." "${fallback#runpod:}")"
+      fi
+      [ "$rc" = 0 ] || { cat "$STATE_DIR/runpod.err" >&2; exit 1; }   # its "Fehler: …" line (German, from earlier versions) explains why
+    fi
+    printf 'STARTED=%s\nTYPE=%s\nPROVIDER=%s\n' "$(date +%s)" "$type" "$prov" > "$STATE"
+  else
+    say "$(tx "A Dream machine is already running, connecting to it.")"
+    [ -f "$STATE" ] || printf 'STARTED=%s\n' "$(date +%s)" > "$STATE"
+  fi
+  # a pod takes a moment until its container runs and its SSH port is published
+  local i
+  for i in $(seq 1 72); do
+    line="$(find_server)"
+    read -r p id st t ip port pr cur <<<"$line"
+    [ -n "$line" ] && [ "$ip" != "-" ] && [ "${port:-0}" != 0 ] && break
+    [ $((i % 6)) -eq 0 ] && say "$(tx "Waiting for the machine ({0}) …" "$st")"
+    sleep 5
+  done
+  [ -n "$line" ] || die "$(tx "Machine not found after creating it.")"
+  [ "$ip" != "-" ] && [ "${port:-0}" != 0 ] || die "$(tx "The machine has no SSH address (state {0})." "$st")"
+  SSH_PORT="$port"; [ "$p" = runpod ] && ssh_opts "$id" || ssh_opts
+
+  say "$(tx "Waiting for SSH ({0}) …" "$ip:$port")"
+  for i in $(seq 1 60); do
+    ssh "${SSH_OPTS[@]}" "root@$ip" true 2>/dev/null && break
+    sleep 5
+  done
+  ssh "${SSH_OPTS[@]}" "root@$ip" true || die "$(tx "SSH does not work. Is your SSH key stored at {0}, or is there a ~/.ssh/id_*.pub?" "$p")"
+  ssh "${SSH_OPTS[@]}" "root@$ip" 'command -v rsync >/dev/null || { apt-get update -qq && apt-get install -y -qq rsync; } >/dev/null 2>&1' \
+    || die "$(tx "rsync is missing on the machine.")"
+
+  remote_setup "$ip" "$model" "$withref"
+  open_tunnel "$ip"
+  say "$(tx "Waiting until the model is loaded …")"
+  for i in $(seq 1 180); do
+    ready && break
+    [ $((i % 6)) -eq 0 ] && ssh "${SSH_OPTS[@]}" "root@$ip" "tail -n1 /var/log/dream.log" 2>/dev/null | tr '\r' '\n' | tail -n1 | cut -c1-120 || true
+    sleep 5
+  done
+  ready || die "$(tx "Dream does not answer on the machine (log: {0})." "ssh -p $port root@$ip tail /var/log/dream.log")"
+
+  # Local cost guard: delete the machine after AUTO_OFF_MIN minutes.
+  local old; old="$(state_get TIMER)"
+  [ -n "$old" ] && kill "$old" 2>/dev/null || true
+  nohup bash -c "sleep $((AUTO_OFF_MIN * 60)); '$0' stop --auto" >/dev/null 2>&1 &
+  echo "TIMER=$!" >> "$STATE"
+  # #131: bring a newly compiled cache home for the next start on this GPU type
+  rsync -az -e "ssh ${SSH_OPTS[*]}" "root@$ip:/opt/dream-cache/" "$COMPILE_CACHE/" 2>/dev/null || true
+  say "$(tx "Ready: Dream now computes on {0} (port {1}). Automatic deletion in {2} min." "$t" "$LOCAL_PORT" "$AUTO_OFF_MIN")"
+}
+
+cmd_stop() {
+  local auto=0; [ "${1:-}" = "--auto" ] && auto=1
+  local pid; pid="$(tunnel_pid)"
+  [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
+  if [ "$auto" = 0 ]; then
+    local timer; timer="$(state_get TIMER)"
+    [ -n "$timer" ] && kill "$timer" 2>/dev/null || true
+  fi
+  local line p id st t ip port pr cur
+  line="$(find_server)"
+  if [ -z "$line" ]; then
+    rm -f "$STATE"; say "$(tx "No Dream machine there.")"; return 0
+  fi
+  read -r p id st t ip port pr cur <<<"$line"
+  local started mins sym; started="$(state_get STARTED)"; [ -n "$started" ] || started="$(date +%s)"
+  mins=$(( ($(date +%s) - started) / 60 )); sym="€"; [ "$cur" = USD ] && sym='$'
+  if [ "$p" = scaleway ]; then
+    say "$(tx "Deleting {0} (ran {1} min) with volume and IP …" "$t" "$mins")"
+    scw instance server terminate "$id" zone="$ZONE" with-ip=true with-block=true >/dev/null 2>&1 \
+      || scw instance server delete "$id" zone="$ZONE" with-ip=true with-volumes=all force-shutdown=true >/dev/null
+  else
+    say "$(tx "Deleting the RunPod pod {0} (ran {1} min) …" "$t" "$mins")"
+    "${RUNPOD[@]}" delete "$id" || exit 1
+    rm -f "$STATE_DIR/known_hosts_$id"
+  fi
+  local i
+  for i in $(seq 1 30); do
+    [ -z "$(find_server)" ] && break
+    sleep 5
+  done
+  [ -z "$(find_server)" ] || die "$(tx "Machine {0} is still there. Please check in the console of {1}." "$id" "$p")"
+  rm -f "$STATE"
+  say "$(tx "Deleted. Cost about {0} {1}." "$(awk -v m="$mins" -v p="$pr" 'BEGIN { printf "%.2f", m / 60 * p }')" "$sym")"
+}
+
+case "${1:-}" in
+  start) shift; cmd_start "$@" ;;
+  stop) shift; cmd_stop "$@" ;;
+  status) shift; cmd_status "$@" ;;
+  -h|--help) tx "usage: {0} start [--fallback TYPE] [--type L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]" "$0"
+     tx "  start   creates a GPU at Scaleway or RunPod (costs from then on, deletes itself after {0} min at the latest)" "$AUTO_OFF_MIN"
+     tx "  stop    deletes machine and disk – nothing costs afterwards"
+     tx "  status  shows whether a Dream GPU runs and what it has cost so far" ;;
+  *) tx "usage: {0} start [--type …] [--model sd-turbo|sdxl-turbo] | stop | status [--json]  (more: {0} --help)" "$0"; exit 2 ;;
+esac
