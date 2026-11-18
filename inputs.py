@@ -93,20 +93,21 @@ sens = sensors.Sensors()
 
 def sensor_setting(msg: dict):
     m = sens.mapping
-    if msg.get("sensor_forget") in m:
-        m.pop(msg["sensor_forget"])
-    if isinstance(m.get(msg.get("sensor_invert")), dict):
-        m[msg["sensor_invert"]]["invert"] = not m[msg["sensor_invert"]].get("invert")
+    forget, invert = (msg.get(k) if isinstance(msg.get(k), str) else None for k in ("sensor_forget", "sensor_invert"))
+    if forget in m:                                # #208: a key of the mapping is a text; anything else names nothing
+        m.pop(forget)
+    if isinstance(m.get(invert), dict):
+        m[invert]["invert"] = not m[invert].get("invert")
     if "sensor_impulse" in msg:
         a = msg["sensor_impulse"]
-        if a in sensors.IMPULSE_ACTIONS:
+        if isinstance(a, str) and a in sensors.IMPULSE_ACTIONS:
             m["impulse"] = {"action": a}
         else:
             m.pop("impulse", None)
     if "sensor_sens" in msg:
         try:
             sens.sensitivity = m["sensitivity"] = min(3.0, max(0.2, float(msg["sensor_sens"])))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             pass
     sensors.save_map(m)
 

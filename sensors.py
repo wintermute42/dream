@@ -69,7 +69,8 @@ class Sensors:
     # ---------- incoming ----------
     def on_osc(self, address: str, args, source: str = "", now: float | None = None):
         now = time.time() if now is None else now
-        nums = [float(a) for a in args if isinstance(a, (int, float)) and not isinstance(a, bool) and math.isfinite(a)]
+        # finite numbers only; #208: compared, not math.isfinite – that raises for an integer too big for a float
+        nums = [float(a) for a in args if isinstance(a, (int, float)) and not isinstance(a, bool) and -1e300 < a < 1e300]
         if not nums:
             return
         self.source = source
