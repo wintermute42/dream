@@ -25,7 +25,7 @@ def _sandbox_env(base: str) -> dict:
 
 
 def fake_torch() -> None:
-    """Just enough of torch for server.py and styles.py to import: no CUDA, no MPS, nothing that computes."""
+    """Just enough of torch for render.py and styles.py to import: no CUDA, no MPS, nothing that computes."""
     torch = types.ModuleType("torch")
     torch.__dict__.update(
         cuda=types.SimpleNamespace(is_available=lambda: False),
@@ -75,7 +75,8 @@ def sandbox(tmp_path, monkeypatch):
 
 @pytest.fixture(scope="session")
 def server():
-    """server.py imported once, as the app with --lan, in the session sandbox: no MIDI thread, no cloud, no Ollama."""
+    """server.py (and with it every part of the app: server.hub, server.rights, …) imported once, as the app with --lan, in
+    the session sandbox: no MIDI thread, no cloud, no Ollama."""
     base = _session["base"]
     cloud = os.path.join(base, "fake-dream-cloud")
     with open(cloud, "w") as f:
@@ -90,12 +91,13 @@ def server():
         import server as srv
     finally:
         midi.Listener.start = start
-    assert srv.STATE_DIR.startswith(base) and srv.SAVE_DIR.startswith(base)
-    srv.lan_ip = lambda: "192.168.1.20"                  # invented; no socket is opened
-    srv.local_hostnames = lambda: ["dream-mac.local"]
+    assert srv.hub.STATE_DIR.startswith(base) and srv.media.SAVE_DIR.startswith(base)
+    srv.net.lan_ip = lambda: "192.168.1.20"              # invented; no socket is opened
+    srv.net.local_hostnames = lambda: ["dream-mac.local"]
 
     async def idle():
         return None
-    for loop in ("scene_loop", "midi_loop", "sensor_loop", "aimask_loop"):   # /ctl starts them: no OSC port, no timers
-        setattr(srv, loop, idle)
+    for part, loop in ((srv.scenes, "scene_loop"), (srv.inputs, "midi_loop"), (srv.inputs, "sensor_loop"),
+                       (srv.eyes, "aimask_loop")):      # /ctl starts them: no OSC port, no timers
+        setattr(part, loop, idle)
     return srv

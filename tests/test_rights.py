@@ -1,4 +1,4 @@
-"""Rights (#148, #156, #175): every role against every route of server.py, the origin/host check, the /ctl filter and the
+"""Rights (#148, #156, #175): every role against every route of the app (rights.py), the origin/host check, the /ctl filter and the
 guests' message allowance. The server runs with --lan in the test sandbox; the requests come from invented home-network
 addresses."""
 import json
@@ -107,7 +107,7 @@ def reached(server, monkeypatch):
 
 
 def test_every_route_is_in_the_table(server):
-    """A new route must be classified here (and in server.py's rules) before it ships."""
+    """A new route must be classified here (and in the rules of rights.py) before it ships."""
     http, ws = set(), set()
     for r in server.app.routes:
         if type(r).__name__ == "Mount":
@@ -292,20 +292,20 @@ def no_ghost_sockets(server):
     """The test client cancels a socket's handler right after it closes, maybe while it still greets: no session
     leaves its registration behind for the next test."""
     yield
-    for d in (server.clients, server.roles, server.key_roles):
+    for d in (server.hub.clients, server.hub.roles, server.hub.key_roles):
         d.clear()
-    server.eyes_pages.clear()
-    server.viewers.clear()
-    server.previews.clear()
+    server.eyes.eyes_pages.clear()
+    server.hub.viewers.clear()
+    server.hub.previews.clear()
 
 
 @pytest.fixture
 def saved_state(server):
-    before = dict(server.state)
-    yield server.state
-    server.state.clear()
-    server.state.update(before)
-    server.save_state()
+    before = dict(server.hub.state)
+    yield server.hub.state
+    server.hub.state.clear()
+    server.hub.state.update(before)
+    server.hub.save_state()
 
 
 def wait_until(cond, secs: float = 5.0) -> None:
@@ -326,13 +326,13 @@ def ctl_session(server, role: str, messages: list, done) -> dict:
 
 
 def test_ctl_guest_changes_only_guest_keys(server, saved_state):
-    server.state.update(running=True, backend="local", mode="dream", quality=2)
+    server.hub.state.update(running=True, backend="local", mode="dream", quality=2)
     first = ctl_session(server, "guest", [{"set": {"prompt": "a quiet lake at dawn", "backend": "cloud", "running": False,
                                                     "quality": 4, "mode": "cam", "zoom": 0.02}},
                                            {"set": {"mode": "img"}}],
-                        done=lambda: server.state["mode"] == "img")
+                        done=lambda: server.hub.state["mode"] == "img")
     assert first == {"role": "guest", "can_take": False, "can": CAN["guest"]}
-    s = server.state
+    s = server.hub.state
     assert (s["prompt"], s["zoom"], s["mode"]) == ("a quiet lake at dawn", 0.02, "img")
     assert (s["backend"], s["running"], s["quality"]) == ("local", True, 2)
 
@@ -342,42 +342,42 @@ def test_ctl_guest_commands(server, monkeypatch, saved_state):
 
     async def broadcast(msg, exclude=None, only=None):
         sent.append(msg)
-    monkeypatch.setattr(server, "broadcast", broadcast)
+    monkeypatch.setattr(server.hub, "broadcast", broadcast)
     renewed = []
-    monkeypatch.setattr(server, "renew_guest", lambda: renewed.append(1))
+    monkeypatch.setattr(server.ctl, "renew_guest", lambda: renewed.append(1))
     ctl_session(server, "guest", [{"cmd": "restart"}, {"renew_guest": True}, {"midi_forget": "c1:cc7"},
                                   {"midi_learn": "strength"}, {"cmd": "tap"}],
                 done=lambda: any(m.get("cmd") == "tap" for m in sent))
     assert [m["cmd"] for m in sent if "cmd" in m] == ["tap"]
-    assert not any("midi" in m for m in sent) and not renewed and not server.midi_learn
+    assert not any("midi" in m for m in sent) and not renewed and not server.inputs.midi_learn
 
 
 def test_ctl_eyes_change_nothing(server, monkeypatch, saved_state):
-    server.state["prompt"] = "unchanged"
+    server.hub.state["prompt"] = "unchanged"
     noted = []
-    monkeypatch.setattr(server, "eyes_note", noted.append)
+    monkeypatch.setattr(server.eyes, "eyes_note", noted.append)
     first = ctl_session(server, "eyes", [{"set": {"prompt": "taken over"}, "cmd": "restart"}, {"take_control": True},
                                          {"done": 1}],
                         done=lambda: {"done": 1} in noted)
     assert first["role"] == "eyes"
-    assert server.state["prompt"] == "unchanged"
+    assert server.hub.state["prompt"] == "unchanged"
 
 
 def test_ctl_control_changes_everything(server, saved_state):
-    server.state.update(running=True, quality=2)
+    server.hub.state.update(running=True, quality=2)
     first = ctl_session(server, "control", [{"set": {"running": False, "quality": 3}}],
-                        done=lambda: server.state["quality"] == 3)
+                        done=lambda: server.hub.state["quality"] == 3)
     assert first == {"role": "control", "can_take": False, "can": CAN["control"]}
-    assert server.state["running"] is False
+    assert server.hub.state["running"] is False
 
 
 def test_ctl_poisoned_numbers_are_not_taken(server, saved_state):
-    server.state.update(strength=0.5, prompt="before")
+    server.hub.state.update(strength=0.5, prompt="before")
     ctl_session(server, "control", [{"set": {"strength": "NaN", "zoom": 1e400, "seed": "1e999", "hue": float("inf")}},
                                     {"set": {"prompt": "after"}}],
-                done=lambda: server.state["prompt"] == "after")
-    assert (server.state["strength"], server.state["zoom"]) == (0.5, saved_state["zoom"])
-    assert json.load(open(server.STATE_FILE))["strength"] == 0.5
+                done=lambda: server.hub.state["prompt"] == "after")
+    assert (server.hub.state["strength"], server.hub.state["zoom"]) == (0.5, saved_state["zoom"])
+    assert json.load(open(server.hub.STATE_FILE))["strength"] == 0.5
 
 
 def test_ctl_second_control_is_a_guest_until_it_takes_over(server):
@@ -404,13 +404,13 @@ def next_with(ws, key: str) -> dict:
 def test_ctl_guest_allowance(server, monkeypatch, saved_state):
     """#175: a guest gets about 20 messages a second; the rest is dropped."""
     taken = []
-    apply = server.apply
+    apply = server.hub.apply
 
     async def counting(changes, **kw):
         taken.append(changes)
         await apply(changes, **kw)
-    monkeypatch.setattr(server, "apply", counting)
-    monkeypatch.setattr(server, "save_state", lambda: None)
+    monkeypatch.setattr(server.hub, "apply", counting)
+    monkeypatch.setattr(server.hub, "save_state", lambda: None)
     burst = [{"set": {"seed": i}} for i in range(1, 101)]
     ctl_session(server, "guest", burst + [{"done": 1}], done=lambda: len(taken) >= 20)
     time.sleep(0.2)
@@ -459,14 +459,14 @@ def test_window_seeds_wander_from_window_to_window(server, monkeypatch):
         def __init__(self, n): self.n = n
         async def send_text(self, text): sent.append((self.n, json.loads(text)))
     one, two = Sock(1), Sock(2)
-    ws, wd = server.windows, server.wanderers
+    ws, wd = server.hub.windows, server.windows.wanderers
     ws.clear(); ws.update({one: {"next": 0}, two: {"next": 1e12}}); wd.clear()
-    monkeypatch.setattr(server.random, "random", lambda: 0.0)          # a wanderer, surely
-    asyncio.run(server.windows_tick(100.0))
+    monkeypatch.setattr(server.windows.random, "random", lambda: 0.0)          # a wanderer, surely
+    asyncio.run(server.windows.windows_tick(100.0))
     seed = next(m["life"] for n, m in sent if n == 1)
-    assert seed["kind"] in server.WANDER_KINDS and seed["exit"] != "in"
+    assert seed["kind"] in server.windows.WANDER_KINDS and seed["exit"] != "in"
     sent.clear()
-    asyncio.run(server.windows_tick(100.0 + seed["life"] + 0.1))
+    asyncio.run(server.windows.windows_tick(100.0 + seed["life"] + 0.1))
     nxt = next(m["life"] for n, m in sent if n == 2)
     assert nxt["seed"] == seed["seed"] and nxt["kind"] == seed["kind"]
     assert nxt["enter"] == {"left": "right", "right": "left", "top": "bottom", "bottom": "top"}[seed["exit"]]
@@ -476,5 +476,5 @@ def test_window_seeds_wander_from_window_to_window(server, monkeypatch):
 def test_window_seeds_are_only_what_a_window_needs(server):
     """A seed carries no prompt, no setting, no picture – only what to draw."""
     for wander in (True, False):
-        s = server.window_seed("cloud", wander, "left" if wander else "in")
+        s = server.windows.window_seed("cloud", wander, "left" if wander else "in")
         assert set(s) == {"id", "kind", "variant", "seed", "life", "enter", "exit", "hue", "size"}
