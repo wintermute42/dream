@@ -573,7 +573,7 @@
   }
   // #176: the server pushes the cloud's status to Dream Control over /ctl; asked once at the start, after an action
   async function pollCloud() {
-    if (document.body.classList.contains('guest')) return;   // a guest has no cloud
+    if (role && !can('control')) return;              // a guest has no cloud
     try { showCloud(await cloud('/cloud')); } catch (e) { $('cloudstate').textContent = ''; }
   }
   function showCloud(c) {
@@ -670,11 +670,12 @@
     $('gclear').hidden = !list.length;
   }
 
-  // #148: guest (Dream Remote) or Dream Control – one Control at a time, the second one may take over
+  // #148: guest (Dream Remote) or Dream Control – one Control at a time, the second one may take over.
+  // #189: what this device may do comes with its role, from the server's table of rights (rights.py)
   function setRole(m) {
-    const guest = m.role === 'guest';
-    document.body.classList.toggle('guest', guest);
-    $('rolebox').hidden = m.role === 'local';
+    rights = m.can || [];
+    document.body.classList.toggle('guest', can('set:guest'));
+    $('rolebox').hidden = can('stage');
     $('rolebox').classList.toggle('control', m.role === 'control');
     $('roletext').textContent = m.role === 'control' ? T('Dream Control – all settings.')
       : m.taken ? T('Dream Control was taken over on another device – you steer as a guest now.')
@@ -682,7 +683,7 @@
       : T('Guest – you steer the dream; some settings only Dream Control changes.');
     $('takectl').hidden = !m.can_take;
     role = m.role; showInstall();
-    if (m.role === 'guest') { devStop('cam', false); devStop('motion', false); }   // #146: feeds end with the rights
+    if (!can('feed')) { devStop('cam', false); devStop('motion', false); }   // #146: feeds end with the rights
     else send({ cmd: 'relieve_ask' });                // #152: the stage tells how it is doing
   }
   $('takectl').onclick = () => send({ take_control: true });
@@ -705,7 +706,8 @@
   $('relieve').onclick = () => send({ cmd: 'relieve' });
   $('relieveundo').onclick = () => send({ cmd: 'relieve_undo' });
   // #145: Dream Control as an app of its own (Chrome offers it over https); the button only where it can work
-  let role = null, installEvt = null;
+  let role = null, installEvt = null, rights = [];
+  const can = what => rights.includes(what);
   const showInstall = () => { $('installapp').hidden = !(installEvt && role === 'control' && location.pathname === '/control'); };
   addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; showInstall(); });
   addEventListener('appinstalled', () => { installEvt = null; showInstall(); });

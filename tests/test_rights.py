@@ -72,6 +72,14 @@ EXTRA = [
     ("PUT", "/playlists/Calm", LC),
 ]
 WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW}
+# what each role may do (rights.ROLES), written down by hand too: the pages are told it with their role
+CAN = {
+    "local": ["control", "ctl", "eyes", "faces", "feed", "render", "set:all", "stage", "state", "view"],
+    "control": ["control", "ctl", "eyes", "faces", "feed", "pair_eyes", "render", "set:all", "state", "take_over", "view"],
+    "guest": ["ctl", "set:guest", "state", "view"],
+    "eyes": ["ctl", "eyes", "eyes_only", "faces", "feed", "view"],
+    "window": ["faces", "view"],
+}
 
 
 def client(server, role: str, scheme: str = "http", host: str = "192.168.1.30", **kw) -> TestClient:
@@ -84,7 +92,7 @@ def client(server, role: str, scheme: str = "http", host: str = "192.168.1.30", 
 def key_of(server, role: str) -> dict:
     if role in ("local", "none"):
         return {} if role == "local" else {"k": "not-a-key"}
-    return {"k": server.keys[role]}
+    return {"k": server.rights.keys[role]}
 
 
 @pytest.fixture
@@ -133,57 +141,86 @@ def test_key_in_a_cookie(server, reached, role):
     path = {"control": "/stats", "guest": "/remote", "eyes": "/eyes", "window": "/window"}[role]
     name = {"control": "dream_c", "guest": "dream_k", "eyes": "dream_e", "window": "dream_w"}[role]
     scheme = "https" if role == "control" else "http"
-    c = client(server, role, scheme=scheme, cookies={name: server.keys[role]})
+    c = client(server, role, scheme=scheme, cookies={name: server.rights.keys[role]})
     assert c.get(path).text == "reached"
     assert client(server, role, cookies={name: "stolen"}).get(path).status_code == 403
 
 
 def test_key_from_the_address_is_kept_as_a_cookie(server, reached):
-    r = client(server, "guest").get("/remote", params={"k": server.keys["guest"]})
+    r = client(server, "guest").get("/remote", params={"k": server.rights.keys["guest"]})
     cookie = r.headers["set-cookie"]
-    assert cookie.startswith(f"dream_k={server.keys['guest']}") and "HttpOnly" in cookie and "SameSite=lax" in cookie
+    assert cookie.startswith(f"dream_k={server.rights.keys['guest']}") and "HttpOnly" in cookie and "SameSite=lax" in cookie
 
 
 def test_a_device_without_a_key_gets_the_pairing_page(server):
     r = client(server, "none").get("/remote", headers={"accept": "text/html"})
-    assert r.status_code == 403 and "<html" in r.text.lower() and server.keys["guest"] not in r.text
+    assert r.status_code == 403 and "<html" in r.text.lower() and server.rights.keys["guest"] not in r.text
 
 
 def test_without_lan_only_this_mac(server, reached, monkeypatch):
-    monkeypatch.setattr(server, "LAN", False)
+    monkeypatch.setattr(server.config, "LAN", False)
     assert client(server, "control").get("/stats", params=key_of(server, "control")).status_code == 403
     assert client(server, "local").get("/stats").text == "reached"
 
 
 def test_role_of(server):
-    k = server.keys
-    assert server.role_of("127.0.0.1", None, None) == "local"
-    assert server.role_of("::1", "wrong", None) == "local"
-    assert server.role_of("192.168.1.30", k["control"], None) == "control"
-    assert server.role_of("192.168.1.30", None, k["guest"]) == "guest"
-    assert server.role_of("192.168.1.30", k["eyes"], k["control"]) == "eyes"      # the address wins over the cookie
-    assert server.role_of("192.168.1.30", k["window"], None) == "window"          # #201
-    assert server.role_of("192.168.1.30", None, None) is None
-    assert server.role_of("192.168.1.30", "", "") is None
-    assert server.role_of("192.168.1.30", k["guest"] + "x", None) is None
+    k = server.rights.keys
+    assert server.rights.role_of("127.0.0.1", None, None) == "local"
+    assert server.rights.role_of("::1", "wrong", None) == "local"
+    assert server.rights.role_of("192.168.1.30", k["control"], None) == "control"
+    assert server.rights.role_of("192.168.1.30", None, k["guest"]) == "guest"
+    assert server.rights.role_of("192.168.1.30", k["eyes"], k["control"]) == "eyes"      # the address wins over the cookie
+    assert server.rights.role_of("192.168.1.30", k["window"], None) == "window"          # #201
+    assert server.rights.role_of("192.168.1.30", None, None) is None
+    assert server.rights.role_of("192.168.1.30", "", "") is None
+    assert server.rights.role_of("192.168.1.30", k["guest"] + "x", None) is None
+
+
+def test_roles_table_is_pinned(server):
+    """Changing what a role may do is a decision: this table changes only with it (#189)."""
+    table = server.rights.ROLES
+    assert {name: sorted(r.can) for name, r in table.items()} == CAN
+    assert set(table) | {"none"} == set(ROLES)
+    for name, r in table.items():
+        assert r.can <= set(server.rights.CAPABILITIES)
+        assert (r.key is None) == (name == "local")           # every role but this Mac comes with a key
+    assert len(set(server.rights.keys.values())) == 4
+    assert not any(server.rights.can(None, c) or server.rights.can("stranger", c) for c in server.rights.CAPABILITIES)
+    assert (table["guest"].http, table["eyes"].cookie, table["window"].cookie) == (server.rights.GUEST_HTTP, "dream_e", "dream_w")
+    assert table["eyes"].pairs and table["window"].pairs and not table["guest"].pairs
+
+
+def test_rights_load_without_torch(tmp_path):
+    """The rights and the settings can be read and checked where no model library is installed (#189)."""
+    import os
+    import subprocess
+    import sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    code = ("import sys; sys.modules['torch'] = None; import rights, settings; "
+            "assert rights.can('guest', 'set:guest') and not rights.can('guest', 'render'); "
+            "assert rights.role_of('127.0.0.1', None, None) == 'local'; print(sorted(rights.keys))")
+    env = {**os.environ, "HOME": str(tmp_path), "DREAM_STATE_DIR": str(tmp_path / "state"), "DREAM_LAN": "1"}
+    out = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, timeout=60, env=env)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.split() == ["['control',", "'eyes',", "'guest',", "'window']"]
 
 
 def test_needs(server):
-    assert server.needs("POST", "/gallery") == {"local"}
-    assert server.needs("POST", "/cloud/start") == {"local", "control"}
-    assert server.needs("POST", "/cloud/start/") is None          # fullmatch: the route itself does not exist
-    assert server.needs("GET", "/health") is None
+    assert server.rights.needs("POST", "/gallery") == {"local"}
+    assert server.rights.needs("POST", "/cloud/start") == {"local", "control"}
+    assert server.rights.needs("POST", "/cloud/start/") is None          # fullmatch: the route itself does not exist
+    assert server.rights.needs("GET", "/health") is None
 
 
 def test_cookie_of(server):
     both = {"dream_k": "guest-key", "dream_c": "control-key", "dream_e": "eyes-key"}
-    assert server.cookie_of(both, "http") == "guest-key"
-    assert server.cookie_of(both, "https") == "control-key"
-    assert server.cookie_of(both, "wss") == "control-key"
-    assert server.cookie_of(both, "https", eyes=True) == "eyes-key"   # #166: the eyes' page asks for the eyes' key first
-    assert server.cookie_of({"dream_e": "eyes-key"}, "http") == "eyes-key"
-    assert server.cookie_of({**both, "dream_w": "window-key"}, "http", window=True) == "window-key"   # #201
-    assert server.cookie_of({}, "http") is None
+    assert server.rights.cookie_of(both, "http") == "guest-key"
+    assert server.rights.cookie_of(both, "https") == "control-key"
+    assert server.rights.cookie_of(both, "wss") == "control-key"
+    assert server.rights.cookie_of(both, "https", eyes=True) == "eyes-key"   # #166: the eyes' page asks for the eyes' key first
+    assert server.rights.cookie_of({"dream_e": "eyes-key"}, "http") == "eyes-key"
+    assert server.rights.cookie_of({**both, "dream_w": "window-key"}, "http", window=True) == "window-key"   # #201
+    assert server.rights.cookie_of({}, "http") is None
 
 
 # ---------- origin and host (#175): DNS rebinding and foreign pages ----------
@@ -209,7 +246,7 @@ def test_cookie_of(server):
 ])
 def test_origin_ok(server, host, origin, ok):
     headers = {"host": host, **({"origin": origin} if origin is not None else {})}
-    assert server.origin_ok(headers) is ok
+    assert server.rights.origin_ok(headers) is ok
 
 
 def test_foreign_host_or_origin_is_refused_before_anything(server, reached):
@@ -294,7 +331,7 @@ def test_ctl_guest_changes_only_guest_keys(server, saved_state):
                                                     "quality": 4, "mode": "cam", "zoom": 0.02}},
                                            {"set": {"mode": "img"}}],
                         done=lambda: server.state["mode"] == "img")
-    assert first == {"role": "guest", "can_take": False}
+    assert first == {"role": "guest", "can_take": False, "can": CAN["guest"]}
     s = server.state
     assert (s["prompt"], s["zoom"], s["mode"]) == ("a quiet lake at dawn", 0.02, "img")
     assert (s["backend"], s["running"], s["quality"]) == ("local", True, 2)
@@ -330,7 +367,7 @@ def test_ctl_control_changes_everything(server, saved_state):
     server.state.update(running=True, quality=2)
     first = ctl_session(server, "control", [{"set": {"running": False, "quality": 3}}],
                         done=lambda: server.state["quality"] == 3)
-    assert first == {"role": "control", "can_take": False}
+    assert first == {"role": "control", "can_take": False, "can": CAN["control"]}
     assert server.state["running"] is False
 
 
@@ -349,10 +386,10 @@ def test_ctl_second_control_is_a_guest_until_it_takes_over(server):
     with c.websocket_connect(url) as one:
         assert one.receive_json()["role"] == "control"
         with c.websocket_connect(url) as two:
-            assert two.receive_json() == {"role": "guest", "can_take": True}
+            assert two.receive_json() == {"role": "guest", "can_take": True, "can": CAN["guest"]}
             two.send_text(json.dumps({"take_control": True}))
-            assert next_with(two, "role") == {"role": "control", "can_take": False}
-            assert next_with(one, "taken") == {"role": "guest", "can_take": True, "taken": True}
+            assert next_with(two, "role") == {"role": "control", "can_take": False, "can": CAN["control"]}
+            assert next_with(one, "taken") == {"role": "guest", "can_take": True, "can": CAN["guest"], "taken": True}
 
 
 def next_with(ws, key: str) -> dict:
@@ -388,17 +425,17 @@ def test_render_allowed_only_for_the_stage_side(server):
             self.query_params = {"k": k} if k else {}
             self.cookies = {}
             self.url = type("U", (), {"scheme": "ws"})()
-    k = server.keys
-    assert server.render_allowed(Sock("127.0.0.1"))
-    assert server.render_allowed(Sock("192.168.1.30", k["control"]))
-    assert not server.render_allowed(Sock("192.168.1.30", k["guest"]))
-    assert not server.render_allowed(Sock("192.168.1.30", k["eyes"]))
-    assert not server.render_allowed(Sock("192.168.1.30"))
+    k = server.rights.keys
+    assert server.rights.ws_can(Sock("127.0.0.1"), "render")
+    assert server.rights.ws_can(Sock("192.168.1.30", k["control"]), "render")
+    assert not server.rights.ws_can(Sock("192.168.1.30", k["guest"]), "render")
+    assert not server.rights.ws_can(Sock("192.168.1.30", k["eyes"]), "render")
+    assert not server.rights.ws_can(Sock("192.168.1.30"), "render")
 
 
 # ---------- dream windows (#201): any number, one organism over all of them, they only look ----------
 def test_dream_windows_get_seeds_and_cannot_steer(server):
-    k = server.keys["window"]
+    k = server.rights.keys["window"]
     c = client(server, "window")
     with c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as a, \
             c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as b:

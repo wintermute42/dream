@@ -103,7 +103,7 @@ def test_guest_keys_are_pinned(server):
     """Changing what guests may do is a decision: this list changes only with it."""
     assert server.GUEST_KEYS == {"prompt", "strength", "mix", "zoom", "rot", "hue", "drift", "smooth", "drift_prompt",
                                  "seed", "mode", "fx", "fx_amt", "fx_beat", "style", "style_amt", "sens", "music_pattern"}
-    assert server.GUEST_CMDS == {"next", "tap", "tapoff", "make", "fx"}
+    assert server.rights.GUEST_CMDS == {"next", "tap", "tapoff", "make", "fx"}
     assert server.GUEST_MODES == {"dream", "img", "vid"}
     assert server.GUEST_KEYS <= set(server.DEFAULT_STATE)
 
@@ -132,7 +132,7 @@ def test_guest_changes(server):
     ("POST /remote", False), ("GET /remote/x", False),
 ])
 def test_guest_http(server, request_line, ok):
-    assert bool(server.GUEST_HTTP.fullmatch(request_line)) is ok
+    assert bool(server.rights.GUEST_HTTP.fullmatch(request_line)) is ok
 
 
 @pytest.mark.parametrize("path,ok", [
@@ -140,7 +140,7 @@ def test_guest_http(server, request_line, ok):
     ("/eyes/mask/x.jpg", False), ("/remote", False), ("/control", False), ("/health", False), ("/media/a.jpg", False),
 ])
 def test_eyes_paths(server, path, ok):
-    assert bool(server.EYES_PATHS.fullmatch(path)) is ok
+    assert bool(server.rights.EYES_PATHS.fullmatch(path)) is ok
 
 
 # ---------- one table for all of it (#189) ----------
@@ -180,3 +180,43 @@ def test_settings_load_without_torch(tmp_path):
     out = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, timeout=60,
                          env={**os.environ, "HOME": str(tmp_path)})
     assert out.returncode == 0 and int(out.stdout) > 50, out.stderr
+
+
+def test_remote_page_hides_from_guests_what_they_may_not_change():
+    """The remote page marks what is for Dream Control only (data-only="control", hidden for a guest); the table says
+    what a guest may change. Both must agree for every setting the page has a control for (#189)."""
+    import os
+    import re
+    from html.parser import HTMLParser
+
+    import settings
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    src = open(os.path.join(root, "static", "remote.html"), encoding="utf-8").read()
+    fields = re.findall(r"'([a-z_]+)'", re.search(r"const FIELDS = \[(.*?)\];", src, re.S).group(1))
+
+    class Page(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.open, self.control_only, self.never_shown = [], {}, set()
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            only = a.get("data-only") == "control"
+            if a.get("id"):
+                self.control_only[a["id"]] = only or any(o for _, o in self.open)
+                if "hidden" in a:
+                    self.never_shown.add(a["id"])
+            if tag not in ("input", "br", "img", "meta", "link", "hr"):
+                self.open.append((tag, only))
+
+        def handle_endtag(self, tag):
+            while self.open and self.open.pop()[0] != tag:
+                pass
+
+    page = Page()
+    page.feed(src)
+    assert len(fields) > 30 and set(fields) <= set(settings.SETTINGS)
+    for k in fields:
+        if k in page.never_shown:                      # a hidden carrier of a value (its visible switch is marked)
+            continue
+        assert page.control_only[k] is (k not in settings.GUEST_KEYS), k

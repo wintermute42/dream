@@ -39,6 +39,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
+import config
 import i18n
 import midi
 import outbox
@@ -47,15 +48,9 @@ import playlists
 import sensors
 import settings
 import styles
+from config import CLOUD, CLOUD_TUNNEL_PORT, HERE, HTTPS_PORT, OLLAMA, PORT, PROMPT_MODEL, ROLE, SOURCE_URL, WHISPER
 from models import CONTROLNETS, MODELS, NEED_GB
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-ROLE = os.environ.get("DREAM_ROLE", "app")
-WHISPER = os.environ.get("DREAM_WHISPER", "mlx-community/whisper-large-v3-turbo")
-OLLAMA = os.environ.get("DREAM_OLLAMA", "http://127.0.0.1:11434")
-PROMPT_MODEL = os.environ.get("DREAM_PROMPT_MODEL", "llama3.2:3b")
-SOURCE_URL = os.environ.get("DREAM_SOURCE_URL", "https://github.com/wintermute42/dream")   # #178: AGPL §13 – where the code is
-CLOUD = os.environ.get("DREAM_CLOUD_CMD") or os.path.join(HERE, "dream-cloud")   # the override is for tests (no real cloud)
 
 if torch.cuda.is_available():
     device, dtype = "cuda", torch.float16
@@ -638,6 +633,7 @@ for k in [m for m in os.environ.get("DREAM_PRELOAD", "").split(",") if m in MODE
     pipeline(k)
 
 app = FastAPI()
+render_guard = None            # the app sets it (#148); the worker (reached only through the SSH tunnel) has none
 
 
 @app.middleware("http")
@@ -698,8 +694,7 @@ def stats():
 async def ws(sock: WebSocket):
     """Protocol: a JSON text message with the settings, then a binary JPEG frame; answer: JPEG + timing JSON.
     With a pose, the binary message is b"DRM2" + 4-byte length of the frame JPEG + frame JPEG + skeleton JPEG."""
-    guard_ws = globals().get("render_allowed")   # #148: rendering is for the stage, not for guests
-    if guard_ws and not guard_ws(sock):
+    if render_guard and not render_guard(sock):   # #148: rendering is for the stage, not for guests
         await sock.close(code=4403)
         return
     await sock.accept()
@@ -839,8 +834,7 @@ async def make(sock: WebSocket):
     """Picture or clip on request. Text: {"kind": "img"|"clip", "prompt", "model", "w", "h", "seed", "frames",
     "zoom", "rot", "strength", "start": bool}; with "start" a binary JPEG (the clip's first picture) follows.
     Answers: {"type": "pic"|"frame", "n", "of"} each followed by a JPEG, then {"done": true} or {"error": "..."}."""
-    guard_ws = globals().get("render_allowed")   # #148: rendering is for the stage, not for guests
-    if guard_ws and not guard_ws(sock):
+    if render_guard and not render_guard(sock):   # #148: rendering is for the stage, not for guests
         await sock.close(code=4403)
         return
     await sock.accept()
@@ -1011,7 +1005,7 @@ if ROLE == "app":
             if st != cloud_cache["st"]:
                 cloud_cache["st"] = st
                 for c, r in list(roles.items()):
-                    if r in ("local", "control"):
+                    if can(r, "control"):
                         outbox.post(c, json.dumps({"cloud": st}))
             active = st.get("busy") or st.get("state") not in ("off", "setup", "error") or state.get("backend") == "cloud"
             wait = 3 if active else 300 if st.get("state") == "setup" else 30
@@ -1229,37 +1223,17 @@ if ROLE == "app":
     import socket
     import uuid
 
-    from fastapi import Request
-    from fastapi.responses import Response
+    import rights
+    from rights import STATE_DIR, can, is_local, keys
 
-    STATE_DIR = paths.state_dir()                              # #186: DREAM_STATE_DIR, default ~/.local/state/dream
-    os.makedirs(STATE_DIR, mode=0o700, exist_ok=True)
     STATE_FILE = os.path.join(STATE_DIR, "state.json")
-    TOKEN_FILE = os.path.join(STATE_DIR, "remote-token")      # #148: the guests' key (Dream Remote, the stage's QR code)
-    CONTROL_FILE = os.path.join(STATE_DIR, "control-token")   # #148: the key of Dream Control (full rights)
-    EYES_FILE = os.path.join(STATE_DIR, "eyes-token")         # #156: the key of Dreamy Eyes (only its front camera)
-    WINDOW_FILE = os.path.join(STATE_DIR, "window-token")     # #201: the key of the dream windows (they only look)
     MEDIA_DIR = os.path.join(STATE_DIR, "media")
     os.makedirs(MEDIA_DIR, exist_ok=True)
-    LAN = os.environ.get("DREAM_LAN") == "1"
-    PORT = int(os.environ.get("DREAM_PORT", "7860"))
-    # #145: Dream Control over https. #153: never 7861 – that is the cloud GPU's SSH tunnel (dream-cloud LOCAL_PORT).
-    CLOUD_TUNNEL_PORT = 7861
-    HTTPS_PORT = int(os.environ.get("DREAM_HTTPS_PORT", "7443"))
     TLS_DIR = os.path.join(STATE_DIR, "tls")
     tls_state = {"on": False, "error": ""}
 
-    def _key(path: str, renew: bool = False) -> str:
-        if renew or not os.path.exists(path):
-            with open(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
-                f.write(secrets.token_urlsafe(12))
-        with open(path) as f:
-            return f.read().strip()
-    keys = {"guest": _key(TOKEN_FILE), "control": _key(CONTROL_FILE), "eyes": _key(EYES_FILE), "window": _key(WINDOW_FILE)}
-
     # #189: the settings – defaults, ranges, what a guest may change – are one table in settings.py
     from settings import DEFAULT_STATE, GUEST_KEYS, GUEST_MODES, RANGES, coerce, coerce_number, guest_changes
-    GUEST_CMDS = {"next", "tap", "tapoff", "make", "fx"}
 
     try:
         with open(STATE_FILE) as f:
@@ -1416,7 +1390,7 @@ if ROLE == "app":
             with contextlib.suppress(Exception, asyncio.CancelledError):
                 await asyncio.wait_for(task, 5)
 
-    if LAN:
+    if config.LAN:
         app.router.on_startup.append(lambda: live.setdefault("https", asyncio.get_event_loop().create_task(https_serve())))
         app.router.on_shutdown.append(https_stop)
 
@@ -1424,209 +1398,14 @@ if ROLE == "app":
         """The output page for a second device at the beamer (the guests' key: it can only watch and steer like one)."""
         return f"http://{lan_ip()}:{PORT}/output?k={keys['guest']}"
 
-    def is_local(host) -> bool:
-        return host in ("127.0.0.1", "::1", "localhost", None)
-
-    def role_of(host, query_k, cookie_k) -> str | None:
-        """#148: "local" (this Mac), "control" (Dream Control), "guest" (Dream Remote), "eyes" (#156: Dreamy Eyes, a phone
-        that only lends its front camera) or None (no access)."""
-        if is_local(host):
-            return "local"
-        if not LAN:
-            return None
-        k = str(query_k or cookie_k or "")
-        if secrets.compare_digest(k, keys["control"]):
-            return "control"
-        if secrets.compare_digest(k, keys["guest"]):
-            return "guest"
-        if secrets.compare_digest(k, keys["eyes"]):
-            return "eyes"
-        if secrets.compare_digest(k, keys["window"]):
-            return "window"                           # #201: a dream window – it only looks
-        return None
-
-    def allowed(host, query_k, cookie_k) -> bool:
-        return role_of(host, query_k, cookie_k) is not None
-
-    # #148: what only Dream Control (or this Mac) may do, and what only the stage on this Mac hands in. Checked in the
-    # middleware before a handler reads anything; a new route that costs money or changes the owner's files goes here.
-    CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r"/measure"), ("GET", r"/measure"), ("POST", r"/playlists"), ("DELETE", r"/playlists/.+"),
-                    ("POST", r"/upload"), ("POST", r"/voice"), ("POST", r"/gallery/[^/]+/(delete|save)"),
-                    ("POST", r"/gallery/clear"), ("POST", r"/gallery/undo/[^/]+"), ("POST", r"/style-ref")]
-    LOCAL_ONLY = [("POST", r"/gallery")]
-    # #175: everything a guest (Dream Remote, the output window on a second device) may ask over HTTP; the rest is for
-    # Dream Control and this Mac – a new route is closed to guests until it is added here
-    GUEST_HTTP = re.compile(r"GET /(remote|output|health|remote-info|cloud)|GET /static/[\w./-]+|GET /media/[^/]+"
-                            r"|GET /style-ref/[^/]+|GET /mp/[\w./-]+|POST /gallery/[^/]+/use")
-
-    def needs(method: str, path: str) -> set | None:
-        """The roles that may make this request, or None when every role may."""
-        if any(method == m and re.fullmatch(r, path) for m, r in LOCAL_ONLY):
-            return {"local"}
-        if any(method == m and re.fullmatch(r, path) for m, r in CONTROL_ONLY):
-            return {"local", "control"}
-        return None
-
-    def only_control():
-        return JSONResponse({"error": i18n.t("Only Dream Control may do this.")}, status_code=403)
-
-    def cookie_name(scheme: str) -> str:
-        """#145: cookies ignore the port – Control's key over https keeps its own cookie, a guest QR won't replace it."""
-        return "dream_c" if scheme in ("https", "wss") else "dream_k"
-
-    # #145: public, no key: the CA certificate (a device needs it first), the app manifests and icons (browsers fetch
-    # them without cookies). Nothing in them is secret.
-    PUBLIC = re.compile(r"/dream-ca\.crt|/static/(remote|control|eyes)\.webmanifest|/static/icons/[\w-]+\.(png|svg|ico)")
-    # #156: all Dreamy Eyes may reach over http – its page and its files; the rest is closed to it (fail closed)
-    WINDOW_PATHS = re.compile(r"/window|/static/[\w./-]+|/eyes/mask/[0-9a-f]{12}\.jpg")   # #201: all a dream window may ask
-    EYES_PATHS = re.compile(r"/eyes|/eyes/mask/[0-9a-f]{12}\.jpg|/static/[\w./-]+|/mp/[\w./-]+")   # #157: /mp – face detection; #160: masks
-
-    def cookie_of(cookies, scheme: str, eyes: bool = False, window: bool = False):
-        """The key a device keeps: its own scheme's cookie, else the one of Dreamy Eyes (#156: a cookie of its own, so
-        trying the eyes on the owner's phone never replaces Dream Control's key). #166: the eyes' page asks for the
-        eyes' key first – a device that is Dream Control as well stays the eyes there (and gets its painted faces)."""
-        name = cookie_used(cookies, scheme, eyes, window)
-        return cookies.get(name) if name else None
-
-    def cookie_used(cookies, scheme: str, eyes: bool = False, window: bool = False) -> str | None:
-        """The name of the cookie whose key a request brings (see cookie_of). #201: a dream window has its own cookie."""
-        if eyes and cookies.get("dream_e"):
-            return "dream_e"
-        if window and cookies.get("dream_w"):
-            return "dream_w"
-        return next((n for n in (cookie_name(scheme), "dream_e", "dream_w") if cookies.get(n)), None)
-
-    APP_PAGES = {"/", "/control", "/remote", "/eyes", "/output", "/window"}
-
-    def wants_page(request: Request) -> bool:
-        return request.method == "GET" and request.url.path in APP_PAGES and "text/html" in request.headers.get("accept", "")
-
-    def pair_page(request: Request) -> Response:
-        """#170: no key (or no longer a valid one): a page to pair this device – scan the code inside the page or paste
-        the link – instead of a bare text an installed app cannot do anything with."""
-        import html as _html
-        al = request.headers.get("accept-language", "").lower()   # the device's own language: it has no Dream cookie yet
-        lang = next((x[:2] for x in re.split(r"[,;\s]+", al) if x[:2] in i18n.LANGS), None) or i18n.current.get() or i18n.fallback["lang"]
-        tx = {
-            "title": i18n.t("Pair with Dream", lang),
-            "checking": i18n.t("Looking for this device's key …", lang),
-            "lead": i18n.t("This device has no key for Dream yet – or its key is no longer valid.", lang),
-            "scan": i18n.t("📷 Scan the QR code", lang),
-            "stop": i18n.t("Stop the camera", lang),
-            "paste": i18n.t("Or paste the link of the QR code:", lang),
-            "pair": i18n.t("Pair", lang),
-            "notLink": i18n.t("That is not a link of Dream with a key.", lang),
-            "noCamera": i18n.t("No camera – allow it, or paste the link.", lang),
-            "noScan": i18n.t("This browser cannot read QR codes itself: scan the code with the camera app instead. Once it has opened Dream in the browser, the installed app is paired as well.", lang),
-            "where": "<b>" + _html.escape(i18n.t("Where the code is:", lang)) + "</b><br>" + "<br>".join(_html.escape(x) for x in (
-                i18n.t("Dream Control: on the Mac in the panel under “Output” → 🎛 Dream Control.", lang),
-                i18n.t("Dreamy Eyes: in Dream Control on the card “👀 Dreamy Eyes” (or on the Mac: panel → “Output” → 👀 Dreamy Eyes).", lang),
-                i18n.t("Guests: press Q on the stage.", lang))),
-        }
-        page = (open(os.path.join(HERE, "static", "pair.html"), encoding="utf-8").read()
-                .replace("__TEXTS__", json.dumps(tx, ensure_ascii=False).replace("</", "<\\/"))
-                .replace("__LANG__", lang))
-        return Response(page, status_code=403, media_type="text/html", headers={"Cache-Control": "no-store"})
-
-    class _QuietKeys(logging.Filter):
-        """#175: no key in the log (it may end up in an issue or a shared file), and none of the polling every second."""
-        def filter(self, record):
-            if isinstance(record.args, tuple):
-                if record.name == "uvicorn.access" and len(record.args) >= 3 and re.match(r"/(stats|cloud|health)\b", str(record.args[2])):
-                    return False
-                record.args = tuple(re.sub(r"([?&]k=)[^&\s\"]+", r"\1…", a) if isinstance(a, str) else a for a in record.args)
-            if isinstance(record.msg, str):
-                record.msg = re.sub(r"([?&]k=)[^&\s\"]+", r"\1…", record.msg)
-            return True
-
-    for _name in ("uvicorn.access", "uvicorn.error"):
-        logging.getLogger(_name).addFilter(_QuietKeys())
-
-    @app.middleware("http")
-    async def guard(request: Request, call_next):
-        host = request.client.host if request.client else None
-        qk = request.query_params.get("k")
-        cookie = cookie_name(request.url.scheme)
-        if not origin_ok(request.headers):            # #175: before anything else – also the public files
-            return Response(i18n.t("Not from Dream's own pages."), status_code=403)
-        if request.method == "GET" and PUBLIC.fullmatch(request.url.path):
-            return await call_next(request)
-        request.state.role = role_of(host, qk, cookie_of(request.cookies, request.url.scheme, request.url.path.startswith("/eyes"),
-                                                         request.url.path.startswith("/window")))
-        if request.state.role is None:
-            if wants_page(request):
-                return pair_page(request)
-            return Response(i18n.t("No access. Please scan the QR code on the stage – or, for Dream Control, its code in the panel (Output)."), status_code=403)
-        if request.state.role == "eyes" and wants_page(request) and request.url.path != "/eyes":
-            # #170: a device that only has the eyes' key opens another page (e.g. the Dream Control app whose own cookie
-            # stayed behind): the pairing page – it retries once (bringing a strict Control cookie along) or lets it pair
-            return pair_page(request)
-        if request.state.role == "eyes" and (request.method != "GET" or not EYES_PATHS.fullmatch(request.url.path)):
-            return only_control()
-        if request.state.role == "eyes" and qk:
-            cookie = "dream_e"
-        if request.state.role == "window":            # #201: a dream window may only look: its page, files, faces
-            if request.method != "GET" or not WINDOW_PATHS.fullmatch(request.url.path):
-                return pair_page(request) if wants_page(request) else only_control()
-            if qk:
-                cookie = "dream_w"
-        need = needs(request.method, request.url.path)
-        if need and request.state.role not in need:
-            return only_control()
-        if request.state.role == "guest" and not GUEST_HTTP.fullmatch(f"{request.method} {request.url.path}"):
-            return only_control()                      # #175: a guest only what Dream Remote and the output need (fail closed)
-        resp = await call_next(request)
-        if qk and not is_local(host):
-            # #168: "lax", not "strict" – an installed app opened from the home screen (or a link from another app) is a
-            # navigation from outside; a strict cookie stays behind there and the app finds no key. Lax still keeps it
-            # away from other sites' forms and requests.
-            resp.set_cookie(cookie, qk, httponly=True, samesite="lax", max_age=60 * 60 * 24 * 365,
-                            secure=request.url.scheme == "https")
-        elif not qk and not is_local(host) and wants_page(request):
-            # #170: a key that works is renewed on every page – as "lax" (a cookie from before #168 was "strict") and for
-            # another year
-            used = cookie_used(request.cookies, request.url.scheme, request.url.path.startswith("/eyes"))
-            if used:
-                resp.set_cookie(used, request.cookies[used], httponly=True, samesite="lax", max_age=60 * 60 * 24 * 365,
-                                secure=request.url.scheme == "https")
-        return resp
-
-    def origin_ok(headers) -> bool:
-        """#175: the request comes from Dream's own pages. The Host must name this Mac (an IP address, localhost or a
-        .local name – a foreign domain is DNS rebinding), and an Origin, if sent, must be the same as the Host: a web page
-        of another site open in a browser on this Mac may neither start the paid cloud GPU nor open /ctl with full
-        rights. Fail closed."""
-        hostport = headers.get("host", "")
-        name = hostport.rsplit(":", 1)[0].strip("[]").lower() if not hostport.startswith("[") else hostport[1:].split("]")[0]
-        try:
-            ipaddress.ip_address(name)
-        except ValueError:
-            if name != "localhost" and not name.endswith(".local"):
-                return False
-        origin = headers.get("origin")
-        if origin is None:
-            return True                                # not sent by a browser page (curl, the stage's own requests)
-        return origin.split("://", 1)[-1].rstrip("/").lower() == hostport.lower()
-
-    def ws_role(sock: WebSocket) -> str | None:
-        if not origin_ok(sock.headers):               # #175: a foreign page gets nothing
-            return None
-        host = sock.client.host if sock.client else None
-        return role_of(host, sock.query_params.get("k"), cookie_of(sock.cookies, sock.url.scheme, sock.query_params.get("as") == "eyes",
-                                                                   sock.query_params.get("as") == "window"))
-
-    def ws_allowed(sock: WebSocket) -> bool:
-        return ws_role(sock) is not None
-
-    def render_allowed(sock: WebSocket) -> bool:
-        return ws_role(sock) in ("local", "control")
-    globals()["render_allowed"] = render_allowed
+    app.middleware("http")(rights.guard)
+    render_guard = lambda sock: rights.ws_can(sock, "render")
 
     async def broadcast(msg: dict, exclude=None, only=None):
         """To every control client. #187: only queued (outbox.py) – a slow device never holds up the others."""
         data = json.dumps(msg, ensure_ascii=False)
         for c, kind in list(clients.items()):
-            if c is exclude or (only and kind != only) or roles.get(c) == "eyes":   # #156: the eyes learn nothing
+            if c is exclude or (only and kind != only) or can(roles.get(c), "eyes_only"):   # #156: the eyes learn nothing
                 continue
             if not outbox.post(c, data):
                 clients.pop(c, None)
@@ -1668,7 +1447,7 @@ if ROLE == "app":
 
     @app.websocket("/ctl")
     async def ctl(sock: WebSocket):
-        if not ws_allowed(sock) or ws_role(sock) == "window":   # #201: a dream window only looks (/view)
+        if not rights.ws_can(sock, "ctl"):             # #201: a dream window only looks (/view)
             await sock.close(code=4403)
             return
         await sock.accept()
@@ -1678,32 +1457,32 @@ if ROLE == "app":
             live["midi"] = asyncio.create_task(midi_loop())
             live["sensors"] = asyncio.create_task(sensor_loop())
             live["aimask"] = asyncio.create_task(aimask_loop())   # #160
-        key_role = ws_role(sock)
+        key_role = rights.ws_role(sock)
         role = key_role
         if role == "control" and "control" in roles.values():
             role = "guest"                             # #148: one Dream Control at a time; this one may take over
-        kind = "stage" if sock.query_params.get("role") == "stage" and key_role == "local" else "remote"
+        kind = "stage" if sock.query_params.get("role") == "stage" and can(key_role, "stage") else "remote"
         clients[sock] = kind
         roles[sock], key_roles[sock] = role, key_role
-        if sock.query_params.get("as") == "eyes" and key_role in ("eyes", "control", "local"):   # by its key, not its turn
+        if sock.query_params.get("as") == "eyes" and can(key_role, "eyes"):   # by its key, not its turn
             eyes_pages.add(sock)                       # #166: a Dreamy Eyes page, whatever key it came with
         lang = i18n.from_cookie(sock.cookies.get("dream-lang"))
         i18n.current.set(lang)
         if kind == "stage" and lang:                   # #132: what all see (MIDI, cloud) speaks the stage's language
             i18n.fallback["lang"] = lang
         outbox.post(sock, json.dumps(role_msg(sock)))
-        outbox.post(sock, json.dumps(feeds_msg(sock) if role != "eyes" else {"feeds_mine": [], **aimask_msg()}))
-        if sock in eyes_pages and role != "eyes":      # #166: a Dreamy Eyes page on a Control device gets the faces too
+        outbox.post(sock, json.dumps(feeds_msg(sock) if not can(role, "eyes_only") else {"feeds_mine": [], **aimask_msg()}))
+        if sock in eyes_pages and not can(role, "eyes_only"):   # #166: a Dreamy Eyes page on a Control device gets the faces too
             outbox.post(sock, json.dumps(aimask_msg()))
-        if sock in eyes_pages or role in ("eyes", "control", "local"):   # #172: how often the trance may come
+        if sock in eyes_pages or can(role, "eyes"):   # #172: how often the trance may come
             outbox.post(sock, json.dumps({"eyes_cfg": eyes_cfg}))
-        if role in ("local", "control") and cloud_cache["st"]:   # #176: the cloud's latest status
+        if can(role, "control") and cloud_cache["st"]:   # #176: the cloud's latest status
             outbox.post(sock, json.dumps({"cloud": cloud_cache["st"]}))
-        if role != "eyes":
+        if not can(role, "eyes_only"):
             outbox.post(sock, json.dumps({"midi": {"map": midi_map}}))
             outbox.post(sock, json.dumps({"sensors": {"map": sens.mapping}}))
             outbox.post(sock, json.dumps({"state": state, "playlists": playlist_names(), "gallery": gallery_list(),
-                                             "cams": live.get("cams", []), "lan": LAN, **status_msg()}, ensure_ascii=False))
+                                             "cams": live.get("cams", []), "lan": config.LAN, **status_msg()}, ensure_ascii=False))
         await broadcast(status_msg())
         bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
         try:
@@ -1717,7 +1496,7 @@ if ROLE == "app":
                 msg = json.loads(raw.get("text") or "null")
                 if not isinstance(msg, dict):
                     continue
-                if sock in eyes_pages or roles.get(sock) == "eyes":   # #166: also eyes on a Control device
+                if sock in eyes_pages or can(roles.get(sock), "eyes_only"):   # #166: also eyes on a Control device
                     eyes_note(msg)
                     if msg.get("eyes_mood") in WINDOW_MOODS:  # #201: the dream windows feel with the eyes
                         await windows_mood(msg["eyes_mood"])
@@ -1728,16 +1507,16 @@ if ROLE == "app":
                         measure["reports"][(kind, id(sock))] = {
                             **{k: float(min(max(float(mr.get(k) or 0), 0), 10000)) for k in ("fps", "ms_avg", "ms_p95", "slow_pct")},
                             "render": mr.get("render") if mr.get("render") in ("webgl2", "canvas") else ""}
-                if roles.get(sock) == "eyes":          # #156: Dreamy Eyes only lends (or stops) its front camera
+                if can(roles.get(sock), "eyes_only"):  # #156: Dreamy Eyes only lends (or stops) its front camera
                     f = msg.get("feed")
                     msg = {"feed": {"cam": bool(f.get("cam")), "facing": "user"}} if isinstance(f, dict) and "cam" in f else {}
-                if msg.get("feed_end") in ("cam", "motion") and roles.get(sock) in ("control", "local"):
+                if msg.get("feed_end") in ("cam", "motion") and can(roles.get(sock), "control"):
                     await feed_end_other(sock, msg["feed_end"])
                 if "feed" in msg and isinstance(msg["feed"], dict):
                     await feed_set(sock, msg["feed"])
                 if "motion_in" in msg and feeds["motion"] is sock and isinstance(msg["motion_in"], dict):
                     feed_motion(msg["motion_in"])
-                if roles.get(sock) in ("control", "local"):   # #172: Dream Control sends the eyes into trance / sets how often
+                if can(roles.get(sock), "control"):    # #172: Dream Control sends the eyes into trance / sets how often
                     if msg.get("eyes_trance") is True:
                         await eyes_send({"trance": True})
                     ec = msg.get("eyes_cfg")
@@ -1748,11 +1527,11 @@ if ROLE == "app":
                             with open(EYES_CFG_FILE, "w") as f:
                                 json.dump(eyes_cfg, f)
                         await eyes_send({"eyes_cfg": eyes_cfg}, also_control=True)
-                if msg.get("take_control") and key_roles.get(sock) == "control":
+                if msg.get("take_control") and can(key_roles.get(sock), "take_over"):
                     await take_control(sock)
-                if msg.get("renew_guest") and key_role == "local":
+                if msg.get("renew_guest") and can(key_role, "stage"):
                     await renew_guest()
-                if roles.get(sock) == "guest":         # #148: a guest steers only the safe settings
+                if can(roles.get(sock), "set:guest"):  # #148: a guest steers only the safe settings
                     now_m = time.monotonic()           # #175: and not faster than about 20 messages a second
                     bucket[0] = min(20.0, bucket[0] + (now_m - bucket[1]) * 20); bucket[1] = now_m
                     if bucket[0] < 1:
@@ -1761,7 +1540,7 @@ if ROLE == "app":
                     msg = {k: v for k, v in msg.items() if k in ("set", "cmd", "auto")}
                     if isinstance(msg.get("set"), dict):
                         msg["set"] = guest_changes(msg["set"])
-                    if "cmd" in msg and msg["cmd"] not in GUEST_CMDS:
+                    if "cmd" in msg and msg["cmd"] not in rights.GUEST_CMDS:
                         msg.pop("cmd")
                 if "set" in msg and isinstance(msg["set"], dict):
                     await apply(msg["set"], exclude=sock, by=None if msg.get("auto") else kind)
@@ -1812,7 +1591,8 @@ if ROLE == "app":
     def role_msg(sock) -> dict:
         """#148: what this client may do; a second Dream Control may take over from the first."""
         role = roles.get(sock)
-        return {"role": role, "can_take": key_roles.get(sock) == "control" and role != "control"}
+        return {"role": role, "can_take": can(key_roles.get(sock), "take_over") and role != "control",
+                "can": sorted(rights.ROLES[role].can) if role in rights.ROLES else []}
 
     async def take_control(sock):
         """#148: this Dream Control takes over; the one before goes on as a guest (and may take it back)."""
@@ -1835,14 +1615,14 @@ if ROLE == "app":
     async def feeds_changed():
         for c in list(clients):
             msg = feeds_msg(c)
-            if roles.get(c) == "eyes":
+            if can(roles.get(c), "eyes_only"):
                 msg = {"feeds_mine": [k for k, o in feeds.items() if o is c]}
             outbox.post(c, json.dumps(msg))
 
     async def feed_set(sock, want: dict):
         """{"cam": true, "facing": "environment"} / {"cam": false} / {"motion": true|false}: only Dream Control or this
         Mac may send a live feed; a newer one takes over (the device before is told)."""
-        if roles.get(sock) not in ("control", "local", "eyes"):
+        if not can(roles.get(sock), "feed"):
             return
         changed = False
         for kind in ("cam", "motion"):
@@ -1851,7 +1631,7 @@ if ROLE == "app":
             if want[kind]:
                 old = feeds[kind]
                 feeds[kind] = sock
-                by = "Dreamy Eyes" if roles.get(sock) == "eyes" else "Dream Control"
+                by = "Dreamy Eyes" if can(roles.get(sock), "eyes_only") else "Dream Control"
                 feed_info[kind] = ({"by": by, "facing": "user" if want.get("facing") == "user" else "environment"}
                                    if kind == "cam" else {"by": by})
                 if old is not None and old is not sock:
@@ -1893,7 +1673,7 @@ if ROLE == "app":
         """A JPEG of the device's camera, passed on to the stage(s) as it is; nothing is kept."""
         if feeds["cam"] is not sock or not data or len(data) > MAX_FRAME or data[:2] != b"\xff\xd8":
             return
-        if roles.get(sock) == "eyes" or sock in eyes_pages:   # #166: the latest picture only, in memory, for a dream portrait
+        if can(roles.get(sock), "eyes_only") or sock in eyes_pages:   # #166: the latest picture only, in memory, for a dream portrait
             eyes_seen["frame"], eyes_seen["frame_at"] = data, time.time()
         for c, kind in list(clients.items()):
             if kind == "stage" and not outbox.post_frame(c, data):   # #187: the latest picture only, never waited for
@@ -1959,7 +1739,7 @@ if ROLE == "app":
     async def eyes_send(msg: dict, also_control: bool = False) -> None:
         """A word to every Dreamy Eyes page (and, if asked, to Dream Control and this Mac)."""
         for c, r in list(roles.items()):
-            if r == "eyes" or c in eyes_pages or (also_control and r in ("control", "local")):
+            if can(r, "eyes_only") or c in eyes_pages or (also_control and can(r, "control")):
                 outbox.post(c, json.dumps(msg))
     FIRE_HOLD = 12                                     # #162: seconds a fire seen by the eyes keeps their faces burning
     FIRE_STYLE = ", surrounded by flames, glowing embers in the air, firelight on her face"
@@ -1987,7 +1767,7 @@ if ROLE == "app":
         loop = asyncio.get_running_loop()
         while True:
             await asyncio.sleep(5)
-            eyes = [c for c, r in roles.items() if r == "eyes" or c in eyes_pages] + list(windows)   # #166, #201: the windows too
+            eyes = [c for c, r in roles.items() if can(r, "eyes_only") or c in eyes_pages] + list(windows)   # #166, #201: the windows too
             now = time.time()
             if "you" in aimasks and now - aimasks["you"][2] > YOU_KEEP:   # #166: a portrait never stays long
                 aimasks.pop("you", None)
@@ -2049,7 +1829,7 @@ if ROLE == "app":
 
     @app.get("/eyes/mask/{name}")
     def eyes_mask(request: Request, name: str):
-        if request.state.role not in ("eyes", "control", "local", "window"):   # #201: the windows show the faces too
+        if not can(request.state.role, "faces"):   # #201: the windows show the faces too
             return Response(status_code=403)
         for mid, data, _ in aimasks.values():
             if name == f"{mid}.jpg":
@@ -2058,7 +1838,7 @@ if ROLE == "app":
 
     async def renew_guest():
         """#148: a new guests' key: everyone in with the old one is out and needs the new QR code."""
-        keys["guest"] = _key(TOKEN_FILE, renew=True)
+        rights.renew_key("guest")
         for c, r in list(key_roles.items()):
             if r == "guest":
                 key_roles.pop(c, None)
@@ -2205,7 +1985,7 @@ if ROLE == "app":
 
         disp = Dispatcher()
         disp.set_default_handler(on_any, needs_reply_address=True)
-        host = "0.0.0.0" if LAN else "127.0.0.1"       # a phone on the arm needs dream.sh --lan
+        host = "0.0.0.0" if config.LAN else "127.0.0.1"       # a phone on the arm needs dream.sh --lan
         try:
             await AsyncIOOSCUDPServer((host, SENSOR_PORT), disp, asyncio.get_running_loop()).create_serve_endpoint()
             print(f"Sensors over OSC on {host}:{SENSOR_PORT}", flush=True)
@@ -2344,7 +2124,7 @@ if ROLE == "app":
     @app.websocket("/out")
     async def out(sock: WebSocket):
         """The stage sends every frame it shows (JPEG) for Syphon and the output windows; only from this Mac."""
-        if not is_local(sock.client.host if sock.client else None) or not origin_ok(sock.headers):   # #175
+        if not rights.ws_can(sock, "stage"):           # #175: this Mac, from Dream's own page
             await sock.close(code=4403)
             return
         await sock.accept()
@@ -2476,11 +2256,11 @@ if ROLE == "app":
     @app.websocket("/view")
     async def view(sock: WebSocket):
         """An output window (beamer, second monitor): gets every picture the stage shows, renders nothing itself."""
-        if not ws_allowed(sock):
+        if not rights.ws_can(sock, "view"):
             await sock.close(code=4403)
             return
         await sock.accept()
-        key_roles[sock] = ws_role(sock)
+        key_roles[sock] = rights.ws_role(sock)
         outbox.box(sock)
         small = sock.query_params.get("preview") == "1"   # #141: the remote's small live preview
         if small:
@@ -2609,26 +2389,27 @@ if ROLE == "app":
         """#145: Dream's own certificate authority, to install once on each of the owner's devices."""
         import tls
         path = tls.paths(TLS_DIR)["ca"]
-        if not LAN or not os.path.exists(path):
+        if not config.LAN or not os.path.exists(path):
             return Response(status_code=404)
         return FileResponse(path, media_type="application/x-x509-ca-cert", filename="dream-ca.crt")
 
     @app.get("/remote-info")
     def remote_info(request: Request):
-        if request.state.role == "control":            # #156: Dream Control sets up the Dreamy Eyes phone
-            return {"lan": LAN, "eyes": eyes_url() if LAN else None, "window": window_url() if LAN else None,
+        lan, role = config.LAN, request.state.role
+        if can(role, "pair_eyes"):                     # #156: Dream Control sets up the Dreamy Eyes phone
+            return {"lan": lan, "eyes": eyes_url() if lan else None, "window": window_url() if lan else None,
                     "https": tls_state["on"], "source": SOURCE_URL}
-        if not is_local(request.client.host if request.client else None):
-            return {"lan": LAN, "source": SOURCE_URL}   # #178: everybody may see where the code is
-        return {"lan": LAN, "source": SOURCE_URL, "url": remote_url() if LAN else None, "output": output_url() if LAN else None,
-                "control": control_url() if LAN else None, "window": window_url() if LAN else None, "https": tls_state["on"],
-                "https_error": tls_state["error"], "ca": ca_url() if LAN and tls_state["on"] else None}
+        if not can(role, "stage"):
+            return {"lan": lan, "source": SOURCE_URL}   # #178: everybody may see where the code is
+        return {"lan": lan, "source": SOURCE_URL, "url": remote_url() if lan else None, "output": output_url() if lan else None,
+                "control": control_url() if lan else None, "window": window_url() if lan else None, "https": tls_state["on"],
+                "https_error": tls_state["error"], "ca": ca_url() if lan and tls_state["on"] else None}
 
     @app.get("/qr.svg")
     def qr_svg(request: Request):
         what = request.query_params.get("for")
-        if not LAN or not (is_local(request.client.host if request.client else None)
-                           or (request.state.role == "control" and what in ("eyes", "window"))):   # #156, #201
+        role = request.state.role                      # every code for this Mac; #156, #201: Control pairs eyes and windows
+        if not config.LAN or not (can(role, "stage") or (can(role, "pair_eyes") and what in ("eyes", "window"))):
             return Response(status_code=404)
         import qrcode
         import qrcode.image.svg
