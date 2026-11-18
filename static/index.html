@@ -720,6 +720,7 @@
 <video id="vid" playsinline muted loop style="display:none"></video>
 
 <script src="/static/i18n.js"></script>
+<script src="/static/common.js"></script>
 <script src="/static/measure.js"></script>
 <script src="/static/qrbox.js"></script>
 <script src="/static/fx.js"></script>
@@ -1371,7 +1372,7 @@
     $('plname').value = name || ''; $('pltext').value = '';
     if (!name) { $('plname').focus(); return; }
     try {
-      const r = await (await fetch('/playlists/' + encodeURIComponent(name))).json();
+      const r = await DreamCommon.playlists.read(name);
       $('pltext').value = r.text || '';
       plState(r.temp ? T('AI playlist (temporary) – Save keeps it for good.') : r.builtin && !r.own ? T('Built in – Save creates your own version.') : T('Your playlist.'));
     } catch (e) { plState(T('Could not load the playlist.')); }
@@ -1380,22 +1381,18 @@
   $('plnew').onclick = () => plOpen('');
   $('plclose').onclick = () => { $('pleditor').style.display = 'none'; };
   $('plsave').onclick = async () => {
-    const res = await fetch('/playlists', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: $('plname').value, text: $('pltext').value }) });
-    const r = await res.json().catch(() => ({}));
-    if (res.ok) { plState(T('Saved: “{name}” ({n} scenes).', { name: r.name, n: r.count })); $('pleditor').style.display = 'none'; sendCtl({ set: { playlist: r.name } }); $('playlist').value = r.name; }
+    const { ok, r } = await DreamCommon.playlists.save($('plname').value, $('pltext').value);
+    if (ok) { plState(T('Saved: “{name}” ({n} scenes).', { name: r.name, n: r.count })); $('pleditor').style.display = 'none'; sendCtl({ set: { playlist: r.name } }); $('playlist').value = r.name; }
     else plState(T('Not saved: a name and at least one scene are needed.'));
   };
   $('pldelete').onclick = async () => {
     const n = $('plname').value.trim(); if (!n) return;
-    await fetch('/playlists/' + encodeURIComponent(n), { method: 'DELETE' });
+    await DreamCommon.playlists.remove(n);
     plState(T('Your own version of “{n}” deleted.', { n })); $('pleditor').style.display = 'none';
   };
   async function plKeep(name) {
     if (!name || !name.startsWith('AI: ')) { plState(T('Choose an AI playlist first.')); return; }
-    const r = await (await fetch('/playlists/' + encodeURIComponent(name))).json();
-    const res = await fetch('/playlists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, text: r.text }) });
-    plState(res.ok ? T('“{name}” is your playlist now (it stays).', { name }) : T('Could not save.'));
+    plState(await DreamCommon.playlists.keep(name) ? T('“{name}” is your playlist now (it stays).', { name }) : T('Could not save.'));
   }
   $('plkeep').onclick = () => plKeep($('playlist').value);
   $('plai').onclick = () => { $('pleditor').style.display = 'none'; const b = $('plaibox'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; $('pltopic').focus(); };
@@ -1403,9 +1400,8 @@
     const topic = $('pltopic').value.trim(); if (!topic) { plState(T('Type or speak a keyword first.')); return; }
     plState(T('The local language model writes scenes … (up to a minute)')); $('plgen').disabled = true;
     try {
-      const res = await fetch('/playlists/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic }) });
-      const r = await res.json().catch(() => ({}));
-      if (res.ok) { plState(T('New playlist “{name}” with {n} scenes – running (temporary, “📌 Keep” saves it).', { name: r.name, n: r.prompts.length })); sendCtl({ set: { playlist: r.name } }); $('playlist').value = r.name; sendCtl({ cmd: 'next' }); }
+      const { ok, r } = await DreamCommon.playlists.generate(topic);
+      if (ok) { plState(T('New playlist “{name}” with {n} scenes – running (temporary, “📌 Keep” saves it).', { name: r.name, n: r.prompts.length })); sendCtl({ set: { playlist: r.name } }); $('playlist').value = r.name; sendCtl({ cmd: 'next' }); }
       else plState(r.error === 'ollama' ? T('The local language model is not running (start Ollama: ollama serve, model: ollama pull llama3.2:3b).') : T('The language model gave too few usable scenes – try again.'));
     } catch (e) { plState(T('Error: {e}', { e: e.message })); }
     $('plgen').disabled = false;
@@ -1782,31 +1778,11 @@
     }
     if (cloudStopping && nothing) { cloudStopping = false; $('cloudstop').textContent = T('Deleted ✓'); setTimeout(() => { $('cloudstop').textContent = T('Delete'); }, 3000); }
   }
-  // #110: if the chosen RunPod GPU is not free, the other RTX one – only with consent, its price shown first
-  const FALLBACK = { 'runpod:RTX-4090': 'runpod:RTX-5090', 'runpod:RTX-5090': 'runpod:RTX-4090',
-    'runpod:RTX-4090-community': 'runpod:RTX-5090-community', 'runpod:RTX-5090-community': 'runpod:RTX-4090-community' };
-  const optText = v => { const o = [...document.querySelectorAll('#gpu option')].find(x => x.value === v); return o ? o.textContent : v; };
-  // #135: one question before a cloud GPU starts – with the way out (another GPU) as its own button, and
-  // "Cancel" (or Esc) always means: nothing starts
-  function askStart(gpu) {
-    const alt = FALLBACK[gpu], d = $('startdlg');
-    $('startdlg-text').textContent = T('Start the cloud GPU: {gpu}?', { gpu: optText(gpu) });
-    $('startdlg-note').textContent = (gpu.endsWith('-community') ? T('Community Cloud: your pictures are processed on a private provider\'s computer.') + ' ' : '')
-      + T('It costs money while it runs. It is deleted automatically after 2 hours at the latest; “Delete” ends it at once.');
-    $('startdlg-alt').hidden = !alt;
-    if (alt) $('startdlg-alt').textContent = T('Start – if not free: {gpu}', { gpu: optText(alt) });
-    $('startdlg-only').textContent = alt ? T('Try only {gpu}', { gpu: optText(gpu).split(' · ').slice(0, 2).join(' · ') }) : T('Start');
-    return new Promise(res => {
-      const done = v => { d.close(); res(v); };
-      $('startdlg-alt').onclick = () => done({ fallback: alt });
-      $('startdlg-only').onclick = () => done({ fallback: '' });
-      $('startdlg-cancel').onclick = () => done(null);
-      d.oncancel = e => { e.preventDefault(); done(null); };     // Esc
-      d.showModal(); (alt ? $('startdlg-alt') : $('startdlg-only')).focus();
-    });
-  }
   $('cloudstart').onclick = async () => {
-    const gpu = $('gpu').value, choice = await askStart(gpu);
+    // #135: one question before a cloud GPU starts (the dialog is DreamCommon's; these are the panel's words for it)
+    const gpu = $('gpu').value, choice = await DreamCommon.askCloudStart(gpu, {
+      community: T('Community Cloud: your pictures are processed on a private provider\'s computer.'),
+      costs: T('It costs money while it runs. It is deleted automatically after 2 hours at the latest; “Delete” ends it at once.') }, true);
     if (!choice) return;                                         // cancelled: nothing starts
     const fd = new FormData(); fd.append('gpu', gpu); fd.append('model', $('model').value); fd.append('fallback', choice.fallback);
     cloudStarting = true; $('cloudstate').textContent = T('Starting …');
@@ -1854,13 +1830,7 @@
   $('run').addEventListener('click', () => sendCtl({ set: { running } }));
   $('nextscene').onclick = () => onGrid(() => sendCtl({ cmd: 'next' }), 'next');
 
-  function fillPlaylists(names) {
-    ['playlist'].forEach(id => {
-      const sel = $(id), keep = sel.options[0].outerHTML;
-      const esc = v => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-      sel.innerHTML = keep + names.map(n => `<option value="${esc(n)}">${esc(I18N.name(n))}</option>`).join('');   // #132: shown in the language
-    });
-  }
+  const fillPlaylists = names => DreamCommon.fillPlaylists($('playlist'), names);
   function applyState(st) {
     applying = true;
     try {
@@ -2093,7 +2063,7 @@
     if (apStyle) parts.push({ src: 'ap', text: T('“{t}”', { t: apStyle }) });
     return { base, parts };
   }
-  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const esc = DreamCommon.esc;
   function showPromptMix() {
     const { base, parts } = promptMix();
     const html = esc(T('The AI gets:')) + ' <span class="base">' + esc(base) + '</span>' + (parts.length
@@ -2242,7 +2212,7 @@
     if (!lab) { const row = el.closest('.row'); lab = row && row.querySelector('label'); }
     if (lab) el.setAttribute('aria-label', [...lab.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim() || lab.textContent.trim());
   });
-  const uiPref = (k, v) => { try { if (v === undefined) return localStorage.getItem('dream-ui-' + k); localStorage.setItem('dream-ui-' + k, v); } catch (e) { return null; } };
+  const uiPref = DreamCommon.prefs('dream-ui-');
   // sections are open cards in fixed columns; a click on the title folds a card you don't need (remembered per card).
   // Folding never moves a card to another column; with the layout locked, a folded card even keeps its height
   let locked = uiPref('locked') === '1';
@@ -2757,24 +2727,8 @@
   const makeText = () => $('makeprompt').value.trim() || $('prompt').value.trim();
   $('makeimg').onclick = () => { srcBy = 'hand'; make('img', makeText()); };
   $('makeclip').onclick = () => { srcBy = 'hand'; make('clip', makeText()); };
-  async function galleryAct(id, act) {
-    const r = await fetch(id ? `/gallery/${id}/${act}` : `/gallery/${act}`, { method: 'POST' });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) makeState(j.error || T('Did not work.'));
-    else if (act === 'save') makeState(T('Saved: {p}', { p: j.saved }));
-    else if (j.undo) galleryUndo(j);
-  }
-  // #142: a deletion can be taken back for a few seconds, then the files are gone
-  let undoTimer = 0;
-  function galleryUndo(j) {
-    const box = $('gundo'); box.textContent = '';
-    box.append(T(j.count === 1 ? 'Deleted.' : '{n} deleted.', { n: j.count }) + ' ');
-    const b = document.createElement('button'); b.className = 'btn'; b.textContent = T('↶ Undo');
-    b.onclick = async () => { clearTimeout(undoTimer); box.textContent = ''; const r = await fetch('/gallery/undo/' + j.undo, { method: 'POST' });
-      if (!r.ok) makeState(((await r.json().catch(() => ({}))).error) || T('Did not work.')); };
-    box.append(b);
-    clearTimeout(undoTimer); undoTimer = setTimeout(() => { box.textContent = ''; }, (j.secs || 6) * 1000 - 300);
-  }
+  // feed in, save, delete – and #142: a deletion can be taken back for a few seconds, then the files are gone
+  const { act: galleryAct } = DreamCommon.gallery({ say: t => makeState(t), undoBox: $('gundo'), buttonClass: 'btn' });
   $('gclear').onclick = () => { if (confirm(T('Delete all pictures and clips of the gallery? (Saved copies in ~/Pictures/Dream stay.)'))) galleryAct('', 'clear'); };
   function renderGallery(list) {
     galleryNow = list;

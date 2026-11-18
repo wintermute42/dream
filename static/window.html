@@ -17,7 +17,7 @@
     font: 14px/1.4 -apple-system, system-ui, sans-serif; text-align: center; transition: opacity .8s; max-width: 86vw; }
   body.live #hint { opacity: 0; pointer-events: none; }
 </style>
-<script>/* #175: the key stays in the cookie, not in the address bar, history or a shared link */ try { const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch (e) {}</script>
+<script src="/static/common.js" data-hide-key></script><!-- #175: the key stays in the cookie, not in the address bar; and what the pages share -->
 <script src="/static/i18n.js"></script>
 <script src="/static/dreamlife.js"></script>
 </head>

@@ -24,7 +24,7 @@
   #calib { position: fixed; inset: 0; background: #000; z-index: 10; }
   #calib i { position: absolute; width: 6vmin; height: 6vmin; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); }
 </style>
-<script>/* #175: the key stays in the cookie, not in the address bar, history or a shared link */ try { const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch (e) {}</script>
+<script src="/static/common.js" data-hide-key></script><!-- #175: the key stays in the cookie, not in the address bar; and what the pages share -->
 </head>
 <body>
 <div id="pics"><img id="a" alt=""><img id="b" alt=""><canvas id="smoothcv" aria-hidden="true"></canvas><canvas id="fxcv" aria-hidden="true"></canvas><canvas id="glcv" aria-hidden="true"></canvas></div>
