@@ -321,13 +321,16 @@ void main() {
 
   // ---------- one view: the elements of a page, drawn by the chain or – without WebGL 2 – by fx.js as before ----------
   // o: {box, a, b, smooth, fx, gl (elements), layers: [{el, screen, on()}], contain (the picture letterboxed in the
-  //     window), fxMax, smoothMax (buffer widths), canvas (true: never WebGL – the address ?render=canvas asks for
-  //     it too), software (true: a software WebGL counts too), random, onRenderer(name, why)}
+  //     window), fxMax, smoothMax (buffer widths), webgl (true: draw with WebGL 2 – the address ?render=webgl asks
+  //     for it too; otherwise Canvas 2D: on a Mac the WebGL chain shares the graphics card with the AI and costs it
+  //     about 40 % of its pictures, so it stays opt-in until it draws lighter), canvas (true: never WebGL),
+  //     software (true: a software WebGL counts too), random, onRenderer(name, why)}
   function create(o) {
     const { box, a, b, smooth, fx, gl: glcv, layers = [], fxMax = 960, smoothMax = 1920, random = Math.random } = o;
     const engine = Fx.create(fx, fxMax, random), smoother = Fx.smoother(smooth, smoothMax);
     const stacked = [a, b, smooth, fx, ...layers.map(l => l.el)];
-    const canvasOnly = o.canvas || new URLSearchParams(location.search).get('render') === 'canvas';
+    const asked = new URLSearchParams(location.search).get('render');
+    const canvasOnly = o.canvas || asked === 'canvas' || !(o.webgl || asked === 'webgl');
     let chain = null, master = null, front = a, fxK = 0, rect = [0, 0, 1, 1];
     // the picture's place in the window when it is shown letterboxed ("contain")
     function place(el) {

@@ -370,16 +370,13 @@ dazu, wenn das Häkchen gesetzt ist.
   legen etwas drauf, ruhige Musik nimmt etwas weg. Kein Stroboskop, keine harten Schwarzbilder. Die Effekte laufen
   mit voller Bildrate (60 fps), egal wie schnell die KI rechnet (auf dem Mac mit Grafikchip gemessen: 60 fps mit
   drei Effekten), und erscheinen auch im Ausgabefenster (Beamer, WLAN-Ausgabe), nicht aber in Syphon.
-- **Auf der Grafikkarte gezeichnet (#204):** Bühne und Ausgabefenster zeichnen das Bild als eine Kette in WebGL 2 –
-  die letzten zwei KI-Bilder mit ihrer Bewegung und Überblendung, die Glättung, die Effekte, die Berührungs-Ebenen
-  (Lichtstriche, Rühren, Lichtkreis), Farbrotation, Helligkeit und Master. Es sieht aus wie vorher und lässt den
-  Prozessor für den Rest frei. Einzustellen ist nichts: Ohne WebGL 2, oder wenn das Zeichnen auf der Grafikkarte im
-  Betrieb ausfällt, zeichnen dieselben Seiten von selbst wie bisher mit Canvas 2D (ein Chip unter der Vorschau sagt
-  es; kommt die Grafikkarte zurück, übernimmt wieder WebGL 2). **📏 Messen** zeigt für die Bühne, was zeichnet:
-  „Grafikkarte (WebGL 2)“ oder „Canvas 2D (kein WebGL 2)“. Zum Vergleichen, oder wenn ein Grafiktreiber Ärger
-  macht, `?render=canvas` an die Adresse der Bühne oder des Ausgabefensters hängen
-  (http://127.0.0.1:7860/?render=canvas). Syphon, die Vorschau von Dream Control und die Traum-Fenster bekommen wie
-  bisher die KI-Bilder selbst; Dreamy Eyes und die Traum-Fenster zeichnen für sich.
+- **Zeichnen auf der Grafikkarte (#204, zum Ausprobieren):** Bühne und Ausgabefenster können das Bild als eine Kette
+  in WebGL 2 zeichnen – die letzten zwei KI-Bilder mit ihrer Bewegung und Überblendung, die Glättung, die Effekte, die
+  Berührungs-Ebenen, Farbrotation, Helligkeit und Master. Vorerst ist das **standardmäßig aus**: Auf einem Mac teilt
+  es sich die Grafikkarte mit der KI und kostet sie etwa 40 % ihrer Bilder. Zum Ausprobieren `?render=webgl` an die
+  Adresse der Bühne oder des Ausgabefensters hängen (http://127.0.0.1:7860/?render=webgl). Ohne das zeichnen die
+  Seiten wie bisher mit Canvas 2D. **📏 Messen** zeigt für die Bühne, was zeichnet. Syphon, die Vorschau von Dream
+  Control und die Traum-Fenster bekommen die KI-Bilder selbst; Dreamy Eyes und die Traum-Fenster zeichnen für sich.
 - **Effekte von Hand:** Dieselben Effekte gibt es ohne Autopilot in der Karte **Effekte** (unter Traum): zwölf Kacheln
   zum An- und Ausschalten (aus jeder Familie – Kaleidoskop/Mandala/Spiegel, Pixel/Raster, Rückkopplung/Nachleuchten –
   einer zur Zeit), **Effekt-Stärke** für alle, **Im Takt pulsieren** (nur auf echte Beats von Musik oder Tap; aus = die
@@ -1193,12 +1190,10 @@ von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorscha
 
 - **Bühne bleibt schwarz oder dunkel:** Dream neu starten und aktualisieren (siehe oben). Im Prompt-Modus hilft
   Drift; ein ganz schwarzes Bild nach einem Update heißt meist, dass noch der alte Stand läuft.
-- **Das Bild auf der Bühne oder im Ausgabefenster sieht seit #204 falsch aus (Streifen, schwarz, falsche Farben):**
-  Es wird jetzt von der Grafikkarte gezeichnet (WebGL 2). Die Seite mit `?render=canvas` am Ende der Adresse öffnen
-  (http://127.0.0.1:7860/?render=canvas, http://127.0.0.1:7860/output?render=canvas): Dann zeichnet sie wie bisher
-  mit Canvas 2D. Hilft das, bitte mit Browser und Mac melden. Der Chip „Das Zeichnen auf der Grafikkarte (WebGL 2)
-  ist ausgefallen …“ heißt, dass der Browser seinen Grafik-Kontext verloren hat; Dream macht mit Canvas 2D weiter
-  und kehrt von selbst zurück.
+- **Das Bild sieht mit `?render=webgl` falsch aus (Streifen, schwarz, falsche Farben) oder die KI wird langsam:**
+  Die Adresse ohne den Zusatz öffnen – dann zeichnet die Seite mit Canvas 2D. Hilft das, bitte mit Browser und Mac
+  melden. Der Chip „Das Zeichnen auf der Grafikkarte (WebGL 2) ist ausgefallen …“ heißt, dass der Browser seinen
+  Grafik-Kontext verloren hat; Dream macht mit Canvas 2D weiter und kehrt von selbst zurück.
 - **Bedienung extrem langsam:** Läuft ein zweites Dream, eine zweite Bühne oder ein anderes GPU-Programm? Nur
   eine Bühne offen lassen.
 - **„site can't be reached“ am Handy:** siehe „Wenn das Handy nicht verbindet“. Die macOS-Firewall war es im

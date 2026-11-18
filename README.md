@@ -358,15 +358,13 @@ when ticked.
   driving (or broken) music add a little, calm music takes a little away. No strobe, no hard black frames. The
   effects run at the full frame rate (60 fps) however fast the AI computes (measured on a Mac with graphics chip: 60
   fps with three effects) and appear in the output window too (projector, Wi-Fi output), not in Syphon.
-- **Drawn on the graphics card (#204):** the stage and the output window draw the picture as one chain in WebGL 2 – the
-  last two AI pictures with their motion and cross-fade, the smoothing, the effects, the touch layers (light strokes,
-  stirring, light circle), colour rotation, brightness and master. It looks as before and leaves the processor free
-  for the rest. Nothing to set: without WebGL 2, or if the graphics card's drawing stops while Dream runs, the same
-  pages draw with Canvas 2D as before, by themselves (a badge below the preview says so; when it comes back, WebGL 2
-  takes over again). **📏 Measure** shows for the stage what draws: “graphics card (WebGL 2)” or “Canvas 2D (no WebGL
-  2)”. To compare the two, or if a graphics driver makes trouble, add `?render=canvas` to the address of the stage or
-  the output window (http://127.0.0.1:7860/?render=canvas). Syphon, the preview of Dream Control and the dream windows
-  get the AI pictures themselves, as before; Dreamy Eyes and the dream windows draw on their own.
+- **Drawing on the graphics card (#204, for trying out):** the stage and the output window can draw the picture as
+  one chain in WebGL 2 – the last two AI pictures with their motion and cross-fade, the smoothing, the effects, the
+  touch layers, colour rotation, brightness and master. For now it is **off by default**: on a Mac it shares the
+  graphics card with the AI and costs it about 40 % of its pictures. To try it, add `?render=webgl` to the address of
+  the stage or the output window (http://127.0.0.1:7860/?render=webgl). Without it the pages draw with Canvas 2D as
+  before. **📏 Measure** shows for the stage what draws. Syphon, the preview of Dream Control and the dream windows
+  get the AI pictures themselves; Dreamy Eyes and the dream windows draw on their own.
 - **Effects by hand:** the same effects without the autopilot in the **Effects** card (below Dream): twelve tiles to
   switch on and off (one of each family at a time – kaleidoscope/mandala/mirror, pixel/grid, feedback/afterglow),
   **Effect strength** for all, **Pulse on the beat** (only on real beats of music or tap; off = the effects stand
@@ -1128,11 +1126,10 @@ and the line saving above.
   tabs, SD-Turbo instead of SDXL-Turbo, 512 px instead of more.
 - **The stage stays black or dark:** restart and update Dream (see above). In prompt mode drift helps; an entirely black
   picture after an update usually means the old version still runs.
-- **The picture on the stage or in the output window looks wrong (stripes, black, wrong colours) since #204:** the
-  graphics card draws it now (WebGL 2). Open the page with `?render=canvas` at the end of the address
-  (http://127.0.0.1:7860/?render=canvas, http://127.0.0.1:7860/output?render=canvas): then it draws with Canvas 2D as
-  before. If that helps, please report it with the browser and the Mac. A badge “The graphics card’s drawing (WebGL 2)
-  stopped …” means the browser lost its graphics context; Dream goes on with Canvas 2D and returns by itself.
+- **The picture looks wrong (stripes, black, wrong colours) or the AI gets slow with `?render=webgl`:** leave the
+  address without it – then the page draws with Canvas 2D. If that helps, please report it with the browser and the
+  Mac. A badge “The graphics card’s drawing (WebGL 2) stopped …” means the browser lost its graphics context; Dream
+  goes on with Canvas 2D and returns by itself.
 - **The controls are extremely slow:** is a second Dream, a second stage or another GPU program running? Keep only one
   stage open.
 - **“site can't be reached” on the phone:** see “If the phone does not connect”. The macOS firewall was not the reason
