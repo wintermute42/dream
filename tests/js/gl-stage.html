@@ -123,7 +123,11 @@
   // earlier picture may still be on its way), so ask and wait until two copies have arrived
   async function shot(view) {
     const cv = canvas(), ctx = cv.getContext('2d'), n = view.snapshot(ctx, W, H);
-    for (let i = 0; i < 400 && view.snapshot(ctx, W, H) < n + 2; i++) await new Promise(done => setTimeout(done, 5));
+    const until = performance.now() + 40000;           // a software WebGL may have a long queue of frames to draw first
+    while (view.snapshot(ctx, W, H) < n + 2) {
+      if (performance.now() > until) throw new Error('no copy of the shown picture arrived within 40 s');
+      await new Promise(done => setTimeout(done, 5));
+    }
     return cv;
   }
   // mean difference per colour channel (0…255) and the share of pixels where a channel is further than 40 apart
