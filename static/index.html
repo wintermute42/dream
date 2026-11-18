@@ -267,6 +267,13 @@
   .hint { color: var(--muted); font-size: .82em; margin-top: 10px; }
   #meter { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; margin-top: 6px; }
   #meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6cf, var(--accent), #f6a); }
+  /* #195: where the beat is in the bar (the one bigger), and how sure the tracking is */
+  #beatline { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+  #beatdots { display: flex; gap: 5px; align-items: center; flex: 0 0 auto; }
+  #beatdots i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); opacity: .25; transition: opacity .12s, transform .12s; }
+  #beatdots i:first-child { width: 11px; height: 11px; background: var(--accent); }
+  #beatdots i.on { opacity: 1; transform: scale(1.25); }
+  #beatdots.held i.on { opacity: .55; transform: none; }
   #stage { will-change: transform, filter; }
   #stage { transition: opacity .12s linear; }   /* master brightness: the stage fades over its black background */
   body.stage-only, body.stage-only * { cursor: none; }
@@ -636,8 +643,9 @@
   </div>
   <div class="row keep">
     <div id="musicstate" style="font-size:12px;color:var(--muted);margin-top:4px"></div>
+    <div id="beatline"><span id="beatdots" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span id="beatstate" title="How sure the beat detection is about the tempo and beat, the one (first beat of the bar) and the phrases. Unsure? Tap along, starting on the one."></span></div>
     <div class="btns" style="margin-top:6px;align-items:center">
-      <button class="btn" id="tapbtn" title="Tap on the beat (or key T): from 2 taps the tempo stands, the beat clock then runs on">👆 Tap</button>
+      <button class="btn" id="tapbtn" title="Tap on the beat (or key T), starting on the one: from 2 taps tempo and beat stand, the first tap is the one">👆 Tap</button>
       <span id="tapstate" role="status" style="font-size:.9em"></span>
       <button class="btn" id="tapoff" disabled aria-label="End tap tempo" title="End tap tempo: only the music's beats again">✕</button>
     </div>
@@ -647,6 +655,8 @@
     <select id="music_pattern"><option value="auto">Automatic</option><option value="Pulse">Pulse – flash and push on the beat</option><option value="Jolt">Jolt – spin jolt on the beat</option><option value="Jump">Jump – new motif every 2nd beat</option><option value="Flow">Flow – soft, lots of colour</option></select>
     <label class="patauto" style="display:flex;align-items:center;gap:6px;margin:4px 0 0"><input type="checkbox" id="music_patterns" checked> with Automatic: change pattern (every 16–32 bars)</label>
     <label style="display:flex;align-items:center;gap:6px;margin:2px 0 0"><input type="checkbox" id="music_drop" checked> Drop → next scene (playlist) and break</label>
+    <label for="beat_snap" style="margin-top:6px">Snap changes to the beat (scene, drop, new effects)</label>
+    <select id="beat_snap"><option value="off">Off – at once</option><option value="beat">Beat</option><option value="bar">Bar (on the one)</option><option value="phrase">Phrase (4–16 bars)</option></select>
   </div>
 
   </details>
@@ -747,6 +757,7 @@
 <script src="/static/fx.js"></script>
 <script src="/static/calib.js"></script>
 <script src="/static/motion.js"></script>
+<script src="/static/beat.js"></script>
 <script>
   // #132: the page in the chosen language (the markup is English; I18N.apply translates it once, T() the rest)
   const T = I18N.t;
@@ -1479,74 +1490,102 @@
     mu.eLong = mu.eLong * 0.997 + energy * 0.003;
     mu.dyn = clamp(mu.eShort / (mu.eLong + 1e-3), 0, 2);
     mu.intensity = clamp(0.35 + 0.65 * mu.dyn, 0.3, 1.4);
-    // break: clearly quieter than the long-term level for 2 s; drop: loud again right after a break
-    if (mu.eShort < 0.45 * mu.eLong) { mu.breakFor += 1; if (mu.breakFor > 120 && !mu.inBreak) { mu.inBreak = 1; mu.events.push('break'); } }
-    else mu.breakFor = 0;
-    mu.peak = Math.max((mu.peak || 0) * 0.98, energy);             // recent loudest moment (~0.5 s)
-    if (mu.inBreak && mu.eShort > 0.8 * mu.eLong) {                 // the break is over …
-      mu.inBreak = 0;
-      if (mu.peak > 1.3 * mu.eLong) {                               // … and it came back hard: a drop
-        mu.drop = 1; mu.events.push('drop');
-        mu.seedOff += 37; if (opts.patterns) switchPattern();
+    // break: clearly quieter than the long-term level for 2 s; drop: loud again right after a break. With a beat
+    // the tracker decides (#195: drums gone, then a hard kick on the one – also when the room keeps it loud).
+    if (beatTr.locked) mu.inBreak = beatTr.inBreak ? 1 : 0;
+    else {
+      if (mu.eShort < 0.45 * mu.eLong) { mu.breakFor += 1; if (mu.breakFor > 120 && !mu.inBreak) { mu.inBreak = 1; mu.events.push('break'); } }
+      else mu.breakFor = 0;
+      mu.peak = Math.max((mu.peak || 0) * 0.98, energy);             // recent loudest moment (~0.5 s)
+      if (mu.inBreak && mu.eShort > 0.8 * mu.eLong) {                 // the break is over …
+        mu.inBreak = 0;
+        if (mu.peak > 1.3 * mu.eLong) musicDrop(opts);                // … and it came back hard: a drop
       }
     }
-    // beats: bass clearly above its average, at most every 250 ms. Loud music fills the bass band up to its ceiling
-    // (1.0) and lifts the average close to it – then 1.45 × average is out of reach, so the threshold stays below 1.
-    const p = MUSIC_PATTERNS[mu.pattern];
+    // the beats come from the tracker (beatEvents); the bass hits only tell the music character how often the kick
+    // falls off the grid ("broken"). Loud music fills the bass band up to its ceiling (1.0) and lifts the average close
+    // to it – then 1.45 × average is out of reach, so the threshold stays below 1.
     const thr = Math.min(avg.bass * 1.45, avg.bass + 0.55 * (1 - avg.bass));
     const hit = raw.bass > thr && raw.bass > 0.25 && raw.bass >= (mu.prevBass || 0);
-    if (hit && tap.on && now - (mu.lastHit || 0) > 250) { mu.lastHit = now; tapNudge(now); }   // tap leads, the music nudges
-    else if (hit && !tap.on && now - mu.lastBeat > 250) {
-      if (mu.lastBeat && now - mu.lastBeat < 1500) mu.period = mu.period * 0.8 + (now - mu.lastBeat) * 0.2;
-      if (mu.lastBeat) mu.ivs = (mu.ivs || []).concat(now - mu.lastBeat).slice(-16);   // for the music character
-      beatNow(now, opts);
+    if (hit && !tap.on && now - (mu.lastHit || 0) > 250) {
+      if (mu.lastHit && now - mu.lastHit < 1500) mu.ivs = (mu.ivs || []).concat(now - mu.lastHit).slice(-16);
+      mu.lastHit = now;
     }
     mu.prevBass = raw.bass;
     const decay = mu.dyn > 1 ? 0.84 : 0.9;              // loud: snappier impulses
     mu.beatEnv *= decay; mu.jolt *= decay; mu.drop *= 0.97;
   }
-  function beatNow(now, opts) {                       // one beat: from the music or from the tap clock
+  function musicDrop(opts) {
+    mu.inBreak = 0; mu.drop = 1; mu.events.push('drop');
+    mu.seedOff += 37; if (opts.patterns) switchPattern();
+  }
+  // one beat (from the tracker: music or tap). env: how hard it pushes (a beat only held through a break: not at all).
+  // mu.beats counts on, aligned with the bars (mu.beats % 4 === 0 on the one) and, once the phrases are known, with them.
+  function beatNow(now, opts, ev = {}) {
     const p = MUSIC_PATTERNS[mu.pattern];
-    mu.lastBeat = now; mu.beats += 1; mu.beatEnv = 1;
+    mu.lastBeat = now; mu.beats += 1;
+    if (ev.beatInBar != null) {
+      mu.beats += ((ev.beatInBar - mu.beats) % 4 + 4) % 4;
+      const L = beatTr.phraseBars, bar = Math.floor(mu.beats / 4);
+      if (ev.downbeat && beatTr.phraseConfidence >= 0.5) mu.beats += 4 * (((ev.barInPhrase - bar) % L + L) % L);
+    }
+    mu.beatEnv = ev.held ? 0 : ev.confidence == null || tap.on ? 1 : Math.min(1, 0.35 + 1.3 * ev.confidence);
+    if (ev.held) return;
     if (p.jolt) { mu.jolt = p.jolt * mu.intensity; mu.joltDir = -mu.joltDir; }
     if (p.seed && mu.beats % 2 === 0) mu.seedOff += 1;
     if (opts.patterns && mu.beats >= mu.nextSwitch) switchPattern();
   }
-  // ---------- tap tempo (#71): tap in time (button, T, phone, MIDI); a beat clock then runs in that tempo ----------
-  // From 2 taps the tempo stands (median of the last up to 8 gaps), the last tap sets the beat. The music's own beats
-  // only pull the clock's phase gently; missed beats do not matter. ✕ ends it: back to the music's beats alone.
-  const tap = { on: false, times: [], period: 500, next: 0 };
+  // ---------- beat tracking (#195, static/beat.js): tempo, beat, the one and phrases from the music ----------
+  // The tracker reads its own analyser (no smoothing, dB spectrum) every frame and gives beats, breaks and drops;
+  // the grid runs changes on the next beat, bar or phrase ("Snap changes to the beat").
+  const beatTr = new DreamBeat.BeatTracker(), beatGrid = new DreamBeat.BeatGrid(beatTr);
+  let beatAn = null, beatSpec = null;
+  const onGrid = (fn, key, unit = $('beat_snap').value) => beatGrid.at(unit, fn, key);
+  function beatEvents(evs) {
+    const opts = { patterns: $('music_patterns').checked };
+    for (const ev of evs) {
+      if (ev.type === 'beat') {
+        mu.period = beatTr.period; beatNow(ev.t, opts, ev); beatGrid.beat(ev); beatShow(ev);
+        if (tap.on) mu.ivs = Array(8).fill(beatTr.period);
+      } else if (ev.type === 'break') { mu.inBreak = 1; mu.events.push('break'); }
+      else if (ev.type === 'drop') musicDrop(opts);
+    }
+  }
+  function beatShow(ev) {                             // the dot of this beat in the bar; held through a break: pale
+    const dots = $('beatdots');
+    [...dots.children].forEach((d, i) => d.classList.toggle('on', i === ev.beatInBar));
+    dots.classList.toggle('held', !!ev.held);
+  }
+  function beatStateText() {
+    const st = beatTr.state(), pc = x => Math.round(100 * x);
+    if (!st.locked) return analyser ? T('Listening for the beat …') : '';
+    if (st.tapped && !analyser) return T('Tap beat (no music)');
+    return T('Beat {c} % sure · the one {d} % · phrase {n} bars ({p} %)', { c: st.tapped ? 100 : pc(st.confidence),
+      d: pc(st.downConfidence), n: st.phraseBars, p: pc(st.phraseConfidence) }) + (st.inBreak ? ' · ' + T('beat held (break)') : '');
+  }
+  // ---------- tap tempo (#71): tap in time (button, T, phone, MIDI) ----------
+  // From 2 taps tempo and beat stand (median of the last up to 8 gaps) and the first tap of a series is the one
+  // (#195): the tracker keeps that tempo, the music only pulls the phase gently; missed beats do not matter.
+  // ✕ ends it: back to the music's beats alone.
+  const tap = { on: false, times: [], period: 500 };
   function tapBeat(t = performance.now()) {
     if (tap.times.length && t - tap.times[tap.times.length - 1] > 2000) tap.times = [];    // a pause: start counting anew
     tap.times = tap.times.concat(t).slice(-9);
     $('tapbtn').classList.add('on'); setTimeout(() => $('tapbtn').classList.remove('on'), 120);
-    if (tap.times.length >= 2) {
-      const gaps = tap.times.slice(1).map((x, i) => x - tap.times[i]).sort((a, b) => a - b);
-      tap.period = clamp(gaps[Math.floor(gaps.length / 2)], 250, 1500);
-      tap.on = true; mu.period = tap.period; tap.next = t + tap.period;
-      mu.ivs = Array(8).fill(tap.period);
-      beatNow(t, { patterns: $('music_patterns').checked });
-    }
+    const evs = beatTr.tap(t);
+    if (tap.times.length >= 2) { tap.on = true; tap.period = beatTr.period; }
+    beatEvents(evs);
     tapShow();
   }
-  function tapOff() { tap.on = false; tap.times = []; tapShow(); }
-  function tapNudge(now) {                            // a beat heard near the clock's beat pulls the clock a little
-    const last = tap.next - tap.period, err = Math.abs(now - last) < Math.abs(now - tap.next) ? now - last : now - tap.next;
-    if (Math.abs(err) < tap.period * 0.25) tap.next += err * 0.2;
-  }
-  function tapClock(now) {                            // called every frame
-    if (!tap.on) return;
-    if (now >= tap.next) {
-      if (now - tap.next > tap.period) tap.next = now;  // the page was hidden: no catching up
-      mu.period = tap.period;
-      beatNow(tap.next, { patterns: $('music_patterns').checked });
-      tap.next += tap.period;
-    }
+  function tapOff() { tap.on = false; tap.times = []; beatTr.untap(performance.now()); tapShow(); }
+  function beatClock(now) {                           // called every frame
+    if (!analyser) beatEvents(beatTr.tick(now));         // without music only a tapped tempo ticks
+    beatGrid.poll(now);                                    // a change that waited too long (or the beat is gone) runs now
     if (!analyser) mu.beatEnv *= 0.88;                 // without music nobody else lets the impulse fade
   }
   function tapShow() {
     const t = tap.on ? `Tap: ${Math.round(60000 / tap.period)} BPM` : tap.times.length ? T('Tap: keep tapping …') : '';
-    $('tapstate').textContent = t; $('tapoff').disabled = !tap.on;
+    $('tapstate').textContent = t; $('tapoff').disabled = !tap.on; $('beatstate').textContent = beatStateText();
     sendCtl({ cmd: 'tapstate', arg: { text: t, on: tap.on } });
   }
   // autopilot liveliness: calm 1 at the calm end (flowing, no flicker), power 1 at the wild end (punch)
@@ -1630,11 +1669,12 @@
     let sum = 0; for (let i = a; i < b; i++) sum += freq[i]; return sum / (b - a) / 255;
   }
   function audioLoop() {
-    tapClock(performance.now());
+    beatClock(performance.now());
     if (wake > 0.01) { wake *= 0.97; $('stage').style.filter = `brightness(${(1 + 0.4 * wake).toFixed(3)})`; }
     else if (wake) { wake = 0; if (!analyser) $('stage').style.filter = ''; }
     if (analyser) {
       analyser.getByteFrequencyData(freq);
+      if (beatAn) { beatAn.getFloatFrequencyData(beatSpec); beatEvents(beatTr.push(beatSpec, performance.now())); }
       const raw = { bass: bandLevel(25, 160), mid: bandLevel(160, 2000), high: bandLevel(2000, 9000) };
       for (const k in raw) {                       // adapt to the music's loudness, keep 0..~1.5
         avg[k] = avg[k] * 0.995 + raw[k] * 0.005;
@@ -1646,9 +1686,11 @@
       while (mu.events.length) {
         const ev = mu.events.shift();
         if (ev === 'drop') {
+          // the tracker hears a drop on its first beat (the one): flash and effects at once; the scene change goes
+          // over the grid, at most to the next beat (a bar later would miss the drop)
           wake = Math.max(wake, 1 - 0.9 * apCalmF());       // a calm autopilot: no flash on a drop
           if (apOn()) apDrop();                      // the autopilot decides what a drop does
-          else if ($('music_drop').checked) sendCtl({ cmd: 'next' });
+          else if ($('music_drop').checked) onGrid(() => sendCtl({ cmd: 'next' }), 'next', $('beat_snap').value === 'off' ? 'off' : 'beat');
           status(T('Music: drop – break'));
         }
       }
@@ -1668,6 +1710,7 @@
         $('musicstate').textContent = T('Pattern {p} · bar {b} · ~{bpm} BPM · ', { p: I18N.name(p.name), b: bars, bpm }) +
           (mu.inBreak ? 'Break' : mu.dyn > 1.15 ? T('loud') : mu.dyn < 0.7 ? T('quiet') : T('medium')) +
           ($('music').value === 'mic' && mu.micNote ? ' · ' + mu.micNote : '');
+        $('beatstate').textContent = beatStateText();
       }
     }
     requestAnimationFrame(audioLoop);
@@ -1675,7 +1718,8 @@
   function stopMusic() {
     if (srcNode) { try { srcNode.disconnect(); } catch (e) {} }
     if (micStream) micStream.getTracks().forEach(t => t.stop());
-    micStream = null; analyser = null; $('player').pause();
+    micStream = null; analyser = null; beatAn = null; $('player').pause();
+    $('beatstate').textContent = beatStateText(); $('beatdots').querySelectorAll('i').forEach(d => d.classList.remove('on'));
     $('stage').style.transform = ''; $('stage').style.filter = ''; $('meter').firstElementChild.style.width = '0';
   }
   async function startMusic(kind) {
@@ -1714,6 +1758,10 @@
       srcNode = pl._node; srcNode.connect(an); an.connect(actx.destination);   // you hear the file
       if (!pl.src) { $('audiofile').click(); }
     }
+    // #195: the beat tracker's own analyser: no smoothing (sharp onsets), dB values (no ceiling for loud music)
+    beatAn = actx.createAnalyser(); beatAn.fftSize = 2048; beatAn.smoothingTimeConstant = 0;
+    beatSpec = new Float32Array(beatAn.frequencyBinCount); srcNode.connect(beatAn);
+    beatTr.setAudio(actx.sampleRate, beatAn.fftSize);
     analyser = an;
   }
   $('music').onchange = e => startMusic(e.target.value);
@@ -1816,7 +1864,7 @@
   if (params.get('stage') === '1') document.body.classList.add('hide', 'stage-only');
   const BIND = { prompt: 'prompt', strength: 'strength', mix: 'mix', zoom: 'zoom', rot: 'rot', hue: 'hue', sens: 'sens',
     quality: 'quality', size: 'size', seed: 'seed', model: 'model', rewrite: 'rewrite', playlist: 'playlist',
-    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
+    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
     fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
@@ -1842,7 +1890,7 @@
   $('music_pattern').addEventListener('change', applyFixedPattern);
   $('music').addEventListener('change', () => { if (!applying) sendCtl({ set: { music: $('music').value } }); });
   $('run').addEventListener('click', () => sendCtl({ set: { running } }));
-  $('nextscene').onclick = () => sendCtl({ cmd: 'next' });
+  $('nextscene').onclick = () => onGrid(() => sendCtl({ cmd: 'next' }), 'next');
 
   function fillPlaylists(names) {
     ['playlist'].forEach(id => {
@@ -2974,7 +3022,7 @@
   }
   function fxCmd(a) {
     if (a === 'off') return fxSet([]);
-    if (a === 'new') { apFxPick(true); return fxSet(ap.fxSet.slice()); }
+    if (a === 'new') return onGrid(() => { apFxPick(true); fxSet(ap.fxSet.slice()); }, 'fx');   // #195: on the grid
     if (FX_NAMES[a]) fxToggle(a);
   }
   let fxTook = false, fxShownKey = null;
@@ -3198,7 +3246,7 @@
     if (!apFree('prompt') || !apFree('playlist')) { apSay(T('leaves your prompt as it is')); return; }
     if (now > ap.playlistAt) return apPlaylist(now);
     const every = L > 0.66 ? 2 : L > 0.33 ? 3 : 4;     // next scene every 2–4 phrases
-    if (ap.phrase - ap.scenePhrase >= every) { ap.scenePhrase = ap.phrase; sendCtl({ cmd: 'next' }); apSay(T('next scene')); return; }
+    if (ap.phrase - ap.scenePhrase >= every) { ap.scenePhrase = ap.phrase; onGrid(() => sendCtl({ cmd: 'next' }), 'next'); apSay(T('next scene')); return; }
     apSay(`Phrase ${ap.phrase}`);
   }
   async function apMedia() {
@@ -3241,7 +3289,10 @@
     }
     if (ap.busy || making) return;
     if (mode !== 'dream' && apFree('mode')) { setMode('dream', true); apSay(T('drop – back into the dream')); return; }
-    if (apFree('prompt') && apFree('playlist')) { sendCtl({ cmd: 'next' }); ap.scenePhrase = ap.phrase; apSay(T('drop – break')); }
+    if (apFree('prompt') && apFree('playlist')) {
+      onGrid(() => sendCtl({ cmd: 'next' }), 'next', $('beat_snap').value === 'off' ? 'off' : 'beat');
+      ap.scenePhrase = ap.phrase; apSay(T('drop – break'));
+    }
   }
   function apSay(t) { ap.doing = t; ap.doingAt = performance.now(); }
   function apStatus() {

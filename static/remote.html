@@ -326,12 +326,14 @@
     <div class="seg keep" data-only="control" id="musics" style="--n:3"><button data-v="off">Off</button><button data-v="mic">Microphone</button><button data-v="file">File</button></div>
     <div class="hint" data-only="control">“Microphone” and “File” use the microphone or player on the stage Mac.</div>
     <div class="row" style="margin-top:8px"><button id="tapbtn" class="big">👆 Tap</button><button id="tapoff" style="flex:0 0 auto" aria-label="End tap tempo">✕</button></div>
-    <div id="tapstate" class="hint" role="status">Tap on the beat: from 2 taps the tempo stands.</div>
+    <div id="tapstate" class="hint" role="status">Tap on the beat, starting on the one: from 2 taps the tempo stands.</div>
     <label>Reaction <span class="val" id="v-sens"></span></label><input type="range" id="sens" min="0" max="2" step="0.05">
     <label for="music_pattern">Pattern – how the picture reacts to the beats</label>
     <select id="music_pattern"><option value="auto">Automatic</option><option value="Pulse">Pulse – flash and push on the beat</option><option value="Jolt">Jolt – spin jolt on the beat</option><option value="Jump">Jump – new motif every 2nd beat</option><option value="Flow">Flow – soft, lots of colour</option></select>
     <label class="check" data-only="control"><input type="checkbox" id="music_patterns"> with Automatic: change pattern (every 16–32 bars)</label>
     <label class="check" data-only="control"><input type="checkbox" id="music_drop"> Drop → next scene</label>
+    <label for="beat_snap" data-only="control">Snap changes to the beat (scene, drop, new effects)</label>
+    <select id="beat_snap" data-only="control"><option value="off">Off – at once</option><option value="beat">Beat</option><option value="bar">Bar (on the one)</option><option value="phrase">Phrase (4–16 bars)</option></select>
   </section>
 
 
@@ -397,7 +399,7 @@
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master']);
-  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast'];
+  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast'];
   let ws = null, state = {}, applying = false;
   // the one movement switch (state key "flowtrack"; off = no movement effect)
   function updFlowSwitch() {
@@ -843,7 +845,7 @@
       if (m.cmd === 'relievestate' && m.arg) relShow(m.arg);
       if (m.cmd === 'autostate' && m.arg) $('autostate').textContent = m.arg.text;
       if (m.cmd === 'now' && m.arg) $('nowline').textContent = m.arg.text;
-      if (m.cmd === 'tapstate' && m.arg) $('tapstate').textContent = m.arg.text || T('Tap on the beat: from 2 taps the tempo stands.');
+      if (m.cmd === 'tapstate' && m.arg) $('tapstate').textContent = m.arg.text || T('Tap on the beat, starting on the one: from 2 taps the tempo stands.');
       if (m.live) {
         const l = m.live, p = '';
         const ft = l.flowtrack ? T(' · movement {n}/s', { n: l.flowtrack }) : '';

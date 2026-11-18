@@ -522,8 +522,6 @@
  "Switch “Movement” in the Movement card": "Schalter „Bewegung“ in der Karte Bewegung",
  "Syphon output for Resolume": "Syphon-Ausgabe für Resolume",
  "Syphon output “Dream” for Resolume": "Syphon-Ausgabe „Dream“ für Resolume",
- "Tap on the beat (or key T): from 2 taps the tempo stands, the beat clock then runs on": "Im Takt tippen (oder Taste T): ab 2 Mal steht das Tempo, die Taktuhr läuft dann weiter",
- "Tap on the beat: from 2 taps the tempo stands.": "Im Takt tippen: ab 2 Mal steht das Tempo.",
  "Tap: keep tapping …": "Tap: weiter tippen …",
  "The AI gets:": "Die KI bekommt:",
  "The AI model could not be loaded – the first time needs the internet.": "Das KI-Modell ließ sich nicht laden – beim ersten Mal ist Internet nötig.",
@@ -937,5 +935,17 @@
  "part": "Teil",
  "mean": "Mittel",
  "Also in the terminal and saved in ~/.local/state/dream/measure/.": "Auch im Terminal und gespeichert in ~/.local/state/dream/measure/.",
- "A measurement is running already.": "Es läuft schon eine Messung."
+ "A measurement is running already.": "Es läuft schon eine Messung.",
+ "Tap on the beat (or key T), starting on the one: from 2 taps tempo and beat stand, the first tap is the one": "Im Takt tippen (oder Taste T), auf der Eins anfangen: ab 2 Mal stehen Tempo und Schlag, das erste Tippen ist die Eins",
+ "Tap on the beat, starting on the one: from 2 taps the tempo stands.": "Im Takt tippen, auf der Eins anfangen: ab 2 Mal steht das Tempo.",
+ "How sure the beat detection is about the tempo and beat, the one (first beat of the bar) and the phrases. Unsure? Tap along, starting on the one.": "Wie sicher die Takterkennung bei Tempo und Schlag, der Eins (erster Schlag im Takt) und den Phrasen ist. Unsicher? Mittippen, auf der Eins anfangen.",
+ "Snap changes to the beat (scene, drop, new effects)": "Wechsel einrasten (Szene, Drop, neue Effekte)",
+ "Off – at once": "Aus – sofort",
+ "Beat": "Schlag",
+ "Bar (on the one)": "Takt (auf der Eins)",
+ "Phrase (4–16 bars)": "Phrase (4–16 Takte)",
+ "Listening for the beat …": "Hört auf den Takt …",
+ "Tap beat (no music)": "Tipp-Takt (ohne Musik)",
+ "Beat {c} % sure · the one {d} % · phrase {n} bars ({p} %)": "Takt {c} % sicher · Eins {d} % · Phrase {n} Takte ({p} %)",
+ "beat held (break)": "Takt gehalten (Break)"
 }
