@@ -45,7 +45,9 @@ import outbox
 import paths
 import playlists
 import sensors
+import settings
 import styles
+from models import CONTROLNETS, MODELS, NEED_GB
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROLE = os.environ.get("DREAM_ROLE", "app")
@@ -54,22 +56,6 @@ OLLAMA = os.environ.get("DREAM_OLLAMA", "http://127.0.0.1:11434")
 PROMPT_MODEL = os.environ.get("DREAM_PROMPT_MODEL", "llama3.2:3b")
 SOURCE_URL = os.environ.get("DREAM_SOURCE_URL", "https://github.com/wintermute42/dream")   # #178: AGPL §13 – where the code is
 CLOUD = os.environ.get("DREAM_CLOUD_CMD") or os.path.join(HERE, "dream-cloud")   # the override is for tests (no real cloud)
-
-# model key -> (pipeline repo, tiny decoder repo, is SDXL)
-MODELS = {
-    "sd-turbo": ("stabilityai/sd-turbo", "madebyollin/taesd", False),
-    "sdxl-turbo": ("stabilityai/sdxl-turbo", "madebyollin/taesdxl", True),
-}
-
-# OpenPose ControlNets: the dancer's skeleton (from flowtrack /pose.jpg) shapes the figure
-# ControlNets per kind: "pose" (the dancer's skeleton) and "edges" (#113: the outlines of the input picture keep the
-# body and the room recognisable while the content is dreamed). Downloaded on first use.
-CONTROLNETS = {
-    "pose": {"sd-turbo": "thibaud/controlnet-sd21-openpose-diffusers",     # SD 2.1 family, ~0.7 GB
-             "sdxl-turbo": "xinsir/controlnet-openpose-sdxl-1.0"},         # SDXL, ~2.5 GB (Apache 2.0), for the cloud
-    "edges": {"sd-turbo": "thibaud/controlnet-sd21-canny-diffusers",       # ~0.7 GB
-              "sdxl-turbo": "xinsir/controlnet-canny-sdxl-1.0"},           # ~2.5 GB (Apache 2.0)
-}
 
 if torch.cuda.is_available():
     device, dtype = "cuda", torch.float16
@@ -429,7 +415,6 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
 
 # ---------- switching models without a gap (#61) ----------
 # The model in use keeps dreaming while the next one loads in the background; then the old one is freed.
-NEED_GB = {"sd-turbo": 4.0, "sdxl-turbo": 9.0}          # memory a model needs while loading (weights + working space)
 model_state = {"active": None, "loading": None, "error": None, "error_key": None, "error_at": 0.0, "first": False}
 
 
@@ -1272,82 +1257,15 @@ if ROLE == "app":
             return f.read().strip()
     keys = {"guest": _key(TOKEN_FILE), "control": _key(CONTROL_FILE), "eyes": _key(EYES_FILE), "window": _key(WINDOW_FILE)}
 
-    # #148: what a guest (Dream Remote) may change; everything else needs Dream Control or this Mac. Enforced here, in
-    # the server: the remote page only hides what a guest cannot use.
-    # owner's decision (2026-11-18): painting, touching, directness, impulses, movement reaction, the pose and the music
-    # automatic/drop are the performer's – not a guest's; nor are "New" (the dream starts anew) and the QR on the stage
-    # … and (same day) neither removing the owner's picture or video, the rest of the movement card, nor the playlist
-    GUEST_KEYS = {"prompt", "strength", "mix", "zoom", "rot", "hue", "drift", "smooth", "drift_prompt", "seed", "mode",
-                  "fx", "fx_amt", "fx_beat", "style", "style_amt", "sens", "music_pattern"}
+    # #189: the settings – defaults, ranges, what a guest may change – are one table in settings.py
+    from settings import DEFAULT_STATE, GUEST_KEYS, GUEST_MODES, RANGES, coerce, coerce_number, guest_changes
     GUEST_CMDS = {"next", "tap", "tapoff", "make", "fx"}
-    GUEST_MODES = {"dream", "img", "vid"}          # the Mac's camera (cam, flow) only on Control's or the stage's word
 
-    def guest_changes(changes: dict) -> dict:
-        """#148: the part of a guest's changes a guest may make."""
-        return {k: v for k, v in changes.items()
-                if k in GUEST_KEYS and (k != "mode" or v in GUEST_MODES)}
-
-    DEFAULT_STATE = {
-        "prompt": "psychedelic kaleidoscope of glowing fractal flowers, vivid neon colors, intricate, dreamy",
-        "mode": "dream", "backend": "local", "model": "sd-turbo", "running": True,
-        "strength": 0.5, "mix": 0.35, "zoom": 0.018, "rot": 0.6, "hue": 4.0, "sens": 1.0,
-        "quality": 2, "size": 512, "seed": 1, "music": "off", "rewrite": True,
-        "playlist": "", "interval": 45, "shuffle": False,          # installation: prompt playlist
-        "motion": True, "motion_sens": 1.0,                        # flowtrack movement (OSC) steers the dream
-        "syphon": False,                                           # publish the stage picture as Syphon source "Dream"
-        "pose": False, "pose_scale": 0.8,                          # the dancer's skeleton (flowtrack) shapes the figure
-        "flowtrack": "off",                                        # movement detection on the stage: off | on (light) | hand (pose)
-        "flow_kind": "hand",                                       # what the flowtrack switch turns on: on | hand
-        "drift": 0.5, "drift_prompt": True,                        # keeps the dream alive without new input (0 = off)
-        "music_patterns": True, "music_drop": True,                # music: changing patterns, drop → next scene
-        "beat_snap": "bar",                                        # #195: changes snap to the beat: off | beat | bar | phrase
-        "smooth": 0.3,                                             # smoothing: moving average of the shown pictures (0 = off)
-        "morph": 1.0,                                              # #194: motion between two AI pictures (0 = off)
-        "music_pattern": "auto",                                   # auto, or a fixed pattern (Pulse, Jolt, Jump, Flow)
-        "aspect": "square",                                        # picture format: square | wide (16:9)
-        "touch_amt": 0.6, "touch_paint": True, "touch_warp": True,  # direct touch: hands paint and stir the dream
-        "touch_mirror": False, "touch_content": True, "touch_impulse": True, "touch_light": False,
-        "master": 1.0,                                             # master brightness (MIDI fader, blackout): 0 = black
-        "auto": False, "auto_level": 0.5,                          # autopilot steers Dream by itself, led by the music
-        "auto_media": True, "auto_cam": False, "auto_flow": False, "ap_words": True,  # … also makes pictures/clips; camera/flowtrack only if allowed
-        "cam_device": "", "flow_device": "",
-        "calib": "",                                               # camera → picture calibration (#92): JSON {h, delay}
-        "flow_unproject": False,
-        "fast": False, "fast_prev": "",
-        "edges": False, "edges_scale": 0.8,
-        "flow_color": "", "flow_short": True,
-        "style": "", "style_amt": 1.0,                             # #123: a style model (SDXL-Turbo) and its strength (0–2)
-        "style_ref": "", "style_ref_amt": 0.8,                     # #123: a style reference picture (id) and its strength
-        "fx": "", "fx_amt": 0.7, "fx_beat": True,                  # effects by hand: "tunnel+waves", their strength, pulse on the beat
-    }
-    # #175: the range of every number a device may set (the sliders' ranges; MIDI's targets are the same) – a value
-    # outside is clamped, NaN or Inf is refused, so nobody can poison the saved state
-    RANGES = {**midi.TARGETS, "quality": (1, 4), "size": (256, 1024), "seed": (0, 2**31 - 1), "interval": (5, 3600),
-              "auto_level": (0.0, 1.0), "edges_scale": (0.2, 1.5), "style_amt": (0.0, 2.0), "style_ref_amt": (0.0, 1.0),
-              "touch_amt": (0.0, 1.0), "morph": (0.0, 1.0)}
-
-    def coerce_number(k, v):
-        """#175: a number of the default's type, finite and inside its range – or ValueError."""
-        d = DEFAULT_STATE[k]
-        if isinstance(v, bool) or not isinstance(v, (int, float, str)):
-            raise ValueError(k)
-        f = float(str(v)[:40]) if isinstance(v, str) else float(v)
-        if not math.isfinite(f):
-            raise ValueError(k)
-        lo, hi = RANGES.get(k, (-1e6, 1e6))
-        f = min(max(f, lo), hi)
-        return int(round(f)) if isinstance(d, int) else f
-
-    state = dict(DEFAULT_STATE)
     try:
         with open(STATE_FILE) as f:
-            saved = json.load(f)
-        for k, v in saved.items() if isinstance(saved, dict) else ():
-            if k in DEFAULT_STATE:
-                with contextlib.suppress(ValueError, TypeError, OverflowError):   # #175: a broken value heals to the default
-                    state[k] = coerce_number(k, v) if isinstance(DEFAULT_STATE[k], (int, float)) and not isinstance(DEFAULT_STATE[k], bool) else v
+            state = settings.loaded(json.load(f))
     except (FileNotFoundError, ValueError):
-        pass
+        state = dict(DEFAULT_STATE)
     # #133: values saved by earlier, German versions in today's English
     state["playlist"] = playlists.new_name(str(state["playlist"]))
     state["music_pattern"] = playlists.OLD_PATTERNS.get(state["music_pattern"], state["music_pattern"])
@@ -1720,34 +1638,6 @@ if ROLE == "app":
         return {"live": {**{k: live[k] for k in ("fps", "stages", "remotes")}, "flowtrack": flow,
                          "viewers": len(viewers), "previews": len(previews), "windows": len(windows),
                          "midi": midi_ports}}
-
-    CHOICES = {"mode": {"dream", "cam", "img", "vid", "flow"}, "backend": {"local", "cloud"},
-               "model": set(MODELS), "music": {"off", "mic", "file"},
-               "flowtrack": {"off", "on", "hand"}, "flow_kind": {"on", "hand"}, "aspect": {"square", "wide"},
-               "music_pattern": {"auto", *playlists.PATTERNS}, "beat_snap": {"off", "beat", "bar", "phrase"}}
-
-    def coerce(k, v):
-        """Accepts a value only in the type (and, for choices, the values) of the default."""
-        d = DEFAULT_STATE[k]
-        if isinstance(d, bool):
-            return bool(v)
-        if isinstance(d, (int, float)):
-            return coerce_number(k, v)
-        v = str(v)[:2000]
-        if k == "style":                               # #123: a known style model or none (#133: old German keys too)
-            v = playlists.OLD_STYLES.get(v, v)
-            return v if v in playlists.PICTURE_STYLES else ""
-        if k == "music_pattern":
-            v = playlists.OLD_PATTERNS.get(v, v)
-        if k == "playlist":
-            v = playlists.new_name(v)
-        if k == "style_ref":                           # #123: a reference picture's id or none
-            return v if re.fullmatch(r"[0-9a-f]{12}", v) else ""
-        if k == "fx":                                  # only known effects, each once
-            return "+".join(dict.fromkeys(e for e in v.split("+") if e in midi.FX))
-        if k in CHOICES and v not in CHOICES[k]:
-            raise ValueError(k)
-        return v
 
     async def apply(changes: dict, exclude=None, persist=True, by=None):
         """by: who changed it by hand ("remote", "stage", "midi") – the autopilot leaves such settings alone a while."""

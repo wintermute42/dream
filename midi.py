@@ -12,17 +12,14 @@ import threading
 import time
 
 import paths
+import settings
+from playlists import FX
 
 MAP_FILE = os.path.join(paths.config_dir(), "midi.json")
 
-# what a controller can move: state key → (min, max)
-TARGETS = {
-    "strength": (0.0, 0.95), "mix": (0.0, 0.9), "zoom": (-0.04, 0.06), "rot": (-3.0, 3.0), "hue": (0.0, 20.0),
-    "drift": (0.0, 1.0), "smooth": (0.0, 1.0), "sens": (0.0, 2.0), "motion_sens": (0.0, 3.0), "pose_scale": (0.2, 1.5),
-    "master": (0.0, 1.0), "fx_amt": (0.0, 1.0),
-}
-# the 60 fps effects (static/fx.js); a button can switch one on or off ("fx_<name>"), all off or pick a fitting set
-FX = ("kaleido", "mandala", "mirror", "tunnel", "waves", "feedback", "trails", "pixel", "raster", "rgb", "glitch", "hue")
+# what a controller can move: state key → (min, max) – the settings marked as targets in the settings table (#189)
+TARGETS = settings.TARGETS
+# a button can switch one of the 60 fps effects (playlists.FX) on or off ("fx_<name>"), all off or pick a fitting set
 # what a button (note, or a controller jumping to 127) does
 ACTIONS = ("pause", "next", "restart", "reseed", "blackout", "tap", "pattern", "fx_off", "fx_new") + tuple("fx_" + e for e in FX)
 

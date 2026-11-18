@@ -141,3 +141,42 @@ def test_guest_http(server, request_line, ok):
 ])
 def test_eyes_paths(server, path, ok):
     assert bool(server.EYES_PATHS.fullmatch(path)) is ok
+
+
+# ---------- one table for all of it (#189) ----------
+def test_one_table_feeds_every_view():
+    """Defaults, ranges, guests' keys and MIDI targets are read from settings.SETTINGS – an entry there is all a new
+    setting needs."""
+    import midi
+    import settings
+    table = settings.SETTINGS
+    assert list(settings.DEFAULT_STATE) == list(table)
+    assert set(settings.RANGES) == {k for k, s in table.items() if s.number}
+    assert midi.TARGETS is settings.TARGETS
+    assert set(midi.TARGETS) == {"strength", "mix", "zoom", "rot", "hue", "drift", "smooth", "sens", "motion_sens",
+                                 "pose_scale", "master", "fx_amt"}
+    for k, s in table.items():
+        assert s.kind in ("bool", "int", "float", "text"), k
+        if s.number:
+            assert s.lo is not None and s.hi is not None and s.lo < s.hi, k
+        else:
+            assert s.lo is None and s.hi is None and not s.target, k
+        if s.choices:
+            assert s.default in s.choices, k
+        if isinstance(s.guest, frozenset):
+            assert s.guest <= set(s.choices), k           # a guest's values are some of the setting's own
+        else:
+            assert s.guest in (True, False), k
+        assert settings.coerce(k, s.default) == s.default, k
+
+
+def test_settings_load_without_torch(tmp_path):
+    """The settings table needs no model library: it loads where torch is not installed."""
+    import os
+    import subprocess
+    import sys
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    code = "import sys; sys.modules['torch'] = None; import settings, midi; print(len(settings.SETTINGS))"
+    out = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, timeout=60,
+                         env={**os.environ, "HOME": str(tmp_path)})
+    assert out.returncode == 0 and int(out.stdout) > 50, out.stderr
