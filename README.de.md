@@ -61,6 +61,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 
 - [Wenn etwas hakt](#wenn-etwas-hakt)
 - [Platz und Entfernen](#platz-und-entfernen)
+- [Tests](#tests)
 - [Lizenzen](#lizenzen)
 
 ---
@@ -136,6 +137,18 @@ Die Bewegungserkennung ist in Dream eingebaut; das separate Programm flowtrack b
 ```bash
 DREAM_PORT=7860
 ```
+
+**Andere Ordner** (eine zweite Installation auf demselben Mac, ein Testlauf): drei Einstellungen verlegen Dreams eigene
+Ordner – in `dream.env` oder in der Umgebung; ohne sie bleibt alles, wo es ist:
+
+| Einstellung | Standard | Darin |
+|---|---|---|
+| `DREAM_STATE_DIR` | `~/.local/state/dream` | Einstellungen (`state.json`), die Schlüssel der Fernbedienung, die Zertifikate, Uploads, Stilbilder |
+| `DREAM_CONFIG_DIR` | `~/.config/dream` | `dream.env` selbst, eigene Playlists, MIDI-, Sensor- und Bewegungs-Zuordnungen |
+| `DREAM_SAVE_DIR` | `~/Pictures/Dream` | mit 💾 behaltene Bilder und Clips |
+
+`dream.sh`, `dream-cloud` und `install-autostart.sh` nehmen dieselben Ordner; der Autostart liest auch `DREAM_PORT` aus
+`dream.env`.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -1116,6 +1129,17 @@ rm -rf <Dream-Ordner> ~/.cache/huggingface/hub/models--stabilityai--sd-turbo ~/.
 ```
 
 Lizenzen: SD-Turbo und SDXL-Turbo stehen unter der Stability AI Community License (private Nutzung frei).
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+## Tests
+
+`uv run pytest` startet die automatischen Tests (wenige Sekunden; kein Modell, keine GPU, kein Netz – sie nehmen einen
+Ersatz für torch und einen temporären Home-Ordner, deine Einstellungen, Schlüssel und Bilder bleiben unberührt). Sie
+prüfen, wer was darf (jede Route des Servers für diesen Mac, Dream Control, Gäste, Dreamy Eyes und Geräte ohne
+Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung, die Ordner, die Zertifikate fürs Heimnetz, die
+MIDI-, Sensor- und Playlist-Helfer und die Übersetzungen. GitHub lässt sie bei jedem Push laufen
+(`.github/workflows/tests.yml`).
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

@@ -16,4 +16,6 @@ Pull requests are welcome too. A few things keep Dream consistent:
 - **Licence:** Dream is under the AGPL-3.0-or-later; by contributing you agree that your contribution is too. A new model
   needs a licence that allows at least free private and non-commercial use (see "Licences" in the README).
 
-Automated tests are being set up; until then please describe in the pull request how you tested your change.
+Run the tests before a pull request: `uv run pytest` (no model or GPU needed) and `python3 scripts/i18n_check.py`;
+the CI runs both. A change to the rights (a new route or setting) needs its line in `tests/test_rights.py` or
+`tests/test_settings.py`. Please also describe in the pull request how you tried your change.
