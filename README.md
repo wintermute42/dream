@@ -701,7 +701,8 @@ eyes** that invite people to step up and play:
   tongue – and draws itself onto the air from one side.
 - **Around the eyes** appear clouds, blooming light spirals, mandalas, growing fractal trees of light, fluttering light
   moths, iridescent bubbles, ribbons of northern light and little moons circling an eye – all in the dream's colours,
-  more often when the dream is lively. If the phone runs short, these go first (never the camera).
+  more often when the dream is lively. If the phone runs short, these go first (never the camera); if it is still short,
+  the eyes are drawn with fewer pixels (a little softer) until it keeps up again – easier on battery and warmth.
 - The face model (about 4 MB) is fetched once by the Mac with the other movement files and cached in
   `~/.cache/dream/mediapipe`.
 - **Setting up:** Dream Control → card **“👀 Dreamy Eyes”** → “Show the code for the eyes phone” (or on the Mac: panel →
