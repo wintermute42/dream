@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <link rel="manifest" href="/static/remote.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/static/qrbox.css">
 <style>
   :root { --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --card: #17141f; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 18px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -274,11 +275,7 @@
   <section data-sec="eyes" data-only="control">
     <h2>👀 Dreamy Eyes</h2>
     <div class="hint">A phone of its own as an installation: its front camera feeds the dream, its screen shows two dreaming eyes in which the dream is mirrored. Its code may only lend the camera – nothing else.</div>
-    <button id="eyesqr" aria-expanded="false" aria-controls="eyesbox" style="width:100%;margin-top:8px">Show the code for the eyes phone</button>
-    <div id="eyesbox" hidden style="margin-top:8px">
-      <img id="eyesimg" alt="QR code with the address of Dreamy Eyes" width="180" height="180" style="background:#fff;border-radius:10px;padding:6px;display:block">
-      <div id="eyestext" class="hint"></div>
-    </div>
+    <button id="eyesqr" aria-haspopup="dialog" style="width:100%;margin-top:8px">Show the code for the eyes phone</button>
     <button id="trance" style="width:100%;margin-top:8px">👁 Trance now</button>
     <label id="trancelbl" style="margin-top:8px;display:block">The trance – a third eye opens – comes at most</label>
     <div class="seg" id="trancefreq" role="group" aria-labelledby="trancelbl" style="--n:4"><button data-v="0">only by hand</button><button data-v="25">rarely</button><button data-v="12">now and then</button><button data-v="5">often</button></div>
@@ -288,11 +285,7 @@
   <section data-sec="windows" data-only="control">
     <h2>🪟 Dream windows</h2>
     <div class="hint">Any number of old phones and tablets as extra windows to the dream: one organism drifts through all of them. They only look.</div>
-    <button id="winqr" aria-expanded="false" aria-controls="winbox" style="width:100%;margin-top:8px">Show the code for the windows</button>
-    <div id="winbox" hidden style="margin-top:8px">
-      <img id="winimg" alt="QR code with the address of the dream windows" width="180" height="180" style="background:#fff;border-radius:10px;padding:6px;display:block">
-      <div id="wintext" class="hint"></div>
-    </div>
+    <button id="winqr" aria-haspopup="dialog" style="width:100%;margin-top:8px">Show the code for the windows</button>
   </section>
 
   <section data-sec="midi" data-only="control">
@@ -369,6 +362,7 @@
 
 <script src="/static/i18n.js"></script>
 <script src="/static/measure.js"></script>
+<script src="/static/qrbox.js"></script>
 <script>
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
@@ -753,25 +747,17 @@
   $('trance').onclick = () => { send({ eyes_trance: true }); $('trancestate').textContent = T('The eyes go into trance.'); setTimeout(() => { $('trancestate').textContent = ''; }, 4000); };
   const tranceSeg = v => { seg('trancefreq', 'v', String(v)); document.querySelectorAll('#trancefreq button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v)))); };
   document.querySelectorAll('#trancefreq button').forEach(b => b.onclick = () => { tranceSeg(b.dataset.v); send({ eyes_cfg: { trance_every: +b.dataset.v } }); });
-  $('eyesqr').onclick = async () => {
-    const box = $('eyesbox'), open = box.hidden;
-    box.hidden = !open; $('eyesqr').setAttribute('aria-expanded', String(open));
-    if (!open) { $('eyesimg').removeAttribute('src'); return; }
-    try {
-      const info = await (await fetch('/remote-info')).json();
-      $('eyesimg').src = '/qr.svg?for=eyes&t=' + Date.now();
-      $('eyestext').textContent = info.https ? T('Scan it with the eyes phone (once: install Dream’s certificate there, see README), tap “Open the eyes”, fix the screen (Android: pin the app).')
-        : T('Without https the eyes phone cannot lend its camera – start Dream with --lan (https comes with it).');
-    } catch (e) { $('eyestext').textContent = T('Address not available – is Dream still running?'); }
-  };
-  $('winqr').onclick = () => {                         // #201: one code for any number of dream windows (plain http)
-    const box = $('winbox'), open = box.hidden;
-    box.hidden = !open; $('winqr').setAttribute('aria-expanded', String(open));
-    if (!open) { $('winimg').removeAttribute('src'); return; }
-    $('winimg').onerror = () => { $('wintext').textContent = T('Address not available – is Dream still running?'); };
-    $('winimg').src = '/qr.svg?for=window&t=' + Date.now();
-    $('wintext').textContent = T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. One dream organism drifts through all of them; they only look and cannot change anything.');
-  };
+  // #206: the codes open in the lightbox (qrbox.js): loaded on opening, gone on closing
+  $('eyesqr').onclick = () => QrBox.open({ id: 'eyes', trigger: $('eyesqr'), title: T('👀 Dreamy Eyes'), alt: T('QR code with the address of Dreamy Eyes'), fill(box, info) {
+    box.code('eyes');
+    box.say(info.https ? T('Scan it with the eyes phone (once: install Dream’s certificate there, see README), tap “Open the eyes”, fix the screen (Android: pin the app).')
+      : T('Without https the eyes phone cannot lend its camera – start Dream with --lan (https comes with it).'));
+  } });
+  // #201: one code for any number of dream windows (plain http)
+  $('winqr').onclick = () => QrBox.open({ id: 'window', trigger: $('winqr'), title: T('🪟 Dream windows'), alt: T('QR code with the address of the dream windows'), fill(box) {
+    box.code('window');
+    box.say(T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. One dream organism drifts through all of them; they only look and cannot change anything.'));
+  } });
   function feedsMine(mine) {                           // the server's word on which feeds are this device's
     for (const k of ['cam', 'motion']) {
       if (mine.includes(k)) dev.wait[k] = false;

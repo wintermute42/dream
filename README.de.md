@@ -479,8 +479,8 @@ Gut zu wissen:
 - **Ausgabe im WLAN (optional):** Statt eines HDMI-Kabels vom Mac kann ein **zweites Gerät am Beamer** das Bild zeigen
   (altes Notebook, Mini-PC, Raspberry Pi, Android-TV-Box oder Fire TV Stick mit Browser – Apple TV geht nicht, es hat
   keinen Browser). Dream mit `./dream.sh --lan` starten, im Bedienfeld unter „Ausgabe“ **„📶 Ausgabe im WLAN“**
-  antippen: QR-Code scannen oder den Link am Gerät eingeben (der Link enthält den Zugangsschlüssel, wie der QR-Code
-  fürs Handy; „⧉ Link kopieren“ legt ihn in die Zwischenablage). Am Gerät einmal ins Bild tippen bzw. F für Vollbild.
+  antippen: Der QR-Code öffnet sich groß, darunter steht der Link – scannen oder den Link am Gerät eingeben (er enthält
+  den Zugangsschlüssel, wie der QR-Code fürs Handy; „⧉ Link kopieren“ legt ihn in die Zwischenablage). Am Gerät einmal ins Bild tippen bzw. F für Vollbild.
   Neben dem Knopf steht, wie viele Ausgaben gerade verbunden sind.
   - Datenmenge und Verzögerung sind unkritisch (etwa 1–2 MB/s, Bruchteil einer Sekunde; die Überblendung glättet).
   - Bei WLAN-Aussetzern bleibt das Bild kurz stehen, die Seite sagt „Verbindung zu Dream weg – verbinde neu …“ und
@@ -517,9 +517,17 @@ dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
 ```
 
 Dann ist Dream zusätzlich im Heim-WLAN erreichbar – aber nur mit einem geheimen Link. Auf der Bühne **Q** drücken
-(oder „📱 Handy“): ein QR-Code erscheint, mit dem Handy scannen, fertig. Das Handy merkt sich den Zugang.
+(oder „📱 Handy“): ein QR-Code erscheint in einer Ecke der Bühne, mit dem Handy scannen, fertig. Das Handy merkt sich den Zugang.
 Alles, was du am Handy änderst, passiert sofort auf der Bühne. Sprechen am Handy: Diktierfunktion der Tastatur.
 Mehrere Handys gleichzeitig gehen auch.
+
+**Die anderen QR-Codes öffnen sich in einer Lightbox:** groß auf weißem Grund – gut aus der Entfernung und mit alten
+Handys zu scannen –, darunter ihre Erklärung. Das gilt für Dream Control, die Ausgabe im WLAN, das Zertifikat, Dreamy
+Eyes und die Traum-Fenster, im Bedienfeld genauso wie in Dream Control. Schließen mit **Esc**, einem Klick daneben oder
+„Schließen“; die Tasten der Bühne ruhen so lange. Ein Code wird nur geladen, solange seine Lightbox offen ist – sein
+Schlüssel steht nie länger als nötig auf dem Bildschirm. Der Code der Gäste bleibt klein in der Ecke der Bühne (Q,
+„📱 Handy“ oder „QR auf Bühne“ in Dream Control zeigen und verbergen ihn): Der Traum läuft dahinter weiter, und die
+Tasten wirken wie gewohnt.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -537,7 +545,7 @@ Es gibt zwei Schlüssel, damit das Publikum mitspielen kann, ohne dich Geld zu k
   zeigt einem Gast nur, was er darf, und der Server lehnt den Rest ohnehin ab („Das darf nur Dream Control.“).
 - **Dream Control ist deine eigene Fernbedienung mit allen Einstellungen.** Im Bedienfeld unter „Ausgabe“ zeigt
   **🎛 Dream Control** ihren QR-Code – mit dem eigenen Handy oder Tablet scannen, nie vor dem Publikum (der Code
-  verschwindet wieder, wenn du ihn zuklappst). Es ist immer nur ein Gerät Dream Control: Ein zweites startet als Gast mit
+  ist wieder weg, sobald du seine Lightbox schließt). Es ist immer nur ein Gerät Dream Control: Ein zweites startet als Gast mit
   dem Knopf **„Dream Control übernehmen“**; das erste steuert dann als Gast weiter und kann es auf dieselbe Weise
   zurückholen.
 - **↻ Neuer Gast-Code** (Bedienfeld, unter „Ausgabe“) fragt einmal nach und erzeugt dann einen neuen Gast-Schlüssel:
@@ -581,7 +589,7 @@ Server-Zertifikat erneuert sich selbst, wenn sich die Adresse des Macs ändert (
 
    Dann „Trotzdem installieren“, entsperren (eine Displaysperre ist nötig) und **Downloads → `dream-ca.crt`** wählen.
    Prüfen: Einstellungen-Suche „Vertrauenswürdige Anmeldedaten“ → Reiter **Nutzer** zeigt „Dream home network CA“.
-3. **„Zertifikat ist installiert → weiter“** tippen – das Bedienfeld zeigt die Codes nacheinander und merkt sich diesen
+3. **„Zertifikat ist installiert → weiter“** tippen – die Lightbox zeigt die Codes nacheinander und merkt sich diesen
    Schritt (beim nächsten Mal beginnt es mit Code 2; „← Zertifikat“ geht zurück). Code **2** (Dream Control) scannen. In
    Chrome: Menü ⋮ → **App installieren** (oder der Knopf „⤓ Als App installieren“ in der Fernbedienung). Danach startet es
    vom Startbildschirm wie eine App. Ein Tablet mit Geräteverwaltung (Firma, Schule) verbietet eigene Zertifikate unter
