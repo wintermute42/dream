@@ -272,6 +272,65 @@ def edge_map(img):
 
 _busy = {"t": 0.0, "n": 0}     # time spent rendering and pictures made (for the load display)
 
+# ---------- measuring (#180): where the time of a picture goes ----------
+# Off it costs nothing. During a measurement run every part of a picture is timed – synchronised with the GPU, so the
+# times are real (that makes the run itself a little slower) – and gathered as milliseconds per part.
+_perf: dict = {"on": False, "steps": {}, "frames": 0}
+_perf_frame = threading.local()
+
+
+def _gpu_sync():
+    with contextlib.suppress(Exception):
+        if device == "mps":
+            torch.mps.synchronize()
+        elif device == "cuda":
+            torch.cuda.synchronize()
+
+
+def perf_add(name: str, ms: float):
+    if _perf["on"]:
+        _perf["steps"].setdefault(name, []).append(ms)
+
+
+@contextlib.contextmanager
+def _perf_part(label: str):
+    """Adds the time of one part of the current picture (only while measuring)."""
+    cur = getattr(_perf_frame, "cur", None)
+    if not _perf["on"] or cur is None:
+        yield
+        return
+    _gpu_sync()
+    t = time.perf_counter()
+    try:
+        yield
+    finally:
+        _gpu_sync()
+        cur[label] = cur.get(label, 0.0) + (time.perf_counter() - t) * 1000
+
+
+def _perf_wrap(obj, name: str, label: str):
+    """Times a method of a model part (UNet, decoder, text encoding) from now on; costs nothing while not measuring."""
+    f = getattr(obj, name, None)
+    if f is None or getattr(f, "_dream_perf", False):
+        return
+
+    def timed(*a, **k):
+        with _perf_part(label):
+            return f(*a, **k)
+    timed._dream_perf = True
+    setattr(obj, name, timed)
+
+
+@contextlib.contextmanager
+def _gpu_turn():
+    """The GPU for one picture – and, while measuring, how long the picture waited for it."""
+    t = time.perf_counter()
+    with gpu_lock:
+        cur = getattr(_perf_frame, "cur", None)
+        if cur is not None:
+            cur["wait_gpu"] = cur.get("wait_gpu", 0.0) + (time.perf_counter() - t) * 1000
+        yield
+
 
 def _render(key, img, prompt, strength, steps, seed, pose=None, pose_scale=0.8, seed2=None, st=0.0, prompt2=None, pt=0.0,
             edges=0.0, look=None):
@@ -279,11 +338,18 @@ def _render(key, img, prompt, strength, steps, seed, pose=None, pose_scale=0.8, 
     edges: how strongly the input's outlines lead (0 = off, #113); look: the real style for SDXL (#123):
     {"style": key, "sa": amount, "ref": reference hash, "ra": amount}."""
     t0 = time.time()
+    _perf_frame.cur = {} if _perf["on"] else None     # #180
     try:
         return _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2, st, prompt2, pt, edges, look)
     finally:
         _busy["t"] += time.time() - t0
         _busy["n"] += 1
+        cur, _perf_frame.cur = _perf_frame.cur, None
+        if cur is not None and _perf["on"]:
+            _perf["frames"] += 1
+            for k, v in cur.items():
+                perf_add(k, v)
+            perf_add("render", (time.time() - t0) * 1000)
 
 
 def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2, st, prompt2, pt, edges=0.0, look=None):
@@ -296,7 +362,11 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
                 generator=gen, output_type="pil")
     blend = prompt2 is not None and prompt2 != prompt and pt > 0
     near = prompt2 if blend and pt >= 0.5 else prompt          # where embeddings can't be blended: the nearer one
-    with gpu_lock, torch.no_grad():
+    if _perf["on"]:                                            # #180: time the parts of the picture
+        _perf_wrap(p.unet, "forward", "unet")
+        _perf_wrap(p.vae, "decode", "decode")
+        _perf_wrap(p, "encode_prompt", "prompt")
+    with _gpu_turn(), torch.no_grad():
         if MODELS[key][2]:                                    # #123: style model and reference picture (SDXL only)
             look = look or {}
             styles.apply(p, look.get("style"), look.get("sa", 0))
@@ -315,6 +385,8 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
             if edges > 0:
                 kinds.append("edges"); imgs.append(edge_map(img)); scales.append(float(edges))
             pp = _ctl_pipes[(key, tuple(kinds))]
+            if _perf["on"]:
+                _perf_wrap(pp.controlnet, "forward", "controlnet")
             one = len(kinds) == 1
             with _blended_noise(pp, seed, seed2, st):
                 out = pp(prompt=near, control_image=imgs[0] if one else imgs,
@@ -323,9 +395,10 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
             with _blended_noise(p, seed, seed2, st):
                 out = p(prompt=near, **args)
         else:
-            e = _prompt_embeds(p, key, prompt)
-            if blend:
-                e = torch.lerp(e, _prompt_embeds(p, key, prompt2), float(min(pt, 1.0)))
+            with _perf_part("prompt"):
+                e = _prompt_embeds(p, key, prompt)
+                if blend:
+                    e = torch.lerp(e, _prompt_embeds(p, key, prompt2), float(min(pt, 1.0)))
             with _blended_noise(p, seed, seed2, st):
                 out = p(prompt_embeds=e, **args)
     return out.images[0]
@@ -667,7 +740,9 @@ async def ws(sock: WebSocket):
                         s.update(m)
                         continue
                     if msg.get("bytes"):
+                        t_dec = time.perf_counter()
                         img, pose = await loop.run_in_executor(None, decode, msg["bytes"])
+                        perf_add("decode_in", (time.perf_counter() - t_dec) * 1000)   # #180
                         await frames.put((img, pose, dict(s), time.time()))   # the settings as they were for this frame
                 except (ValueError, TypeError, OSError, KeyError, binascii.Error) as e:
                     print("render line: skipped a broken message:", repr(e)[:200], flush=True)
@@ -695,6 +770,7 @@ async def ws(sock: WebSocket):
             if all(want) and img.size != want:            # #108: sent small to save the line, dreamed at full size
                 img = await loop.run_in_executor(None, lambda im=img: im.resize(want, Image.BICUBIC))
             t0 = time.time()
+            perf_add("queue", (t0 - t_in) * 1000)            # #180: how long the frame waited before rendering
             drift = {"seed2": int(fs["seed2"]) if fs.get("seed2") is not None else None,
                      "st": float(fs.get("st") or 0), "pt": float(fs.get("pt") or 0),
                      "prompt2": str(fs["prompt2"])[:500] if fs.get("prompt2") else None}
@@ -723,12 +799,17 @@ async def ws(sock: WebSocket):
             painted_with = used
 
             async def send(prev, out=out, gpu_ms=gpu_ms, switch=switch, t_in=t_in, used=used, fmt=fs.get("fmt")):
+                t_enc = time.perf_counter()
                 jpg = await loop.run_in_executor(None, encode, out, fmt)
+                perf_add("encode_out", (time.perf_counter() - t_enc) * 1000)   # #180
                 if prev:
                     await asyncio.gather(prev, return_exceptions=True)   # the answers leave in the order the frames came
                 if switch:
                     await sock.send_text(json.dumps({"switch": switch}))
+                t_send = time.perf_counter()
                 await sock.send_bytes(jpg)
+                perf_add("send", (time.perf_counter() - t_send) * 1000)
+                perf_add("server", (time.time() - t_in) * 1000)
                 await sock.send_text(json.dumps({"ms": gpu_ms, "server_ms": int((time.time() - t_in) * 1000), "device": device,
                                                  "model": used, "loading": model_state["loading"], "error": model_state["error"],
                                                  "style_loading": styles.state["loading"],
@@ -930,6 +1011,97 @@ if ROLE == "app":
                 await asyncio.sleep(1)
 
     app.router.on_startup.append(lambda: live.setdefault("cloud_watch", asyncio.get_event_loop().create_task(cloud_watch())))
+
+    # ---------- a measurement run (#180): 60 s with fixed settings, the parts of a picture and the devices' frames ----------
+    MEASURE_PROMPT = "a glowing jellyfish nebula drifting through a violet ocean, bioluminescent, dreamy"
+    MEASURE_FIXED = {"prompt": MEASURE_PROMPT, "seed": 1, "strength": 0.5, "quality": 2, "size": 512, "mode": "dream",
+                     "fx": "", "edges": False, "pose": False, "style": "", "style_ref": "", "drift": 0.0, "auto": False,
+                     "playlist": "", "smooth": 0.3}
+    measure: dict = {"run": None, "reports": {}, "last": None}
+
+    def _summary(values: list) -> dict:
+        v = sorted(values)
+        if not v:
+            return {"n": 0}
+        pick = lambda q: round(v[min(len(v) - 1, int(q * (len(v) - 1) + 0.5))], 1)
+        return {"n": len(v), "mean": round(sum(v) / len(v), 1), "p50": pick(0.5), "p95": pick(0.95)}
+
+    STEP_NAMES = [("queue", "waiting before rendering"), ("decode_in", "decoding the incoming picture"),
+                  ("wait_gpu", "waiting for the GPU"), ("prompt", "prompt encoding"), ("unet", "UNet (diffusion)"),
+                  ("controlnet", "ControlNet"), ("decode", "decoder (latents → picture)"), ("render", "picture in all"),
+                  ("encode_out", "JPEG/WebP encoding"), ("send", "sending"), ("server", "server time per picture")]
+
+    def measure_table(r: dict) -> str:
+        lines = [f"Measurement {r['seconds']} s · {r['model']} {r['size']} · {r['ai_steps']} steps · {r['backend']} ({r['device']})"
+                 + (" · fixed settings" if r["fixed"] else ""),
+                 f"AI pictures/s: {r['fps']}   GPU memory: {r.get('gpu_mem_gb', '–')} GB   Dream memory: {r.get('mem_dream_gb', '–')} GB",
+                 f"{'part':34} {'mean':>8} {'p50':>8} {'p95':>8}   (ms, per picture)"]
+        for k, name in STEP_NAMES:
+            st = r["steps"].get(k)
+            if st and st.get("n"):
+                lines.append(f"{name:34} {st['mean']:>8} {st['p50']:>8} {st['p95']:>8}")
+        for kind, d in sorted(r["devices"].items()):
+            lines.append(f"{kind:12} {d.get('n', 1)}× · {d.get('fps', '–')} fps display · frame {d.get('ms_avg', '–')} ms"
+                         f" (p95 {d.get('ms_p95', '–')}) · slow frames {d.get('slow_pct', '–')} %")
+        return "\n".join(lines)
+
+    async def measure_run(seconds: int, fixed: bool):
+        before = {k: state[k] for k in MEASURE_FIXED} if fixed else None
+        try:
+            if fixed:
+                await apply(MEASURE_FIXED, by="measure")
+                await asyncio.sleep(4)                 # settle: the stage takes the settings, the model is ready
+            measure["reports"] = {}
+            _perf.update(on=True, steps={}, frames=0)
+            t0 = time.time()
+            msg = {"measure": {"ms": seconds * 1000}}
+            await broadcast(msg)
+            await eyes_send(msg)
+            await asyncio.sleep(seconds)
+            _perf["on"] = False
+            dt = time.time() - t0
+            await asyncio.sleep(3)                     # the devices' reports
+            devices: dict = {}
+            for (kind, _), rep_ in measure["reports"].items():
+                d = devices.setdefault(kind, {"n": 0, "fps": [], "ms_avg": [], "ms_p95": [], "slow_pct": []})
+                d["n"] += 1
+                for k in ("fps", "ms_avg", "ms_p95", "slow_pct"):
+                    d[k].append(rep_.get(k, 0))
+            devices = {k: {"n": d["n"], **{f: round(sum(d[f]) / len(d[f]), 1) for f in ("fps", "ms_avg", "ms_p95", "slow_pct")}}
+                       for k, d in devices.items()}
+            st = stats()
+            r = {"at": time.strftime("%Y-%m-%d %H:%M:%S"), "seconds": seconds, "fixed": fixed, "device": device,
+                 "backend": state.get("backend"), "model": model_state.get("active") or state.get("model"),
+                 "size": f"{state.get('size')}px", "ai_steps": state.get("quality"),
+                 "fps": round(_perf["frames"] / max(dt, 1e-3), 2), "frames": _perf["frames"],
+                 "steps": {k: _summary(v) for k, v in _perf["steps"].items()}, "devices": devices,
+                 "gpu_mem_gb": st.get("gpu_mem_gb"), "mem_dream_gb": st.get("mem_dream_gb")}
+            r["table"] = measure_table(r)
+            print(r["table"], flush=True)
+            with contextlib.suppress(OSError):
+                os.makedirs(os.path.join(STATE_DIR, "measure"), exist_ok=True)
+                with open(os.path.join(STATE_DIR, "measure", time.strftime("%Y%m%d-%H%M%S") + ".json"), "w") as f:
+                    json.dump(r, f, indent=1)
+            measure["last"] = r
+            await broadcast({"measure_result": r})
+        finally:
+            _perf["on"] = False
+            measure["run"] = None
+            if before:
+                await apply(before, by="measure")
+
+    @app.post("/measure")
+    async def measure_start(body: dict = Body(default={})):
+        """Dream Control and this Mac (#180): a measurement run – {"seconds": 60, "fixed": true}."""
+        if measure["run"]:
+            return JSONResponse({"error": i18n.t("A measurement is running already.")}, status_code=409)
+        seconds = int(min(max(int(body.get("seconds") or 60), 10), 300))
+        measure["run"] = asyncio.get_running_loop().create_task(measure_run(seconds, bool(body.get("fixed", True))))
+        return {"started": True, "seconds": seconds}
+
+    @app.get("/measure")
+    def measure_last():
+        return measure["last"] or {}
 
     @app.get("/cloud")
     def cloud_status():
@@ -1288,7 +1460,7 @@ if ROLE == "app":
 
     # #148: what only Dream Control (or this Mac) may do, and what only the stage on this Mac hands in. Checked in the
     # middleware before a handler reads anything; a new route that costs money or changes the owner's files goes here.
-    CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r"/playlists"), ("DELETE", r"/playlists/.+"),
+    CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r"/measure"), ("GET", r"/measure"), ("POST", r"/playlists"), ("DELETE", r"/playlists/.+"),
                     ("POST", r"/upload"), ("POST", r"/voice"), ("POST", r"/gallery/[^/]+/(delete|save)"),
                     ("POST", r"/gallery/clear"), ("POST", r"/gallery/undo/[^/]+"), ("POST", r"/style-ref")]
     LOCAL_ONLY = [("POST", r"/gallery")]
@@ -1577,6 +1749,12 @@ if ROLE == "app":
                     continue
                 if sock in eyes_pages or roles.get(sock) == "eyes":   # #166: also eyes on a Control device
                     eyes_note(msg)
+                mr = msg.get("measure_report")             # #180: a device's frames during a measurement run
+                if measure["run"] and isinstance(mr, dict) and len(measure["reports"]) < 50:
+                    kind = mr.get("kind") if mr.get("kind") in ("stage", "eyes", "remote", "output") else "other"
+                    with contextlib.suppress(TypeError, ValueError):
+                        measure["reports"][(kind, id(sock))] = {k: float(min(max(float(mr.get(k) or 0), 0), 10000))
+                                                               for k in ("fps", "ms_avg", "ms_p95", "slow_pct")}
                 if roles.get(sock) == "eyes":          # #156: Dreamy Eyes only lends (or stops) its front camera
                     f = msg.get("feed")
                     msg = {"feed": {"cam": bool(f.get("cam")), "facing": "user"}} if isinstance(f, dict) and "cam" in f else {}

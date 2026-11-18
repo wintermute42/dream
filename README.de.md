@@ -170,6 +170,14 @@ Modell, CPU von Dream und dem ganzen Mac, Speicher von Dream, GPU-Speicher und S
 Bewegungs-Werte pro Sekunde, wenn die Bewegung an ist). Rot heißt: am Anschlag. Bleibt unter der Vorschau Platz (vor
 allem bei 16:9), wandern Karten wie Rechnen und Ausgabe dorthin. Die Werte gibt es auch als JSON unter
 http://127.0.0.1:7860/stats.
+
+**📏 Messen** (unter der Auslastung, #180) läuft 60 s mit festen Einstellungen (fester Prompt und Seed, 512 px, 2 Schritte,
+ohne Effekte, Umrisse, Pose oder Stil; danach ist alles wie vorher) und zeigt, wohin die Zeit eines Bildes geht: Warten,
+Eingangsbild dekodieren, Warten auf die GPU, Prompt kodieren, UNet, Decoder, Kodieren und Senden – Mittel, Median und die
+langsamsten 5 % in Millisekunden –, dazu, wie flüssig jede offene Seite währenddessen gezeichnet hat (Bühne, Dream Remote,
+Dreamy Eyes: Bilder pro Sekunde, Frame-Zeit, Anteil langsamer Frames). Die Tabelle steht auch im Terminal und als JSON in
+`~/.local/state/dream/measure/`, um eine Änderung vorher und nachher zu vergleichen. Beim Messen werden die Teile zusammen
+mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Starten können ihn nur Dream Control und der Mac.
 - Die Schrift im Bedienfeld passt sich selbst an (#125: Show-Ansicht, A−/A+ und Nachtmodus gibt es dort nicht mehr).
 - **DE | EN – Sprache (#132):** oben rechts im Bedienfeld und am Handy. Die ganze Oberfläche (Bühne, Handy, Ausgabe,
   Meldungen von Dream und der Cloud-GPU) gibt es auf Deutsch und Englisch; gemerkt pro Gerät, beim ersten Mal nach der

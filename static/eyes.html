@@ -39,6 +39,7 @@
 <video id="cam" playsinline muted hidden></video>
 
 <script src="/static/i18n.js"></script>
+<script src="/static/measure.js"></script>
 <script>
   const T = I18N.t;
   I18N.apply();
@@ -88,6 +89,7 @@
   const cam = { stream: null, timer: 0, cv: document.createElement('canvas'), encoding: false, lent: false, wait: false };
   let ctl = null;
   const send = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };
+  const measureMe = DreamMeasure('eyes', send);       // #180: its frames during a measurement run
   async function camStart() {
     if (!window.isSecureContext || !navigator.mediaDevices) { say(T('The camera needs https – open Dreamy Eyes with its QR code from Dream Control.'), 0); return; }
     try {
@@ -209,6 +211,7 @@
     ctl.onopen = () => announce();
     ctl.onmessage = ev => {
       const m = JSON.parse(ev.data);
+      measureMe(m);                                    // #180
       if (m.feeds_mine) { if (m.feeds_mine.includes('cam')) cam.wait = false; else if (cam.lent && !cam.wait) camStop(T('Dream Control took the camera back – tap to lend it again.')); }
       if (m.aimasks) {                                 // #160; #166: what the server dropped goes here too
         for (const k of Object.keys(aiFaces)) if (!(k in m.aimasks)) delete aiFaces[k];
