@@ -152,6 +152,20 @@ def test_key_from_the_address_is_kept_as_a_cookie(server, reached):
     assert cookie.startswith(f"dream_k={server.rights.keys['guest']}") and "HttpOnly" in cookie and "SameSite=lax" in cookie
 
 
+@pytest.mark.parametrize("role,path,name", [("window", "/window", "dream_w"), ("eyes", "/eyes", "dream_e"),
+                                            ("guest", "/remote", "dream_k")])
+def test_a_page_renews_only_the_cookie_it_signed_in_with(server, reached, role, path, name):
+    """#170: a key that works is renewed on every page. A device that keeps several valid keys gets back the one this
+    page signed in with – a dream window its dream_w (#201), the eyes' page its dream_e (#166) – and no other."""
+    kept = {"dream_k": server.rights.keys["guest"], "dream_e": server.rights.keys["eyes"],
+            "dream_w": server.rights.keys["window"]}
+    r = client(server, role, cookies=kept).get(path, headers={"accept": "text/html"})
+    assert r.text == "reached"
+    renewed = r.headers.get_list("set-cookie")
+    assert len(renewed) == 1, renewed
+    assert renewed[0].startswith(f"{name}={kept[name]};") and "HttpOnly" in renewed[0] and "SameSite=lax" in renewed[0]
+
+
 def test_a_device_without_a_key_gets_the_pairing_page(server):
     r = client(server, "none").get("/remote", headers={"accept": "text/html"})
     assert r.status_code == 403 and "<html" in r.text.lower() and server.rights.keys["guest"] not in r.text

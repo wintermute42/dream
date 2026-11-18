@@ -244,8 +244,9 @@ async def guard(request: Request, call_next):
         return Response(i18n.t("Not from Dream's own pages."), status_code=403)
     if request.method == "GET" and PUBLIC.fullmatch(request.url.path):
         return await call_next(request)
-    request.state.role = role_of(host, qk, cookie_of(request.cookies, request.url.scheme, request.url.path.startswith("/eyes"),
-                                                     request.url.path.startswith("/window")))
+    # #166, #201: the eyes' page and a dream window ask for their own cookie first – to sign in and to renew it
+    own = (request.url.path.startswith("/eyes"), request.url.path.startswith("/window"))
+    request.state.role = role_of(host, qk, cookie_of(request.cookies, request.url.scheme, *own))
     if request.state.role is None:
         if wants_page(request):
             return pair_page(request)
@@ -272,7 +273,7 @@ async def guard(request: Request, call_next):
     elif not qk and not is_local(host) and wants_page(request):
         # #170: a key that works is renewed on every page – as "lax" (a cookie from before #168 was "strict") and for
         # another year
-        used = cookie_used(request.cookies, request.url.scheme, request.url.path.startswith("/eyes"))
+        used = cookie_used(request.cookies, request.url.scheme, *own)   # the one it signed in with, no other
         if used:
             resp.set_cookie(used, request.cookies[used], httponly=True, samesite="lax", max_age=60 * 60 * 24 * 365,
                             secure=request.url.scheme == "https")
