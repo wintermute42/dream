@@ -705,7 +705,8 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   verträumter Zunge – und es zeichnet sich von einer Seite her in die Luft.
 - **Um die Augen** entstehen Wölkchen, aufblühende Lichtspiralen, Mandalas, wachsende Fraktal-Bäume aus Licht,
   flatternde Licht-Motten, schillernde Blasen, Polarlicht-Bänder und kleine Monde, die ein Auge umkreisen – alles in den
-  Farben des Traums, öfter, wenn der Traum lebhaft ist. Wird das Handy knapp, fallen sie zuerst weg (nie die Kamera).
+  Farben des Traums, öfter, wenn der Traum lebhaft ist. Wird das Handy knapp, fallen sie zuerst weg (nie die Kamera);
+  reicht das nicht, zeichnen die Augen mit weniger Pixeln (etwas weicher), bis es wieder mitkommt – schont Akku und Wärme.
 - Das Gesichtsmodell (etwa 4 MB) holt der Mac einmal mit den anderen Bewegungsdateien und legt es in
   `~/.cache/dream/mediapipe` ab.
 - **Einrichten:** Dream Control → Karte **„👀 Dreamy Eyes“** → „Code fürs Augen-Handy zeigen“ (oder am Mac: Bedienfeld →

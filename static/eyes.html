@@ -70,6 +70,16 @@
     dream.dyn = dream.sample ? Math.min(1, diff / n / 255 / 3 * 6) : 0;
     dream.sample = d.slice();
   }
+  // #188: the dream as it glows behind the eyes – brighter, more saturated – filtered once per picture, not every frame
+  const glows = [document.createElement('canvas'), document.createElement('canvas')];
+  dream.gi = 0;
+  function glowIn(bm) {                                // the newest picture into the canvas the one before last left free
+    dream.gi ^= 1;
+    const c = glows[dream.gi], x = c.getContext('2d');
+    if (c.width !== bm.width || c.height !== bm.height) { c.width = bm.width; c.height = bm.height; } else x.clearRect(0, 0, c.width, c.height);
+    x.filter = 'brightness(1.35) saturate(1.3)'; x.drawImage(bm, 0, 0); x.filter = 'none';
+  }
+  const glowCur = () => glows[dream.gi], glowPrev = () => glows[dream.gi ^ 1];
   function view() {
     const s = new WebSocket(`${proto}://${location.host}/view?preview=1&as=eyes`);
     s.binaryType = 'blob';
@@ -78,7 +88,7 @@
       try {
         const bm = await createImageBitmap(ev.data);
         if (dream.prev) dream.prev.close();
-        dream.prev = dream.cur; dream.cur = bm; dream.at = performance.now(); analyse(bm);
+        dream.prev = dream.cur; dream.cur = bm; dream.at = performance.now(); analyse(bm); glowIn(bm);
       } catch (e) { /* not a picture */ }
     };
     s.onclose = ev => { if (ev.code !== 4403) setTimeout(view, 2000); };
@@ -226,8 +236,20 @@
 
   // ---------- the eyes ----------
   let W = 0, H = 0, dpr = 1;
+  // #188: when the phone runs short the eyes are drawn with fewer pixels (2 → 1.5 → 1 per CSS pixel), and with full
+  // detail again once it keeps up; a step up that fails makes the next try wait longer, so it never see-saws
+  const res = { cap: 2, at: 0, upAt: -1e9, upWait: 10000 };
+  function resTick(t) {
+    if (t - res.at < 2500) return;                     // give each step time to show in the frame rate
+    if (perf < 40 && dpr > 1) {
+      if (t - res.upAt < 15000) res.upWait = Math.min(120000, res.upWait * 2);
+      res.cap = dpr > 1.5 ? 1.5 : 1; res.at = t; size();
+    } else if (perf > 52 && dpr < Math.min(2, devicePixelRatio || 1) && t - res.at > res.upWait) {
+      res.cap = res.cap < 1.5 ? 1.5 : 2; res.at = res.upAt = t; size();
+    }
+  }
   function size() {
-    dpr = Math.min(2, devicePixelRatio || 1);
+    dpr = Math.min(2, res.cap, devicePixelRatio || 1);
     W = innerWidth; H = innerHeight;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     main.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -486,11 +508,9 @@
       const s = d.size * (0.85 + 0.25 * age / d.life) * ({ tree: 1.7, moth: 1.5, bubbles: 1.6, orbit: 1, tear: 1.4 }[d.kind] || 1);
       if (d.kind === 'cloud') {                        // soft puffs drifting upwards
         for (const [ox, oy, rr] of d.puffs) {
-          const px = d.x + ox * s * 1.2 + Math.sin(age / 1700 + ox * 6) * s * 0.06, py = y + oy * s * 0.6, R = s * rr;
-          const c = g.createRadialGradient(px, py, 0, px, py, R);
-          c.addColorStop(0, `hsla(${d.hue},70%,72%,${0.3 * env})`); c.addColorStop(1, `hsla(${d.hue + 30},70%,60%,0)`);
-          g.fillStyle = c; g.beginPath(); g.arc(px, py, R, 0, Math.PI * 2); g.fill();
+          stamp(g, tinted(d.hue), d.x + ox * s * 1.2 + Math.sin(age / 1700 + ox * 6) * s * 0.06, y + oy * s * 0.6, s * rr, 0.3 * env);
         }
+        g.globalAlpha = 1;
       } else if (d.kind === 'bloom') {                 // a sunflower spiral of light (golden angle) that turns and breathes
         const n = 110, rot = age * 0.00025 * d.spin, pulse = 1 + 0.08 * Math.sin(age / 500);
         for (let k = 0; k < n; k++) {
@@ -806,6 +826,23 @@
 
   // ---------- the night behind the eyes: the dream shines through drifting masks – clouds, a fractal, patterns ----------
   const back = document.createElement('canvas'), bk = back.getContext('2d');
+  // #188: a soft light is drawn once and stamped (scaled, with its alpha) – the same look as a gradient per light, far cheaper
+  function softLight(stops, size) {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const x = c.getContext('2d'), r = size / 2, gr = x.createRadialGradient(r, r, 0, r, r, r);
+    for (const [at, col] of stops) gr.addColorStop(at, col);
+    x.fillStyle = gr; x.fillRect(0, 0, size, size);
+    return c;
+  }
+  const stamp = (c, img, x, y, r, al) => { c.globalAlpha = al; c.drawImage(img, x - r, y - r, r * 2, r * 2); };
+  const LIGHT = softLight([[0, 'rgba(255,255,255,1)'], [1, 'rgba(255,255,255,0)']], 128);   // the back masks' lights
+  const PUFF = softLight([[0.15, 'rgba(255,255,255,1)'], [0.6175, 'rgba(255,255,255,.75)'], [1, 'rgba(255,255,255,0)']], 256);   // the portal's cloud
+  const tints = new Map();                             // the decor's coloured puffs, one light per 10° of hue
+  const tinted = hue => {
+    const k = ((Math.round(hue / 10) % 36) + 36) % 36;
+    if (!tints.has(k)) tints.set(k, softLight([[0, `hsla(${k * 10},70%,72%,1)`], [1, `hsla(${k * 10 + 30},70%,60%,0)`]], 128));
+    return tints.get(k);
+  };
   const LINEFACES = new Set(['goddess', 'cat', 'medusa', 'mermaid', 'fairy', 'priestess']);   // neon faces drawn in light
   const BACKS = ['clouds', 'fractal', 'pattern', ...LINEFACES, 'silhouette'];
   // #162: the silhouette of whoever stands in front – found on the phone (selfie segmentation), only while it is shown
@@ -837,7 +874,7 @@
       });
     } catch (e) { /* a frame it could not read */ }
   }
-  const bs = { mode: 'clouds', prev: 'fractal', mix: 1, next: performance.now() + 35000, every: 0,
+  const bs = { mode: 'clouds', prev: 'fractal', mix: 1, next: performance.now() + 35000, every: 0, drawn: -1e9,
     reveal: 0, revealUntil: 0, revealNext: performance.now() + 40000,   // a window wide open onto the dream, now and then
     clouds: Array.from({ length: 13 }, () => ({ x: Math.random(), y: Math.random(), r: 0.16 + Math.random() * 0.2, v: 0.004 + Math.random() * 0.01,
       puffs: Array.from({ length: 5 }, () => [(Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.5, 0.45 + Math.random() * 0.55]) })) };
@@ -847,21 +884,14 @@
     if (mode === 'clouds') {                           // soft clouds drifting slowly sideways
       for (const c of bs.clouds) {
         const cx = (((c.x + t / 1000 * c.v) % 1.3) - 0.15) * w, cy = c.y * h + Math.sin(t / 4000 + c.x * 9) * m * 0.03;
-        for (const [ox, oy, rr] of c.puffs) {
-          const R = c.r * m * rr, px = cx + ox * c.r * m, py = cy + oy * c.r * m;
-          const gr = bk.createRadialGradient(px, py, 0, px, py, R);
-          gr.addColorStop(0, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-          bk.fillStyle = gr; bk.beginPath(); bk.arc(px, py, R, 0, Math.PI * 2); bk.fill();
-        }
+        for (const [ox, oy, rr] of c.puffs) stamp(bk, LIGHT, cx + ox * c.r * m, cy + oy * c.r * m, c.r * m * rr, al * 0.85);
       }
     } else if (mode === 'fractal') {                   // a huge sunflower spiral of soft lights, turning and breathing
       const n = 260, rot = t / 9000, br = 1 + 0.06 * Math.sin(t / 1600), Rmax = Math.hypot(w, h) * 0.6;
       for (let k = 1; k < n; k++) {
-        const ang = k * 2.39996 + rot, rr = Rmax * Math.sqrt(k / n) * br, x = w / 2 + Math.cos(ang) * rr, y = h / 2 + Math.sin(ang) * rr;
+        const ang = k * 2.39996 + rot, rr = Rmax * Math.sqrt(k / n) * br;
         const R = m * (0.035 + 0.1 * Math.sqrt(k / n)) * (0.75 + 0.25 * Math.sin(t / 700 + k));
-        const gr = bk.createRadialGradient(x, y, 0, x, y, R);
-        gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-        bk.fillStyle = gr; bk.beginPath(); bk.arc(x, y, R, 0, Math.PI * 2); bk.fill();
+        stamp(bk, LIGHT, w / 2 + Math.cos(ang) * rr, h / 2 + Math.sin(ang) * rr, R, al * 0.9);
       }
     } else if (mode === 'silhouette') {               // the person, as the camera sees them – mirrored, soft, a little larger
       if (seg.have) {
@@ -1096,7 +1126,7 @@
   // the painted face inside a dream cloud: soft blobs that drift, breathe and change shape – never a hard edge
   function cloudMask(c, cx, cy, size, t, al) {
     c.globalCompositeOperation = 'lighter';
-    const blob = (x, y, r, a) => { const gr = c.createRadialGradient(x, y, r * 0.15, x, y, r); gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(0.55, `rgba(255,255,255,${a * 0.75})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2); };
+    const blob = (x, y, r, a) => stamp(c, PUFF, x, y, r, a);
     blob(cx, cy, size * (0.42 + 0.02 * Math.sin(t / 1300)), al);                // the heart of the cloud
     const n = 12;
     for (let k = 0; k < n; k++) {                      // a ring of puffs, each wandering on its own
@@ -1104,7 +1134,7 @@
       const rr = size * (0.27 + 0.06 * Math.sin(t / 1900 + k * 1.9)), br = size * (0.17 + 0.05 * Math.sin(t / 1500 + k * 2.3));
       blob(cx + Math.cos(an) * rr * 1.05, cy + Math.sin(an) * rr * 1.2, br, al * 0.9);
     }
-    c.globalCompositeOperation = 'source-over';
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
   }
   // the painted picture with soft edges, so its border never shows as a sharp line where it ends
   function feather(img) {
@@ -1281,7 +1311,8 @@
     if (!dream.cur) return;
     const q = perf > 45 ? 0.5 : 0.33;                  // the mask is drawn small and scaled up – soft anyway
     const w = Math.max(64, Math.round(W * q)), h = Math.max(64, Math.round(H * q));
-    if (back.width !== w || back.height !== h) { back.width = w; back.height = h; }
+    const resized = back.width !== w || back.height !== h;
+    if (resized) { back.width = w; back.height = h; }
     const present = face.seen && t - face.seen < 1500;
     if (bs.mode === 'silhouette' && !present && bs.mix >= 1 && t < bs.next - 3000) bs.next = t;   // nobody there: on to the next mask
     if (t > bs.next) {
@@ -1293,12 +1324,18 @@
     }
     if ((bs.mode === 'silhouette' || (bs.prev === 'silhouette' && bs.mix < 1)) && perf > 30) segTick(t);
     bs.mix = Math.min(1, bs.mix + 1 / 180);
-    bk.globalCompositeOperation = 'source-over'; bk.clearRect(0, 0, w, h);
     // now and then the night opens wide and the dream shows clearly behind the eyes for a while
     if (t > bs.revealNext && portal.phase === 'off') { bs.revealUntil = t + 6000 + Math.random() * 4000; bs.revealNext = t + (60000 + Math.random() * 60000) * pace(t); }
     const rv = t < bs.revealUntil ? 1 : 0;
     const dtb = Math.min(0.1, (t - (bs.lt || t)) / 1000); bs.lt = t;   // softly in (about 2 s) and out (about 3 s)
     bs.reveal = lerp(bs.reveal, rv, 1 - Math.exp(-dtb * (rv ? 2.4 : 1.4)));
+    // #188: the masks drift slowly – at a high frame rate every second frame is enough; in between the last one is shown again
+    if (resized || t - bs.drawn >= 20) { bs.drawn = t; backDraw(t, w, h); }
+    const base = (0.75 + 0.25 * st.energy) * (H > W ? 0.75 : 1);   // the dream a little clearer than before; upright calmer
+    g.save(); g.globalAlpha = Math.min(1, base + (0.95 - base) * bs.reveal); g.drawImage(back, 0, 0, W, H); g.restore();
+  }
+  function backDraw(t, w, h) {
+    bk.globalCompositeOperation = 'source-over'; bk.clearRect(0, 0, w, h);
     if (bs.reveal > 0.01) {
       const gr = bk.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.hypot(w, h) * 0.6);
       gr.addColorStop(0, `rgba(255,255,255,${bs.reveal})`); gr.addColorStop(0.7, `rgba(255,255,255,${0.85 * bs.reveal})`); gr.addColorStop(1, `rgba(255,255,255,${0.4 * bs.reveal})`);
@@ -1307,21 +1344,18 @@
     if (bs.mix < 1) backMask(bs.prev, t, w, h, 1 - bs.mix);
     backMask(bs.mode, t, w, h, bs.mix);
     // the dream into the mask: slowly zooming and wandering, so the night never stands still
-    bk.globalCompositeOperation = 'source-in';
-    bk.filter = 'brightness(1.35) saturate(1.3)';        // brighter than the dream itself: it glows out of the night
+    bk.globalCompositeOperation = 'source-in';          // brighter than the dream itself: it glows out of the night
     const z = 1.25 + 0.15 * Math.sin(t / 11000), side = Math.max(w, h) * z;
     const ox = Math.sin(t / 13000) * w * 0.08, oy = Math.cos(t / 17000) * h * 0.08;
     const fade = dream.prev ? Math.min(1, (performance.now() - dream.at) / 260) : 1;
-    if (dream.prev && fade < 1) { bk.globalAlpha = 1 - fade; bk.drawImage(dream.prev, (w - side) / 2 + ox, (h - side) / 2 + oy, side, side); }
-    bk.globalAlpha = dream.prev && fade < 1 ? fade : 1; bk.drawImage(dream.cur, (w - side) / 2 + ox, (h - side) / 2 + oy, side, side);
-    bk.filter = 'none'; bk.globalAlpha = 1; bk.globalCompositeOperation = 'source-over';
+    if (dream.prev && fade < 1) { bk.globalAlpha = 1 - fade; bk.drawImage(glowPrev(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side); }
+    bk.globalAlpha = dream.prev && fade < 1 ? fade : 1; bk.drawImage(glowCur(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side);
+    bk.globalAlpha = 1; bk.globalCompositeOperation = 'source-over';
     for (const [mode, al] of [[bs.prev, 1 - bs.mix], [bs.mode, bs.mix]]) {   // faces: a faint own glow, so they show even in a dark dream
       if (al > 0.01 && LINEFACES.has(mode)) {
         bk.globalCompositeOperation = 'lighter'; faceMask(mode, t, w / W, `hsla(${hueOf(dream.col) + 20},80%,70%,`, 0.22 * al); bk.globalCompositeOperation = 'source-over';
       }
     }
-    const base = (0.75 + 0.25 * st.energy) * (H > W ? 0.75 : 1);   // the dream a little clearer than before; upright calmer
-    g.save(); g.globalAlpha = Math.min(1, base + (0.95 - base) * bs.reveal); g.drawImage(back, 0, 0, W, H); g.restore();
   }
 
   let last = performance.now();
@@ -1339,6 +1373,7 @@
     // where they look: at whoever stands in front (#157) – otherwise now here, now there
     perf = lerp(perf, 1 / Math.max(dt, 0.001), 0.05);
     face.every = perf > 45 ? 80 : 160;
+    resTick(t);
     faceTick(t);
     fireTick(t);
     const present = face.seen && t - face.seen < 1500;
@@ -1593,7 +1628,7 @@
     }
   };
   cv.addEventListener('pointerup', lift); cv.addEventListener('pointercancel', lift);
-  if (new URLSearchParams(location.search).has('debug')) window.dreamyEyes = { st, face, grin, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, you, trance, tranceStart, eyesAt: () => eyesAt };   // for the tests only
+  if (new URLSearchParams(location.search).has('debug')) window.dreamyEyes = { st, face, grin, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, you, trance, tranceStart, eyesAt: () => eyesAt, res, dpr: () => dpr };   // for the tests only
   view(); connect();
 })();
 </script>
