@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Dream · Window</title>
+<link rel="icon" type="image/svg+xml" href="/static/icons/logo.svg">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<style>
+  /* #201: a dream window – an old phone or tablet that shows one aspect of the dream; it only looks */
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: manipulation; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  #hint { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+    padding: 8px 14px; border-radius: 10px; background: rgba(20, 18, 30, .78); color: #ece8f6;
+    font: 14px/1.4 -apple-system, system-ui, sans-serif; text-align: center; transition: opacity .8s; max-width: 86vw; }
+  body.live #hint { opacity: 0; pointer-events: none; }
+</style>
+<script>/* #175: the key stays in the cookie, not in the address bar, history or a shared link */ try { const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch (e) {}</script>
+<script src="/static/i18n.js"></script>
+</head>
+<body>
+<canvas id="cv" aria-label="A window to the dream"></canvas>
+<div id="hint" role="status">Connecting to the dream … Tap for fullscreen.</div>
+<script>
+(() => {
+  'use strict';
+  const T = (window.I18N && I18N.t) || (s => s);
+  if (window.I18N && I18N.apply) I18N.apply();
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), g = cv.getContext('2d');
+  const lerp = (a, b, k) => a + (b - a) * k, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  // ---------- what Dream tells this window ----------
+  const st = { motif: null, prevMotif: null, swap: 1, side: 'solo', index: 0, of: 1, pulse: 0, master: 1, wave: -1e9 };
+  const dream = { cur: null, prev: null, at: 0, col: [120, 90, 170], palette: [[200, 120, 255], [90, 200, 255], [255, 140, 200]] };
+  const faces = { urls: [], imgs: {}, cur: null, prev: null, at: 0, next: 0 };
+  const small = document.createElement('canvas'); small.width = small.height = 8;
+  function analyse(img) {                              // the dream's colours, from an 8×8 copy
+    const s = small.getContext('2d'); s.drawImage(img, 0, 0, 8, 8);
+    const d = s.getImageData(0, 0, 8, 8).data, pal = [];
+    let r = 0, gg = 0, b = 0;
+    for (let i = 0; i < 64; i++) { r += d[i * 4]; gg += d[i * 4 + 1]; b += d[i * 4 + 2]; if (i % 9 === 0) pal.push([d[i * 4], d[i * 4 + 1], d[i * 4 + 2]]); }
+    dream.col = [r / 64, gg / 64, b / 64]; dream.palette = pal.filter(c => c[0] + c[1] + c[2] > 120).concat([dream.col]);
+  }
+  function setMotif(m) {
+    if (!m || m.motif === st.motif && m.side === st.side) { if (m) { st.index = m.index; st.of = m.of; } return; }
+    st.prevMotif = st.motif; st.motif = m.motif; st.side = m.side || 'solo'; st.index = m.index || 0; st.of = m.of || 1;
+    st.swap = st.prevMotif ? 0 : 1;                    // a soft change, not a cut
+    if (m.motif === 'face') faces.next = 0;
+  }
+  function connect() {
+    const ws = new WebSocket(`ws://${location.host}/view?as=window`);
+    ws.binaryType = 'blob';
+    ws.onopen = () => { $('hint').textContent = T('Connected – tap for fullscreen.'); };
+    ws.onmessage = ev => {
+      if (typeof ev.data !== 'string') {
+        const url = URL.createObjectURL(ev.data), img = new Image();
+        img.onload = () => {
+          dream.prev = dream.cur; dream.cur = img; dream.at = performance.now(); analyse(img);
+          document.body.classList.add('live');
+          setTimeout(() => URL.revokeObjectURL(url), 4000);
+        };
+        img.src = url;
+        return;
+      }
+      let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+      if (m.window) setMotif(m.window);
+      if (m.wave) st.wave = performance.now() + (+m.wave.index || 0) * 320;   // a wave reaches this window in its turn
+      if (m.fx) st.pulse = Math.max(st.pulse, clamp(+m.fx.pulse || 0, 0, 1) * clamp(+m.fx.k || 0, 0, 1) + clamp(+m.fx.bass || 0, 0, 1) * 0.3);
+      if ('pulse' in m) st.pulse = Math.max(st.pulse, clamp(+m.pulse || 0, 0, 1));
+      if ('master' in m) st.master = clamp(+m.master, 0, 1);
+      if (m.aimasks) {
+        faces.urls = Object.values(m.aimasks).filter(u => typeof u === 'string' && /^\/eyes\/mask\/[0-9a-f]{12}\.jpg$/.test(u));
+        for (const u of Object.keys(faces.imgs)) if (!faces.urls.includes(u)) delete faces.imgs[u];
+      }
+    };
+    ws.onclose = ev => {
+      if (ev.code === 4403) { document.body.classList.remove('live'); $('hint').textContent = T('No access – scan the code of the dream windows in Dream again.'); return; }
+      setTimeout(connect, 2000);
+    };
+  }
+  // ---------- screen, fullscreen, staying awake ----------
+  let W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2), res = 1, slowSince = 0, fastSince = 0;
+  function size() {
+    W = innerWidth; H = innerHeight;
+    const k = dpr * res; cv.width = Math.round(W * k); cv.height = Math.round(H * k); g.setTransform(k, 0, 0, k, 0, 0);
+  }
+  addEventListener('resize', size); size();
+  let lock = null, vid = null;
+  async function awake() {
+    try { if ('wakeLock' in navigator && !lock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); return; } } catch (e) { /* not on http: the video below */ }
+    if (!vid) { vid = Object.assign(document.createElement('video'), { muted: true, loop: true, playsInline: true, src: '/static/awake.webm' }); vid.setAttribute('playsinline', ''); vid.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0'; document.body.append(vid); }
+    vid.play().catch(() => {});
+  }
+  addEventListener('click', () => {
+    awake();
+    const d = document.documentElement, fs = d.requestFullscreen || d.webkitRequestFullscreen;
+    if (fs && !document.fullscreenElement && !document.webkitFullscreenElement) { try { fs.call(d); } catch (e) { /* not on this device */ } }
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) awake(); });
+  // ---------- drawing helpers ----------
+  function cover(img, x, y, w, h, zoom = 1, cx = 0.5, cy = 0.5) {   // the picture filling a box, zoomed around (cx, cy)
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return;
+    const s = Math.max(w / iw, h / ih) * zoom, sw = w / s, sh = h / s;
+    const sx = clamp(cx * iw - sw / 2, 0, Math.max(0, iw - sw)), sy = clamp(cy * ih - sh / 2, 0, Math.max(0, ih - sh));
+    g.drawImage(img, sx, sy, Math.min(sw, iw), Math.min(sh, ih), x, y, w, h);
+  }
+  function dreamPic(x, y, w, h, zoom, cx, cy) {        // the dream with a soft crossfade to each new picture
+    if (!dream.cur) return;
+    const k = clamp((performance.now() - dream.at) / 700, 0, 1);
+    if (dream.prev && k < 1) cover(dream.prev, x, y, w, h, zoom, cx, cy);
+    g.globalAlpha *= k; cover(dream.cur, x, y, w, h, zoom, cx, cy); g.globalAlpha /= Math.max(k, 1e-3);
+  }
+  let blob = null;                                      // one soft light, drawn once, stamped (cheap)
+  function light(x, y, r, col, a) {
+    if (!blob) {
+      blob = document.createElement('canvas'); blob.width = blob.height = 64;
+      const b = blob.getContext('2d'), gr = b.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      b.fillStyle = gr; b.fillRect(0, 0, 64, 64);
+    }
+    g.globalAlpha = a * 0.5; g.drawImage(blob, x - r, y - r, r * 2, r * 2);   // the glow (stamped, no gradient per frame)
+    g.globalAlpha = a; g.fillStyle = `rgb(${col[0] | 0},${col[1] | 0},${col[2] | 0})`;
+    g.beginPath(); g.arc(x, y, r * 0.3, 0, Math.PI * 2); g.fill();          // the spark itself, in the dream's colour
+  }
+  // ---------- the motifs ----------
+  const M = {
+    slice(t) {                                          // a piece of the dream, wandering slowly – a window onto part of it
+      const cx = 0.5 + 0.3 * Math.sin(t / 23000 + st.index * 1.7), cy = 0.5 + 0.3 * Math.cos(t / 31000 + st.index * 2.3);
+      dreamPic(0, 0, W, H, 2.2 + 0.25 * Math.sin(t / 17000) + 0.08 * st.pulse, cx, cy);
+    },
+    face(t) {                                           // a painted face in a soft cloud, changing now and then
+      if (t > faces.next && faces.urls.length) {
+        const pool = faces.urls.filter(u => u !== faces.curUrl), u = pool[(Math.random() * pool.length) | 0] || faces.urls[0];
+        faces.curUrl = u; faces.next = t + 35000 + Math.random() * 20000;
+        const img = faces.imgs[u] || (faces.imgs[u] = Object.assign(new Image(), { src: u }));
+        faces.prev = faces.cur; faces.cur = img; faces.at = t;
+      }
+      const s = Math.min(W, H) * 0.92, k = clamp((t - faces.at) / 2500, 0, 1);
+      g.save();
+      g.globalAlpha = 0.35; dreamPic(0, 0, W, H, 1.4, 0.5, 0.5); g.globalAlpha = 1;
+      const draw = (img, a) => {
+        if (!img || !img.complete || !img.naturalWidth) return;
+        g.save(); g.globalAlpha = a;
+        g.beginPath(); g.ellipse(W / 2, H / 2, s * 0.42, s * 0.5, 0, 0, Math.PI * 2); g.clip();
+        cover(img, W / 2 - s / 2, H / 2 - s / 2, s, s, 1.04 + 0.05 * Math.sin(t / 9000) + 0.03 * st.pulse);
+        g.restore();
+      };
+      if (!faces.cur) { g.restore(); M.mandala(t); return; }   // no face painted yet: a mandala meanwhile
+      draw(faces.prev, 1 - k); draw(faces.cur, k);
+      const vg = g.createRadialGradient(W / 2, H / 2, s * 0.3, W / 2, H / 2, s * 0.62);   // the edge dissolves into the night
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.92)');
+      g.fillStyle = vg; g.fillRect(0, 0, W, H);
+      g.restore();
+    },
+    eye(t) {                                            // one dreaming eye; two windows side by side make a pair
+      const a = Math.min(W * 0.42, H * 0.6), b = a * 0.52, cx = W / 2, cy = H / 2;
+      const sync = Date.now();                          // the pair looks and blinks together (clocks are close enough)
+      const gx = Math.sin(sync / 3100) * 0.35 + Math.sin(sync / 1700) * 0.15, gy = Math.sin(sync / 4300) * 0.25;
+      const ph = (sync % 5300) / 5300, blink = ph > 0.96 ? Math.sin((ph - 0.96) / 0.04 * Math.PI) : 0;
+      const mir = st.side === 'right' ? -1 : 1;
+      g.save(); g.translate(cx, cy); g.scale(mir, 1);
+      g.globalAlpha = 0.25; g.save(); g.scale(mir, 1); dreamPic(-W / 2, -H / 2, W, H, 1.6); g.restore(); g.globalAlpha = 1;
+      const open = 1 - blink;
+      const almond = () => { g.beginPath(); g.moveTo(-a, 0); g.quadraticCurveTo(0, -b * 2 * open, a, 0); g.quadraticCurveTo(0, b * 2 * open, -a, 0); g.closePath(); };
+      g.save(); almond(); g.clip();
+      g.fillStyle = '#f3eef8'; g.fillRect(-a, -b * 2, a * 2, b * 4);
+      const ir = b * 0.95, ix = gx * a * 0.45, iy = gy * b * 0.35;
+      g.save(); g.beginPath(); g.arc(ix, iy, ir, 0, Math.PI * 2); g.clip();
+      g.rotate(sync / 9000); if (dream.cur) cover(dream.cur, ix - ir, iy - ir, ir * 2, ir * 2, 1.2); g.restore();
+      const ring = g.createRadialGradient(ix, iy, ir * 0.55, ix, iy, ir);
+      ring.addColorStop(0, 'rgba(0,0,0,0)'); ring.addColorStop(1, `rgba(${dream.col[0] * 0.4 | 0},${dream.col[1] * 0.4 | 0},${dream.col[2] * 0.4 | 0},.85)`);
+      g.fillStyle = ring; g.beginPath(); g.arc(ix, iy, ir, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#06040a'; g.beginPath(); g.arc(ix, iy, ir * (0.38 + 0.12 * st.pulse), 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(ix + ir * 0.3, iy - ir * 0.32, ir * 0.1, 0, Math.PI * 2); g.fill();
+      g.restore();
+      g.strokeStyle = '#1b0f22'; g.lineWidth = Math.max(2, a * 0.03); almond(); g.stroke();
+      g.strokeStyle = 'rgba(40,20,50,.9)'; g.lineWidth = Math.max(1.5, a * 0.012);   // lashes
+      for (let i = 0; i < 9; i++) {
+        const u = -0.8 + i * 0.2, x = u * a, y = -b * 2 * open * (1 - u * u) * 0.5;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x * 1.08 + a * 0.05, y - a * 0.12 * (0.6 + 0.4 * (1 - Math.abs(u)))); g.stroke();
+      }
+      g.restore();
+    },
+    mandala(t) {                                        // the dream folded into a turning kaleidoscope
+      if (!dream.cur) return;
+      const n = 8, R = Math.hypot(W, H) / 2, rot = t / 14000, z = 1.6 + 0.1 * st.pulse;
+      g.save(); g.translate(W / 2, H / 2);
+      for (let i = 0; i < n; i++) {
+        g.save(); g.rotate(rot + i * Math.PI * 2 / n);
+        if (i % 2) g.scale(1, -1);
+        g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, -Math.PI / n - 0.01, Math.PI / n + 0.01); g.closePath(); g.clip();
+        cover(dream.cur, 0, -R / 2, R, R, z, 0.5 + 0.2 * Math.sin(t / 19000), 0.5);
+        g.restore();
+      }
+      g.restore();
+    },
+    embers(t, dt) {                                     // glowing sparks in the dream's colours, flaring with the pulse
+      g.globalAlpha = 0.18; dreamPic(0, 0, W, H, 1.3); g.globalAlpha = 1;
+      const want = Math.round(28 + 40 * st.pulse);
+      while (sparks.length < want) sparks.push({ x: Math.random() * W, y: H + Math.random() * H * 0.3, v: 20 + Math.random() * 50,
+        r: 6 + Math.random() * 18, c: dream.palette[(Math.random() * dream.palette.length) | 0], w: Math.random() * 6 });
+      const a0 = g.globalAlpha; g.save(); g.globalCompositeOperation = 'lighter';
+      for (const p of sparks) {
+        p.y -= p.v * dt * (1 + st.pulse * 2); p.x += Math.sin(t / 900 + p.w) * 12 * dt;
+        light(p.x, p.y, p.r * (1 + st.pulse), p.c, 0.55 * a0);
+      }
+      g.restore(); g.globalAlpha = a0;
+      for (let i = sparks.length - 1; i >= 0; i--) if (sparks[i].y < -40) sparks.splice(i, 1);
+    },
+  };
+  const sparks = [];
+  // ---------- the frame ----------
+  let last = performance.now(), fps = 60, upWait = 8000, upAt = -1e9;
+  function frame(t) {
+    const dt = Math.min(0.1, (t - last) / 1000); last = t;
+    fps = lerp(fps, 1 / Math.max(dt, 1e-3), 0.05);
+    // a weak device draws with fewer pixels until it keeps up (like Dreamy Eyes, #188)
+    if (fps < 38) { if (!slowSince) slowSince = t; fastSince = 0; } else if (fps > 52) { if (!fastSince) fastSince = t; slowSince = 0; }
+    if (slowSince && t - slowSince > 2500 && res > 0.5) {
+      if (t - upAt < upWait + 6000) upWait = Math.min(upWait * 2, 120000);   // went up and could not hold it: wait longer
+      res = res > 0.75 ? 0.75 : 0.5; slowSince = t; size();
+    }
+    if (fastSince && t - fastSince > upWait && res < 1) { res = res < 0.75 ? 0.75 : 1; fastSince = t; upAt = t; size(); }
+    st.pulse *= Math.pow(0.04, dt);                    // the pulse fades within a beat
+    g.globalAlpha = 1; g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    if (st.motif) {
+      st.swap = Math.min(1, st.swap + dt / 1.4);
+      if (st.prevMotif && st.swap < 1) { g.globalAlpha = 1 - st.swap; M[st.prevMotif](t, dt); }
+      g.globalAlpha = st.swap; M[st.motif](t, dt); g.globalAlpha = 1;
+    }
+    const wk = (t - st.wave) / 650;                     // the wave passes: a soft bloom of light
+    if (wk > 0 && wk < 1) {
+      const a = Math.sin(wk * Math.PI) * 0.55, gr = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.hypot(W, H) / 2);
+      gr.addColorStop(0, `rgba(${dream.col[0] + 80 | 0},${dream.col[1] + 80 | 0},${dream.col[2] + 80 | 0},${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.fillRect(0, 0, W, H); g.restore();
+    }
+    if (st.master < 0.999) { g.fillStyle = `rgba(0,0,0,${1 - st.master})`; g.fillRect(0, 0, W, H); }
+    requestAnimationFrame(frame);
+  }
+  if (new URLSearchParams(location.search).has('debug')) window.dreamWindow = { st, dream, faces, get res() { return res; }, get fps() { return fps; } };   // for the tests only
+  connect();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -40,6 +40,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Live-Kamera und Bewegung des Control-Geräts](#live-kamera-und-bewegung-des-control-geräts)
   - [Wenn das Handy nicht verbindet](#wenn-das-handy-nicht-verbindet)
 - [Dreamy Eyes – ein Handy als träumende Augen (Installation)](#dreamy-eyes--ein-handy-als-träumende-augen-installation)
+- [Traum-Fenster – alte Handys und Tablets als Fenster zum Traum](#traum-fenster--alte-handys-und-tablets-als-fenster-zum-traum)
 
 **Bewegung und Controller**
 
@@ -741,6 +742,32 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 - **Immer nur eine Kamera:** Die Bühne zeigt „👀 Live-Kamera: Dreamy Eyes“. In Dream Control sagt die Karte „Dieses Gerät“,
   wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp), und die eigene
   Live-Kamera zu starten, übernimmt. Die Bühne geht dann zurück zum Traum, nie von selbst auf die Kamera des Macs.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+---
+
+## Traum-Fenster – alte Handys und Tablets als Fenster zum Traum
+
+<p align="center"><img src="docs/images/windows.webp" alt="Fünf Traum-Fenster: ein Mandala, ein Augenpaar, Glut und ein wandernder Ausschnitt des Traums" width="840"></p>
+
+Beliebig viele alte Handys und Tablets im Raum werden zu Fenstern in den Traum. Nichts zuzuordnen, keine Rollen: Jedes
+Fenster bekommt sein Motiv von Dream selbst, und die Fenster wirken zusammen wie eins.
+
+- **Motive:** ein wandernder, vergrößerter Ausschnitt des Traums; ein von der KI gemaltes Gesicht (solange noch keins
+  gemalt ist, ein Mandala); ein Auge, dessen Iris der Traum ist; ein drehendes Kaleidoskop-Mandala; glimmende Glut in
+  den Farben des Traums. Dream verteilt die Motive so, dass sie sich unterscheiden; ein einzelnes Auge findet oft in
+  einem zweiten Fenster seinen Partner (links und rechts, sie blinzeln gemeinsam).
+- **Lebendig:** Ab und zu wechselt ein Fenster sanft zu einem anderen Motiv (alle 2–5 Minuten, immer nur eins), eine
+  Lichtwelle läuft der Reihe nach durch alle Fenster, und mit Musik pulsieren sie im Takt. Mit dem Master-Regler der
+  Bühne werden sie dunkler.
+- **Alte Geräte:** Kommt ein Gerät nicht mit, zeichnet die Seite mit weniger Pixeln und geht wieder hoch, sobald es
+  geht. Sie braucht kein Zertifikat (einfaches http im WLAN zu Hause) und hält den Bildschirm an.
+- **Einrichten:** Bedienfeld → „Ausgabe“ → **🪟 Traum-Fenster** → den Code mit jedem Gerät scannen und für Vollbild auf
+  den Bildschirm tippen. Die Ausgabe-Zeile im Bedienfeld zählt die verbundenen Fenster.
+- **Sie schauen nur zu:** Der Schlüssel der Fenster (`~/.local/state/dream/window-token`, ein eigenes Cookie) öffnet
+  die Fensterseite, die Bilder des Traums und die gemalten Gesichter – keine Einstellungen, keine Befehle, keine
+  Kamera, nichts, was Geld kostet.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

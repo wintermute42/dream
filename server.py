@@ -1224,6 +1224,7 @@ if ROLE == "app":
     TOKEN_FILE = os.path.join(STATE_DIR, "remote-token")      # #148: the guests' key (Dream Remote, the stage's QR code)
     CONTROL_FILE = os.path.join(STATE_DIR, "control-token")   # #148: the key of Dream Control (full rights)
     EYES_FILE = os.path.join(STATE_DIR, "eyes-token")         # #156: the key of Dreamy Eyes (only its front camera)
+    WINDOW_FILE = os.path.join(STATE_DIR, "window-token")     # #201: the key of the dream windows (they only look)
     MEDIA_DIR = os.path.join(STATE_DIR, "media")
     os.makedirs(MEDIA_DIR, exist_ok=True)
     LAN = os.environ.get("DREAM_LAN") == "1"
@@ -1240,7 +1241,7 @@ if ROLE == "app":
                 f.write(secrets.token_urlsafe(12))
         with open(path) as f:
             return f.read().strip()
-    keys = {"guest": _key(TOKEN_FILE), "control": _key(CONTROL_FILE), "eyes": _key(EYES_FILE)}
+    keys = {"guest": _key(TOKEN_FILE), "control": _key(CONTROL_FILE), "eyes": _key(EYES_FILE), "window": _key(WINDOW_FILE)}
 
     # #148: what a guest (Dream Remote) may change; everything else needs Dream Control or this Mac. Enforced here, in
     # the server: the remote page only hides what a guest cannot use.
@@ -1369,6 +1370,10 @@ if ROLE == "app":
             return f"https://{lan_ip()}:{HTTPS_PORT}/control?k={keys['control']}"
         return f"http://{lan_ip()}:{PORT}/control?k={keys['control']}"
 
+    def window_url() -> str:
+        """#201: a dream window – plain http (it needs no camera), so older devices without the certificate work too."""
+        return f"http://{lan_ip()}:{PORT}/window?k={keys['window']}"
+
     def eyes_url() -> str:
         """#156: Dreamy Eyes – the camera needs https (the browser gives it out only there)."""
         if tls_state["on"]:
@@ -1454,6 +1459,8 @@ if ROLE == "app":
             return "guest"
         if secrets.compare_digest(k, keys["eyes"]):
             return "eyes"
+        if secrets.compare_digest(k, keys["window"]):
+            return "window"                           # #201: a dream window – it only looks
         return None
 
     def allowed(host, query_k, cookie_k) -> bool:
@@ -1489,22 +1496,25 @@ if ROLE == "app":
     # them without cookies). Nothing in them is secret.
     PUBLIC = re.compile(r"/dream-ca\.crt|/static/(remote|control|eyes)\.webmanifest|/static/icons/[\w-]+\.(png|svg|ico)")
     # #156: all Dreamy Eyes may reach over http – its page and its files; the rest is closed to it (fail closed)
+    WINDOW_PATHS = re.compile(r"/window|/static/[\w./-]+|/eyes/mask/[0-9a-f]{12}\.jpg")   # #201: all a dream window may ask
     EYES_PATHS = re.compile(r"/eyes|/eyes/mask/[0-9a-f]{12}\.jpg|/static/[\w./-]+|/mp/[\w./-]+")   # #157: /mp – face detection; #160: masks
 
-    def cookie_of(cookies, scheme: str, eyes: bool = False):
+    def cookie_of(cookies, scheme: str, eyes: bool = False, window: bool = False):
         """The key a device keeps: its own scheme's cookie, else the one of Dreamy Eyes (#156: a cookie of its own, so
         trying the eyes on the owner's phone never replaces Dream Control's key). #166: the eyes' page asks for the
         eyes' key first – a device that is Dream Control as well stays the eyes there (and gets its painted faces)."""
-        name = cookie_used(cookies, scheme, eyes)
+        name = cookie_used(cookies, scheme, eyes, window)
         return cookies.get(name) if name else None
 
-    def cookie_used(cookies, scheme: str, eyes: bool = False) -> str | None:
-        """The name of the cookie whose key a request brings (see cookie_of)."""
+    def cookie_used(cookies, scheme: str, eyes: bool = False, window: bool = False) -> str | None:
+        """The name of the cookie whose key a request brings (see cookie_of). #201: a dream window has its own cookie."""
         if eyes and cookies.get("dream_e"):
             return "dream_e"
-        return next((n for n in (cookie_name(scheme), "dream_e") if cookies.get(n)), None)
+        if window and cookies.get("dream_w"):
+            return "dream_w"
+        return next((n for n in (cookie_name(scheme), "dream_e", "dream_w") if cookies.get(n)), None)
 
-    APP_PAGES = {"/", "/control", "/remote", "/eyes", "/output"}
+    APP_PAGES = {"/", "/control", "/remote", "/eyes", "/output", "/window"}
 
     def wants_page(request: Request) -> bool:
         return request.method == "GET" and request.url.path in APP_PAGES and "text/html" in request.headers.get("accept", "")
@@ -1559,7 +1569,8 @@ if ROLE == "app":
             return Response(i18n.t("Not from Dream's own pages."), status_code=403)
         if request.method == "GET" and PUBLIC.fullmatch(request.url.path):
             return await call_next(request)
-        request.state.role = role_of(host, qk, cookie_of(request.cookies, request.url.scheme, request.url.path.startswith("/eyes")))
+        request.state.role = role_of(host, qk, cookie_of(request.cookies, request.url.scheme, request.url.path.startswith("/eyes"),
+                                                         request.url.path.startswith("/window")))
         if request.state.role is None:
             if wants_page(request):
                 return pair_page(request)
@@ -1572,6 +1583,11 @@ if ROLE == "app":
             return only_control()
         if request.state.role == "eyes" and qk:
             cookie = "dream_e"
+        if request.state.role == "window":            # #201: a dream window may only look: its page, files, faces
+            if request.method != "GET" or not WINDOW_PATHS.fullmatch(request.url.path):
+                return pair_page(request) if wants_page(request) else only_control()
+            if qk:
+                cookie = "dream_w"
         need = needs(request.method, request.url.path)
         if need and request.state.role not in need:
             return only_control()
@@ -1614,7 +1630,8 @@ if ROLE == "app":
         if not origin_ok(sock.headers):               # #175: a foreign page gets nothing
             return None
         host = sock.client.host if sock.client else None
-        return role_of(host, sock.query_params.get("k"), cookie_of(sock.cookies, sock.url.scheme, sock.query_params.get("as") == "eyes"))
+        return role_of(host, sock.query_params.get("k"), cookie_of(sock.cookies, sock.url.scheme, sock.query_params.get("as") == "eyes",
+                                                                   sock.query_params.get("as") == "window"))
 
     def ws_allowed(sock: WebSocket) -> bool:
         return ws_role(sock) is not None
@@ -1638,7 +1655,7 @@ if ROLE == "app":
         live["remotes"] = sum(1 for k in clients.values() if k == "remote")
         flow = round(live.get("flow_rate", 0)) if state["flowtrack"] != "off" else 0
         return {"live": {**{k: live[k] for k in ("fps", "stages", "remotes")}, "flowtrack": flow,
-                         "viewers": len(viewers), "previews": len(previews),
+                         "viewers": len(viewers), "previews": len(previews), "windows": len(windows),
                          "midi": midi_ports}}
 
     CHOICES = {"mode": {"dream", "cam", "img", "vid", "flow"}, "backend": {"local", "cloud"},
@@ -1700,7 +1717,7 @@ if ROLE == "app":
 
     @app.websocket("/ctl")
     async def ctl(sock: WebSocket):
-        if not ws_allowed(sock):
+        if not ws_allowed(sock) or ws_role(sock) == "window":   # #201: a dream window only looks (/view)
             await sock.close(code=4403)
             return
         await sock.accept()
@@ -2022,7 +2039,7 @@ if ROLE == "app":
         loop = asyncio.get_running_loop()
         while True:
             await asyncio.sleep(5)
-            eyes = [c for c, r in roles.items() if r == "eyes" or c in eyes_pages]   # #166: every Dreamy Eyes page
+            eyes = [c for c, r in roles.items() if r == "eyes" or c in eyes_pages] + list(windows)   # #166, #201: the windows too
             now = time.time()
             if "you" in aimasks and now - aimasks["you"][2] > YOU_KEEP:   # #166: a portrait never stays long
                 aimasks.pop("you", None)
@@ -2087,7 +2104,7 @@ if ROLE == "app":
 
     @app.get("/eyes/mask/{name}")
     def eyes_mask(request: Request, name: str):
-        if request.state.role not in ("eyes", "control", "local"):
+        if request.state.role not in ("eyes", "control", "local", "window"):   # #201: the windows show the faces too
             return Response(status_code=403)
         for mid, data, _ in aimasks.values():
             if name == f"{mid}.jpg":
@@ -2403,6 +2420,62 @@ if ROLE == "app":
     def output_page():
         return FileResponse(os.path.join(HERE, "static", "output.html"))
 
+    # ---------- #201: dream windows – any number of old phones and tablets as windows to the dream ----------
+    # Nobody assigns anything: every window that opens gets the motif that is missing most, now and then one changes
+    # softly, and two windows sometimes become a pair of eyes. They all hear the stage's pulse (the /view stream) and,
+    # now and then, a wave that runs over them in the order they came.
+    WINDOW_MOTIFS = ("slice", "face", "eye", "mandala", "embers")
+    windows: dict = {}                                 # socket -> {"motif", "side", "change"}; in the order they came
+
+    def window_pick(me=None) -> tuple[str, str]:
+        others = [w for c, w in windows.items() if c is not me]
+        single = [w for w in others if w["motif"] == "eye" and w["side"] == "solo"]
+        if single and random.random() < 0.6:           # a lone eye finds its partner
+            single[0]["side"] = "left"
+            return "eye", "right"
+        used = {m: sum(w["motif"] == m for w in others) for m in WINDOW_MOTIFS}
+        if me is not None and me in windows:
+            used[windows[me]["motif"]] += 99          # a change: something else
+        least = min(used.values())
+        return random.choice([m for m in WINDOW_MOTIFS if used[m] == least]), "solo"
+
+    def window_add(sock):
+        motif, side = window_pick()
+        windows[sock] = {"motif": motif, "side": side, "change": time.time() + random.uniform(120, 300)}
+
+    async def window_tell_all():
+        n = len(windows)
+        for i, (c, w) in enumerate(list(windows.items())):
+            with contextlib.suppress(Exception):
+                await c.send_text(json.dumps({"window": {"motif": w["motif"], "side": w["side"], "index": i, "of": n}}))
+
+    async def windows_loop():
+        next_wave = time.time() + random.uniform(40, 90)
+        while True:
+            await asyncio.sleep(5)
+            if not windows:
+                continue
+            now, changed = time.time(), False
+            for c, w in list(windows.items()):
+                if now > w["change"]:                  # one changes softly to another motif
+                    if w["motif"] == "eye" and w["side"] != "solo":
+                        for o in windows.values():     # a pair parts: the other eye goes on alone
+                            if o is not w and o["motif"] == "eye" and o["side"] != "solo":
+                                o["side"] = "solo"
+                    w["motif"], w["side"] = window_pick(c)
+                    w["change"] = now + random.uniform(120, 300)
+                    changed = True
+                    break                              # never all at once
+            if changed:
+                await window_tell_all()
+            if now > next_wave and len(windows) > 1:   # a wave over all of them, in the order they came
+                next_wave = now + random.uniform(60, 150)
+                for i, c in enumerate(list(windows)):
+                    with contextlib.suppress(Exception):
+                        await c.send_text(json.dumps({"wave": {"index": i, "of": len(windows)}}))
+
+    app.router.on_startup.append(lambda: live.setdefault("windows", asyncio.get_event_loop().create_task(windows_loop())))
+
     @app.websocket("/view")
     async def view(sock: WebSocket):
         """An output window (beamer, second monitor): gets every picture the stage shows, renders nothing itself."""
@@ -2416,9 +2489,14 @@ if ROLE == "app":
             previews[sock] = 0.0
         else:
             viewers.add(sock)
+        if sock.query_params.get("as") == "window":    # #201: a dream window – Dream gives it a motif
+            window_add(sock)
         await broadcast(status_msg())                  # the stage starts sending its pictures
         try:
             await sock.send_text(json.dumps({"master": state["master"]}))
+            if sock in windows:
+                await sock.send_text(json.dumps(aimask_msg()))
+                await window_tell_all()
             if shown["frame"]:
                 await sock.send_bytes(shown["frame"])
             while True:
@@ -2429,6 +2507,8 @@ if ROLE == "app":
             viewers.discard(sock)
             previews.pop(sock, None)
             key_roles.pop(sock, None)
+            if windows.pop(sock, None) is not None:
+                await window_tell_all()
             await broadcast(status_msg())
 
     async def scene_loop():
@@ -2496,6 +2576,11 @@ if ROLE == "app":
     def remote_page():
         return FileResponse(os.path.join(HERE, "static", "remote.html"))
 
+    @app.get("/window")
+    def window_page():
+        """#201: a dream window – an old phone or tablet that shows an aspect of the dream."""
+        return FileResponse(os.path.join(HERE, "static", "window.html"), headers={"Cache-Control": "no-cache"})
+
     @app.get("/eyes")
     def eyes_page():
         """#156: Dreamy Eyes – a phone that lends its front camera and looks back with dreaming eyes."""
@@ -2521,22 +2606,23 @@ if ROLE == "app":
     @app.get("/remote-info")
     def remote_info(request: Request):
         if request.state.role == "control":            # #156: Dream Control sets up the Dreamy Eyes phone
-            return {"lan": LAN, "eyes": eyes_url() if LAN else None, "https": tls_state["on"], "source": SOURCE_URL}
+            return {"lan": LAN, "eyes": eyes_url() if LAN else None, "window": window_url() if LAN else None,
+                    "https": tls_state["on"], "source": SOURCE_URL}
         if not is_local(request.client.host if request.client else None):
             return {"lan": LAN, "source": SOURCE_URL}   # #178: everybody may see where the code is
         return {"lan": LAN, "source": SOURCE_URL, "url": remote_url() if LAN else None, "output": output_url() if LAN else None,
-                "control": control_url() if LAN else None, "https": tls_state["on"],
+                "control": control_url() if LAN else None, "window": window_url() if LAN else None, "https": tls_state["on"],
                 "https_error": tls_state["error"], "ca": ca_url() if LAN and tls_state["on"] else None}
 
     @app.get("/qr.svg")
     def qr_svg(request: Request):
         what = request.query_params.get("for")
         if not LAN or not (is_local(request.client.host if request.client else None)
-                           or (request.state.role == "control" and what == "eyes")):   # #156: Control shows the eyes' code
+                           or (request.state.role == "control" and what in ("eyes", "window"))):   # #156, #201
             return Response(status_code=404)
         import qrcode
         import qrcode.image.svg
-        url = {"output": output_url, "control": control_url, "ca": ca_url, "eyes": eyes_url}.get(what, remote_url)()
+        url = {"output": output_url, "control": control_url, "ca": ca_url, "eyes": eyes_url, "window": window_url}.get(what, remote_url)()
         img = qrcode.make(url, image_factory=qrcode.image.svg.SvgPathFillImage, box_size=12, border=2)
         buf = io.BytesIO()
         img.save(buf)

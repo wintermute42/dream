@@ -189,8 +189,12 @@
   #ctlbox .btns { margin-top: 6px; }
   #catext, #ctltext { font-size: .85em; overflow-wrap: anywhere; }
   #catext b, #ctltext b { color: var(--text); }
-  #ctlbox[hidden], #guestnewq[hidden], #eyespanel[hidden] { display: none; }
+  #ctlbox[hidden], #guestnewq[hidden], #eyespanel[hidden], #winpanel[hidden] { display: none; }
   /* #156: the code for the Dreamy Eyes phone, here on the Mac too */
+  #winpanel { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start; margin-top: 8px; }
+  #winpqr { background: #fff; border-radius: 8px; padding: 4px; }
+  #winpqr:not([src]) { display: none; }
+  #winptext { font-size: .85em; overflow-wrap: anywhere; }
   #eyespanel { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start; margin-top: 8px; }
   #eyespqr { background: #fff; border-radius: 8px; padding: 4px; }
   #eyespqr:not([src]) { display: none; }
@@ -680,6 +684,7 @@
     <div class="btns" style="align-items:center">
       <button class="btn" id="ctlshow" aria-expanded="false" aria-controls="ctlbox" title="Your own remote with all settings (only for you, not for the audience)">🎛 Dream Control</button>
       <button class="btn" id="eyesshow" aria-expanded="false" aria-controls="eyespanel" title="A phone of its own as dreaming eyes: show the code for it">👀 Dreamy Eyes</button>
+      <button class="btn" id="winshow" aria-expanded="false" aria-controls="winpanel" title="Old phones and tablets as extra windows to the dream: show the code for them">🪟 Dream windows</button>
       <button class="btn" id="guestnew" title="The phones of the guests lose access and need the new QR code">↻ New guest code</button>
       <button class="btn" id="trancego" title="Dreamy Eyes go into trance – a third eye opens (key E)">👁 Trance now</button>
       <select id="trancefreqm" aria-label="How often the trance of Dreamy Eyes may come by itself" title="How often the trance of Dreamy Eyes may come by itself"><option value="0">Trance: only by hand</option><option value="25">Trance: rarely</option><option value="12">Trance: now and then</option><option value="5">Trance: often</option></select>
@@ -687,6 +692,10 @@
     <div id="eyespanel" hidden>
       <img id="eyespqr" alt="QR code with the address of Dreamy Eyes" width="140" height="140">
       <div id="eyesptext"></div>
+    </div>
+    <div id="winpanel" hidden>
+      <img id="winpqr" alt="QR code with the address of the dream windows" width="140" height="140">
+      <div id="winptext"></div>
     </div>
     <div id="ctlbox" hidden>
       <div class="step" id="castep" hidden>
@@ -1040,6 +1049,19 @@
         : T('Without https the eyes phone cannot lend its camera – start Dream with --lan (https comes with it).');
     } catch (e) { t.textContent = T('Address not available – is Dream still running?'); }
   };
+  // #201: dream windows – one code for any number of old phones and tablets; Dream gives each a motif by itself
+  $('winshow').onclick = async () => {
+    const box = $('winpanel'), open = box.hidden;
+    box.hidden = !open; $('winshow').setAttribute('aria-expanded', String(open));
+    if (!open) { $('winpqr').removeAttribute('src'); return; }   // the key leaves the screen with the box
+    const t = $('winptext');
+    try {
+      const info = await (await fetch('/remote-info')).json();
+      if (!info.lan) { $('winpqr').removeAttribute('src'); t.innerHTML = T('Only when Dream is reachable in the Wi-Fi: restart it with <code>./dream.sh --lan</code>.'); return; }
+      $('winpqr').src = '/qr.svg?for=window&t=' + Date.now();
+      t.textContent = T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. Dream gives each window a motif by itself; they only look and cannot change anything.');
+    } catch (e) { t.textContent = T('Address not available – is Dream still running?'); }
+  };
   // #172: the trance of Dreamy Eyes from the Mac – the button, key E, and how often it may come by itself
   $('trancego').onclick = () => sendCtl({ eyes_trance: true });
   $('trancefreqm').onchange = () => sendCtl({ eyes_cfg: { trance_every: +$('trancefreqm').value } });
@@ -1051,7 +1073,12 @@
     try { await navigator.clipboard.writeText(outLink); status(T('Link to the output copied.')); }
     catch (e) { status(T('Copying did not work – select the link and copy it.')); }
   };
-  const showOutCount = n => { $('outcount').textContent = n ? T(n === 1 ? '{n} output connected' : '{n} outputs connected', { n }) : ''; };
+  const showOutCount = (n, w = 0) => {               // #201: the dream windows are viewers too, but counted on their own
+    const parts = [];
+    if (n - w > 0) parts.push(T(n - w === 1 ? '{n} output connected' : '{n} outputs connected', { n: n - w }));
+    if (w > 0) parts.push(T(w === 1 ? '{n} dream window' : '{n} dream windows', { n: w }));
+    $('outcount').textContent = parts.join(' · ');
+  };
   function sendOut(blob) {
     if (!outWs || outWs.readyState > 1) { outWs = new WebSocket(`ws://${location.host}/out`); outWs.binaryType = 'blob'; return; }
     if (outWs.readyState === 1 && outWs.bufferedAmount < 2e6) outWs.send(blob);
@@ -3138,6 +3165,9 @@
         t: +ap.t.toFixed(3), seed: ap.fxSeed, dir: p.dir, hue: Math.round(p.hue), inv: +ap.inv.toFixed(2), sc: +fxOut.sc.toFixed(4), br: +fxOut.br.toFixed(3),
         cx: +p.cx.toFixed(3), cy: +p.cy.toFixed(3), loc: +p.loc.toFixed(2), ang: +p.ang.toFixed(2) } }));
       fxOut.sentAt = now; fxOut.sentOff = k <= 0.005;
+    } else if (outViewers && outWs && outWs.readyState === 1 && now - fxOut.sentAt > 50 && Math.abs(mu.beatEnv - (fxOut.beat || 0)) > 0.04) {
+      outWs.send(JSON.stringify({ pulse: +mu.beatEnv.toFixed(3) }));   // #201: the beat for the dream windows, also without effects
+      fxOut.sentAt = now; fxOut.beat = mu.beatEnv;
     }
     requestAnimationFrame(apFxLoop);
   }
@@ -3368,7 +3398,7 @@
         if (!$('outwlanbox').hidden) { $('outwlan').click(); $('outwlan').click(); }
         status(T('New guest code: the guests scan the QR code again.'));
       }
-      if (m.live && 'viewers' in m.live) { outViewers = m.live.viewers || 0; outPreviews = m.live.previews || 0; showOutCount(outViewers); }
+      if (m.live && 'viewers' in m.live) { outViewers = m.live.viewers || 0; outPreviews = m.live.previews || 0; showOutCount(outViewers, m.live.windows || 0); }
     };
     ctl.onclose = () => setTimeout(ctlConnect, 1500);
   }

@@ -44,6 +44,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Live camera and motion of the Control device](#live-camera-and-motion-of-the-control-device)
   - [If the phone does not connect](#if-the-phone-does-not-connect)
 - [Dreamy Eyes – a phone as dreaming eyes (installation)](#dreamy-eyes--a-phone-as-dreaming-eyes-installation)
+- [Dream windows – old phones and tablets as windows to the dream](#dream-windows--old-phones-and-tablets-as-windows-to-the-dream)
 
 **Movement and controllers**
 
@@ -716,6 +717,30 @@ eyes** that invite people to step up and play:
 - **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
   who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
   takes over. The stage then goes back to the dream, never to the Mac's camera by itself.
+
+<sub>[↑ Contents](#contents)</sub>
+
+---
+
+## Dream windows – old phones and tablets as windows to the dream
+
+<p align="center"><img src="docs/images/windows.webp" alt="Five dream windows: a mandala, a pair of eyes, embers and a wandering part of the dream" width="840"></p>
+
+Any number of old phones and tablets around the room become windows to the dream. Nothing to assign, no roles: each
+window gets its motif from Dream by itself, and the windows together look like one thing.
+
+- **Motifs:** a wandering, zoomed part of the dream; a face painted by the AI (while none is painted yet, a mandala);
+  an eye whose iris is the dream; a turning kaleidoscope mandala; glowing embers in the dream's colours. Dream hands
+  out the motifs so that they differ; a lone eye often finds a second window as its partner (left and right, blinking
+  together).
+- **Alive:** now and then a window changes softly to another motif (every 2–5 minutes, one at a time), a wave of light
+  runs through all windows in turn, and with music they pulse to the beat. They dim with the stage's master fader.
+- **Old devices:** the page draws with fewer pixels when the device can't keep up and goes back up when it can. It
+  needs no certificate (plain http in the home Wi-Fi) and keeps the screen on.
+- **Setting up:** panel → “Output” → **🪟 Dream windows** → scan the code with each device and tap its screen for
+  fullscreen. The output line in the panel counts the connected windows.
+- **They only look:** a window's key (`~/.local/state/dream/window-token`, a cookie of its own) opens the window page,
+  the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money.
 
 <sub>[↑ Contents](#contents)</sub>
 
