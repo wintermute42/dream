@@ -210,7 +210,9 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   Das erste Bild des neuen Modells entsteht aus dem letzten des alten, Bühne und Beamer blenden 2,5 s weich über.
   Danach gibt Dream das alte Modell frei, der Speicher ist wieder da. Reicht der Speicher nicht für beide zugleich,
   gibt Dream erst das alte frei und hält solange das letzte Bild an (der Chip sagt das). Lädt das neue Modell nicht
-  (z. B. nicht heruntergeladen, kein Netz), läuft das alte weiter und der Chip meldet es.
+  (z. B. nicht heruntergeladen, kein Netz), läuft das alte weiter und der Chip meldet es. „Umrisse erhalten“ und
+  „Pose formt die Figur“ träumen währenddessen ebenfalls weiter; nur wer eins davon zum ersten Mal einschaltet, während
+  ein Modell lädt, wartet auf dieses Laden.
 - **Eingang & Prompt** (eine Karte, zwei Ebenen): Oben **„Eingang – woraus malt die KI?“** als Reiter: **Nur Traum**
   (kein Eingangsbild, die KI träumt aus ihrem letzten Bild weiter), **Kamera**, **Bild**, **Video**, **Leuchtspuren** (aus der Bewegungserkennung).
   Jeder Reiter zeigt, was zu ihm gehört: Im Reiter Bild bzw. Video wählst du eine eigene Datei oder lässt die KI ein
@@ -460,7 +462,8 @@ Gut zu wissen:
 - **Autostart:** `./install-autostart.sh --lan --x 1920` startet Dream nach jeder Anmeldung,
   hält den Bildschirm wach und öffnet die Bühne im Vollbild in einem eigenen Chrome-Fenster auf dem Beamer
   (`--x` = linke Kante des Beamer-Bildschirms in macOS). Entfernen: `install-autostart.sh --remove`.
-- Alle Einstellungen bleiben nach einem Neustart erhalten (`~/.local/state/dream/state.json`).
+- Alle Einstellungen bleiben nach einem Neustart erhalten (`~/.local/state/dream/state.json`). Dream schreibt die Datei
+  etwa eine Sekunde nach der letzten Änderung (beim langen Ziehen eines Reglers alle 5 Sekunden) und beim Beenden.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -616,8 +619,9 @@ unten):
   **Live-Vorschau**, **Pause**, **Weiter**, **Autopilot**, **Blackout** und große Regler für **Verwandlung** und
   **Master-Helligkeit**. **Quer:** drei Spalten, die Leiste als Spalte links. Die Karten behalten ihre Reihenfolge und
   werden nur beim Drehen neu verteilt – Zuklappen verschiebt nichts in eine andere Spalte.
-- **Live-Vorschau:** was die Bühne zeigt, etwa 4 Bilder pro Sekunde (ungefähr so viel WLAN wie die WLAN-Ausgabe oder
-  weniger). Antippen schaltet sie aus und an (wird gemerkt), gedrückt halten zeigt sie groß.
+- **Live-Vorschau:** was die Bühne zeigt, etwa 4 Bilder pro Sekunde, als kleines Bild (320 px, ein Bruchteil des WLANs,
+  das die WLAN-Ausgabe braucht). Antippen schaltet sie aus und an (wird gemerkt), gedrückt halten zeigt sie groß –
+  solange sie groß ist, bekommt die Fernbedienung das volle Bühnenbild.
 - **⛶ Vollbild:** ein Tipp füllt den ganzen Bildschirm ohne Adress- und Statusleiste (am Handy ist der Knopf oben in
   der Kopfzeile). Kommst du aus einer anderen App zurück, fragt ein Knopf „⛶ Wieder Vollbild?“ – Browser erlauben
   Vollbild nur nach einem Tipp. Eine Verknüpfung auf dem Startbildschirm (Chrome-Menü → „Zum Startbildschirm
@@ -657,6 +661,11 @@ Dream Control (über https, siehe oben) hat eine Karte **„Dieses Gerät“**:
 5. VPN oder Werbeblocker am Handy aus.
 6. Test ohne Link: `http://<IP des Macs>:7860/health` am Handy – antwortet etwas (auch „forbidden“), steht die
    Verbindung. Die IP des Macs: `ipconfig getifaddr en0`.
+
+**Ein Handy mit schwacher Verbindung** (am Rand des WLANs) bremst niemanden sonst: Jedes Gerät hat seine eigene kleine
+Warteschlange, Bühne, Beamer und die anderen Fernbedienungen laufen weiter. Von den Bildern bekommt es nur das
+neueste; bewegt sich seine Leitung 10 Sekunden lang nicht, trennt Dream es, und seine Seite verbindet sich von selbst
+neu („Verbindung weg – versuche erneut …“) und bekommt alle Einstellungen frisch.
 
 Fotos und kurze Clips gehen auch über „Bild/Video hochladen“ → Kamera. Die Live-Kamera von Handy oder Tablet: siehe den
 nächsten Abschnitt.
@@ -1219,7 +1228,9 @@ Lizenzen: SD-Turbo und SDXL-Turbo stehen unter der Stability AI Community Licens
 Ersatz für torch und einen temporären Home-Ordner, deine Einstellungen, Schlüssel und Bilder bleiben unberührt). Sie
 prüfen, wer was darf (jede Route des Servers für diesen Mac, Dream Control, Gäste, Dreamy Eyes und Geräte ohne
 Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung, die Ordner, die Zertifikate fürs Heimnetz, die
-MIDI-, Sensor- und Playlist-Helfer und die Übersetzungen. `node --test tests/js/beat.test.mjs` prüft die Takterkennung
+MIDI-, Sensor- und Playlist-Helfer, die Übersetzungen und was Dream flüssig hält (der Prompt wird einmal je Prompt
+kodiert, niemand wartet auf ein ladendes Modell oder ein langsames Gerät, der Zustand wird erst geschrieben, wenn die
+Hände ruhen, die kleine Vorschau). `node --test tests/js/beat.test.mjs` prüft die Takterkennung
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster. GitHub
 lässt beides bei jedem Push laufen (`.github/workflows/tests.yml`).

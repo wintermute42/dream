@@ -41,6 +41,7 @@ from PIL import Image
 
 import i18n
 import midi
+import outbox
 import paths
 import playlists
 import sensors
@@ -81,7 +82,8 @@ else:
 _pipes: dict = {}
 _cn_models: dict = {}          # (model, kind) -> ControlNet
 _ctl_pipes: dict = {}          # (model, kinds) -> the model with these ControlNets on top
-_load_lock = threading.Lock()
+_load_lock = threading.Lock()   # reading weights from disk, one at a time; a model holds it for its whole load, warm-up included
+_build_lock = threading.Lock()  # #187: building on a loaded model (with ControlNets, the picture generator); taken before _load_lock
 gpu_lock = threading.Lock()
 # #129: on the Mac, a garbage collection set off by any thread (loading a model, the web server) could free GPU objects
 # of the painting thread, and Metal aborts the whole app ("Cannot form weak reference to instance … of class
@@ -130,15 +132,40 @@ def _blended_noise(pipe, seed, seed2, t):
 
 
 def _prompt_embeds(p, key, prompt):
-    if (key, prompt) not in _embeds:                    # encoding the prompt costs time: reuse it
+    """The encoded prompt, as the pipelines take it: {"prompt_embeds"} for SD, with {"pooled_prompt_embeds"} for SDXL
+    (#187: SDXL ran its two text encoders for every picture). Encoding costs time: a few are kept. A style model
+    changes SDXL's text encoders too (styles.py), so there the style and its amount belong to the key."""
+    xl = MODELS[key][2]
+    k = (key, prompt, styles.state["key"], styles.state["amt"]) if xl else (key, prompt)
+    if k not in _embeds:
         if len(_embeds) >= 8:
             _embeds.pop(next(iter(_embeds)))
-        _embeds[(key, prompt)] = p.encode_prompt(prompt, device, 1, False)[0]
-    return _embeds[(key, prompt)]
+        if xl:
+            e = p.encode_prompt(prompt=prompt, device=device, num_images_per_prompt=1, do_classifier_free_guidance=False)
+            _embeds[k] = {"prompt_embeds": e[0], "pooled_prompt_embeds": e[2]}
+        else:
+            _embeds[k] = {"prompt_embeds": p.encode_prompt(prompt, device, 1, False)[0]}
+    return _embeds[k]
+
+
+def _prompt_args(p, key, prompt, prompt2=None, pt=0.0):
+    """The prompt for one picture; with prompt2 and pt > 0 blended towards prompt2 (drift, scene changes)."""
+    e = _prompt_embeds(p, key, prompt)
+    if prompt2 is not None and prompt2 != prompt and pt > 0:
+        e2, t = _prompt_embeds(p, key, prompt2), float(min(pt, 1.0))
+        e = {name: torch.lerp(v, e2[name], t) for name, v in e.items()}
+    return e
+
+
+def _ready(key: str) -> bool:
+    """Loaded and warmed up (a model is in _pipes from the moment its weights are there – its warm-up needs it)."""
+    return key in _pipes and model_state["loading"] != key
 
 
 def pipeline(key: str):
     """Loads a model on first use (the Mac in cloud mode never loads one)."""
+    if _ready(key):                                     # #187: a model in use never waits for another one's load
+        return _pipes[key]
     with _load_lock:
         if key not in _pipes:
             from diffusers import AutoencoderTiny, AutoPipelineForImage2Image
@@ -234,13 +261,16 @@ def _speed_up(key, p):
 
 def control_pipeline(key: str, kinds: tuple):
     """The same model with the ControlNets of these kinds on top (one or several; loaded on first use)."""
-    with _load_lock:
+    if (key, kinds) in _ctl_pipes:                      # #187: built already – no lock, so a model that loads in the
+        return _ctl_pipes[(key, kinds)]                 # background (it holds _load_lock) never stops these pictures
+    with _build_lock:
         if (key, kinds) not in _ctl_pipes:
             from diffusers import AutoPipelineForImage2Image, ControlNetModel
             for k in kinds:
                 if (key, k) not in _cn_models:
                     print(f"Loading ControlNet {CONTROLNETS[k][key]} …", flush=True)
-                    cn = ControlNetModel.from_pretrained(CONTROLNETS[k][key], torch_dtype=dtype)
+                    with _load_lock:                    # only a ControlNet used for the first time waits for a load
+                        cn = ControlNetModel.from_pretrained(CONTROLNETS[k][key], torch_dtype=dtype)
                     with gpu_lock:
                         _cn_models[(key, k)] = cn.to(device)
             cns = [_cn_models[(key, k)] for k in kinds]
@@ -361,12 +391,9 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
     gen = torch.Generator(device="cpu").manual_seed(seed)    # same noise every frame = calmer motion
     args = dict(image=img, strength=strength, num_inference_steps=steps, guidance_scale=0.0,
                 generator=gen, output_type="pil")
-    blend = prompt2 is not None and prompt2 != prompt and pt > 0
-    near = prompt2 if blend and pt >= 0.5 else prompt          # where embeddings can't be blended: the nearer one
     if _perf["on"]:                                            # #180: time the parts of the picture
         _perf_wrap(p.unet, "forward", "unet")
         _perf_wrap(p.vae, "decode", "decode")
-        _perf_wrap(p, "encode_prompt", "prompt")
     with _gpu_turn(), torch.no_grad():
         if MODELS[key][2]:                                    # #123: style model and reference picture (SDXL only)
             look = look or {}
@@ -379,6 +406,8 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
                         if k == key:                          # cloud start compiles it with the adapter
                             cp.unet = p.unet
             args.update(styles.ip_args(p, look.get("ref"), look.get("ra", 0)))
+        with _perf_part("prompt"):                            # #187: encoded once per prompt, for every way to paint
+            args.update(_prompt_args(p, key, prompt, prompt2, pt))
         if pose is not None or edges > 0:                     # skeleton and/or outlines shape the picture
             kinds, imgs, scales = [], [], []
             if pose is not None:
@@ -390,18 +419,11 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
                 _perf_wrap(pp.controlnet, "forward", "controlnet")
             one = len(kinds) == 1
             with _blended_noise(pp, seed, seed2, st):
-                out = pp(prompt=near, control_image=imgs[0] if one else imgs,
+                out = pp(control_image=imgs[0] if one else imgs,
                          controlnet_conditioning_scale=scales[0] if one else scales, **args)
-        elif MODELS[key][2]:                                  # SDXL: also needs pooled embeddings
-            with _blended_noise(p, seed, seed2, st):
-                out = p(prompt=near, **args)
         else:
-            with _perf_part("prompt"):
-                e = _prompt_embeds(p, key, prompt)
-                if blend:
-                    e = torch.lerp(e, _prompt_embeds(p, key, prompt2), float(min(pt, 1.0)))
             with _blended_noise(p, seed, seed2, st):
-                out = p(prompt_embeds=e, **args)
+                out = p(**args)
     return out.images[0]
 
 
@@ -426,7 +448,7 @@ def _free_memory_now():
 
 def release(key):
     """Frees a model and everything built on it (pose ControlNet, picture generator, prompt cache)."""
-    with _load_lock, gpu_lock:
+    with _build_lock, _load_lock, gpu_lock:
         for d in (_pipes, _t2i, _full_vae):
             d.pop(key, None)
         for d in (_cn_models, _ctl_pipes):
@@ -490,7 +512,7 @@ def use_model(key) -> str:
     """The model to paint the next picture with: the wanted one once it is ready, the current one until then."""
     key = key if key in MODELS else "sd-turbo"
     active = model_state["active"]
-    if key not in _pipes:
+    if not _ready(key):                               # #187: not before its warm-up picture is through either
         if active in _pipes:                          # keep painting with the current model meanwhile
             failed_lately = model_state["error_key"] == key and time.time() - model_state["error_at"] < 60
             if not model_state["loading"] and not failed_lately:
@@ -530,7 +552,9 @@ _full_vae: dict = {}
 def _maker(key):
     """Text-to-image pipeline sharing the weights of the live pipeline (no extra download, no extra memory)."""
     p = pipeline(key)
-    with _load_lock:
+    if key in _t2i and key in _full_vae:              # #187: built already – no lock
+        return _t2i[key]
+    with _build_lock:
         if key not in _t2i:
             from diffusers import AutoPipelineForText2Image
             t = AutoPipelineForText2Image.from_pipe(p)
@@ -541,9 +565,10 @@ def _maker(key):
             if not MODELS[key][2]:
                 try:
                     from diffusers import AutoencoderKL
-                    _full_vae[key] = AutoencoderKL.from_pretrained(
-                        MODELS[key][0], subfolder="vae", torch_dtype=dtype, local_files_only=True,
-                        variant="fp16" if dtype == torch.float16 else None).to(device)
+                    with _load_lock:
+                        _full_vae[key] = AutoencoderKL.from_pretrained(
+                            MODELS[key][0], subfolder="vae", torch_dtype=dtype, local_files_only=True,
+                            variant="fp16" if dtype == torch.float16 else None).to(device)
                 except Exception as e:            # not in the cache: the live decoder will do
                     print(f"full VAE for {key} not available ({type(e).__name__}); using the fast one", flush=True)
     return _t2i[key]
@@ -567,7 +592,7 @@ def _decoder(p, key):
 def make_picture(key, prompt, w, h, seed, refine=True, steps=4):
     """One picture from text: 4 steps at the live size, then a light pass at 1.5× size for detail.
     #160: steps=1 for a quick sketch (a Dreamy Eyes mask) that holds the stage only a moment."""
-    key = key if key in _pipes else (model_state["active"] or key)
+    key = key if _ready(key) else (model_state["active"] or key)
     key = key if key in MODELS else "sd-turbo"
     t = _maker(key)
     gen = torch.Generator(device="cpu").manual_seed(seed)
@@ -608,7 +633,7 @@ def _view_at(img, zoom, rot, i):
 def make_clip(key, start, prompt, frames, zoom, rot, strength, seed, emit):
     """A clip from a picture: the view moves in while the dream keeps painting. Each frame grows out of the one
     before (smooth), held half-way to the first picture seen from the same place (no drift into mush)."""
-    key = key if key in _pipes else (model_state["active"] or key)
+    key = key if _ready(key) else (model_state["active"] or key)
     key = key if key in MODELS else "sd-turbo"
     pipeline(key)
     img = start
@@ -1002,8 +1027,7 @@ if ROLE == "app":
                 cloud_cache["st"] = st
                 for c, r in list(roles.items()):
                     if r in ("local", "control"):
-                        with contextlib.suppress(Exception):
-                            await c.send_text(json.dumps({"cloud": st}))
+                        outbox.post(c, json.dumps({"cloud": st}))
             active = st.get("busy") or st.get("state") not in ("off", "setup", "error") or state.get("backend") == "cloud"
             wait = 3 if active else 300 if st.get("state") == "setup" else 30
             for _ in range(wait):
@@ -1336,7 +1360,7 @@ if ROLE == "app":
     feeds: dict = {"cam": None, "motion": None}   # #146: the one device that sends its live camera / its motion
     feed_info: dict = {}        # #146: kind -> what the stage shows about it ({"facing": "user" | "environment"})
     viewers: set = set()        # output windows (/output): they only show what the stage shows
-    previews: dict = {}         # #141: small live previews on remotes – socket → time of its last picture (at most 4/s)
+    previews: dict = {}         # #141: small live previews on remotes and Dreamy Eyes – socket → "small" | "full" (#187)
     shown = {"frame": None}     # the last picture the stage showed (JPEG)
 
     temp_lists: dict = {}       # AI playlists of this run: only in memory, gone after a restart
@@ -1352,6 +1376,39 @@ if ROLE == "app":
         with open(tmp, "w") as f:
             json.dump(state, f, ensure_ascii=False, indent=1, allow_nan=False)   # #175: never NaN on disk
         os.replace(tmp, STATE_FILE)
+
+    # #187: a slider that is dragged changes the state about 15 times a second. The file is written once the hands
+    # rest (SAVE_AFTER seconds after the last change), during a long drag at least every SAVE_LATEST seconds, and when
+    # Dream is stopped.
+    SAVE_AFTER, SAVE_LATEST = 1.0, 5.0
+    saving: dict = {"timer": None, "since": 0.0}
+
+    def save_soon():
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:                         # no event loop (a script, a test): write right away
+            save_state()
+            return
+        now = time.monotonic()
+        if saving["timer"] is None:
+            saving["since"] = now
+        else:
+            saving["timer"].cancel()
+        wait = max(0.0, min(SAVE_AFTER, saving["since"] + SAVE_LATEST - now))
+        saving["timer"] = loop.call_later(wait, save_now)
+
+    def save_now():
+        """Writes what save_soon put off (also when Dream stops)."""
+        timer, saving["timer"] = saving["timer"], None
+        if timer is None:
+            return
+        timer.cancel()
+        try:
+            save_state()
+        except (OSError, ValueError) as e:           # a full disk must not end the show; the next change tries again
+            print("state not saved:", repr(e)[:200], flush=True)
+
+    app.router.on_shutdown.append(save_now)
 
     def lan_ip() -> str:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -1643,13 +1700,12 @@ if ROLE == "app":
     globals()["render_allowed"] = render_allowed
 
     async def broadcast(msg: dict, exclude=None, only=None):
+        """To every control client. #187: only queued (outbox.py) – a slow device never holds up the others."""
         data = json.dumps(msg, ensure_ascii=False)
         for c, kind in list(clients.items()):
             if c is exclude or (only and kind != only) or roles.get(c) == "eyes":   # #156: the eyes learn nothing
                 continue
-            try:
-                await c.send_text(data)
-            except Exception:
+            if not outbox.post(c, data):
                 clients.pop(c, None)
 
     def status_msg() -> dict:
@@ -1704,16 +1760,14 @@ if ROLE == "app":
             live["scene_at"] = 0          # start the new playlist right away
         state.update(clean)
         if persist:
-            save_state()
+            save_soon()
         if "syphon" in clean:
             syphon_sync()
         if "backend" in clean:                         # #176: the cloud watcher looks more often now
             cloud_cache["kick"] = True
         if "master" in clean:                          # output windows dim with the stage
             for v in list(viewers):
-                try:
-                    await v.send_text(json.dumps({"master": state["master"]}))
-                except Exception:
+                if not outbox.post(v, json.dumps({"master": state["master"]})):
                     viewers.discard(v)
         await broadcast({"set": clean, **({"by": by} if by else {})}, exclude=exclude)
 
@@ -1723,6 +1777,7 @@ if ROLE == "app":
             await sock.close(code=4403)
             return
         await sock.accept()
+        outbox.box(sock)
         if not live.get("loop"):                       # the background loops start with the first client
             live["loop"] = asyncio.create_task(scene_loop())
             live["midi"] = asyncio.create_task(midi_loop())
@@ -1741,18 +1796,18 @@ if ROLE == "app":
         i18n.current.set(lang)
         if kind == "stage" and lang:                   # #132: what all see (MIDI, cloud) speaks the stage's language
             i18n.fallback["lang"] = lang
-        await sock.send_text(json.dumps(role_msg(sock)))
-        await sock.send_text(json.dumps(feeds_msg(sock) if role != "eyes" else {"feeds_mine": [], **aimask_msg()}))
+        outbox.post(sock, json.dumps(role_msg(sock)))
+        outbox.post(sock, json.dumps(feeds_msg(sock) if role != "eyes" else {"feeds_mine": [], **aimask_msg()}))
         if sock in eyes_pages and role != "eyes":      # #166: a Dreamy Eyes page on a Control device gets the faces too
-            await sock.send_text(json.dumps(aimask_msg()))
+            outbox.post(sock, json.dumps(aimask_msg()))
         if sock in eyes_pages or role in ("eyes", "control", "local"):   # #172: how often the trance may come
-            await sock.send_text(json.dumps({"eyes_cfg": eyes_cfg}))
+            outbox.post(sock, json.dumps({"eyes_cfg": eyes_cfg}))
         if role in ("local", "control") and cloud_cache["st"]:   # #176: the cloud's latest status
-            await sock.send_text(json.dumps({"cloud": cloud_cache["st"]}))
+            outbox.post(sock, json.dumps({"cloud": cloud_cache["st"]}))
         if role != "eyes":
-            await sock.send_text(json.dumps({"midi": {"map": midi_map}}))
-            await sock.send_text(json.dumps({"sensors": {"map": sens.mapping}}))
-            await sock.send_text(json.dumps({"state": state, "playlists": playlist_names(), "gallery": gallery_list(),
+            outbox.post(sock, json.dumps({"midi": {"map": midi_map}}))
+            outbox.post(sock, json.dumps({"sensors": {"map": sens.mapping}}))
+            outbox.post(sock, json.dumps({"state": state, "playlists": playlist_names(), "gallery": gallery_list(),
                                              "cams": live.get("cams", []), "lan": LAN, **status_msg()}, ensure_ascii=False))
         await broadcast(status_msg())
         bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
@@ -1854,6 +1909,7 @@ if ROLE == "app":
             roles.pop(sock, None)
             key_roles.pop(sock, None)
             eyes_pages.discard(sock)
+            outbox.drop(sock)
             await feeds_end(sock)
             await broadcast(status_msg())
 
@@ -1868,10 +1924,9 @@ if ROLE == "app":
             if r == "control" and c is not sock:
                 roles[c] = "guest"
                 await feeds_end(c)                     # #146: its camera and motion end with its rights
-                with contextlib.suppress(Exception):
-                    await c.send_text(json.dumps({**role_msg(c), "taken": True}))
+                outbox.post(c, json.dumps({**role_msg(c), "taken": True}))
         roles[sock] = "control"
-        await sock.send_text(json.dumps(role_msg(sock)))
+        outbox.post(sock, json.dumps(role_msg(sock)))
 
     # ---------- #146: live camera and motion of the Dream Control device ----------
     def feeds_msg(sock=None) -> dict:
@@ -1886,8 +1941,7 @@ if ROLE == "app":
             msg = feeds_msg(c)
             if roles.get(c) == "eyes":
                 msg = {"feeds_mine": [k for k, o in feeds.items() if o is c]}
-            with contextlib.suppress(Exception):
-                await c.send_text(json.dumps(msg))
+            outbox.post(c, json.dumps(msg))
 
     async def feed_set(sock, want: dict):
         """{"cam": true, "facing": "environment"} / {"cam": false} / {"motion": true|false}: only Dream Control or this
@@ -1905,8 +1959,7 @@ if ROLE == "app":
                 feed_info[kind] = ({"by": by, "facing": "user" if want.get("facing") == "user" else "environment"}
                                    if kind == "cam" else {"by": by})
                 if old is not None and old is not sock:
-                    with contextlib.suppress(Exception):
-                        await old.send_text(json.dumps({"feed_taken": kind}))
+                    outbox.post(old, json.dumps({"feed_taken": kind}))
                 if kind == "cam" and (state["mode"] != "cam" or state["cam_device"] != "device"):
                     await apply({"mode": "cam", "cam_device": "device"}, by="remote")
                 changed = True
@@ -1928,8 +1981,7 @@ if ROLE == "app":
         if owner is None or owner is sock:
             return
         await feed_stop(kind)
-        with contextlib.suppress(Exception):
-            await owner.send_text(json.dumps({"feed_taken": kind}))
+        outbox.post(owner, json.dumps({"feed_taken": kind}))
         await feeds_changed()
 
     async def feeds_end(sock):
@@ -1948,11 +2000,8 @@ if ROLE == "app":
         if roles.get(sock) == "eyes" or sock in eyes_pages:   # #166: the latest picture only, in memory, for a dream portrait
             eyes_seen["frame"], eyes_seen["frame_at"] = data, time.time()
         for c, kind in list(clients.items()):
-            if kind == "stage":
-                try:
-                    await c.send_bytes(data)
-                except Exception:
-                    clients.pop(c, None)
+            if kind == "stage" and not outbox.post_frame(c, data):   # #187: the latest picture only, never waited for
+                clients.pop(c, None)
 
     MOTION_ADDR = {"acc": "/device/accelerometer", "lin": "/device/linear_acceleration",
                    "gyro": "/device/gyroscope", "ori": "/device/orientation"}
@@ -2015,8 +2064,7 @@ if ROLE == "app":
         """A word to every Dreamy Eyes page (and, if asked, to Dream Control and this Mac)."""
         for c, r in list(roles.items()):
             if r == "eyes" or c in eyes_pages or (also_control and r in ("control", "local")):
-                with contextlib.suppress(Exception):
-                    await c.send_text(json.dumps(msg))
+                outbox.post(c, json.dumps(msg))
     FIRE_HOLD = 12                                     # #162: seconds a fire seen by the eyes keeps their faces burning
     FIRE_STYLE = ", surrounded by flames, glowing embers in the air, firelight on her face"
 
@@ -2048,8 +2096,7 @@ if ROLE == "app":
             if "you" in aimasks and now - aimasks["you"][2] > YOU_KEEP:   # #166: a portrait never stays long
                 aimasks.pop("you", None)
                 for c in eyes:
-                    with contextlib.suppress(Exception):
-                        await c.send_text(json.dumps(aimask_msg()))
+                    outbox.post(c, json.dumps(aimask_msg()))
             if now - eyes_seen["frame_at"] > 10:
                 eyes_seen["frame"] = None                 # the picture is not kept beyond a few seconds
             if (not eyes or state["backend"] != "local" or not state.get("running", True) or model_state.get("loading")):
@@ -2074,8 +2121,7 @@ if ROLE == "app":
                 aimasks["you"] = (secrets.token_hex(6), _jpeg(pic), time.time())
                 print(f"dreamy eyes: a dream portrait in {time.time() - now:.2f} s", flush=True)
                 for c in eyes:
-                    with contextlib.suppress(Exception):
-                        await c.send_text(json.dumps(aimask_msg()))
+                    outbox.post(c, json.dumps(aimask_msg()))
                 continue
             fire = now - eyes_seen.get("fire", 0) < FIRE_HOLD   # #162: the eyes see fire – their faces burn too
             flame_due = fire and now - aimasks.get("flame", (None, None, 0))[2] > 60
@@ -2103,8 +2149,7 @@ if ROLE == "app":
             aimasks[kind] = (secrets.token_hex(6), _jpeg(pic), time.time())
             print(f"dreamy eyes: a {kind} face in {time.time() - aimask_state['last']:.2f} s", flush=True)
             for c in eyes:
-                with contextlib.suppress(Exception):
-                    await c.send_text(json.dumps(aimask_msg()))
+                outbox.post(c, json.dumps(aimask_msg()))
 
     @app.get("/eyes/mask/{name}")
     def eyes_mask(request: Request, name: str):
@@ -2372,6 +2417,34 @@ if ROLE == "app":
             except RuntimeError:
                 pass
 
+    # #187: remotes and Dreamy Eyes show the dream in a tile – they get it small (once shrunk for all of them), not the
+    # stage's full picture four times a second. A remote that shows it large ("hold") asks for the full one meanwhile.
+    PREVIEW_SIDE = 320                                 # the longer side, in pixels
+    PREVIEW_EVERY = 0.25
+    preview: dict = {"at": 0.0, "busy": False, "task": None}
+
+    def small_frame(data: bytes) -> bytes:
+        img = Image.open(io.BytesIO(data))
+        if max(img.size) <= PREVIEW_SIDE:
+            return data
+        img.draft("RGB", (PREVIEW_SIDE, PREVIEW_SIDE))   # a JPEG is decoded at a half, quarter or eighth right away
+        img = img.convert("RGB")
+        img.thumbnail((PREVIEW_SIDE, PREVIEW_SIDE), Image.BILINEAR)
+        return _jpeg(img, 80)
+
+    async def preview_send(data: bytes):
+        try:
+            small = None
+            if any(size == "small" for size in previews.values()):
+                small = await asyncio.get_running_loop().run_in_executor(None, small_frame, data)
+            for v, size in list(previews.items()):
+                if not outbox.post_frame(v, data if size == "full" else small or data):
+                    previews.pop(v, None)
+        except Exception as e:                         # not a picture: no preview of it
+            print("preview:", repr(e)[:200], flush=True)
+        finally:
+            preview["busy"] = False
+
     @app.websocket("/out")
     async def out(sock: WebSocket):
         """The stage sends every frame it shows (JPEG) for Syphon and the output windows; only from this Mac."""
@@ -2389,25 +2462,18 @@ if ROLE == "app":
                     if len(text) > 4000:               # far more than these ever are: not passed on
                         continue
                     for v in list(viewers):
-                        with contextlib.suppress(Exception):
-                            await v.send_text(text)
+                        outbox.post(v, text)
                     continue
                 data = msg.get("bytes")
                 if not data:
                     continue
                 shown["frame"] = data
                 now = time.time()
-                for v, last in list(previews.items()):    # #141: a remote's preview gets every 4th of a second
-                    if now - last >= 0.25:
-                        previews[v] = now
-                        try:
-                            await v.send_bytes(data)
-                        except Exception:
-                            previews.pop(v, None)
-                for v in list(viewers):
-                    try:
-                        await v.send_bytes(data)
-                    except Exception:
+                if previews and not preview["busy"] and now - preview["at"] >= PREVIEW_EVERY:   # #141: 4 pictures a second
+                    preview.update(at=now, busy=True)
+                    preview["task"] = asyncio.create_task(preview_send(data))
+                for v in list(viewers):                # #187: queued, the latest picture only – no window holds up another
+                    if not outbox.post_frame(v, data):
                         viewers.discard(v)
                 if state["syphon"]:
                     img = np.asarray(Image.open(io.BytesIO(data)).convert("RGBA"), dtype=np.float32)
@@ -2451,8 +2517,7 @@ if ROLE == "app":
                 "enter": enter, "exit": exit_, "hue": round(random.uniform(-70, 70)), "size": round(random.uniform(0.7, 1.3), 2)}
 
     async def window_send(sock, msg: dict):
-        with contextlib.suppress(Exception):
-            await sock.send_text(json.dumps(msg))
+        outbox.post(sock, json.dumps(msg))
 
     def window_add(sock):
         windows[sock] = {"next": time.time() + random.uniform(0.3, 1.5)}
@@ -2520,29 +2585,42 @@ if ROLE == "app":
             return
         await sock.accept()
         key_roles[sock] = ws_role(sock)
-        preview = sock.query_params.get("preview") == "1"   # #141: the remote's small live preview
-        if preview:
-            previews[sock] = 0.0
+        outbox.box(sock)
+        small = sock.query_params.get("preview") == "1"   # #141: the remote's small live preview
+        if small:
+            previews[sock] = "small"
         else:
             viewers.add(sock)
         if sock.query_params.get("as") == "window":    # #201: a dream window – it gets seeds of the organism
             window_add(sock)
         await broadcast(status_msg())                  # the stage starts sending its pictures
         try:
-            await sock.send_text(json.dumps({"master": state["master"]}))
+            outbox.post(sock, json.dumps({"master": state["master"]}))
             if sock in windows:
-                await sock.send_text(json.dumps(aimask_msg()))
+                outbox.post(sock, json.dumps(aimask_msg()))
                 await window_tell_all()
-            if shown["frame"]:
-                await sock.send_bytes(shown["frame"])
+            frame = shown["frame"]
+            if frame and small:
+                with contextlib.suppress(Exception):
+                    frame = await asyncio.get_running_loop().run_in_executor(None, small_frame, frame)
+            if frame:
+                outbox.post_frame(sock, frame)
             while True:
-                await sock.receive_text()              # nothing to receive; keeps the socket open
+                text = await sock.receive_text()       # keeps the socket open; a preview may ask for its size (#187)
+                if small and len(text) < 100:
+                    with contextlib.suppress(ValueError, AttributeError):
+                        size = json.loads(text).get("size")
+                        if size in ("small", "full") and sock in previews and previews[sock] != size:
+                            previews[sock] = size
+                            if size == "full" and shown["frame"]:
+                                outbox.post_frame(sock, shown["frame"])
         except (WebSocketDisconnect, RuntimeError):
             pass
         finally:
             viewers.discard(sock)
             previews.pop(sock, None)
             key_roles.pop(sock, None)
+            outbox.drop(sock)
             if windows.pop(sock, None) is not None:
                 await window_tell_all()
             await broadcast(status_msg())

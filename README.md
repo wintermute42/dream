@@ -204,7 +204,8 @@ together with the GPU, which makes the run itself a little slower than usual. On
   picture of the new model grows out of the last one of the old, stage and projector blend over softly in 2.5 s.
   Then Dream frees the old model. If memory is not enough for both at once, Dream frees the old one first and holds
   the last picture meanwhile (the chip says so). If the new model does not load (not downloaded, no network), the old
-  one runs on and the chip reports it.
+  one runs on and the chip reports it. “Keep outlines” and “Pose shapes the figure” dream on meanwhile too; only
+  switching one of them on for the first time while a model loads waits for that load.
 - **Input & prompt** (one card, two levels): at the top **“Input – what does the AI paint from?”** as tabs: **Dream
   only** (no input picture, the AI dreams on from its last picture), **Camera**, **Picture**, **Video**, **Light trails**
   (from the movement detection). Each tab shows what belongs to it: in Picture or Video you choose your own file or
@@ -445,7 +446,8 @@ Good to know:
 - **Autostart:** `./install-autostart.sh --lan --x 1920` starts Dream after every login, keeps the display awake and
   opens the stage fullscreen in a Chrome window of its own on the projector (`--x` = the projector display's left edge
   in macOS). Remove: `install-autostart.sh --remove`.
-- All settings survive a restart (`~/.local/state/dream/state.json`).
+- All settings survive a restart (`~/.local/state/dream/state.json`). Dream writes the file about a second after the
+  last change (while a slider is dragged for long, every 5 seconds) and when it is stopped.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -595,8 +597,9 @@ The remote is made for a tablet as well, upright and lying, best in **Chrome** (
   preview**, **Pause**, **Next**, **Autopilot**, **Blackout** and large sliders for **Transformation** and
   **Master brightness**. **Lying:** three columns, the bar as a column on the left. The cards keep their order and
   are only placed anew when you turn the tablet – folding a card moves nothing to another column.
-- **Live preview:** what the stage shows, about 4 pictures per second (about as much Wi-Fi as the Wi-Fi output, or
-  less). Tap it to switch it off and on (remembered), hold it to see it large.
+- **Live preview:** what the stage shows, about 4 pictures per second, as a small picture (320 px, a fraction of the
+  Wi-Fi the Wi-Fi output needs). Tap it to switch it off and on (remembered), hold it to see it large – while it is
+  large, the remote gets the stage's full picture.
 - **⛶ Fullscreen:** a tap fills the whole screen without address and status bar (on a phone the button is in the
   header). Coming back from another app, a button asks “⛶ Fullscreen again?” – browsers allow fullscreen only after
   a tap. A home screen shortcut (Chrome menu → “Add to home screen”) opens it with one tap, with Dream's icon (the
@@ -635,6 +638,11 @@ Dream Control (over https, see above) has a card **“This device”**:
 5. VPN or ad blocker on the phone off.
 6. Test without the link: `http://<Mac's IP>:7860/health` on the phone – if anything answers (also “forbidden”), the
    connection stands. The Mac's IP: `ipconfig getifaddr en0`.
+
+**A phone with a weak connection** (at the edge of the Wi-Fi) does not slow down anyone else: every device has its
+own small queue, the stage, the projector and the other remotes go on. Of the pictures it only gets the latest; if its
+line does not move for 10 seconds, Dream disconnects it, and its page connects again by itself (“Connection lost –
+trying again …”) and gets all settings anew.
 
 Photos and short clips also work via “Upload a picture or video” → camera. The live camera of the phone or tablet:
 see the next section.
@@ -1151,8 +1159,9 @@ rm -rf <Dream folder> ~/.cache/huggingface/hub/models--stabilityai--sd-turbo ~/.
 `uv run pytest` runs the automated tests (a few seconds; no model, no GPU, no network – they use a stand-in for torch and
 a temporary home folder, so your own settings, keys and pictures are never touched). They check who may do what (every
 route of the server for this Mac, Dream Control, guests, Dreamy Eyes and devices without a key), the origin check, the
-ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers and the
-translations. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
+ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers, the
+translations and what keeps Dream running smoothly (the prompt encoded once per prompt, no waiting for a loading model
+or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. GitHub runs both on every push (`.github/workflows/tests.yml`).
 
