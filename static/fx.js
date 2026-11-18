@@ -1,6 +1,7 @@
 // Full-frame-rate effects drawn over the dream picture, shared by the stage (index.html) and the output windows
 // (output.html): they run at 60 fps however few pictures per second the AI makes. The autopilot picks which ones and
-// how strong (amounts 0…1); every renderer draws them from the same few numbers.
+// how strong (amounts 0…1); every renderer draws them from the same few numbers. This file is the Canvas 2D drawing;
+// gl-stage.js (#204) draws the same effects on the graphics card and falls back to this one without WebGL 2.
 window.DreamFx = (() => {
   'use strict';
   // the order they are applied in: shapes first, then what reads the previous frame (feedback, trails)
@@ -11,6 +12,18 @@ window.DreamFx = (() => {
 
   const mk = () => document.createElement('canvas');
   const size = (c, w, h) => { if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } return c.getContext('2d'); };
+  // the buffer for a box of cw × ch CSS pixels: at most maxW wide, the same format
+  const fit = (cw, ch, maxW) => { const k = Math.min(1, maxW / Math.max(1, cw)); return [Math.max(2, Math.round(cw * k)), Math.max(2, Math.round(ch * k))]; };
+  // glitch: a few slices [top, height, shift] (shares of the picture), new ones on every strong beat and now and then
+  function slices(st, p, rnd) {
+    if (p.pulse > 0.6 || !st.slices || rnd() < 0.05) {
+      st.slices = Array.from({ length: 4 + Math.floor(rnd() * 6) }, () => [rnd(), 0.02 + rnd() * 0.08, (rnd() - 0.5) * 0.16]);
+    }
+    return st.slices;
+  }
+  // the grids of the mosaic (coarser with its strength and on the beat) and of the print raster
+  const pixelGrid = (w, h, a, p) => { const cols = Math.max(24, Math.round(120 - 60 * a - 25 * p.pulse)); return [cols, Math.max(12, Math.round(cols * h / w))]; };
+  const rasterGrid = (w, h) => [64, Math.max(8, Math.round(64 * h / w))];
 
   // where the effects are centred (#83: at the dancer's hand; 0…1, default the middle)
   const at = (p, w, h) => [w * (p.cx == null ? 0.5 : p.cx), h * (p.cy == null ? 0.5 : p.cy)];
@@ -63,21 +76,17 @@ window.DreamFx = (() => {
       }
     },
     glitch(d, s, w, h, a, p, st) {                     // slices slipping sideways, new ones on every strong beat
-      if (p.pulse > 0.6 || !st.slices || Math.random() < 0.05) {
-        st.slices = Array.from({ length: 4 + Math.floor(Math.random() * 6) }, () =>
-          [Math.random() * h, h * (0.02 + Math.random() * 0.08), (Math.random() - 0.5) * w * 0.16]);
-      }
       d.globalAlpha = a;
-      for (const [y, hh, dx] of st.slices) d.drawImage(s, 0, y, w, hh, dx * (0.3 + p.pulse), y, w, hh);
+      for (const [y, hh, dx] of slices(st, p, st.rnd)) d.drawImage(s, 0, y * h, w, hh * h, dx * w * (0.3 + p.pulse), y * h, w, hh * h);
     },
     pixel(d, s, w, h, a, p, st) {                      // a coarse mosaic, coarser on the beat
-      const cols = Math.max(24, Math.round(120 - 60 * a - 25 * p.pulse)), rows = Math.max(12, Math.round(cols * h / w));
+      const [cols, rows] = pixelGrid(w, h, a, p);
       const t = size(st.small || (st.small = mk()), cols, rows);
       t.drawImage(s, 0, 0, cols, rows);
       d.globalAlpha = a; d.imageSmoothingEnabled = false; d.drawImage(st.small, 0, 0, w, h); d.imageSmoothingEnabled = true;
     },
     raster(d, s, w, h, a, p, st) {                     // halftone dots or lines: the picture as a print raster
-      const cols = 64, rows = Math.max(8, Math.round(cols * h / w)), cw = w / cols, ch = h / rows;
+      const [cols, rows] = rasterGrid(w, h), cw = w / cols, ch = h / rows;
       const t = size(st.rs || (st.rs = mk()), cols, rows);
       t.drawImage(s, 0, 0, cols, rows);
       const px = t.getImageData(0, 0, cols, rows).data;
@@ -116,14 +125,13 @@ window.DreamFx = (() => {
   };
 
   // a renderer for one canvas: keeps its own buffers and the previous frame (for feedback and trails)
-  function create(cv, maxW = 960) {
-    const st = {}, A = mk(), B = mk(), prev = mk();
+  function create(cv, maxW = 960, rnd = Math.random) {
+    const st = { rnd }, A = mk(), B = mk(), prev = mk();
     return {
       // img: the picture now shown, old/mix: the one it is blending from and how far (the cross-fade stays visible);
       // p: {amts: {name: 0…1}, pulse, bass, spin, t, seed, dir, cx, cy (centre 0…1), loc (how much it follows it), ang (radians)}
       render(img, p, old, mix = 1) {
-        const r = cv.getBoundingClientRect(), k = Math.min(1, maxW / Math.max(1, r.width));
-        const w = Math.max(2, Math.round(r.width * k)), h = Math.max(2, Math.round(r.height * k));
+        const r = cv.getBoundingClientRect(), [w, h] = fit(r.width, r.height, maxW);
         const out = size(cv, w, h);
         const iw = img && (img.naturalWidth || img.width), ih = img && (img.naturalHeight || img.height);
         if (!iw || !ih) return;
@@ -165,8 +173,7 @@ window.DreamFx = (() => {
       step(dt, tau) {
         const iw = src && (src.naturalWidth || src.width), ih = src && (src.naturalHeight || src.height);
         if (!iw || !ih) return;
-        const r = cv.getBoundingClientRect(), k = Math.min(1, maxW / Math.max(1, r.width));
-        const w = Math.max(2, Math.round(r.width * k)), h = Math.max(2, Math.round(r.height * k));
+        const r = cv.getBoundingClientRect(), [w, h] = fit(r.width, r.height, maxW);
         if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; ready = false; }
         const ctx = cv.getContext('2d'), s = Math.max(w / iw, h / ih);
         ctx.globalAlpha = ready ? 1 - Math.exp(-dt / Math.max(0.016, tau)) : 1;
@@ -183,14 +190,20 @@ window.DreamFx = (() => {
   // time the motion eases out instead of running away when a picture is late.
   const morph = {
     start(el, m, now) { el._morph = m && (m.z || m.r) ? { ...m, born: now } : null; },
-    apply(el, now, target = el) {
+    // how far the picture has moved by now: turned by r degrees and scaled by s around (px, py); null = it rests
+    at(el, now) {
       const m = el._morph;
-      if (!m) { if (target.style.transform) target.style.transform = ''; return; }
+      if (!m) return null;
       const k0 = (now - m.born) / Math.max(80, m.period || 400);
       const k = k0 <= 1 ? k0 : 1 + 0.6 * (1 - Math.exp(-(k0 - 1) * 1.5));
+      return { r: m.r * k, s: 1 + m.z * k, px: m.px, py: m.py };
+    },
+    apply(el, now, target = el) {
+      const m = morph.at(el, now);
+      if (!m) { if (target.style.transform) target.style.transform = ''; return; }
       target.style.transformOrigin = `${(m.px * 100).toFixed(1)}% ${(m.py * 100).toFixed(1)}%`;
-      target.style.transform = `rotate(${(m.r * k).toFixed(3)}deg) scale(${(1 + m.z * k).toFixed(5)})`;
+      target.style.transform = `rotate(${m.r.toFixed(3)}deg) scale(${m.s.toFixed(5)})`;
     },
   };
-  return { create, cssFilter, smoother, morph, ORDER, FILTERS, ALL };
+  return { create, cssFilter, smoother, morph, fit, slices, pixelGrid, rasterGrid, ORDER, FILTERS, ALL };
 })();

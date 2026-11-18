@@ -960,5 +960,9 @@
  "Any number of old phones and tablets as extra windows to the dream: one organism drifts through all of them. They only look.": "Beliebig viele alte Handys und Tablets als zusätzliche Fenster zum Traum: Ein Organismus wabert durch alle. Sie schauen nur zu.",
  "Show the code for the windows": "Den Code für die Fenster zeigen",
  "Motion between the pictures": "Bewegung zwischen den Bildern",
- "Between two AI pictures the picture goes on moving the way the dream moves (zoom, turn), so it neither stands still nor jumps": "Zwischen zwei KI-Bildern bewegt sich das Bild so weiter, wie der Traum sich bewegt (Zoom, Drehung) – es steht nicht still und springt nicht"
+ "Between two AI pictures the picture goes on moving the way the dream moves (zoom, turn), so it neither stands still nor jumps": "Zwischen zwei KI-Bildern bewegt sich das Bild so weiter, wie der Traum sich bewegt (Zoom, Drehung) – es steht nicht still und springt nicht",
+ "graphics card (WebGL 2)": "Grafikkarte (WebGL 2)",
+ "Canvas 2D (no WebGL 2)": "Canvas 2D (kein WebGL 2)",
+ "WebGL 2 and Canvas 2D": "WebGL 2 und Canvas 2D",
+ "The graphics card’s drawing (WebGL 2) stopped – Dream draws with Canvas 2D now.": "Das Zeichnen auf der Grafikkarte (WebGL 2) ist ausgefallen – Dream zeichnet jetzt mit Canvas 2D."
 }

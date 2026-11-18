@@ -23,7 +23,9 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   are checked in `server.py` (middleware `CONTROL_ONLY`/`LOCAL_ONLY`, the `/ctl` filter), never only in the page: a
   new route or setting that costs money, changes the owner's files or uses the Mac's camera stays Control-only.
 - Tests (#186): `uv run pytest` (no model, no GPU: a stand-in for torch, a temporary HOME and Dream folders – never the
-  real ones) and `python3 scripts/i18n_check.py`; CI runs both on Linux. `tests/test_rights.py` lists every route with the
+  real ones) and `python3 scripts/i18n_check.py`; CI runs both on Linux, and the JavaScript tests in `tests/js/`
+  (`node --test`). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
+  from `static/fx.js` as fallback); an effect is changed in both, `tests/js/gl-stage.test.mjs` compares their pictures. `tests/test_rights.py` lists every route with the
   roles that may use it: a new route or a change of rights changes that table. Folders come from `paths.py`
   (`DREAM_STATE_DIR`, `DREAM_CONFIG_DIR`, `DREAM_SAVE_DIR`).
 
