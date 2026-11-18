@@ -1060,7 +1060,7 @@ if ROLE == "app":
             await asyncio.sleep(seconds)
             _perf["on"] = False
             dt = time.time() - t0
-            await asyncio.sleep(3)                     # the devices' reports
+            await asyncio.sleep(6)                     # the devices' reports (a busy page may report a little late)
             devices: dict = {}
             for (kind, _), rep_ in measure["reports"].items():
                 d = devices.setdefault(kind, {"n": 0, "fps": [], "ms_avg": [], "ms_p95": [], "slow_pct": []})
