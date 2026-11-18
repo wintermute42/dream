@@ -41,7 +41,7 @@
   #dockcards details.sec > summary::after { content: none; }
   #dockcards .row { margin: 5px 0; }
   #stage img { position: absolute; width: min(100cqw, 100cqh); aspect-ratio: 1; height: auto; object-fit: cover;
-    image-rendering: auto; transition: opacity var(--fade, 300ms) linear; }
+    image-rendering: auto; }   /* the cross-fade of the two pictures is the picture chain's (gl-stage.js: show) */
   #panel { position: fixed; top: 0; left: 0; bottom: 0; width: var(--pw); overflow: hidden; padding: 14px 18px 14px;
     background: var(--panelsolid); border-right: 1px solid var(--line); display: flex; flex-direction: column;
     font-size: var(--pfs, var(--fs)); }
@@ -468,6 +468,8 @@
     <input type="range" id="smooth" min="0" max="1" step="0.05" value="0.3">
     <label for="morph" title="Between two AI pictures the picture goes on moving the way the dream moves (zoom, turn), so it neither stands still nor jumps">Motion between the pictures <span class="val" id="v-morph"></span></label>
     <input type="range" id="morph" min="0" max="1" step="0.05" value="1">
+    <label for="flow" title="What the AI changes from one picture to the next travels there instead of fading: Dream estimates where the shapes have gone and moves both pictures along that way while it blends them. Pictures that have too little in common (a new seed, a new scene) cross-fade as before">Shapes travel between the pictures <span class="val" id="v-flow"></span></label>
+    <input type="range" id="flow" min="0" max="1" step="0.05" value="1">
     <label style="display:flex;align-items:center;gap:6px;margin:4px 0 0"><input type="checkbox" id="drift_prompt" checked> Vary the prompt gently (light, colour, material)</label>
   </div>
   </details>
@@ -779,8 +781,9 @@
     $('v-drift').textContent = +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off');
     $('v-smooth').textContent = +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off');
     $('v-morph').textContent = +$('morph').value ? Math.round($('morph').value * 100) + ' %' : T('off');
+    $('v-flow').textContent = +$('flow').value ? Math.round($('flow').value * 100) + ' %' : T('off');
   };
-  Object.values(ui).forEach(el => el.addEventListener('input', show)); $('sens').addEventListener('input', show); $('motion_sens').addEventListener('input', show); $('pose_scale').addEventListener('input', show); $('edges_scale').addEventListener('input', show); $('edges').addEventListener('change', show); $('style').addEventListener('change', show); $('style_amt').addEventListener('input', show); $('style_ref_amt').addEventListener('input', show); $('drift').addEventListener('input', show); $('smooth').addEventListener('input', show); $('morph').addEventListener('input', show); show();
+  Object.values(ui).forEach(el => el.addEventListener('input', show)); $('sens').addEventListener('input', show); $('motion_sens').addEventListener('input', show); $('pose_scale').addEventListener('input', show); $('edges_scale').addEventListener('input', show); $('edges').addEventListener('change', show); $('style').addEventListener('change', show); $('style_amt').addEventListener('input', show); $('style_ref_amt').addEventListener('input', show); $('drift').addEventListener('input', show); $('smooth').addEventListener('input', show); $('morph').addEventListener('input', show); $('flow').addEventListener('input', show); show();
   // #108: to the cloud the line is the limit – WebP both ways (where the browser can write it), and live sources go
   // up at 5/8 of the size; the cloud scales them back before dreaming. A dream or picture that builds on its last
   // result keeps the full size, so it never gets softer from round to round. On this Mac nothing changes.
@@ -794,6 +797,7 @@
     // SD-Turbo denoises int(steps * strength) times: ask for enough steps to get the chosen number
     steps: Math.max(1, Math.ceil(+ui.quality.value / Math.max(0.15, mod.strength()))), seed: (+ui.seed.value || 1) + mu.seedOff,
     model: $('model').value, pose_scale: +$('pose_scale').value,
+    flow: flowAmt() > 0,                               // #205: the flow field to the picture before comes along
     // #113: the input's outlines lead the AI (live sources and pictures; a pure dream has no input of its own)
     edges: $('edges').checked && mode !== 'dream' ? +$('edges_scale').value : 0,
     // #123: the style model and the reference picture (SDXL-Turbo only; the prompt stays as it is)
@@ -877,8 +881,8 @@
     const myBackend = backend;
     const sock = ws = new WebSocket(wsUrl());
     sock._backend = myBackend;
-    ws.binaryType = 'blob';
-    ws.onopen = () => { sentKey = ''; inflight = 0; sentAt = []; answers = 0; answerAt = performance.now(); status(T('Connected.')); refSent = ''; refSend(); tick(); };
+    ws.binaryType = 'arraybuffer';
+    ws.onopen = () => { sentKey = ''; nextFlow = null; lastFromAi = false; inflight = 0; sentAt = []; answers = 0; answerAt = performance.now(); status(T('Connected.')); refSent = ''; refSend(); tick(); };
     ws.onclose = () => {
       busy = false; inflight = 0; sentAt = [];
       if (sock._switching || sock !== ws) return;           // a deliberate switch reconnects itself
@@ -895,16 +899,20 @@
           return;
         }
         if ('ms' in m) lastMs = m.ms;
+        if ('flow_ms' in m) flowSeen.ms += +m.flow_ms || 0;
         if ('server_ms' in m) serverMs = m.server_ms;
         if ('loading' in m) { modelLoading = m.loading; modelError = m.error; modelUsed = m.model; }
         if ('style_loading' in m) lookSync(m);
         if (m.switch) { slowFade = true; switchShownUntil = performance.now() + 4000; status(T('Model switched: {m}', { m: MODEL_NAMES[m.switch] })); }
         return;
       }
+      // #205: the flow field from the picture before to the one that follows this message
+      if (ev.data.byteLength >= 8 && new Uint32Array(ev.data, 0, 1)[0] === FLOW_MAGIC) { nextFlow = flowField(ev.data); return; }
+      const field = nextFlow; nextFlow = null;
       const t0 = sentAt.shift();                       // the way there and back, without the server's own time
       if (t0) wayMs = wayMs * 0.8 + Math.max(0, performance.now() - t0 - serverMs) * 0.2;
       answers++;
-      showFrame(ev.data, () => { inflight = Math.max(0, inflight - 1); tick(); });
+      showFrame(new Blob([ev.data]), () => { inflight = Math.max(0, inflight - 1); tick(); }, field);
     };
   }
   // #177: a watchman – frames out but no answer for a while: the line hangs; open it anew (the first picture of a
@@ -921,15 +929,33 @@
   // dream share, swirl, colour drift, painting, stirring, light circle, smoothing or music pulse on the stage; only
   // the effects chosen in the Effekte card stay. (A pure dream has no input to show, it dreams on as before.)
   const pure = () => passThrough() && mode !== 'dream';
-  function showFrame(blob, after) {
+  // #205: the flow field as the renderer sends it (flow.py: "DRMF", columns, rows, confidence, a spare byte, then dx
+  // and dy per vector as signed bytes); null for anything else
+  const FLOW_MAGIC = new Uint32Array(new Uint8Array([68, 82, 77, 70]).buffer)[0];
+  let nextFlow = null, shownN = 0, lastFromAi = false;   // lastFromAi: the picture now shown is the AI's (not the input passed through)
+  const flowSeen = { pictures: 0, fields: 0, ms: 0 };  // for a measurement run: how many pictures came with a field
+  const flowAmt = () => passThrough() ? 0 : +($('flow') ? $('flow').value : 1);
+  function flowField(buf) {
+    const head = new Uint8Array(buf, 0, 8), cols = head[4], rows = head[5];
+    return cols >= 2 && rows >= 2 && buf.byteLength === 8 + cols * rows * 2 ? { cols, rows, data: new Int8Array(buf, 8) } : null;
+  }
+  function showFrame(blob, after, field) {
     {
       const url = URL.createObjectURL(blob), img = new Image();
       img.onload = () => {
-        back.src = url; back.style.opacity = 1; front.style.opacity = 0;
+        back.src = url;
         const old = front; front = back; back = old;
         const mv = morphNow(1000 / Math.max(0.3, fps));   // #194: this picture goes on moving until the next one comes
         DreamFx.morph.start(front, mv, performance.now());
-        if (outWs && outWs.readyState === 1) outWs.send(JSON.stringify({ morph: mv }));
+        // #205: with a flow field the two pictures morph into each other – not into the first picture of a new model
+        // or a fresh start (those blend in slowly), not from a picture that was not the AI's, and not with the setting off
+        const flow = field && lastFromAi && !slowFade && flowAmt() > 0 ? { ...field, k: flowAmt() } : null;
+        lastFromAi = field !== undefined;
+        if (!passThrough()) { flowSeen.pictures++; if (flow) flowSeen.fields++; }
+        // the outputs get the motion and the field ahead of the picture, numbered: a field counts only for the picture
+        // that follows the one before it (a window that missed a picture cross-fades)
+        if (outWs && outWs.readyState === 1) outWs.send(JSON.stringify({ morph: mv, n: ++shownN,
+          ...(flow ? { flow: { cols: flow.cols, rows: flow.rows, k: flow.k, data: btoa(String.fromCharCode(...new Uint8Array(flow.data.buffer, flow.data.byteOffset, flow.data.length))) } } : {}) }));
         setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1000);
         last = img;
         const t = performance.now(), dt = t - lastT; fps = fps * 0.8 + (1000 / dt) * 0.2; lastT = t;
@@ -941,7 +967,7 @@
         slowFade = false;
         if ($('syphon').checked || outViewers || outPreviews) sendOut(blob);
         driftWatch(img, dt);
-        document.documentElement.style.setProperty('--fade', (passThrough() ? Math.min(fade, 60) : fade) + 'ms');
+        view.show(front, { fade: passThrough() ? Math.min(fade, 60) : fade, flow });
         if (passThrough()) status(T('AI off – picture direct · {fps} pictures/s', { fps: fps.toFixed(0) }));
         else if (performance.now() > switchShownUntil || fade < 2500)   // #179: the switch notice stays a moment (any language)
           status(T('{fps} pictures/s · GPU {gpu} ms · way {way} ms', { fps: fps.toFixed(1), gpu: lastMs, way: Math.round(wayMs) }) + (inflight > 1 || depth() > 1 ? T(' · overlapping') : '') +
@@ -1802,11 +1828,11 @@
   if (params.get('stage') === '1') document.body.classList.add('hide', 'stage-only');
   const BIND = { prompt: 'prompt', strength: 'strength', mix: 'mix', zoom: 'zoom', rot: 'rot', hue: 'hue', sens: 'sens',
     quality: 'quality', size: 'size', seed: 'seed', model: 'model', rewrite: 'rewrite', playlist: 'playlist',
-    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
+    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
     fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
-  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
+  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
   let ctl = null, applying = false;
   const sendCtl = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };
   const readEl = (k, el) => el.type === 'checkbox' ? el.checked : (NUM.has(k) ? +el.value : el.value);
@@ -2404,10 +2430,13 @@
   setInterval(showStats, 1000);
 
   // ---------- #180: a measurement run – where the time of a picture goes, and how smoothly the pages draw ----------
-  const measureMe = DreamMeasure('stage', m => sendCtl(m), () => view.renderer);
+  // #205: with its frames the stage tells how many of the AI's pictures came with a flow field and what one cost
+  const measureMe = DreamMeasure('stage', m => sendCtl(m), () => view.renderer, {
+    start() { Object.assign(flowSeen, { pictures: 0, fields: 0, ms: 0 }); },
+    report: () => flowSeen.pictures ? { flow_pct: Math.round(flowSeen.fields / flowSeen.pictures * 100), flow_ms: +(flowSeen.ms / flowSeen.pictures).toFixed(1) } : {} });
   const STEP_LABELS = () => ({ queue: T('waiting before rendering'), decode_in: T('decoding the incoming picture'), wait_gpu: T('waiting for the GPU'),
     prompt: T('prompt encoding'), unet: T('UNet (diffusion)'), controlnet: 'ControlNet', decode: T('decoder (latents → picture)'),
-    render: T('picture in all'), encode_out: T('JPEG/WebP encoding'), send: T('sending'), server: T('server time per picture') });
+    render: T('picture in all'), encode_out: T('JPEG/WebP encoding'), flow: T('flow field (beside the next picture)'), send: T('sending'), server: T('server time per picture') });
   const RENDERERS = { webgl2: T('graphics card (WebGL 2)'), canvas: T('Canvas 2D (no WebGL 2)'), mixed: T('WebGL 2 and Canvas 2D') };   // #204
   function measureShow(r, runningMs) {
     const out = $('measureout'), esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -2416,7 +2445,7 @@
     $('measure').disabled = false;
     const L = STEP_LABELS(), rows = Object.keys(L).filter(k => r.steps[k] && r.steps[k].n)
       .map(k => `<tr><td>${esc(L[k])}</td><td>${r.steps[k].mean}</td><td>${r.steps[k].p50}</td><td>${r.steps[k].p95}</td></tr>`).join('');
-    const dev = Object.entries(r.devices || {}).map(([k, d]) => `<tr><td>${esc(k)} ×${d.n}</td><td colspan="3">${d.render ? esc(RENDERERS[d.render] || d.render) + ' · ' : ''}${T('{fps} fps · frame {ms} ms (p95 {p95}) · slow {slow} %', { fps: d.fps, ms: d.ms_avg, p95: d.ms_p95, slow: d.slow_pct })}</td></tr>`).join('');
+    const dev = Object.entries(r.devices || {}).map(([k, d]) => `<tr><td>${esc(k)} ×${d.n}</td><td colspan="3">${d.render ? esc(RENDERERS[d.render] || d.render) + ' · ' : ''}${T('{fps} fps · frame {ms} ms (p95 {p95}) · slow {slow} %', { fps: d.fps, ms: d.ms_avg, p95: d.ms_p95, slow: d.slow_pct })}${d.flow_pct == null ? '' : ' · ' + T('flow field for {p} % of the pictures ({ms} ms each)', { p: d.flow_pct, ms: d.flow_ms })}</td></tr>`).join('');
     out.innerHTML = `<b>${esc(T('{fps} AI pictures/s', { fps: r.fps }))}</b> · ${esc(r.model)} ${esc(r.size)} · ${esc(T('{n} steps', { n: r.ai_steps }))}`
       + `<table><tr><th>${T('part')}</th><th>${T('mean')}</th><th>p50</th><th>p95 (ms)</th></tr>${rows}${dev}</table>`
       + `<div class="muted">${esc(T('Also in the terminal and saved in ~/.local/state/dream/measure/.'))}</div>`;
@@ -3085,7 +3114,7 @@
     const k = on ? clamp(top * 1.6, 0, 1) : 0, now = performance.now();
     // pure camera (#111): no smoothing, zoom or brightness of Dream's own – only the chosen effects
     const plain = bodyHas('pure'), tau = smoothTau();
-    view.draw({ front, now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master });
+    view.draw({ now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master });
     if ((outViewers || $('syphon').checked) && outWs && outWs.readyState === 1 && now - smoothSentAt > 1000) {
       outWs.send(JSON.stringify({ smooth: +tau.toFixed(3) })); smoothSentAt = now;
     }

@@ -106,7 +106,11 @@
       const [pa, pb] = step.pics || [0, 1], front = s[step.front || 'a'], back = front === s.a ? s.b : s.a, fade = step.fade == null ? 1 : step.fade;
       if (s.a.src !== PICS[pa]) await loaded(s.a, PICS[pa]);
       if (s.b.src !== PICS[pb]) await loaded(s.b, PICS[pb]);
-      front.style.opacity = fade; back.style.opacity = 1 - fade;
+      // the view counts the fade itself; the Canvas 2D drawing leaves it to the browser's transition, so the elements
+      // are set here to where that transition would be at this moment (the lower picture is there, the upper one fades)
+      s.view.show(front, { fade: 1000, now: 1300 - fade * 1000, flow: step.flow || null });
+      s.a.style.transition = s.b.style.transition = 'none';
+      s.b.style.opacity = front === s.b ? fade : 1 - fade; s.a.style.opacity = front === s.b && fade >= 1 ? 0 : 1;
       for (const k of ['a', 'b']) Fx.morph.start(s[k], step.motion && step.motion[k] ? { ...step.motion[k], period: 400 } : null, 1000);
       s.layersOn = !!step.layers; for (const l of s.layers) l.el.style.display = s.layersOn ? 'block' : 'none';
       f = { front, now: 1300, dt: step.dt || 0.016, tau: step.tau || 0, fx: step.fx || null, k: step.k || 0, sc: 1, br: step.br || 1, sat: step.sat || 1, master: step.master == null ? 1 : step.master };
@@ -115,6 +119,13 @@
     return f;
   }
   const pixels = cv => cv.getContext('2d').getImageData(0, 0, W, H).data;
+  // what the WebGL view shows now: its snapshot hands out the copy asked for the call before (and a copy of an
+  // earlier picture may still be on its way), so ask and wait until two copies have arrived
+  async function shot(view) {
+    const cv = canvas(), ctx = cv.getContext('2d'), n = view.snapshot(ctx, W, H);
+    for (let i = 0; i < 400 && view.snapshot(ctx, W, H) < n + 2; i++) await new Promise(done => setTimeout(done, 5));
+    return cv;
+  }
   // mean difference per colour channel (0…255) and the share of pixels where a channel is further than 40 apart
   function differ(x, y) {
     let sum = 0, far = 0;
@@ -134,11 +145,43 @@
       await play(cv2d, [{}]); await play(gl, [{}]);
       const f = await play(cv2d, frames), want = stacked(cv2d, f);
       await play(gl, frames);
-      const got = canvas(); gl.view.snapshot(got.getContext('2d'), W, H);
+      const got = await shot(gl.view);
       report.cases.push({ name, ...differ(pixels(want), pixels(got)), changed: differ(untouched, pixels(got)).mean });
       const row = document.body.appendChild(document.createElement('p'));
       row.append(name, document.createElement('br'), want, ' ', got); row.style.cssText = 'color:#ccc;font:12px sans-serif;margin:8px';
     }
+    // #205: the flow morph. The second picture is the first moved 16 pixels to the right, the field says so: half-way
+    // the morph shows the picture moved 8 pixels (sharp), the cross-fade shows it twice.
+    const wide = await new Promise(done => { const im = new Image(); im.onload = () => done(im); im.src = picture(1, W + 32, H); });
+    const cut = x => { const cv = canvas(); cv.getContext('2d').drawImage(wide, -x, 0); return cv; };
+    const srcs = [cut(16).toDataURL('image/png'), cut(0).toDataURL('image/png')], cols = 48, rows = 27;
+    const field = { cols, rows, k: 1, data: new Int8Array(cols * rows * 2).map((_, i) => i % 2 ? 0 : Math.round(16 / W * 508)) };
+    const half = async flow => {
+      await loaded(gl.a, srcs[0]); await loaded(gl.b, srcs[1]);
+      Fx.morph.start(gl.a, null, 0); Fx.morph.start(gl.b, null, 0);
+      gl.view.show(gl.a, { now: 0 }); gl.view.show(gl.b, { fade: 1000, now: 800, flow });
+      gl.view.draw({ now: 1300, dt: 1, tau: 0, fx: null, k: 0, sc: 1, br: 1, sat: 1, master: 1 });   // dt: the master fader is up at once
+      return pixels(await shot(gl.view));
+    };
+    const middle = pixels(cut(8));
+    report.morph = { flow: differ(middle, await half(field)), fade: differ(middle, await half(null)),
+      // a field that is not one (wrong length) is not used
+      broken: differ(await half({ cols, rows, k: 1, data: new Int8Array(7) }), await half(null)).mean };
+    // #205 (Pf-4 of #187): the smoothing arrives. At the strongest smoothing (1.6 s) a new picture is all there after
+    // half a minute – no shadow of the old one stays.
+    const arrive = async s => {
+      await play(s, [{}]);
+      await play(s, [{ pics: [0, 1], front: 'a', tau: 1.6 }]);
+      const f = { now: 1300, dt: 1 / 60, tau: 1.6, fx: null, k: 0, sc: 1, br: 1, sat: 1, master: 1 };
+      s.view.show(s.b, { now: 0 }); s.b.style.opacity = 1; s.a.style.opacity = 0;
+      for (let i = 0; i < 1800; i++) s.view.draw(f);
+      const got = pixels(s === gl ? await shot(s.view) : stacked(s, { ...f, front: s.b }));
+      await play(s, [{ pics: [0, 1], front: 'b' }]);
+      const want = pixels(s === gl ? await shot(s.view) : stacked(s, { ...f, front: s.b }));
+      let max = 0; for (let i = 0; i < got.length; i++) max = Math.max(max, Math.abs(got[i] - want[i]));
+      return max;
+    };
+    report.arrive = { webgl: await arrive(gl), precise: gl.view.precise, canvas: await arrive(cv2d) };
     // the context goes away: the same view draws with Canvas 2D; it comes back: WebGL 2 again
     const ctx = gl.gl.getContext('webgl2'), lose = ctx && ctx.getExtension('WEBGL_lose_context'), said = [];
     if (lose) {
@@ -148,7 +191,7 @@
       report.lost = { renderer: gl.view.renderer, ...differ(pixels(stacked(cv2d, await play(cv2d, CASES.kaleido))), pixels(stacked(gl, f))), shown: getComputedStyle(gl.fx).visibility };
       w = wait('webglcontextrestored'); lose.restoreContext(); await w;
       await play(gl, [{}]); await play(gl, CASES.kaleido);
-      const again = canvas(); gl.view.snapshot(again.getContext('2d'), W, H);
+      const again = await shot(gl.view);
       report.restored = { renderer: gl.view.renderer, ...differ(pixels(stacked(cv2d, f)), pixels(again)) };
     }
   } catch (e) { report.error = String(e && e.stack || e); }
