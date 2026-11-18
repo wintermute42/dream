@@ -1257,6 +1257,14 @@ Bewegung, Glättung, Berührungs-Ebenen, Farben, Master), dazu den Rückfall, we
 mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt alle drei bei jedem Push
 laufen (`.github/workflows/tests.yml`).
 
+Wo der Code liegt, falls du etwas ändern willst: `server.py` ist das, was `./dream.sh` startet, und setzt nur die Teile
+zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`), die Rechte (`rights.py`: die Rollen und was jede
+darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihrem Bereich und ob ein Gast sie ändern
+darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
+(`inputs.py`), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
+(`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
+ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`.
+
 <sub>[↑ Inhalt](#inhalt)</sub>
 
 ## Lizenzen

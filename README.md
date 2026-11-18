@@ -1185,6 +1185,14 @@ and every step of the chain (cross-fade, motion, smoothing, touch layers, colour
 graphics context is lost; with `KEEP=1` the page stays open and shows both pictures side by side. GitHub runs all
 three on every push (`.github/workflows/tests.yml`).
 
+Where the code is, if you want to change something: `server.py` is what `./dream.sh` starts and only puts the parts
+together – one file each for painting (`render.py`, `render_api.py`), the rights (`rights.py`: the roles and what each
+may do), the settings (`settings.py`: one table with every setting, its range and whether a guest may change it), the
+shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the
+outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the cloud GPU (`cloud.py`), measuring
+(`measure.py`), uploads and the gallery (`media.py`), voice (`voice.py`), and the pages with their links (`pages.py`,
+`net.py`). The pages are in `static/`; what they share is in `static/common.js`.
+
 <sub>[↑ Contents](#contents)</sub>
 
 ## Translations
