@@ -193,7 +193,8 @@ move there. The values are also available as JSON at http://127.0.0.1:7860/stats
 effects, outlines, pose or style; afterwards everything is as before) and shows where the time of a picture goes: waiting,
 decoding the incoming picture, waiting for the GPU, prompt encoding, UNet, decoder, encoding and sending – mean, median
 and the slowest 5 % in milliseconds – plus how smoothly every open page drew meanwhile (the stage, Dream Remote, Dreamy
-Eyes: frames per second, frame time, share of slow frames). The table also goes to the terminal and into
+Eyes: frames per second, frame time, share of slow frames; for the stage also what draws the picture, #204: the graphics
+card with WebGL 2, or Canvas 2D without it). The table also goes to the terminal and into
 `~/.local/state/dream/measure/` as JSON, to compare a change before and after. While measuring, the parts are timed
 together with the GPU, which makes the run itself a little slower than usual. Only Dream Control and the Mac can start it.
 
@@ -357,6 +358,15 @@ when ticked.
   driving (or broken) music add a little, calm music takes a little away. No strobe, no hard black frames. The
   effects run at the full frame rate (60 fps) however fast the AI computes (measured on a Mac with graphics chip: 60
   fps with three effects) and appear in the output window too (projector, Wi-Fi output), not in Syphon.
+- **Drawn on the graphics card (#204):** the stage and the output window draw the picture as one chain in WebGL 2 – the
+  last two AI pictures with their motion and cross-fade, the smoothing, the effects, the touch layers (light strokes,
+  stirring, light circle), colour rotation, brightness and master. It looks as before and leaves the processor free
+  for the rest. Nothing to set: without WebGL 2, or if the graphics card's drawing stops while Dream runs, the same
+  pages draw with Canvas 2D as before, by themselves (a badge below the preview says so; when it comes back, WebGL 2
+  takes over again). **📏 Measure** shows for the stage what draws: “graphics card (WebGL 2)” or “Canvas 2D (no WebGL
+  2)”. To compare the two, or if a graphics driver makes trouble, add `?render=canvas` to the address of the stage or
+  the output window (http://127.0.0.1:7860/?render=canvas). Syphon, the preview of Dream Control and the dream windows
+  get the AI pictures themselves, as before; Dreamy Eyes and the dream windows draw on their own.
 - **Effects by hand:** the same effects without the autopilot in the **Effects** card (below Dream): twelve tiles to
   switch on and off (one of each family at a time – kaleidoscope/mandala/mirror, pixel/grid, feedback/afterglow),
   **Effect strength** for all, **Pulse on the beat** (only on real beats of music or tap; off = the effects stand
@@ -1118,6 +1128,11 @@ and the line saving above.
   tabs, SD-Turbo instead of SDXL-Turbo, 512 px instead of more.
 - **The stage stays black or dark:** restart and update Dream (see above). In prompt mode drift helps; an entirely black
   picture after an update usually means the old version still runs.
+- **The picture on the stage or in the output window looks wrong (stripes, black, wrong colours) since #204:** the
+  graphics card draws it now (WebGL 2). Open the page with `?render=canvas` at the end of the address
+  (http://127.0.0.1:7860/?render=canvas, http://127.0.0.1:7860/output?render=canvas): then it draws with Canvas 2D as
+  before. If that helps, please report it with the browser and the Mac. A badge “The graphics card’s drawing (WebGL 2)
+  stopped …” means the browser lost its graphics context; Dream goes on with Canvas 2D and returns by itself.
 - **The controls are extremely slow:** is a second Dream, a second stage or another GPU program running? Keep only one
   stage open.
 - **“site can't be reached” on the phone:** see “If the phone does not connect”. The macOS firewall was not the reason
@@ -1163,7 +1178,12 @@ ranges of every setting, the folders, the home-network certificates, the MIDI, s
 translations and what keeps Dream running smoothly (the prompt encoded once per prompt, no waiting for a loading model
 or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
-without drums, a 120 Hz display) and the beat grid. GitHub runs both on every push (`.github/workflows/tests.yml`).
+without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-stage.test.mjs` (#204) opens
+`tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
+WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
+and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
+graphics context is lost; with `KEEP=1` the page stays open and shows both pictures side by side. GitHub runs all
+three on every push (`.github/workflows/tests.yml`).
 
 <sub>[↑ Contents](#contents)</sub>
 

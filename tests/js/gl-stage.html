@@ -1,0 +1,158 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Dream · the WebGL 2 chain against the Canvas 2D drawing</title>
+<style>
+  body { margin: 0; background: #222; }
+  .box { position: relative; width: 320px; height: 180px; background: #000; overflow: hidden; }
+  .box > * { position: absolute; left: 0; top: 0; width: 320px; height: 180px; }
+  .box img { object-fit: cover; opacity: 0; }
+</style>
+<body>
+<script src="/static/fx.js"></script>
+<script src="/static/gl-stage.js"></script>
+<script>
+// #204: every effect and every step of the chain is drawn twice – by the WebGL 2 chain and by the Canvas 2D drawing,
+// put together the way the browser stacks the page's elements – and the two pictures are compared. The page posts
+// {cases: [{name, mean, far, changed}]} to /result (tests/js/gl-stage.test.mjs reads it). Opened by hand
+// (served by that test with KEEP=1) it shows the pictures side by side.
+(async () => {
+  'use strict';
+  const W = 320, H = 180, Fx = DreamFx;
+  const canvas = (w = W, h = H) => Object.assign(document.createElement('canvas'), { width: w, height: h });
+  // an invented picture with soft colours, edges and fine detail
+  function picture(n, w = W, h = H) {
+    const cv = canvas(w, h), c = cv.getContext('2d'), g = c.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, n ? '#1b2a6b' : '#7a1f4d'); g.addColorStop(0.5, n ? '#e0a030' : '#2fb5a0'); g.addColorStop(1, n ? '#b02a70' : '#f2e2a0');
+    c.fillStyle = g; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 7; i++) {
+      const r = c.createRadialGradient(w * (0.15 + 0.12 * i), h * (0.3 + 0.4 * ((i * 7 + n * 3) % 5) / 5), 0, w * (0.15 + 0.12 * i), h * 0.5, h * 0.45);
+      r.addColorStop(0, `hsla(${(i * 50 + n * 120) % 360}, 80%, 60%, .8)`); r.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = r; c.fillRect(0, 0, w, h);
+    }
+    c.fillStyle = n ? '#fff' : '#101020'; c.font = `bold ${h * 0.28}px sans-serif`; c.fillText(n ? 'DREAM' : 'stage', w * 0.12, h * (n ? 0.62 : 0.4));
+    c.strokeStyle = n ? '#00e0ff' : '#ff4060'; c.lineWidth = 3; c.beginPath(); c.arc(w * 0.7, h * 0.45, h * 0.3, 0, 7); c.stroke();
+    return cv.toDataURL('image/png');
+  }
+  const PICS = [picture(0), picture(1), picture(0, 256, 256)];
+  const rng = seed => () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  // the elements of a page (as index.html and output.html have them) and their view
+  function stage(opts) {
+    const box = document.body.appendChild(Object.assign(document.createElement('div'), { className: 'box' }));
+    const el = tag => box.appendChild(document.createElement(tag));
+    const s = { box, a: el('img'), b: el('img'), smooth: el('canvas'), warp: el('canvas'), paint: el('canvas'), fx: el('canvas'), gl: el('canvas'), layersOn: false };
+    for (const cv of [s.warp, s.paint]) { cv.width = W; cv.height = H; cv.style.display = 'none'; }
+    const w = s.warp.getContext('2d'); w.fillStyle = 'rgba(40, 200, 90, .6)'; w.fillRect(30, 20, 120, 90);
+    const p = s.paint.getContext('2d'); p.strokeStyle = 'rgba(255, 220, 120, .7)'; p.lineWidth = 14; p.beginPath(); p.moveTo(20, 150); p.lineTo(300, 40); p.stroke();
+    s.layers = [{ el: s.warp, on: () => s.layersOn }, { el: s.paint, screen: true, on: () => s.layersOn }];
+    s.view = DreamStage.create({ box, a: s.a, b: s.b, smooth: s.smooth, fx: s.fx, gl: s.gl, layers: s.layers, fxMax: 720, smoothMax: 960, random: rng(7), ...opts });
+    return s;
+  }
+  const loaded = (img, src) => new Promise(done => { img.onload = done; img.src = src; });
+  // the Canvas 2D drawing as the browser puts the elements over each other: pictures, smoothing, layers, effects, box
+  function stacked(s, f) {
+    const flat = canvas(), c = flat.getContext('2d');
+    const moved = (el, alpha, draw) => {
+      const m = Fx.morph.at(el, f.now);
+      c.save(); c.globalAlpha = alpha;
+      if (m) { c.translate(m.px * W, m.py * H); c.rotate(m.r * Math.PI / 180); c.scale(m.s, m.s); c.translate(-m.px * W, -m.py * H); }
+      draw(); c.restore();
+    };
+    for (const img of [s.a, s.b]) if (img.naturalWidth) moved(img, +getComputedStyle(img).opacity, () => {
+      const k = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+      c.drawImage(img, (W - img.naturalWidth * k) / 2, (H - img.naturalHeight * k) / 2, img.naturalWidth * k, img.naturalHeight * k);
+    });
+    if (s.smooth.style.display === 'block') moved(f.front, 1, () => c.drawImage(s.smooth, 0, 0, W, H));
+    if (s.layersOn) { c.drawImage(s.warp, 0, 0); c.globalCompositeOperation = 'screen'; c.drawImage(s.paint, 0, 0); c.globalCompositeOperation = 'source-over'; }
+    if (+s.fx.style.opacity > 0) moved(f.front, +s.fx.style.opacity, () => { c.filter = s.fx.style.filter || 'none'; c.drawImage(s.fx, 0, 0, W, H); });
+    const out = canvas(), o = out.getContext('2d');
+    o.fillStyle = '#000'; o.fillRect(0, 0, W, H);
+    o.filter = s.box.style.filter || 'none'; o.globalAlpha = +s.box.style.opacity; o.drawImage(flat, 0, 0);
+    return out;
+  }
+  const P = extra => ({ pulse: 0.3, bass: 0.5, spin: 0.7, t: 1.3, seed: 1, dir: 1, cx: 0.5, cy: 0.5, loc: 0, ang: 0, hue: 0, inv: 0, ...extra });
+  const one = (name, extra = {}, amt = 0.8) => [{ fx: P({ amts: { [name]: amt }, ...extra }), k: 1 }];
+  // a case is a list of frames: {pics: [a, b] (indexes), front, fade (the front picture's opacity), motion, fx, k, …}
+  const CASES = {
+    mirror: one('mirror'), 'mirror fourfold': one('mirror', { seed: 2 }, 0.6).map(f => ({ ...f, fx: { ...f.fx, seed: 3 } })),
+    kaleido: one('kaleido'), 'kaleido at the hand': one('kaleido', { cx: 0.3, cy: 0.62, spin: -1.9 }, 1),
+    mandala: one('mandala'), 'mandala more wedges': one('mandala', { seed: 2, pulse: 0.9 }, 0.6),
+    tunnel: one('tunnel'), 'tunnel at the hand': one('tunnel', { cx: 0.7, cy: 0.35, t: 4.1, pulse: 0.8 }, 1),
+    waves: one('waves'), 'waves at the hand': one('waves', { loc: 0.8, cy: 0.3, bass: 1.1 }, 1),
+    glitch: one('glitch'), 'glitch on the beat': one('glitch', { pulse: 0.9 }, 1),
+    pixel: one('pixel'), 'pixel coarse': one('pixel', { pulse: 1.2 }, 1),
+    raster: one('raster'), 'raster lines': one('raster', { seed: 3 }, 1),
+    rgb: one('rgb', { pulse: 1 }), 'rgb along the movement': one('rgb', { ang: 1.1, pulse: 0.6 }, 1),
+    feedback: [0, 1, 1].map(n => ({ pics: [0, n], front: n ? 'b' : 'a', fx: P({ amts: { feedback: 0.8 }, cx: 0.4, dir: -1 }), k: 1 })),
+    trails: [0, 1, 1].map(n => ({ pics: [0, n], front: n ? 'b' : 'a', fx: P({ amts: { trails: 0.9 } }), k: 1 })),
+    hue: [{ fx: P({ amts: { hue: 1 }, hue: 117.4 }), k: 1 }],
+    invert: [{ fx: P({ amts: { invert: 1 }, inv: 0.6 }), k: 1 }],
+    'several effects': [0, 1].map(() => ({ fx: P({ amts: { kaleido: 0.5, waves: 0.7, rgb: 0.4, trails: 0.6, hue: 0.5 }, hue: 40 }), k: 0.7 })),
+    'cross-fade': [{ pics: [0, 1], front: 'b', fade: 0.4 }],
+    'cross-fade under effects': [{ pics: [0, 1], front: 'a', fade: 0.55, fx: P({ amts: { tunnel: 0.7 } }), k: 0.6 }],
+    'square picture covers': [{ pics: [2, 1], front: 'a', fx: P({ amts: { mirror: 0.5 } }), k: 0.5 }],
+    motion: [{ pics: [0, 1], front: 'b', fade: 0.7, motion: { a: { z: 0.12, r: 4, px: 0.3, py: 0.6 }, b: { z: 0.2, r: -6, px: 0.6, py: 0.4 } } }],
+    'motion under effects': [{ motion: { a: { z: 0.15, r: 0, px: 0.4, py: 0.5 } }, fx: P({ amts: { kaleido: 0.8 } }), k: 0.8 }],
+    smoothing: [0, 1, 1, 1].map(n => ({ pics: [0, n], front: n ? 'b' : 'a', tau: 0.2, dt: 0.05 })),
+    'smoothing under effects': [0, 1, 1].map(n => ({ pics: [0, n], front: n ? 'b' : 'a', tau: 0.3, dt: 0.1, fx: P({ amts: { waves: 0.8 } }), k: 0.8 })),
+    'touch layers': [{ layers: true }],
+    'touch layers under effects': [{ layers: true, fx: P({ amts: { rgb: 0.8 } }), k: 0.5 }],
+    'brightness and saturation': [{ br: 1.35, sat: 1.3 }],
+    master: [{ master: 0.45, br: 1.1, dt: 1 }],
+  };
+  async function play(s, frames) {
+    let f = null;
+    Fx.morph.start(s.a, null, 0); Fx.morph.start(s.b, null, 0);
+    for (const step of frames) {
+      const [pa, pb] = step.pics || [0, 1], front = s[step.front || 'a'], back = front === s.a ? s.b : s.a, fade = step.fade == null ? 1 : step.fade;
+      if (s.a.src !== PICS[pa]) await loaded(s.a, PICS[pa]);
+      if (s.b.src !== PICS[pb]) await loaded(s.b, PICS[pb]);
+      front.style.opacity = fade; back.style.opacity = 1 - fade;
+      for (const k of ['a', 'b']) Fx.morph.start(s[k], step.motion && step.motion[k] ? { ...step.motion[k], period: 400 } : null, 1000);
+      s.layersOn = !!step.layers; for (const l of s.layers) l.el.style.display = s.layersOn ? 'block' : 'none';
+      f = { front, now: 1300, dt: step.dt || 0.016, tau: step.tau || 0, fx: step.fx || null, k: step.k || 0, sc: 1, br: step.br || 1, sat: step.sat || 1, master: step.master == null ? 1 : step.master };
+      s.view.draw(f);
+    }
+    return f;
+  }
+  const pixels = cv => cv.getContext('2d').getImageData(0, 0, W, H).data;
+  // mean difference per colour channel (0…255) and the share of pixels where a channel is further than 40 apart
+  function differ(x, y) {
+    let sum = 0, far = 0;
+    for (let i = 0; i < x.length; i += 4) {
+      const d = Math.max(Math.abs(x[i] - y[i]), Math.abs(x[i + 1] - y[i + 1]), Math.abs(x[i + 2] - y[i + 2]));
+      sum += Math.abs(x[i] - y[i]) + Math.abs(x[i + 1] - y[i + 1]) + Math.abs(x[i + 2] - y[i + 2]); if (d > 40) far++;
+    }
+    return { mean: +(sum / (x.length * 0.75)).toFixed(2), far: +(far / (x.length / 4) * 100).toFixed(2) };
+  }
+  const report = { cases: [], error: '' };
+  try {
+    const plain = stage({ canvas: true }), cv2d = stage({ canvas: true }), gl = stage({ software: true });
+    report.renderer = gl.view.renderer; report.forced = cv2d.view.renderer;
+    await play(plain, [{}]); const untouched = pixels(stacked(plain, { front: plain.a, now: 1300 }));
+    for (const [name, frames] of Object.entries(CASES)) {
+      // each case starts from nothing: no previous frame, no smoothed picture
+      await play(cv2d, [{}]); await play(gl, [{}]);
+      const f = await play(cv2d, frames), want = stacked(cv2d, f);
+      await play(gl, frames);
+      const got = canvas(); gl.view.snapshot(got.getContext('2d'), W, H);
+      report.cases.push({ name, ...differ(pixels(want), pixels(got)), changed: differ(untouched, pixels(got)).mean });
+      const row = document.body.appendChild(document.createElement('p'));
+      row.append(name, document.createElement('br'), want, ' ', got); row.style.cssText = 'color:#ccc;font:12px sans-serif;margin:8px';
+    }
+    // the context goes away: the same view draws with Canvas 2D; it comes back: WebGL 2 again
+    const ctx = gl.gl.getContext('webgl2'), lose = ctx && ctx.getExtension('WEBGL_lose_context'), said = [];
+    if (lose) {
+      const wait = type => new Promise(done => gl.gl.addEventListener(type, () => setTimeout(done, 0), { once: true }));
+      let w = wait('webglcontextlost'); lose.loseContext(); await w;
+      const f = await play(gl, CASES.kaleido); said.push(gl.view.renderer);
+      report.lost = { renderer: gl.view.renderer, ...differ(pixels(stacked(cv2d, await play(cv2d, CASES.kaleido))), pixels(stacked(gl, f))), shown: getComputedStyle(gl.fx).visibility };
+      w = wait('webglcontextrestored'); lose.restoreContext(); await w;
+      await play(gl, [{}]); await play(gl, CASES.kaleido);
+      const again = canvas(); gl.view.snapshot(again.getContext('2d'), W, H);
+      report.restored = { renderer: gl.view.renderer, ...differ(pixels(stacked(cv2d, f)), pixels(again)) };
+    }
+  } catch (e) { report.error = String(e && e.stack || e); }
+  document.title = 'done';
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) }).catch(() => {});
+})();
+</script>

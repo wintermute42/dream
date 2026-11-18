@@ -1,6 +1,7 @@
 # Tests on Linux (#186): the rights, settings, folders, certificates, MIDI/sensor/playlist helpers and the translations.
 # No model, no GPU, no torch (the tests bring a stand-in for it): only the "ci" dependency group is installed.
-# The beat tracker (#195) is tested with the runner's own Node (no packages, no browser).
+# The beat tracker (#195) is tested with the runner's own Node (no packages, no browser); the picture chain (#204:
+# WebGL 2 against Canvas 2D) with the runner's own Chrome and its software WebGL – nothing is downloaded for it.
 name: tests
 
 on:
@@ -34,3 +35,5 @@ jobs:
         run: python3 scripts/i18n_check.py
       - name: Beat tracker
         run: node --test tests/js/beat.test.mjs
+      - name: Picture chain (WebGL 2 against Canvas 2D)
+        run: node --test tests/js/gl-stage.test.mjs

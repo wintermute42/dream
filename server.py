@@ -1056,6 +1056,9 @@ if ROLE == "app":
                   ("controlnet", "ControlNet"), ("decode", "decoder (latents → picture)"), ("render", "picture in all"),
                   ("encode_out", "JPEG/WebP encoding"), ("send", "sending"), ("server", "server time per picture")]
 
+    # #204: what draws the dream picture on a page – the graphics card, or the Canvas 2D drawing it falls back to
+    RENDER_NAMES = {"webgl2": "WebGL 2 · ", "canvas": "Canvas 2D (no WebGL 2) · ", "mixed": "WebGL 2 and Canvas 2D · "}
+
     def measure_table(r: dict) -> str:
         lines = [f"Measurement {r['seconds']} s · {r['model']} {r['size']} · {r['ai_steps']} steps · {r['backend']} ({r['device']})"
                  + (" · fixed settings" if r["fixed"] else ""),
@@ -1066,7 +1069,7 @@ if ROLE == "app":
             if st and st.get("n"):
                 lines.append(f"{name:34} {st['mean']:>8} {st['p50']:>8} {st['p95']:>8}")
         for kind, d in sorted(r["devices"].items()):
-            lines.append(f"{kind:12} {d.get('n', 1)}× · {d.get('fps', '–')} fps display · frame {d.get('ms_avg', '–')} ms"
+            lines.append(f"{kind:12} {d.get('n', 1)}× · {RENDER_NAMES.get(d.get('render'), '')}{d.get('fps', '–')} fps display · frame {d.get('ms_avg', '–')} ms"
                          f" (p95 {d.get('ms_p95', '–')}) · slow frames {d.get('slow_pct', '–')} %")
         return "\n".join(lines)
 
@@ -1088,11 +1091,13 @@ if ROLE == "app":
             await asyncio.sleep(6)                     # the devices' reports (a busy page may report a little late)
             devices: dict = {}
             for (kind, _), rep_ in measure["reports"].items():
-                d = devices.setdefault(kind, {"n": 0, "fps": [], "ms_avg": [], "ms_p95": [], "slow_pct": []})
+                d = devices.setdefault(kind, {"n": 0, "fps": [], "ms_avg": [], "ms_p95": [], "slow_pct": [], "render": set()})
                 d["n"] += 1
+                d["render"].add(rep_.get("render"))
                 for k in ("fps", "ms_avg", "ms_p95", "slow_pct"):
                     d[k].append(rep_.get(k, 0))
-            devices = {k: {"n": d["n"], **{f: round(sum(d[f]) / len(d[f]), 1) for f in ("fps", "ms_avg", "ms_p95", "slow_pct")}}
+            devices = {k: {"n": d["n"], **{f: round(sum(d[f]) / len(d[f]), 1) for f in ("fps", "ms_avg", "ms_p95", "slow_pct")},
+                           "render": "mixed" if len(d["render"]) > 1 else next(iter(d["render"]))}
                        for k, d in devices.items()}
             st = stats()
             r = {"at": time.strftime("%Y-%m-%d %H:%M:%S"), "seconds": seconds, "fixed": fixed, "device": device,
@@ -1830,8 +1835,9 @@ if ROLE == "app":
                 if measure["run"] and isinstance(mr, dict) and len(measure["reports"]) < 50:
                     kind = mr.get("kind") if mr.get("kind") in ("stage", "eyes", "remote", "output") else "other"
                     with contextlib.suppress(TypeError, ValueError):
-                        measure["reports"][(kind, id(sock))] = {k: float(min(max(float(mr.get(k) or 0), 0), 10000))
-                                                               for k in ("fps", "ms_avg", "ms_p95", "slow_pct")}
+                        measure["reports"][(kind, id(sock))] = {
+                            **{k: float(min(max(float(mr.get(k) or 0), 0), 10000)) for k in ("fps", "ms_avg", "ms_p95", "slow_pct")},
+                            "render": mr.get("render") if mr.get("render") in ("webgl2", "canvas") else ""}
                 if roles.get(sock) == "eyes":          # #156: Dreamy Eyes only lends (or stops) its front camera
                     f = msg.get("feed")
                     msg = {"feed": {"cam": bool(f.get("cam")), "facing": "user"}} if isinstance(f, dict) and "cam" in f else {}

@@ -11,11 +11,11 @@
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
   img { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; opacity: 0;
     transition: opacity var(--fade, 400ms) linear; }
-  body { --master: 1; }
-  #pics { opacity: var(--master); transition: opacity .12s linear; }
+  #pics { transition: opacity .12s linear; }           /* master brightness (Canvas 2D drawing; the WebGL chain fades itself) */
   /* autopilot effects on driving music (sent by the stage): kaleidoscope over the picture, pulse and flash on the beat */
   #fxcv { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; opacity: 0; pointer-events: none; }
-  #smoothcv { position: fixed; left: 0; top: 0; display: none; pointer-events: none; }
+  #smoothcv, #glcv { position: fixed; left: 0; top: 0; display: none; pointer-events: none; }
+  #glcv { width: 100vw; height: 100vh; }             /* the WebGL 2 chain draws the whole window (gl-stage.js) */
   #hint { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 8px 14px; border-radius: 10px;
     background: rgba(20, 18, 30, .8); color: #ece8f6; font: 14px/1.4 -apple-system, system-ui, sans-serif;
     transition: opacity .6s; }
@@ -27,11 +27,12 @@
 <script>/* #175: the key stays in the cookie, not in the address bar, history or a shared link */ try { const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch (e) {}</script>
 </head>
 <body>
-<div id="pics"><img id="a" alt=""><img id="b" alt=""><canvas id="smoothcv" aria-hidden="true"></canvas><canvas id="fxcv" aria-hidden="true"></canvas></div>
+<div id="pics"><img id="a" alt=""><img id="b" alt=""><canvas id="smoothcv" aria-hidden="true"></canvas><canvas id="fxcv" aria-hidden="true"></canvas><canvas id="glcv" aria-hidden="true"></canvas></div>
 <div id="calib" hidden><i hidden></i></div>
 <div id="hint" role="status">Dream · output – waiting for pictures (the stage or panel must be open). Tap or F = fullscreen</div>
 <script src="/static/i18n.js"></script>
 <script src="/static/fx.js"></script>
+<script src="/static/gl-stage.js"></script>
 <script>
   const T = I18N.t;   // #132
   I18N.apply();
@@ -40,42 +41,17 @@
   'use strict';
   const $ = id => document.getElementById(id);
   let front = $('a'), back = $('b'), lastT = 0, hideHint = null, nextFade = 0, nextMorph = null;
-  (function morphLoop() {                              // #194: the motion between the pictures
-    const now = performance.now();
-    DreamFx.morph.apply(front, now); DreamFx.morph.apply(back, now);
-    DreamFx.morph.apply(front, now, $('smoothcv')); DreamFx.morph.apply(front, now, $('fxcv'));
-    requestAnimationFrame(morphLoop);
-  })();
-  // effects as the stage shows them; they fade out by themselves if the stage stops sending (closed, switched off)
-  let fx = null, fxAt = 0;
-  const engine = DreamFx.create($('fxcv'));
-  // smoothing: the same moving average as on the stage, drawn over the picture area ("contain")
-  const smoother = DreamFx.smoother($('smoothcv'), 1920);
-  let smoothTau = 0, smoothAt = performance.now();
-  (function smoothLoop() {
-    const now = performance.now(), dt = Math.min(0.1, (now - smoothAt) / 1000), cv = $('smoothcv'); smoothAt = now;
-    if (smoothTau > 0.02 && front.naturalWidth) {
-      const iw = front.naturalWidth, ih = front.naturalHeight, s = Math.min(innerWidth / iw, innerHeight / ih);
-      Object.assign(cv.style, { display: 'block', width: iw * s + 'px', height: ih * s + 'px', left: (innerWidth - iw * s) / 2 + 'px', top: (innerHeight - ih * s) / 2 + 'px' });
-      smoother.step(dt, smoothTau);
-    } else if (cv.style.display !== 'none') { cv.style.display = 'none'; smoother.reset(); }
-    requestAnimationFrame(smoothLoop);
-  })();
-  (function fxLoop() {
-    const cv = $('fxcv'), stale = performance.now() - fxAt > 1000, f = fx && !stale ? fx : null;
+  // #204: one chain draws the pictures, their motion (#194), the smoothing and the effects as the stage shows them –
+  // on the graphics card, or with Canvas 2D without WebGL 2. The effects fade out by themselves if the stage stops
+  // sending (closed, switched off).
+  const view = DreamStage.create({ box: $('pics'), a: $('a'), b: $('b'), smooth: $('smoothcv'), fx: $('fxcv'), gl: $('glcv'), contain: true });
+  let fx = null, fxAt = 0, smoothTau = 0, master = 1, drawnAt = performance.now();
+  (function frame() {
+    const now = performance.now(), dt = Math.min(0.1, (now - drawnAt) / 1000), f = fx && now - fxAt <= 1000 ? fx : null;
     const k = f ? Math.max(0, Math.min(1, +f.k || 0)) : 0;
-    if (k > 0.005) {
-      // only over the picture itself (it is shown "contain": a square picture on a 16:9 beamer has black sides)
-      const iw = front.naturalWidth || 16, ih = front.naturalHeight || 9, s = Math.min(innerWidth / iw, innerHeight / ih);
-      Object.assign(cv.style, { width: iw * s + 'px', height: ih * s + 'px', left: (innerWidth - iw * s) / 2 + 'px', top: (innerHeight - ih * s) / 2 + 'px' });
-      if (smoothTau > 0.02 && smoother.ready) engine.render($('smoothcv'), f); else engine.render(front, f, back, +getComputedStyle(front).opacity);
-      cv.style.filter = DreamFx.cssFilter(f);
-    } else if (cv.width) { engine.reset(); cv.style.filter = ''; }
-    cv.style.opacity = k.toFixed(3);
-    const sc = f ? +f.sc || 1 : 1, br = f ? +f.br || 1 : 1;
-    $('pics').style.transform = sc !== 1 ? `scale(${sc.toFixed(4)})` : '';
-    $('pics').style.filter = br !== 1 ? `brightness(${br.toFixed(3)})` : '';
-    requestAnimationFrame(fxLoop);
+    drawnAt = now;
+    view.draw({ front, now, dt, tau: smoothTau, fx: k > 0.005 ? f : null, k, sc: f ? +f.sc || 1 : 1, br: f ? +f.br || 1 : 1, sat: 1, master });
+    requestAnimationFrame(frame);
   })();
   const WAIT = $('hint').textContent;
   const hint = t => { $('hint').textContent = t; document.body.classList.remove('live'); };
@@ -96,7 +72,7 @@
     ws.onmessage = ev => {
       if (typeof ev.data === 'string') {                 // master brightness from the stage's fader, slow fade at a model switch
         let m; try { m = JSON.parse(ev.data); } catch (e) { return; }   // a broken message: skip it
-        if ('master' in m) document.documentElement.style.setProperty('--master', m.master);
+        if ('master' in m) master = Math.max(0, Math.min(1, +m.master || 0));
         if (m.fade) nextFade = Math.min(4000, +m.fade);
         if ('morph' in m) nextMorph = m.morph && typeof m.morph === 'object' ? m.morph : null;   // #194: for the next picture
         if (m.fx) { fx = m.fx; fxAt = performance.now(); }
@@ -111,7 +87,7 @@
         const fxk = fx && performance.now() - fxAt < 1000 ? +fx.k || 0 : 0;    // stage effects on: snappier, like the stage
         document.documentElement.style.setProperty('--fade', (nextFade || Math.round(Math.min(900, dt * 0.9) * (1 - 0.9 * fxk))) + 'ms'); nextFade = 0;
         img.style.opacity = 1; front.style.opacity = 0;
-        const old = front; front = img; back = old; smoother.push(img);
+        const old = front; front = img; back = old;
         DreamFx.morph.start(front, nextMorph, performance.now());   // #194: it goes on moving like on the stage
         setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1500);
         document.body.classList.add('live');
