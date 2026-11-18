@@ -1,5 +1,6 @@
 # Tests on Linux (#186): the rights, settings, folders, certificates, MIDI/sensor/playlist helpers and the translations.
 # No model, no GPU, no torch (the tests bring a stand-in for it): only the "ci" dependency group is installed.
+# The beat tracker (#195) is tested with the runner's own Node (no packages, no browser).
 name: tests
 
 on:
@@ -31,3 +32,5 @@ jobs:
         run: uv run --no-sync pytest -q
       - name: Translations
         run: python3 scripts/i18n_check.py
+      - name: Beat tracker
+        run: node --test tests/js/beat.test.mjs

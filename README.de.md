@@ -237,17 +237,41 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   **„Muster“** in der Karte Musik (auch am Handy, oder als MIDI-Taste „Muster weiter“) legt es fest: **Automatisch**
   (mit „Muster wechseln“ alle 16–32 Takte und bei Drops ein anderes, auch Playlist-Szenen und Autopilot dürfen es
   setzen) oder ein festes Muster, das dann bleibt – nichts anderes ändert es. Leise Stellen reagieren ruhig und weich, laute wild und schnell. Nach einem
-  **Break** (deutlich leiser) löst der **Drop** einen Umbruch aus: neuer Seed, Blitz, neues Muster und – mit „Drop →
+  **Break** (das Schlagzeug setzt aus) löst der **Drop** einen Umbruch aus: neuer Seed, Blitz, neues Muster und – mit „Drop →
   nächste Szene“ – der nächste Prompt der Playlist. Unter dem Pegel stehen Muster, Takt, ungefähres Tempo und Lautstärke.
   Beim Mikrofon schaltet Dream die Sprach-Filter des Browsers ab (Rauschunterdrückung, Echo-Unterdrückung,
   Lautstärkeautomatik – sie dämpfen die Kick-Drum) und prüft, ob der Browser das wirklich tut: Dort steht dann
   „Mikrofon ungefiltert“ oder ein Hinweis, falls der Browser trotzdem filtert (dann lieber Chrome nehmen).
-- **Tap-Tempo:** Wenn die Beat-Erkennung übers Mikrofon schwächelt (Raumhall, wenig Bass, Gespräche): **„👆 Tap“**
-  in der Karte Musik (oder Taste **T**, am Handy unter Musik, oder als MIDI-Taste „Tap-Tempo“ lernen) im Takt
-  drücken. Ab 2 Tippern steht das Tempo (Mittel der letzten bis zu 8 Abstände), der letzte Tipper setzt den Schlag.
-  Danach läuft eine Taktuhr in diesem Tempo weiter – auch ohne Musik –, und alles folgt ihr: Musik-Reaktion,
-  Autopilot, Effekte. Erkannte Beats der Musik ziehen sie nur sanft nach, verpasste Schläge stören nicht.
-  Nachjustieren: einfach neu tippen. **✕** beendet Tap-Tempo, dann zählen wieder nur die Beats der Musik.
+- **Takterkennung (gemacht für Musik aus dem Raum):** Dream hört den Takt selbst heraus, auch übers Mikrofon in einem
+  lauten Raum mit Hall und Gesprächen. Es sucht die Momente, in denen der Klang lauter wird (vor allem die Kick-Drum),
+  findet das Tempo in den letzten 8 Sekunden (60–180 BPM; doppeltes, halbes oder Triolen-Tempo wird in 80–160 BPM
+  gefaltet, ein Halftime-Teil behält also das Tempo) und **sagt die Schläge dann voraus**: Sie kommen pünktlich statt
+  einen Moment zu spät und ticken durch einen kurzen Break weiter („Takt gehalten“, das Bild ruht so lange), bis das
+  Schlagzeug wieder da ist. Es schätzt auch **die Eins** (erster Schlag im Takt: Kick, neue Basstöne, dagegen die
+  Snare auf 2 und 4) und die **Phrasen** (4, 8 oder 16 Takte, aus Änderungen im Klang und einem Crash auf der Eins);
+  ein **Drop** nach einem Break ist die Eins und beginnt eine Phrase. Unter dem Pegel zeigen die vier Punkte den Schlag
+  im Takt (der große ist die Eins; blass: durch einen Break gehalten), daneben, wie sicher Dream ist: „Takt 90 %
+  sicher · Eins 60 % · Phrase 8 Takte (80 %)“. Der Taktzähler und die Phrasen des Autopiloten folgen den gefundenen
+  Takten.
+- **Wechsel einrasten** (Karte Musik, auch für Dream Control am Handy): **Takt** (Voreinstellung) lässt einen
+  Szenenwechsel („Nächste Szene“, die Szenen des Autopiloten), „Effekte neu würfeln“ und Ähnliches auf die nächste
+  Eins warten; **Schlag** auf den nächsten Schlag, **Phrase** auf den Anfang der nächsten Phrase, **Aus** handelt
+  sofort. Ein Druck kurz nach der Eins (bis zu einer Viertelsekunde) zählt noch für diese Eins; ohne Takt geht es
+  sofort, und nichts wartet je länger als einen Takt oder eine Phrase. Ein Drop blitzt sofort und wechselt die Szene
+  spätestens auf dem nächsten Schlag.
+- **Tap-Tempo – Ersatz und Korrektur:** Wenn die Takterkennung schwächelt oder das falsche Tempo nimmt (Drum & Bass
+  liest sie oft halb, 87 statt 174 BPM): **„👆 Tap“** in der Karte Musik (oder Taste **T**, am Handy unter Musik, oder
+  als MIDI-Taste „Tap-Tempo“ lernen) im Takt drücken, **auf der Eins anfangen**. Ab 2 Tippern stehen Tempo und Schlag
+  (Median der letzten bis zu 8 Abstände), und das erste Tippen der Reihe ist die Eins. Der Takt bleibt dann in diesem
+  Tempo – auch ohne Musik –, und alles folgt ihm: Musik-Reaktion, Autopilot, Effekte, das Einrasten. Die Musik zieht
+  nur sanft an der Lage der Schläge, verpasste Schläge stören nicht. Nachjustieren: einfach neu tippen (2 s Pause
+  beginnen eine neue Reihe). **✕** beendet Tap-Tempo, dann zählen wieder nur die Beats der Musik.
+- **Grenzen der Takterkennung:** Sie braucht einen Beat – Musik ohne Schlagzeug ergibt eine geringe Sicherheit (dann
+  tippen). Eins und Phrasen sind Schätzungen: Bei durchgehender Kick ohne Basslinie bleibt die Eins unsicher (die
+  Sicherheit sagt es), und Phrasen brauchen ein paar deutliche Wechsel in der Musik, bevor sie bekannt sind (vorher
+  zählen sie ab der Eins). Drum & Bass und sehr schnelle oder langsame Musik können auf halbem oder doppeltem Tempo
+  landen. Wechsel durch den Timer der Playlist, das Handy oder MIDI-„Nächste Szene“ rasten nicht ein (nur die aus dem
+  Bedienfeld des Bühnen-Macs und seinem Autopiloten).
 - **Regler:** Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Qualität (1 bis 3 Schritte), Auflösung, Seed.
   **„wirkt …“ unter Verwandlung (#115):** zeigt, woraus die Verwandlung gerade besteht, z. B. „wirkt 0,52 = Regler 0,03 ·
   Musik +0,21 · Bewegung +0,13 · Mindestwert 0,15“ – so sieht man sofort, wer sie hochdreht (die KI braucht mindestens
@@ -1187,8 +1211,10 @@ Lizenzen: SD-Turbo und SDXL-Turbo stehen unter der Stability AI Community Licens
 Ersatz für torch und einen temporären Home-Ordner, deine Einstellungen, Schlüssel und Bilder bleiben unberührt). Sie
 prüfen, wer was darf (jede Route des Servers für diesen Mac, Dream Control, Gäste, Dreamy Eyes und Geräte ohne
 Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung, die Ordner, die Zertifikate fürs Heimnetz, die
-MIDI-, Sensor- und Playlist-Helfer und die Übersetzungen. GitHub lässt sie bei jedem Push laufen
-(`.github/workflows/tests.yml`).
+MIDI-, Sensor- und Playlist-Helfer und die Übersetzungen. `node --test tests/js/beat.test.mjs` prüft die Takterkennung
+(#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
+4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster. GitHub
+lässt beides bei jedem Push laufen (`.github/workflows/tests.yml`).
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

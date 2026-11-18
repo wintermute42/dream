@@ -231,17 +231,38 @@ together with the GPU, which makes the run itself a little slower than usual. On
   selection in the Music card (also on the phone, or as MIDI button “next pattern”) sets it: **Automatic** (with
   “change pattern” every 16–32 bars and another one on drops; playlist scenes and the autopilot may set it too) or a
   fixed pattern that then stays – nothing else changes it. Quiet passages react calmly and softly, loud ones wildly
-  and fast. After a **break** (clearly quieter) the **drop** turns the dream over: new seed, flash, new pattern and –
-  with “Drop → next scene” – the playlist's next prompt. Below the level meter: pattern, bar, approximate tempo and
+  and fast. After a **break** (the drums drop out) the **drop** turns the dream over: new seed, flash, new pattern and
+  – with “Drop → next scene” – the playlist's next prompt. Below the level meter: pattern, bar, approximate tempo and
   loudness. With the microphone Dream switches off the browser's speech filters (noise suppression, echo
   cancellation, auto gain – they dampen the kick drum) and checks that the browser really does: it then says
   “Microphone unfiltered”, or warns if the browser still filters (then better use Chrome).
-- **Tap tempo:** when the beat detection over the microphone struggles (room echo, little bass, talking): press
-  **“👆 Tap”** in the Music card (or key **T**, on the phone under Music, or learn it as a MIDI button) on the beat.
-  From 2 taps the tempo stands (the mean of the last up to 8 intervals), the last tap sets the beat. Then a beat clock
-  runs on in that tempo – also without music – and everything follows it: music reaction, autopilot, effects. Beats
-  detected in the music only pull it gently, missed beats do not disturb. To adjust: just tap again. **✕** ends tap
-  tempo, then only the music's beats count again.
+- **Beat detection (made for music from the room):** Dream listens for the beat itself, also through a microphone in
+  a loud room with echo and talking. It looks for the moments where the sound gets louder (above all the kick drum),
+  finds the tempo in the last 8 seconds (60–180 BPM; double, half or triplet time is folded into 80–160 BPM, so a
+  half-time section keeps the tempo), and then **predicts** the beats: they come on time instead of a moment late, and
+  keep ticking through a short break (“beat held”, the picture rests meanwhile) until the drums are back. It also
+  guesses **the one** (first beat of the bar: kick, new bass notes, snare on 2 and 4 against it) and the **phrases**
+  (4, 8 or 16 bars, from changes in the sound and a crash on the one); a **drop** after a break is the one and starts a
+  phrase. Below the level meter the four dots show the beat in the bar (the big one is the one; pale: beat held
+  through a break), and next to them how sure Dream is: “Beat 90 % sure · the one 60 % · phrase 8 bars (80 %)”.
+  The beat counter and the autopilot's phrases follow the bars it found.
+- **Snap changes to the beat** (Music card, also for Dream Control on the phone): **Bar** (the default) lets a scene
+  change (“Next scene”, the autopilot's scenes), “roll effects anew” and the like wait for the next one; **Beat** for
+  the next beat, **Phrase** for the start of the next phrase, **Off** acts at once. A press just after the one (up to
+  a quarter second) still counts for that one; without a beat it acts at once, and nothing ever waits longer than one
+  bar or phrase. A drop flashes at once and changes the scene at the latest on the next beat.
+- **Tap tempo – fallback and correction:** when the beat detection struggles or picks the wrong tempo (drum & bass
+  often reads as half time, 87 instead of 174 BPM), press **“👆 Tap”** in the Music card (or key **T**, on the phone
+  under Music, or learn it as a MIDI button) on the beat, **starting on the one**. From 2 taps tempo and beat stand
+  (the median of the last up to 8 intervals) and the first tap of the series is the one. The beat then stays in that
+  tempo – also without music – and everything follows it: music reaction, autopilot, effects, the snapping. The music
+  only pulls the beat's phase gently; missed beats do not disturb. To adjust: just tap again (a pause of 2 s starts a
+  new series). **✕** ends tap tempo, then only the music's beats count again.
+- **Limits of the beat detection:** it needs a beat – music without drums gives a low confidence (then tap). The one
+  and the phrases are guesses: with four-on-the-floor kicks and no bass line the one stays uncertain (the confidence
+  says so), and phrases need a few clear changes in the music before they are known (before that they count from the
+  one). Drum & bass and very fast or slow music may land on half or double time. Changes of the playlist's own timer,
+  phone or MIDI “next” are not snapped (only those from the stage Mac's panel and its autopilot).
 - **Sliders:** transformation, dream share, zoom pull, rotation, colour drift, quality (1 to 3 steps), resolution,
   seed. **“acts …” below transformation:** shows what the transformation is made of right now, e.g. “acts 0.52 =
   slider 0.03 · music +0.21 · movement +0.13 · minimum 0.15” – so you see at once who turns it up (the AI needs at
@@ -1124,7 +1145,9 @@ rm -rf <Dream folder> ~/.cache/huggingface/hub/models--stabilityai--sd-turbo ~/.
 a temporary home folder, so your own settings, keys and pictures are never touched). They check who may do what (every
 route of the server for this Mac, Dream Control, guests, Dreamy Eyes and devices without a key), the origin check, the
 ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers and the
-translations. GitHub runs them on every push (`.github/workflows/tests.yml`).
+translations. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
+room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
+without drums, a 120 Hz display) and the beat grid. GitHub runs both on every push (`.github/workflows/tests.yml`).
 
 <sub>[↑ Contents](#contents)</sub>
 

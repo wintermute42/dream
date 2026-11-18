@@ -1271,6 +1271,7 @@ if ROLE == "app":
         "flow_kind": "hand",                                       # what the flowtrack switch turns on: on | hand
         "drift": 0.5, "drift_prompt": True,                        # keeps the dream alive without new input (0 = off)
         "music_patterns": True, "music_drop": True,                # music: changing patterns, drop → next scene
+        "beat_snap": "bar",                                        # #195: changes snap to the beat: off | beat | bar | phrase
         "smooth": 0.3,                                             # smoothing: moving average of the shown pictures (0 = off)
         "morph": 1.0,                                              # #194: motion between two AI pictures (0 = off)
         "music_pattern": "auto",                                   # auto, or a fixed pattern (Pulse, Jolt, Jump, Flow)
@@ -1662,7 +1663,7 @@ if ROLE == "app":
     CHOICES = {"mode": {"dream", "cam", "img", "vid", "flow"}, "backend": {"local", "cloud"},
                "model": set(MODELS), "music": {"off", "mic", "file"},
                "flowtrack": {"off", "on", "hand"}, "flow_kind": {"on", "hand"}, "aspect": {"square", "wide"},
-               "music_pattern": {"auto", *playlists.PATTERNS}}
+               "music_pattern": {"auto", *playlists.PATTERNS}, "beat_snap": {"off", "beat", "bar", "phrase"}}
 
     def coerce(k, v):
         """Accepts a value only in the type (and, for choices, the values) of the default."""
