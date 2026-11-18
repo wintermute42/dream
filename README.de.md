@@ -41,6 +41,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Wenn das Handy nicht verbindet](#wenn-das-handy-nicht-verbindet)
 - [Dreamy Eyes – ein Handy als träumende Augen (Installation)](#dreamy-eyes--ein-handy-als-träumende-augen-installation)
 - [Traum-Fenster – alte Handys und Tablets als Fenster zum Traum](#traum-fenster--alte-handys-und-tablets-als-fenster-zum-traum)
+  - [Alte Geräte für den Dauerbetrieb](#alte-geräte-für-den-dauerbetrieb)
 
 **Bewegung und Controller**
 
@@ -775,6 +776,35 @@ festen Motive: Ein Organismus lebt in allen zugleich.
 - **Sie schauen nur zu:** Der Schlüssel der Fenster (`~/.local/state/dream/window-token`, ein eigenes Cookie) öffnet
   die Fensterseite, die Bilder des Traums und die gemalten Gesichter – keine Einstellungen, keine Befehle, keine
   Kamera, nichts, was Geld kostet.
+
+### Alte Geräte für den Dauerbetrieb
+
+**Android mit einem Befehl.** `./dream-window-prep` richtet jedes an diesen Mac angeschlossene Android-Gerät ein,
+während Dream mit `--lan` läuft: Bildschirm bleibt beim Laden an, feste mittlere Helligkeit, Nicht stören, keine
+Tastentöne, kein Energiesparen für Chrome, keine automatischen Systemupdates, kein Sperrbildschirm – und es öffnet das
+Fenster in Chrome und tippt es ins Vollbild. Den Schlüssel des Fensters holt es von Dream; er wird nie ausgegeben.
+Vorher einmal am Gerät:
+
+1. Zurücksetzen (Einstellungen → Allgemeine Verwaltung/System → Zurücksetzen → Auf Werkseinstellungen zurücksetzen)
+   und bei der Einrichtung nur das WLAN verbinden – kein Google- oder Samsung-Konto, keine PIN. Oder das eigene Konto
+   behalten und `--user` nutzen (siehe unten).
+2. Entwickleroptionen: Einstellungen → Telefoninfo (→ Softwareinformationen) → 7× auf „Buildnummer“ tippen.
+3. Einstellungen → Entwickleroptionen → **USB-Debugging** an.
+4. Mit einem Datenkabel direkt an den Mac (einmal `brew install android-platform-tools`) und „Zulassen“ tippen.
+
+Dann `./dream-window-prep`. Am Ende listet es, was per adb nicht geht: die Begrüßung von Chrome wegtippen, falls sie
+erscheint, und das Fenster fixieren (App-Übersicht → Symbol von Chrome → „Diese App fixieren“). `--user` legt statt
+eines Zurücksetzens einen eigenen Benutzer „Dream“ an – nur auf Geräten mit mehreren Benutzern (Pixel, Motorola, die
+meisten Tablets; nicht Samsung-Handys), und dann braucht dein eigener Benutzer eine PIN. `--undo` stellt die
+Einstellungen zurück, `-s SERIENNUMMER` wählt ein Gerät.
+
+**iPhone und iPad von Hand.** Einstellungen → Anzeige & Helligkeit → Automatische Sperre: Nie; Nicht stören an;
+Stromsparmodus aus. Den Code in Safari scannen, Teilen → „Zum Home-Bildschirm“ (das ist Vollbild – iPhones haben im
+Browser keins) und das Fenster von dort öffnen. Zum Festsetzen: Einstellungen → Bedienungshilfen → Geführter Zugriff an
+(Anzeige automatisch sperren: Nie), dann im Fenster dreimal die Seitentaste drücken.
+
+**So oder so:** am Ladegerät, ohne Hülle (Wärme), in einer Halterung. Startet Dream neu oder ist das WLAN kurz weg,
+verbindet sich das Fenster von selbst wieder; ein neuer Code ist nur nötig, wenn es „Kein Zugriff“ zeigt.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

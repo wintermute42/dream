@@ -45,6 +45,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [If the phone does not connect](#if-the-phone-does-not-connect)
 - [Dreamy Eyes – a phone as dreaming eyes (installation)](#dreamy-eyes--a-phone-as-dreaming-eyes-installation)
 - [Dream windows – old phones and tablets as windows to the dream](#dream-windows--old-phones-and-tablets-as-windows-to-the-dream)
+  - [Old devices for around-the-clock use](#old-devices-for-around-the-clock-use)
 
 **Movement and controllers**
 
@@ -747,6 +748,32 @@ fixed motifs: one organism lives in all of them.
   code with each device and tap its screen for fullscreen. The output line in the panel counts the connected windows.
 - **They only look:** a window's key (`~/.local/state/dream/window-token`, a cookie of its own) opens the window page,
   the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money.
+
+### Old devices for around-the-clock use
+
+**Android with one command.** `./dream-window-prep` sets up every Android device connected to this Mac while Dream
+runs with `--lan`: the screen stays on while charging, fixed middle brightness, do not disturb, no touch sounds, no
+battery saver for Chrome, no automatic system updates, no lock screen – and it opens the window in Chrome and taps it
+into fullscreen. The window's key comes from Dream and is never printed. Before, once on the device:
+
+1. Reset it (Settings → General management/System → Reset → Factory data reset) and in the setup only join the Wi-Fi
+   – no Google or Samsung account, no PIN. Or keep your account and use `--user` (see below).
+2. Developer options: Settings → About phone (→ Software information) → tap “Build number” 7 times.
+3. Settings → Developer options → **USB debugging** on.
+4. Connect it with a data cable directly to the Mac (`brew install android-platform-tools` once) and tap “Allow”.
+
+Then `./dream-window-prep`. At the end it lists what adb can't do: tap away Chrome's welcome screen if it appears,
+and pin the window (app overview → Chrome's icon → “Pin this app”). `--user` creates a user “Dream” of its own instead
+of a reset – only on devices that allow several users (Pixel, Motorola, most tablets; not Samsung phones), and then
+your own user needs a PIN. `--undo` puts the settings back, `-s SERIAL` picks one device.
+
+**iPhone and iPad by hand.** Settings → Display & Brightness → Auto-Lock: Never; do not disturb on; Low Power Mode
+off. Scan the code in Safari, Share → “Add to Home Screen” (that is fullscreen – iPhones have none in the browser) and
+open the window from there. To fix it: Settings → Accessibility → Guided Access on (display auto-lock: never), then
+press the side button three times in the window.
+
+**Either way:** on the charger, without a case (warmth), in a stand. If Dream restarts or the Wi-Fi drops, the window
+reconnects by itself; a new code is only needed when it says “No access”.
 
 <sub>[↑ Contents](#contents)</sub>
 

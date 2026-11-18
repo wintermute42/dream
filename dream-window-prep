@@ -1,0 +1,144 @@
+#!/bin/bash
+# dream-window-prep – turns old Android phones and tablets into dream windows for around-the-clock use (#203).
+#
+#   ./dream-window-prep            sets up every connected Android device (USB or wireless debugging)
+#   ./dream-window-prep --user     on devices that allow several users: a user "Dream" of its own instead of a reset
+#   ./dream-window-prep --undo     puts the settings back to normal (screen timeout, brightness, do not disturb …)
+#   ./dream-window-prep -s SERIAL  only this device (as `adb devices` lists it)
+#
+# Before (once, on the device): reset it or use --user; turn on the developer options (tap "Build number" 7 times)
+# and "USB debugging"; connect it with a data cable and allow this Mac. Dream must be running with --lan: the window's
+# address with its key comes from Dream itself (http://127.0.0.1:<port>/remote-info) and is never printed.
+# What adb cannot do is listed at the end (Chrome's welcome screen, app pinning).
+set -uo pipefail
+
+UNDO=0 OWNUSER=0 ONLY=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --undo) UNDO=1 ;;
+    --user) OWNUSER=1 ;;
+    -s) shift; ONLY="${1:-}" ;;
+    -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown option: $1 (see --help)" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+ADB="${ADB:-adb}"
+WAIT="${DREAM_PREP_WAIT:-6}"                           # seconds for a user switch or Chrome to come up
+if ! command -v "$ADB" >/dev/null 2>&1; then
+  echo "adb is missing – install it with: brew install android-platform-tools" >&2; exit 1
+fi
+
+# ---------- the window's address, from Dream (only on this Mac) ----------
+PORT="${DREAM_PORT:-}"
+if [ -z "$PORT" ] && [ -f "$HOME/.config/dream/dream.env" ]; then
+  PORT=$(sed -n 's/^DREAM_PORT=\([0-9][0-9]*\).*/\1/p' "$HOME/.config/dream/dream.env" | tail -1)
+fi
+PORT="${PORT:-7860}"
+URL=""
+if [ "$UNDO" = 0 ]; then
+  URL=$(curl -fsS --max-time 5 "http://127.0.0.1:$PORT/remote-info" 2>/dev/null \
+        | python3 -c 'import json,sys; print(json.load(sys.stdin).get("window") or "")' 2>/dev/null)
+  case "$URL" in
+    http://*/window\?k=*) ;;
+    *) echo "Dream does not answer on port $PORT, or runs without --lan – start it with ./dream.sh --lan first." >&2; exit 1 ;;
+  esac
+fi
+shown_url() { echo "${URL%%\?*}"; }                    # the address without its key, for the output
+
+# ---------- the devices ----------
+SERIALS=$("$ADB" devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+UNAUTH=$("$ADB" devices | awk 'NR > 1 && $2 == "unauthorized" { print $1 }')
+[ -n "$UNAUTH" ] && echo "Waiting for permission on the device: tap “Allow” on $UNAUTH, then run this again."
+[ -n "$ONLY" ] && SERIALS=$(echo "$SERIALS" | grep -Fx -- "$ONLY")
+if [ -z "$SERIALS" ]; then
+  echo "No Android device found. Turn on USB debugging (developer options), use a data cable (not a charging-only one)," >&2
+  echo "connect it directly to the Mac and allow this computer on the device." >&2
+  exit 1
+fi
+
+TODO=""
+note() { TODO="$TODO\n  • $1"; }
+
+prep() {
+  local s="$1" u="" name sdk maxu
+  a() { "$ADB" -s "$s" shell "$@" </dev/null 2>/dev/null; }
+  name=$(a getprop ro.product.model | tr -d '\r'); sdk=$(a getprop ro.build.version.sdk | tr -d '\r')
+  echo "▸ $name ($s, Android SDK $sdk)"
+
+  if [ "$UNDO" = 1 ]; then
+    a settings put global stay_on_while_plugged_in 0
+    a settings put system screen_off_timeout 60000
+    a settings put system screen_brightness_mode 1
+    a cmd notification set_dnd off
+    a settings put global low_power 0
+    a am clear-debug-app
+    a rm -f /data/local/tmp/chrome-command-line
+    echo "  back to normal (screen goes off after a minute, brightness automatic, do not disturb off)"
+    return
+  fi
+
+  if [ "$OWNUSER" = 1 ]; then                          # a user of its own instead of a reset
+    maxu=$(a pm get-max-users | tr -dc '0-9')
+    if [ "${maxu:-1}" -gt 1 ]; then
+      u=$(a pm list users | sed -n 's/.*UserInfo{\([0-9][0-9]*\):Dream:.*/\1/p' | head -1)
+      [ -z "$u" ] && u=$(a pm create-user Dream | sed -n 's/.*id \([0-9][0-9]*\).*/\1/p')
+      if [ -n "$u" ]; then
+        a pm install-existing --user "$u" com.android.chrome >/dev/null
+        a am switch-user "$u"; sleep "$WAIT"
+        echo "  user “Dream” ($u) – switch back via quick settings → users"
+        note "$name: give your own user a PIN – otherwise anyone can switch to it"
+      else
+        echo "  could not create a user – going on with the current one"; u=""
+      fi
+    else
+      echo "  this device allows only one user (Samsung phones, for example) – reset it instead; going on with the current user"
+    fi
+  fi
+  local us=""; [ -n "$u" ] && us="--user $u"
+
+  # the screen stays on while charging, and does not go off by itself
+  a settings put global stay_on_while_plugged_in 7
+  a settings $us put system screen_off_timeout 2147483647
+  # a fixed, middle brightness (spares battery and warmth; enough in the dark)
+  a settings $us put system screen_brightness_mode 0
+  a settings $us put system screen_brightness 110
+  # quiet: do not disturb, no touch sounds or vibration
+  a cmd notification set_dnd priority || a settings put global zen_mode 1
+  a settings $us put system sound_effects_enabled 0
+  a settings $us put system haptic_feedback_enabled 0
+  a settings $us put system lockscreen_sounds_enabled 0
+  # no power saving for the window: battery saver off, Chrome allowed to keep running
+  a settings put global low_power 0
+  a dumpsys deviceidle whitelist +com.android.chrome >/dev/null
+  a cmd appops set com.android.chrome RUN_ANY_IN_BACKGROUND allow
+  # no automatic system updates that restart it at night (where the device honours it)
+  a settings put global ota_disable_automatic_update 1
+  # no lock screen (only works while no PIN is set)
+  a locksettings set-disabled true $us >/dev/null
+  # app pinning switched on, so the window can be pinned with two taps
+  a settings $us put system lock_to_app_enabled 1
+  # Chrome without its welcome screen (read because Chrome is the debug app; not every version honours it)
+  a 'echo "_ --disable-fre --no-default-browser-check --no-first-run" > /data/local/tmp/chrome-command-line'
+  a am set-debug-app --persistent com.android.chrome
+  a am force-stop com.android.chrome
+
+  # wake up and open the window, then one tap: fullscreen, and the screen kept awake
+  a input keyevent KEYCODE_WAKEUP; a wm dismiss-keyguard
+  a am start -a android.intent.action.VIEW -p com.android.chrome -d "'$URL'" >/dev/null \
+    || a am start -a android.intent.action.VIEW -d "'$URL'" >/dev/null
+  sleep "$WAIT"
+  local wh w h
+  wh=$(a wm size | sed -n 's/.*: \([0-9]*\)x\([0-9]*\).*/\1 \2/p' | tail -1)
+  w=${wh% *}; h=${wh#* }
+  [ -n "$w" ] && a input tap $((w / 2)) $((h / 2))
+  echo "  opened $(shown_url) in Chrome"
+  note "$name: if Chrome shows its welcome screen, tap through it once (“Use without an account”) and tap the screen for fullscreen"
+  note "$name: pin the window – app overview, tap Chrome's icon above the window, “Pin this app”"
+}
+
+for s in $SERIALS; do prep "$s"; done
+if [ "$UNDO" = 0 ]; then
+  printf "\nStill by hand:%b\n  • put it on the charger and into a stand – done\n" "$TODO"
+fi
