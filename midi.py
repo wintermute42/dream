@@ -11,7 +11,9 @@ import os
 import threading
 import time
 
-MAP_FILE = os.path.expanduser("~/.config/dream/midi.json")
+import paths
+
+MAP_FILE = os.path.join(paths.config_dir(), "midi.json")
 
 # what a controller can move: state key → (min, max)
 TARGETS = {

@@ -1,0 +1,33 @@
+# Tests on Linux (#186): the rights, settings, folders, certificates, MIDI/sensor/playlist helpers and the translations.
+# No model, no GPU, no torch (the tests bring a stand-in for it): only the "ci" dependency group is installed.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    # a branch of this repository runs on push; a pull request only when it comes from a fork (no run twice)
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install (only what the tests need)
+        run: uv sync --locked --only-group ci
+      - name: pytest
+        run: uv run --no-sync pytest -q
+      - name: Translations
+        run: python3 scripts/i18n_check.py

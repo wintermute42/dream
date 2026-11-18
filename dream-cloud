@@ -15,7 +15,10 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ZONE="${DREAM_ZONE:-fr-par-2}"
-STATE_DIR="$HOME/.local/state/dream"
+# #186: DREAM_STATE_DIR as the server sees it – dream.sh reads dream.env (it wins over the environment), so a manual
+# run here finds the same cloud.env as the one the panel started
+STATE_DIR="$( set +u; set -a; f="${DREAM_ENV:-${DREAM_CONFIG_DIR:-$HOME/.config/dream}/dream.env}"
+              if [ -f "$f" ]; then . "$f" >/dev/null 2>&1 || true; fi; printf '%s' "${DREAM_STATE_DIR:-$HOME/.local/state/dream}" )"
 STATE="$STATE_DIR/cloud.env"
 NAME="dream-gpu"
 TAG="dream"
