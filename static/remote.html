@@ -287,7 +287,7 @@
 
   <section data-sec="windows" data-only="control">
     <h2>🪟 Dream windows</h2>
-    <div class="hint">Any number of old phones and tablets as extra windows to the dream. Dream gives each one a motif by itself; they only look.</div>
+    <div class="hint">Any number of old phones and tablets as extra windows to the dream: one organism drifts through all of them. They only look.</div>
     <button id="winqr" aria-expanded="false" aria-controls="winbox" style="width:100%;margin-top:8px">Show the code for the windows</button>
     <div id="winbox" hidden style="margin-top:8px">
       <img id="winimg" alt="QR code with the address of the dream windows" width="180" height="180" style="background:#fff;border-radius:10px;padding:6px;display:block">
@@ -768,7 +768,7 @@
     if (!open) { $('winimg').removeAttribute('src'); return; }
     $('winimg').onerror = () => { $('wintext').textContent = T('Address not available – is Dream still running?'); };
     $('winimg').src = '/qr.svg?for=window&t=' + Date.now();
-    $('wintext').textContent = T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. Dream gives each window a motif by itself; they only look and cannot change anything.');
+    $('wintext').textContent = T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. One dream organism drifts through all of them; they only look and cannot change anything.');
   };
   function feedsMine(mine) {                           // the server's word on which feeds are this device's
     for (const k of ['cam', 'motion']) {

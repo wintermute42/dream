@@ -749,22 +749,29 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 
 ## Traum-Fenster – alte Handys und Tablets als Fenster zum Traum
 
-<p align="center"><img src="docs/images/windows.webp" alt="Fünf Traum-Fenster: ein Mandala, ein Augenpaar, Glut und ein wandernder Ausschnitt des Traums" width="840"></p>
+<p align="center"><img src="docs/images/windows.webp" alt="Fünf Traum-Fenster: Augen und ein Mondreigen, ein Kaleidoskop, Lichtblumen, ein Mandala und das dritte Auge in Trance" width="840"></p>
 
-Beliebig viele alte Handys und Tablets im Raum werden zu Fenstern in den Traum. Nichts zuzuordnen, keine Rollen: Jedes
-Fenster bekommt sein Motiv von Dream selbst, und die Fenster wirken zusammen wie eins.
+Beliebig viele alte Handys und Tablets im Raum werden zu Fenstern in den Traum. Nichts zuzuordnen, keine Rollen, keine
+festen Motive: Ein Organismus lebt in allen zugleich.
 
-- **Motive:** ein wandernder, vergrößerter Ausschnitt des Traums; ein von der KI gemaltes Gesicht (solange noch keins
-  gemalt ist, ein Mandala); ein Auge, dessen Iris der Traum ist; ein drehendes Kaleidoskop-Mandala; glimmende Glut in
-  den Farben des Traums. Dream verteilt die Motive so, dass sie sich unterscheiden; ein einzelnes Auge findet oft in
-  einem zweiten Fenster seinen Partner (links und rechts, sie blinzeln gemeinsam).
-- **Lebendig:** Ab und zu wechselt ein Fenster sanft zu einem anderen Motiv (alle 2–5 Minuten, immer nur eins), eine
-  Lichtwelle läuft der Reihe nach durch alle Fenster, und mit Musik pulsieren sie im Takt. Mit dem Master-Regler der
-  Bühne werden sie dunkler.
-- **Alte Geräte:** Kommt ein Gerät nicht mit, zeichnet die Seite mit weniger Pixeln und geht wieder hoch, sobald es
-  geht. Sie braucht kein Zertifikat (einfaches http im WLAN zu Hause) und hält den Bildschirm an.
-- **Einrichten:** Bedienfeld → „Ausgabe“ → **🪟 Traum-Fenster** (oder Dream Control → Karte **„🪟 Traum-Fenster“**) → den Code mit jedem Gerät scannen und für Vollbild auf
-  den Bildschirm tippen. Die Ausgabe-Zeile im Bedienfeld zählt die verbundenen Fenster.
+- **Was hindurchwabert:** In jedem Fenster liegt der Traum als weicher, langsam treibender Grund. Darauf tauchen immer
+  wieder die Wesen des Traums auf, wabern und vergehen: Augen, deren Iris der Traum ist (allein oder als Paar, das
+  gemeinsam blinzelt), Mandalas, Kaleidoskope aus dem Traum, schwebende Stücke anderer Stellen des Traums, Symbole
+  (Spirale, Blume des Lebens, Stern, Mond, drittes Auge, Sonne), Wolken, aufblühende Lichtspiralen, Fraktalbäume,
+  Lichtmotten, Seifenblasen, Nordlicht, kleine Monde und ab und zu ein von der KI gemaltes Gesicht – alles in den
+  Farben des Traums und so gezeichnet wie um die Dreamy Eyes.
+- **Ein Organismus:** Wesen wandern von Fenster zu Fenster – was ein Fenster verlässt, kommt im nächsten von der anderen
+  Seite herein. Alle Fenster atmen gemeinsam, pulsieren im Takt, und ab und zu läuft eine Lichtwelle der Reihe nach
+  durch sie. Gehen die Dreamy Eyes in Trance, öffnet sich auch in jedem Fenster das dritte Auge; werden die Augen
+  gestreichelt, läuft ein rosa Schimmer durch die Fenster. Mit dem Master-Regler der Bühne werden sie dunkler.
+- **Leicht für den Mac:** Dream verteilt nur Keime (welches Wesen, wo es herein- und hinausgeht, eine Zufallszahl –
+  ein paar Bytes alle paar Sekunden); jedes Fenster zeichnet selbst.
+- **Alte Geräte:** Kommt ein Fenster nicht mit, zeigt es weniger Wesen gleichzeitig und zeichnet mit weniger Pixeln, und
+  geht wieder hoch, sobald es geht. Es braucht kein Zertifikat (einfaches http im WLAN zu Hause) und hält den
+  Bildschirm an.
+- **Einrichten:** Bedienfeld → „Ausgabe“ → **🪟 Traum-Fenster** (oder Dream Control → Karte **„🪟 Traum-Fenster“**) →
+  den Code mit jedem Gerät scannen und für Vollbild auf den Bildschirm tippen. Die Ausgabe-Zeile im Bedienfeld zählt
+  die verbundenen Fenster.
 - **Sie schauen nur zu:** Der Schlüssel der Fenster (`~/.local/state/dream/window-token`, ein eigenes Cookie) öffnet
   die Fensterseite, die Bilder des Traums und die gemalten Gesichter – keine Einstellungen, keine Befehle, keine
   Kamera, nichts, was Geld kostet.

@@ -1049,7 +1049,7 @@
         : T('Without https the eyes phone cannot lend its camera – start Dream with --lan (https comes with it).');
     } catch (e) { t.textContent = T('Address not available – is Dream still running?'); }
   };
-  // #201: dream windows – one code for any number of old phones and tablets; Dream gives each a motif by itself
+  // #201: dream windows – one code for any number of old phones and tablets; one organism drifts through all of them
   $('winshow').onclick = async () => {
     const box = $('winpanel'), open = box.hidden;
     box.hidden = !open; $('winshow').setAttribute('aria-expanded', String(open));
@@ -1059,7 +1059,7 @@
       const info = await (await fetch('/remote-info')).json();
       if (!info.lan) { $('winpqr').removeAttribute('src'); t.innerHTML = T('Only when Dream is reachable in the Wi-Fi: restart it with <code>./dream.sh --lan</code>.'); return; }
       $('winpqr').src = '/qr.svg?for=window&t=' + Date.now();
-      t.textContent = T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. Dream gives each window a motif by itself; they only look and cannot change anything.');
+      t.textContent = T('Scan it with any number of old phones or tablets (no certificate needed) and tap the screen for fullscreen. One dream organism drifts through all of them; they only look and cannot change anything.');
     } catch (e) { t.textContent = T('Address not available – is Dream still running?'); }
   };
   // #172: the trance of Dreamy Eyes from the Mac – the button, key E, and how often it may come by itself

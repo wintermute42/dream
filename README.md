@@ -724,21 +724,27 @@ eyes** that invite people to step up and play:
 
 ## Dream windows – old phones and tablets as windows to the dream
 
-<p align="center"><img src="docs/images/windows.webp" alt="Five dream windows: a mandala, a pair of eyes, embers and a wandering part of the dream" width="840"></p>
+<p align="center"><img src="docs/images/windows.webp" alt="Five dream windows: eyes and a moon orbit, a kaleidoscope, flowers of light, a mandala, and the third eye in trance" width="840"></p>
 
-Any number of old phones and tablets around the room become windows to the dream. Nothing to assign, no roles: each
-window gets its motif from Dream by itself, and the windows together look like one thing.
+Any number of old phones and tablets around the room become windows to the dream. Nothing to assign, no roles, no
+fixed motifs: one organism lives in all of them.
 
-- **Motifs:** a wandering, zoomed part of the dream; a face painted by the AI (while none is painted yet, a mandala);
-  an eye whose iris is the dream; a turning kaleidoscope mandala; glowing embers in the dream's colours. Dream hands
-  out the motifs so that they differ; a lone eye often finds a second window as its partner (left and right, blinking
-  together).
-- **Alive:** now and then a window changes softly to another motif (every 2–5 minutes, one at a time), a wave of light
-  runs through all windows in turn, and with music they pulse to the beat. They dim with the stage's master fader.
-- **Old devices:** the page draws with fewer pixels when the device can't keep up and goes back up when it can. It
-  needs no certificate (plain http in the home Wi-Fi) and keeps the screen on.
-- **Setting up:** panel → “Output” → **🪟 Dream windows** (or Dream Control → card **“🪟 Dream windows”**) → scan the code with each device and tap its screen for
-  fullscreen. The output line in the panel counts the connected windows.
+- **What drifts through:** in every window the dream lies as a soft, slowly drifting ground. On it, the dream's living
+  things keep appearing, swirling and fading: eyes whose iris is the dream (alone or as a pair, blinking together),
+  mandalas, kaleidoscopes of the dream, floating pieces of other parts of the dream, symbols (spiral, flower of life,
+  star, moon, third eye, sun), clouds, blooming light spirals, fractal trees, light moths, bubbles, northern lights,
+  little moons and now and then a face painted by the AI – all in the dream's colours, drawn the same way as around
+  Dreamy Eyes.
+- **One organism:** things wander from window to window – what leaves one window comes into the next one from the
+  other side. All windows breathe together, pulse to the beat, and now and then a wave of light runs through them in
+  turn. When Dreamy Eyes go into trance, the third eye opens in every window too; when someone pets the eyes, a rosy
+  shimmer runs through the windows. They dim with the stage's master fader.
+- **Light on the Mac:** Dream only sows seeds (which thing, where it comes in and goes out, a random number – a few
+  bytes every few seconds); every window draws by itself.
+- **Old devices:** a window that can't keep up shows fewer things at once and draws with fewer pixels, and goes back up
+  when it can. It needs no certificate (plain http in the home Wi-Fi) and keeps the screen on.
+- **Setting up:** panel → “Output” → **🪟 Dream windows** (or Dream Control → card **“🪟 Dream windows”**) → scan the
+  code with each device and tap its screen for fullscreen. The output line in the panel counts the connected windows.
 - **They only look:** a window's key (`~/.local/state/dream/window-token`, a cookie of its own) opens the window page,
   the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money.
 

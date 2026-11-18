@@ -396,23 +396,48 @@ def test_render_allowed_only_for_the_stage_side(server):
     assert not server.render_allowed(Sock("192.168.1.30"))
 
 
-# ---------- dream windows (#201): any number, each gets a motif by itself, they only look ----------
-def test_dream_windows_get_different_motifs_and_cannot_steer(server):
+# ---------- dream windows (#201): any number, one organism over all of them, they only look ----------
+def test_dream_windows_get_seeds_and_cannot_steer(server):
     k = server.keys["window"]
     c = client(server, "window")
-    with c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as a, c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as b:
-        def motif(ws):
-            for _ in range(10):
+    with c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as a, \
+            c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as b:
+        def first(ws, key):
+            for _ in range(20):
                 m = json.loads(ws.receive_text())
-                if "window" in m:
-                    last = m["window"]
-                    if last["of"] == 2:
-                        return last
-            return last
-        ma, mb = motif(a), motif(b)
-        assert ma["motif"] in server.WINDOW_MOTIFS and mb["motif"] in server.WINDOW_MOTIFS
-        assert ma["motif"] != mb["motif"] or ma["motif"] == "eye"     # different – or a pair of eyes
-        assert {ma["index"], mb["index"]} == {0, 1}
+                if key in m:
+                    return m[key]
+        assert {first(a, "window")["index"], first(b, "window")["index"]} <= {0, 1}
     with pytest.raises(WebSocketDisconnect):                           # a window may not open /ctl
         with c.websocket_connect(f"ws://192.168.1.20:7860/ctl?role=remote&k={k}") as w:
             w.receive_text()
+
+
+def test_window_seeds_wander_from_window_to_window(server, monkeypatch):
+    """A wanderer that leaves one window comes into the next one from the other side – the same being."""
+    import asyncio
+    sent = []
+
+    class Sock:
+        def __init__(self, n): self.n = n
+        async def send_text(self, text): sent.append((self.n, json.loads(text)))
+    one, two = Sock(1), Sock(2)
+    ws, wd = server.windows, server.wanderers
+    ws.clear(); ws.update({one: {"next": 0}, two: {"next": 1e12}}); wd.clear()
+    monkeypatch.setattr(server.random, "random", lambda: 0.0)          # a wanderer, surely
+    asyncio.run(server.windows_tick(100.0))
+    seed = next(m["life"] for n, m in sent if n == 1)
+    assert seed["kind"] in server.WANDER_KINDS and seed["exit"] != "in"
+    sent.clear()
+    asyncio.run(server.windows_tick(100.0 + seed["life"] + 0.1))
+    nxt = next(m["life"] for n, m in sent if n == 2)
+    assert nxt["seed"] == seed["seed"] and nxt["kind"] == seed["kind"]
+    assert nxt["enter"] == {"left": "right", "right": "left", "top": "bottom", "bottom": "top"}[seed["exit"]]
+    ws.clear(); wd.clear()
+
+
+def test_window_seeds_are_only_what_a_window_needs(server):
+    """A seed carries no prompt, no setting, no picture – only what to draw."""
+    for wander in (True, False):
+        s = server.window_seed("cloud", wander, "left" if wander else "in")
+        assert set(s) == {"id", "kind", "variant", "seed", "life", "enter", "exit", "hue", "size"}

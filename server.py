@@ -1767,6 +1767,8 @@ if ROLE == "app":
                     continue
                 if sock in eyes_pages or roles.get(sock) == "eyes":   # #166: also eyes on a Control device
                     eyes_note(msg)
+                    if msg.get("eyes_mood") in WINDOW_MOODS:  # #201: the dream windows feel with the eyes
+                        await windows_mood(msg["eyes_mood"])
                 mr = msg.get("measure_report")             # #180: a device's frames during a measurement run
                 if measure["run"] and isinstance(mr, dict) and len(measure["reports"]) < 50:
                     kind = mr.get("kind") if mr.get("kind") in ("stage", "eyes", "remote", "output") else "other"
@@ -2421,58 +2423,90 @@ if ROLE == "app":
         return FileResponse(os.path.join(HERE, "static", "output.html"))
 
     # ---------- #201: dream windows – any number of old phones and tablets as windows to the dream ----------
-    # Nobody assigns anything: every window that opens gets the motif that is missing most, now and then one changes
-    # softly, and two windows sometimes become a pair of eyes. They all hear the stage's pulse (the /view stream) and,
-    # now and then, a wave that runs over them in the order they came.
-    WINDOW_MOTIFS = ("slice", "face", "eye", "mandala", "embers")
-    windows: dict = {}                                 # socket -> {"motif", "side", "change"}; in the order they came
+    # One organism over all of them: no window has a motif. Dream only sows seeds – which living thing, where it comes
+    # in and goes out, a random number – and every window draws it itself (static/window.html, static/dreamlife.js).
+    # Wanderers go from window to window: when one leaves a window, it comes into the next one from the other side.
+    # They all hear the stage's pulse (the /view stream), now and then a wave runs over them in the order they came,
+    # and they feel with Dreamy Eyes (trance, blushing).
+    WANDER_KINDS = ("cloud", "cloud", "moth", "eye", "symbol", "bubbles", "aurora", "picture", "orbit")
+    LOCAL_KINDS = ("mandala", "bloom", "tree", "kaleido", "eyes", "symbol", "picture", "cloud", "face")
+    SYMBOLS = ("spiral", "flower", "star", "moon", "third", "sun")
+    EDGES = ("left", "right", "top", "bottom")
+    OPPOSITE = {"left": "right", "right": "left", "top": "bottom", "bottom": "top"}
+    WINDOW_MOODS = ("trance", "blush")
+    windows: dict = {}                                 # socket -> {"next": when it gets its next seed}; in the order they came
+    wanderers: list = []                               # [when, seed, hops left, index of the window it leaves]
+    seed_no = [0]
+    mood_at: dict = {}
 
-    def window_pick(me=None) -> tuple[str, str]:
-        others = [w for c, w in windows.items() if c is not me]
-        single = [w for w in others if w["motif"] == "eye" and w["side"] == "solo"]
-        if single and random.random() < 0.6:           # a lone eye finds its partner
-            single[0]["side"] = "left"
-            return "eye", "right"
-        used = {m: sum(w["motif"] == m for w in others) for m in WINDOW_MOTIFS}
-        if me is not None and me in windows:
-            used[windows[me]["motif"]] += 99          # a change: something else
-        least = min(used.values())
-        return random.choice([m for m in WINDOW_MOTIFS if used[m] == least]), "solo"
+    def window_seed(kind: str, wander: bool, enter: str = "in") -> dict:
+        seed_no[0] += 1
+        if kind == "face" and not aimasks:             # no face painted yet: something else
+            kind = "mandala"
+        exit_ = random.choice([e for e in EDGES if e != enter]) if wander else "in"
+        return {"id": seed_no[0], "kind": kind, "variant": random.choice(SYMBOLS) if kind == "symbol" else "",
+                "seed": random.randrange(1 << 30), "life": round(random.uniform(7, 12) if wander else random.uniform(9, 16), 2),
+                "enter": enter, "exit": exit_, "hue": round(random.uniform(-70, 70)), "size": round(random.uniform(0.7, 1.3), 2)}
+
+    async def window_send(sock, msg: dict):
+        with contextlib.suppress(Exception):
+            await sock.send_text(json.dumps(msg))
 
     def window_add(sock):
-        motif, side = window_pick()
-        windows[sock] = {"motif": motif, "side": side, "change": time.time() + random.uniform(120, 300)}
+        windows[sock] = {"next": time.time() + random.uniform(0.3, 1.5)}
 
     async def window_tell_all():
-        n = len(windows)
-        for i, (c, w) in enumerate(list(windows.items())):
-            with contextlib.suppress(Exception):
-                await c.send_text(json.dumps({"window": {"motif": w["motif"], "side": w["side"], "index": i, "of": n}}))
+        for i, c in enumerate(list(windows)):
+            await window_send(c, {"window": {"index": i, "of": len(windows)}})
+
+    async def windows_mood(kind: str):
+        """Dreamy Eyes go into trance or blush: all windows feel it – the blush runs through them in their order."""
+        now = time.time()
+        if now - mood_at.get(kind, 0) < 3 or not windows:
+            return
+        mood_at[kind] = now
+        for i, c in enumerate(list(windows)):
+            await window_send(c, {"mood": {"kind": kind, "index": i, "of": len(windows)}})
+
+    async def windows_tick(now: float):
+        order = list(windows)
+        for c in order:
+            w = windows[c]
+            if now > w["next"]:                        # a new seed for this window: something blooming here or a wanderer
+                w["next"] = now + random.uniform(2.0, 4.5)
+                wander = random.random() < 0.45
+                seed = window_seed(random.choice(WANDER_KINDS if wander else LOCAL_KINDS), wander,
+                                   random.choice(EDGES) if wander else "in")
+                await window_send(c, {"life": seed})
+                if wander:
+                    wanderers.append([now + seed["life"], seed, random.randint(1, 3), order.index(c)])
+        for wd in list(wanderers):                     # wanderers leave one window and come into the next one
+            if now < wd[0]:
+                continue
+            wanderers.remove(wd)
+            if not order:
+                continue
+            last, hops = wd[1], wd[2]
+            target = order[(wd[3] + 1) % len(order)]
+            seed = window_seed(last["kind"], True, OPPOSITE[last["exit"]])
+            seed.update(variant=last["variant"], seed=last["seed"], hue=last["hue"], size=last["size"])   # the same being
+            await window_send(target, {"life": seed})
+            if hops > 1:
+                wanderers.append([now + seed["life"], seed, hops - 1, order.index(target)])
 
     async def windows_loop():
         next_wave = time.time() + random.uniform(40, 90)
         while True:
-            await asyncio.sleep(5)
+            await asyncio.sleep(0.5)
             if not windows:
+                wanderers.clear()
                 continue
-            now, changed = time.time(), False
-            for c, w in list(windows.items()):
-                if now > w["change"]:                  # one changes softly to another motif
-                    if w["motif"] == "eye" and w["side"] != "solo":
-                        for o in windows.values():     # a pair parts: the other eye goes on alone
-                            if o is not w and o["motif"] == "eye" and o["side"] != "solo":
-                                o["side"] = "solo"
-                    w["motif"], w["side"] = window_pick(c)
-                    w["change"] = now + random.uniform(120, 300)
-                    changed = True
-                    break                              # never all at once
-            if changed:
-                await window_tell_all()
+            now = time.time()
+            await windows_tick(now)
             if now > next_wave and len(windows) > 1:   # a wave over all of them, in the order they came
                 next_wave = now + random.uniform(60, 150)
                 for i, c in enumerate(list(windows)):
-                    with contextlib.suppress(Exception):
-                        await c.send_text(json.dumps({"wave": {"index": i, "of": len(windows)}}))
+                    await window_send(c, {"wave": {"index": i, "of": len(windows)}})
 
     app.router.on_startup.append(lambda: live.setdefault("windows", asyncio.get_event_loop().create_task(windows_loop())))
 
@@ -2489,7 +2523,7 @@ if ROLE == "app":
             previews[sock] = 0.0
         else:
             viewers.add(sock)
-        if sock.query_params.get("as") == "window":    # #201: a dream window – Dream gives it a motif
+        if sock.query_params.get("as") == "window":    # #201: a dream window – it gets seeds of the organism
             window_add(sock)
         await broadcast(status_msg())                  # the stage starts sending its pictures
         try:
