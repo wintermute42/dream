@@ -177,5 +177,20 @@ window.DreamFx = (() => {
       get ready() { return ready; },
     };
   }
-  return { create, cssFilter, smoother, ORDER, FILTERS, ALL };
+  // #194: the motion between two AI pictures. Each picture goes on moving the way the dream moves – zoomed and turned
+  // around its pivot, as the next input will be – until the next picture comes; so the stage neither stands still nor
+  // jumps, however few pictures per second the AI makes. Only a CSS transform (60 fps, almost free). Past the expected
+  // time the motion eases out instead of running away when a picture is late.
+  const morph = {
+    start(el, m, now) { el._morph = m && (m.z || m.r) ? { ...m, born: now } : null; },
+    apply(el, now, target = el) {
+      const m = el._morph;
+      if (!m) { if (target.style.transform) target.style.transform = ''; return; }
+      const k0 = (now - m.born) / Math.max(80, m.period || 400);
+      const k = k0 <= 1 ? k0 : 1 + 0.6 * (1 - Math.exp(-(k0 - 1) * 1.5));
+      target.style.transformOrigin = `${(m.px * 100).toFixed(1)}% ${(m.py * 100).toFixed(1)}%`;
+      target.style.transform = `rotate(${(m.r * k).toFixed(3)}deg) scale(${(1 + m.z * k).toFixed(5)})`;
+    },
+  };
+  return { create, cssFilter, smoother, morph, ORDER, FILTERS, ALL };
 })();

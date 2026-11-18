@@ -40,6 +40,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Live-Kamera und Bewegung des Control-Geräts](#live-kamera-und-bewegung-des-control-geräts)
   - [Wenn das Handy nicht verbindet](#wenn-das-handy-nicht-verbindet)
 - [Dreamy Eyes – ein Handy als träumende Augen (Installation)](#dreamy-eyes--ein-handy-als-träumende-augen-installation)
+- [Traum-Fenster – alte Handys und Tablets als Fenster zum Traum](#traum-fenster--alte-handys-und-tablets-als-fenster-zum-traum)
 
 **Bewegung und Controller**
 
@@ -297,6 +298,13 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   oder Drehung, kein Malen, Anfassen oder Lichtkreis, kein Glätten, kein Musik-Puls. Nur die Effekte, die du in der
   Karte **Effekte** gewählt hast, liegen weiter darüber. Es geht wie gewohnt an Beamer, WLAN-Ausgabe und Syphon.
   Ab etwa 0,15 malt die KI wieder (darunter macht sie nicht einmal einen ganzen Rechenschritt).
+- **Bewegung zwischen den Bildern** (Karte Traum, #194): Die KI macht ein paar Bilder pro Sekunde; dazwischen bewegt
+  sich jedes Bild so weiter, wie der Traum sich bewegt – um denselben Punkt gezoomt und gedreht, wie es die nächste
+  Eingabe wird –, mit voller Bildrate, und das nächste Bild übernimmt genau dort, wo die Bewegung gerade ist. So steht
+  die Bühne nicht still und springt nicht, lokal wie mit der Cloud-GPU; kommt ein Bild spät, läuft die Bewegung sanft aus,
+  statt davonzulaufen. 100 % (Standard) = die volle Bewegung, 0 = aus (das Bild steht bis zum nächsten). Mit einem
+  Eingang (Kamera, Bild, Video) bewegt sich nur der Traum-Anteil weiter; bei Verwandlung 0 bewegt sich nichts. Das
+  Ausgabefenster bewegt sich mit; Syphon bekommt die Bilder selbst.
 - **Glätten – gegen Flackern** (Karte Traum, auch am Handy und als MIDI-Ziel): Die KI malt jedes Bild neu, feine
   Details springen deshalb von Bild zu Bild leicht – das wirkt wie Flackern. Glätten mischt jedes neue KI-Bild mit
   voller Bildrate weich in das Gezeigte (ein gleitender Mittelwert): kleine Sprünge verschwinden, große Änderungen
@@ -765,6 +773,39 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 - **Immer nur eine Kamera:** Die Bühne zeigt „👀 Live-Kamera: Dreamy Eyes“. In Dream Control sagt die Karte „Dieses Gerät“,
   wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp), und die eigene
   Live-Kamera zu starten, übernimmt. Die Bühne geht dann zurück zum Traum, nie von selbst auf die Kamera des Macs.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+---
+
+## Traum-Fenster – alte Handys und Tablets als Fenster zum Traum
+
+<p align="center"><img src="docs/images/windows.webp" alt="Fünf Traum-Fenster: Augen und ein Mondreigen, ein Kaleidoskop, Lichtblumen, ein Mandala und das dritte Auge in Trance" width="840"></p>
+
+Beliebig viele alte Handys und Tablets im Raum werden zu Fenstern in den Traum. Nichts zuzuordnen, keine Rollen, keine
+festen Motive: Ein Organismus lebt in allen zugleich.
+
+- **Was hindurchwabert:** In jedem Fenster liegt der Traum als weicher, langsam treibender Grund. Darauf tauchen immer
+  wieder die Wesen des Traums auf, wabern und vergehen: Augen, deren Iris der Traum ist (allein oder als Paar, das
+  gemeinsam blinzelt), Mandalas, Kaleidoskope aus dem Traum, schwebende Stücke anderer Stellen des Traums, Symbole
+  (Spirale, Blume des Lebens, Stern, Mond, drittes Auge, Sonne), Wolken, aufblühende Lichtspiralen, Fraktalbäume,
+  Lichtmotten, Seifenblasen, Nordlicht, kleine Monde und ab und zu ein von der KI gemaltes Gesicht – alles in den
+  Farben des Traums und so gezeichnet wie um die Dreamy Eyes.
+- **Ein Organismus:** Wesen wandern von Fenster zu Fenster – was ein Fenster verlässt, kommt im nächsten von der anderen
+  Seite herein. Alle Fenster atmen gemeinsam, pulsieren im Takt, und ab und zu läuft eine Lichtwelle der Reihe nach
+  durch sie. Gehen die Dreamy Eyes in Trance, öffnet sich auch in jedem Fenster das dritte Auge; werden die Augen
+  gestreichelt, läuft ein rosa Schimmer durch die Fenster. Mit dem Master-Regler der Bühne werden sie dunkler.
+- **Leicht für den Mac:** Dream verteilt nur Keime (welches Wesen, wo es herein- und hinausgeht, eine Zufallszahl –
+  ein paar Bytes alle paar Sekunden); jedes Fenster zeichnet selbst.
+- **Alte Geräte:** Kommt ein Fenster nicht mit, zeigt es weniger Wesen gleichzeitig und zeichnet mit weniger Pixeln, und
+  geht wieder hoch, sobald es geht. Es braucht kein Zertifikat (einfaches http im WLAN zu Hause) und hält den
+  Bildschirm an.
+- **Einrichten:** Bedienfeld → „Ausgabe“ → **🪟 Traum-Fenster** (oder Dream Control → Karte **„🪟 Traum-Fenster“**) →
+  den Code mit jedem Gerät scannen und für Vollbild auf den Bildschirm tippen. Die Ausgabe-Zeile im Bedienfeld zählt
+  die verbundenen Fenster.
+- **Sie schauen nur zu:** Der Schlüssel der Fenster (`~/.local/state/dream/window-token`, ein eigenes Cookie) öffnet
+  die Fensterseite, die Bilder des Traums und die gemalten Gesichter – keine Einstellungen, keine Befehle, keine
+  Kamera, nichts, was Geld kostet.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

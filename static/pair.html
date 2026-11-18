@@ -72,7 +72,7 @@
   }
   $('pair').hidden = false;
   // 2. pairing: only the key is taken from a link; the page stays on this Dream
-  const PAGES = new Set(['/control', '/remote', '/eyes', '/output', '/']);
+  const PAGES = new Set(['/control', '/remote', '/eyes', '/window', '/output', '/']);
   function pairWith(text) {
     let u; try { u = new URL(String(text).trim()); } catch (e) { $('msg').textContent = TX.notLink; return false; }
     const k = u.searchParams.get('k');

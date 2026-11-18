@@ -44,6 +44,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Live camera and motion of the Control device](#live-camera-and-motion-of-the-control-device)
   - [If the phone does not connect](#if-the-phone-does-not-connect)
 - [Dreamy Eyes – a phone as dreaming eyes (installation)](#dreamy-eyes--a-phone-as-dreaming-eyes-installation)
+- [Dream windows – old phones and tablets as windows to the dream](#dream-windows--old-phones-and-tablets-as-windows-to-the-dream)
 
 **Movement and controllers**
 
@@ -289,6 +290,13 @@ together with the GPU, which makes the run itself a little slower than usual. On
   painting, touching or light circle, no smoothing, no music pulse. Only the effects you chose in the **Effects** card
   stay on top. It goes to the projector, Wi-Fi output and Syphon as usual. From about 0.15 the AI paints again (below
   that it does not even make a whole computing step).
+- **Motion between the pictures** (Dream card, #194): the AI makes a few pictures a second; in between, each picture
+  goes on moving the way the dream moves – zoomed and turned around the same point, as the next input will be – at the
+  full frame rate, and the next picture takes over exactly where the motion has got to. So the stage neither stands
+  still nor jumps, locally and with the cloud GPU alike; if a picture is late, the motion eases out instead of running
+  away. 100 % (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera,
+  picture, video) only the dream's share moves on; at transformation 0 nothing moves. The output window moves along;
+  Syphon gets the pictures themselves.
 - **Smoothing – against flicker** (Dream card, also on the phone and as a MIDI target): the AI paints every picture
   anew, so fine details jump a little from picture to picture – that looks like flicker. Smoothing blends each new AI
   picture softly into what is shown at the full frame rate (a moving average): small jumps vanish, big changes still
@@ -737,6 +745,36 @@ eyes** that invite people to step up and play:
 - **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
   who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
   takes over. The stage then goes back to the dream, never to the Mac's camera by itself.
+
+<sub>[↑ Contents](#contents)</sub>
+
+---
+
+## Dream windows – old phones and tablets as windows to the dream
+
+<p align="center"><img src="docs/images/windows.webp" alt="Five dream windows: eyes and a moon orbit, a kaleidoscope, flowers of light, a mandala, and the third eye in trance" width="840"></p>
+
+Any number of old phones and tablets around the room become windows to the dream. Nothing to assign, no roles, no
+fixed motifs: one organism lives in all of them.
+
+- **What drifts through:** in every window the dream lies as a soft, slowly drifting ground. On it, the dream's living
+  things keep appearing, swirling and fading: eyes whose iris is the dream (alone or as a pair, blinking together),
+  mandalas, kaleidoscopes of the dream, floating pieces of other parts of the dream, symbols (spiral, flower of life,
+  star, moon, third eye, sun), clouds, blooming light spirals, fractal trees, light moths, bubbles, northern lights,
+  little moons and now and then a face painted by the AI – all in the dream's colours, drawn the same way as around
+  Dreamy Eyes.
+- **One organism:** things wander from window to window – what leaves one window comes into the next one from the
+  other side. All windows breathe together, pulse to the beat, and now and then a wave of light runs through them in
+  turn. When Dreamy Eyes go into trance, the third eye opens in every window too; when someone pets the eyes, a rosy
+  shimmer runs through the windows. They dim with the stage's master fader.
+- **Light on the Mac:** Dream only sows seeds (which thing, where it comes in and goes out, a random number – a few
+  bytes every few seconds); every window draws by itself.
+- **Old devices:** a window that can't keep up shows fewer things at once and draws with fewer pixels, and goes back up
+  when it can. It needs no certificate (plain http in the home Wi-Fi) and keeps the screen on.
+- **Setting up:** panel → “Output” → **🪟 Dream windows** (or Dream Control → card **“🪟 Dream windows”**) → scan the
+  code with each device and tap its screen for fullscreen. The output line in the panel counts the connected windows.
+- **They only look:** a window's key (`~/.local/state/dream/window-token`, a cookie of its own) opens the window page,
+  the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money.
 
 <sub>[↑ Contents](#contents)</sub>
 
