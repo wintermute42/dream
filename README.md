@@ -500,15 +500,16 @@ Resolume just leave it off.
 ```
 
 Then Dream is also reachable in the home Wi-Fi – but only with a secret link. Press **Q** on the stage (or
-“📱 Phone”): the QR code opens large, scan it with the phone, done. The phone remembers the access. Everything you
+“📱 Phone”): a QR code appears in a corner of the stage, scan it with the phone, done. The phone remembers the access. Everything you
 change on the phone happens at once on the stage. To speak on the phone: the keyboard's dictation. Several phones at
 once work too.
 
-**Every QR code opens in a lightbox:** large on white – easy to scan from a distance and with old phones – with its
-explanation below. This goes for the guests' code, Dream Control, the output over Wi-Fi, the certificate, Dreamy Eyes
-and the dream windows, in the panel and in Dream Control alike. Close it with **Esc**, a click beside it or “Close”
-(the guests' code also with **Q** again); the keys of the stage rest meanwhile. A code is only loaded while its
-lightbox is open, so its key is never on the screen longer than needed.
+**The other QR codes open in a lightbox:** large on white – easy to scan from a distance and with old phones – with
+their explanation below. This goes for Dream Control, the output over Wi-Fi, the certificate, Dreamy Eyes and the dream
+windows, in the panel and in Dream Control alike. Close it with **Esc**, a click beside it or “Close”; the keys of the
+stage rest meanwhile. A code is only loaded while its lightbox is open, so its key is never on the screen longer than
+needed. The guests' code stays small in the corner of the stage (Q, “📱 Phone” or “QR on the stage” in Dream Control
+show and hide it): the dream goes on behind it and the keys keep working.
 
 <sub>[↑ Contents](#contents)</sub>
 

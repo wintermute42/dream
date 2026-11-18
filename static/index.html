@@ -257,6 +257,10 @@
   #stage { will-change: transform, filter; }
   #stage { transition: opacity .12s linear; }   /* master brightness: the stage fades over its black background */
   body.stage-only, body.stage-only * { cursor: none; }
+  #qr { position: fixed; right: 18px; bottom: 18px; width: 210px; padding: 12px; background: #fff; border-radius: 14px; display: none;
+    color: #111; font-size: 12px; text-align: center; box-shadow: 0 6px 30px rgba(0,0,0,.5); }
+  #qr img { width: 100%; display: block; }
+  body.show-qr #qr { display: block; }
   body.wide #stage img { width: min(100cqw, 177.78cqh); aspect-ratio: 16 / 9; }
   /* direct touch: the warped picture and the light strokes lie exactly over the dream picture */
   #fxcv { opacity: 0; }
@@ -300,7 +304,7 @@
     <button class="btn" id="restart" title="Start the dream anew">↺ New</button>
     <button class="btn" id="full" title="Fullscreen (F)">⛶ Fullscreen</button>
     <button class="btn" id="save" title="Save picture (S)">⤓</button>
-    <button class="btn" id="qrbtn" aria-haspopup="dialog" title="Phone remote (Q)" style="display:none">📱 Phone</button>
+    <button class="btn" id="qrbtn" title="Phone remote (Q)" style="display:none">📱 Phone</button>
   </div>
   <div id="status" role="status">Connecting …</div>
   <div id="stats" aria-live="off"></div>
@@ -323,6 +327,8 @@
     <button class="btn" id="startdlg-cancel">Cancel</button>
   </div>
 </dialog>
+
+<div id="qr"><img id="qrimg" alt="QR code for the remote">Scan with your phone = remote</div>
 
 <div id="splitter" role="separator" aria-orientation="vertical" aria-label="Width of the panel" tabindex="0"></div>
 <div id="panel">
@@ -959,7 +965,7 @@
   let outWs = null;
   let outViewers = 0, outPreviews = 0;  // open output windows (/output) and remote previews (#141) – they show what the stage shows
   $('openout').onclick = () => window.open('/output', 'dream-output', 'popup,width=960,height=540');
-  // #206: every QR code opens in the lightbox (qrbox.js): loaded on opening, gone on closing – so is its key
+  // #206: the QR codes of the panel open in the lightbox (qrbox.js): loaded on opening, gone on closing – so is their key
   // output on a second device in the WLAN: address with the key as link and QR code (only with dream.sh --lan)
   $('outwlan').onclick = () => QrBox.open({ id: 'output', trigger: $('outwlan'), title: T('📶 Output over Wi-Fi'),
     alt: T('QR code with the address of the output in the Wi-Fi'), fill(box, info) {
@@ -3377,7 +3383,8 @@
         $('plstate').textContent = (sc.count ? T('Scene {i}/{n}', { i: sc.index + 1, n: sc.count }) : T('Surprise')) + ` · ${I18N.name(sc.playlist)}` + (sc.journey ? T(' · journey') : '');
       }
       if (m.guest_renewed) {                          // #148: the new guests' code on the stage and in the panel
-        if (['guest', 'output'].includes(QrBox.showing)) QrBox.refresh();
+        if (document.body.classList.contains('show-qr')) guestCode(true);
+        if (QrBox.showing === 'output') QrBox.refresh();
         status(T('New guest code: the guests scan the QR code again.'));
       }
       if (m.live && 'viewers' in m.live) { outViewers = m.live.viewers || 0; outPreviews = m.live.previews || 0; showOutCount(outViewers, m.live.windows || 0); }
@@ -3389,18 +3396,16 @@
   setInterval(() => sendCtl({ live: { fps: Math.round(fps * 10) / 10, flow_rate: flowOn() && mo ? Math.round(mo.rate) : 0 } }), 2000);
 
   // ---------- phone remote: the guests' QR code (button, key Q, "QR on the stage" in Dream Control; only with --lan) ----------
-  function guestCode() {                              // shows it, or closes it when it is shown
-    if (QrBox.showing === 'guest') { QrBox.close(); return; }
-    QrBox.open({ id: 'guest', key: 'q', trigger: $('qrbtn'), title: T('📱 Dream Remote for the guests'), alt: T('QR code for the remote'), fill(box) {
-      box.code('remote');
-      box.say(T('Scan with your phone = remote'));
-    } });
+  // It stands small in a corner of the stage, for the audience: the dream goes on and the keys keep working.
+  function guestCode(show = !document.body.classList.contains('show-qr')) {   // loaded when shown, gone when hidden
+    document.body.classList.toggle('show-qr', show);
+    if (show) $('qrimg').src = '/qr.svg?t=' + Date.now(); else $('qrimg').removeAttribute('src');
   }
-  $('qrbtn').onclick = guestCode;
+  $('qrbtn').onclick = () => guestCode();
   fetch('/remote-info').then(r => r.json()).then(info => {
     if (!info.lan) return;
     $('qrbtn').style.display = '';
-    if (params.get('stage') === '1') { guestCode(); setTimeout(() => { if (QrBox.showing === 'guest') QrBox.close(); }, 30000); }
+    if (params.get('stage') === '1') { guestCode(true); setTimeout(() => guestCode(false), 30000); }
   }).catch(() => {});
   // ---------- movement diagnostics (D): below the preview, a small map in the picture's format plus the values ----------
   const diagCv = $('diag'), dctx = diagCv.getContext('2d');

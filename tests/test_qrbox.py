@@ -20,9 +20,19 @@ def test_pages_use_the_shared_lightbox():
 
 
 def test_no_page_shows_a_code_by_itself():
-    """Only qrbox.js asks for /qr.svg: a code standing in a page would keep its key on the screen."""
+    """Only qrbox.js asks for a code with a key of the owner's devices; the stage shows the guests' code in its corner."""
     for page in sorted(f for f in os.listdir(STATIC) if f.endswith(".html")):
-        assert "qr.svg" not in read(page), page
+        asked = re.findall(r"/qr\.svg[^'\"]*", read(page))
+        assert asked == (["/qr.svg?t="] if page == "index.html" else []), page
+
+
+def test_stage_code_is_loaded_when_shown_and_dropped_when_hidden():
+    src = read("index.html")
+    assert '<img id="qrimg" alt="QR code for the remote">' in src            # no src in the markup
+    body = src[src.index("function guestCode("):]
+    body = body[:body.index("\n  }\n")]
+    assert "classList.toggle('show-qr', show)" in body
+    assert "$('qrimg').src = '/qr.svg?t='" in body and "$('qrimg').removeAttribute('src')" in body
 
 
 def test_lightbox_is_a_modal_dialog_that_drops_the_code():

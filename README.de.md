@@ -514,15 +514,17 @@ dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
 ```
 
 Dann ist Dream zusätzlich im Heim-WLAN erreichbar – aber nur mit einem geheimen Link. Auf der Bühne **Q** drücken
-(oder „📱 Handy“): Der QR-Code öffnet sich groß, mit dem Handy scannen, fertig. Das Handy merkt sich den Zugang.
+(oder „📱 Handy“): ein QR-Code erscheint in einer Ecke der Bühne, mit dem Handy scannen, fertig. Das Handy merkt sich den Zugang.
 Alles, was du am Handy änderst, passiert sofort auf der Bühne. Sprechen am Handy: Diktierfunktion der Tastatur.
 Mehrere Handys gleichzeitig gehen auch.
 
-**Jeder QR-Code öffnet sich in einer Lightbox:** groß auf weißem Grund – gut aus der Entfernung und mit alten Handys zu
-scannen –, darunter seine Erklärung. Das gilt für den Code der Gäste, Dream Control, die Ausgabe im WLAN, das
-Zertifikat, Dreamy Eyes und die Traum-Fenster, im Bedienfeld genauso wie in Dream Control. Schließen mit **Esc**, einem
-Klick daneben oder „Schließen“ (den Code der Gäste auch mit erneutem **Q**); die Tasten der Bühne ruhen so lange. Ein
-Code wird nur geladen, solange seine Lightbox offen ist – sein Schlüssel steht nie länger als nötig auf dem Bildschirm.
+**Die anderen QR-Codes öffnen sich in einer Lightbox:** groß auf weißem Grund – gut aus der Entfernung und mit alten
+Handys zu scannen –, darunter ihre Erklärung. Das gilt für Dream Control, die Ausgabe im WLAN, das Zertifikat, Dreamy
+Eyes und die Traum-Fenster, im Bedienfeld genauso wie in Dream Control. Schließen mit **Esc**, einem Klick daneben oder
+„Schließen“; die Tasten der Bühne ruhen so lange. Ein Code wird nur geladen, solange seine Lightbox offen ist – sein
+Schlüssel steht nie länger als nötig auf dem Bildschirm. Der Code der Gäste bleibt klein in der Ecke der Bühne (Q,
+„📱 Handy“ oder „QR auf Bühne“ in Dream Control zeigen und verbergen ihn): Der Traum läuft dahinter weiter, und die
+Tasten wirken wie gewohnt.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

@@ -3,7 +3,7 @@
 // thrown away when it closes, so a key is on the screen no longer than needed. It closes with Esc, a click beside it
 // or its button; the focus stays inside and returns to the button that opened it. Styles: qrbox.css.
 //
-//   QrBox.open({ id: 'eyes', title, alt, trigger: button, key: 'q', fill(box, info) { box.code('eyes'); box.say(text); } })
+//   QrBox.open({ id: 'eyes', title, alt, trigger: button, fill(box, info) { box.code('eyes'); box.say(text); } })
 //
 // fill gets the answer of /remote-info and a box: code(what, alt) shows /qr.svg?for=what (null: no code), say(...parts)
 // sets the text (strings as plain text, or nodes), html(markup) sets a translated text with markup, button(label, fn)
@@ -31,7 +31,6 @@ window.QrBox = (() => {
     dlg.addEventListener('click', e => { if (e.target === dlg && downOn === dlg) close(); });   // the dialog itself is only its backdrop
     dlg.addEventListener('keydown', e => {
       e.stopPropagation();                            // the page's own keys (pause, fullscreen …) rest while the dialog is open
-      if (last && last.key && e.key.toLowerCase() === last.key && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); close(); return; }
       if (e.key !== 'Tab') return;
       const f = [...dlg.querySelectorAll('button, a[href]')].filter(el => !el.disabled && !el.hidden);
       const first = f[0], end = f[f.length - 1];
