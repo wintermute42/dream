@@ -8,6 +8,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/static/qrbox.css">
+<link rel="stylesheet" href="/static/sliders.css">
 <style>
   :root { --ap: rgba(80,190,255,.16); --apline: rgba(80,190,255,.55); --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --panel: rgba(20,18,30,.9); --panelsolid: #141220; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 16px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -332,7 +333,7 @@
 
 <div id="qr"><img id="qrimg" alt="QR code for the remote">Scan with your phone = remote</div>
 
-<div id="splitter" role="separator" aria-orientation="vertical" aria-label="Width of the panel" tabindex="0"></div>
+<div id="splitter" role="separator" aria-orientation="vertical" aria-label="Width of the panel" aria-valuemin="320" aria-valuenow="320" tabindex="0"></div>
 <div id="panel">
   <div class="ptop">
     <h1><img class="logo" src="/static/icons/mark.svg" alt=""><span translate="no">Dream</span> <small>· live AI dream</small></h1>
@@ -342,6 +343,7 @@
       </span>
       <button class="btn relieve" id="relieve" title="Relieve: takes back, step by step and softly, what costs the most – until Dream runs smoothly again">🔮 Relieve</button>
       <button class="btn" id="relieveundo" hidden title="Undo the relief: everything back as it was">↶</button>
+      <button class="btn" id="reset">↺ Reset</button>
       <button class="btn" id="uilock" aria-pressed="false" aria-label="Lock the layout">🔓</button>
     </div>
   </div>
@@ -420,7 +422,7 @@
   <div class="row">
     <label>Transformation <span class="val" id="v-strength"></span></label>
     <div id="streff" style="font-size:11px;color:var(--muted);margin:-2px 0 2px;height:2.6em;line-height:1.3em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"></div>
-    <input type="range" id="strength" min="0" max="0.95" step="0.01" value="0.5">
+    <input type="range" id="strength" min="0" max="0.95" step="0.01" value="0.45">
   </div>
   <!-- #123: real styles for SDXL-Turbo – a style model and a style reference picture; neither touches the prompt -->
   <div class="row lookrow">
@@ -451,15 +453,15 @@
   </div>
   <div class="row modepart" data-for="dream img">
     <label>Zoom pull <span class="val" id="v-zoom"></span></label>
-    <input type="range" id="zoom" min="-0.04" max="0.06" step="0.002" value="0.018">
+    <input type="range" id="zoom" min="-0.04" max="0.06" step="0.002" value="0.008">
   </div>
   <div class="row modepart" data-for="dream img">
     <label>Rotation <span class="val" id="v-rot"></span></label>
-    <input type="range" id="rot" min="-3" max="3" step="0.1" value="0.6">
+    <input type="range" id="rot" min="-3" max="3" step="0.1" value="0.2">
   </div>
   <div class="row modepart" data-for="dream img">
     <label>Colour drift <span class="val" id="v-hue"></span></label>
-    <input type="range" id="hue" min="0" max="20" step="0.5" value="4">
+    <input type="range" id="hue" min="0" max="20" step="0.5" value="2">
   </div>
   <div class="row">
     <div id="driftbox"><label>Drift – the dream stays alive <span class="val" id="v-drift"></span></label>
@@ -723,6 +725,7 @@
 <script src="/static/common.js"></script>
 <script src="/static/measure.js"></script>
 <script src="/static/qrbox.js"></script>
+<script src="/static/sliders.js"></script>
 <script src="/static/fx.js"></script>
 <script src="/static/gl-stage.js"></script>
 <script src="/static/calib.js"></script>
@@ -763,6 +766,8 @@
   const MODEL_NAMES = { 'sd-turbo': 'SD-Turbo', 'sdxl-turbo': 'SDXL-Turbo' };
 
   // ---------- settings ----------
+  // #216: the sliders' drawing (sliders.js): what a setting "needs" to act is read from its switch or choice here
+  const sliders = DreamSliders.create({ on: k => { const el = $(k); return el.type === 'checkbox' ? el.checked : !!el.value && el.value !== 'off'; } });
   const show = () => {
     const lv = +$('auto_level').value; $('v-auto_level').textContent = lv < 0.34 ? T('calm') : lv < 0.67 ? T('medium') : T('wild');
     $('v-strength').textContent = +ui.strength.value <= 0.001 ? T('off (picture direct)') : (+ui.strength.value).toFixed(2);
@@ -779,6 +784,7 @@
     $('v-drift').textContent = +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off');
     $('v-smooth').textContent = +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off');
     $('v-morph').textContent = +$('morph').value ? Math.round($('morph').value * 100) + ' %' : T('off');
+    sliders.paint();
   };
   Object.values(ui).forEach(el => el.addEventListener('input', show)); $('sens').addEventListener('input', show); $('motion_sens').addEventListener('input', show); $('pose_scale').addEventListener('input', show); $('edges_scale').addEventListener('input', show); $('edges').addEventListener('change', show); $('style').addEventListener('change', show); $('style_amt').addEventListener('input', show); $('style_ref_amt').addEventListener('input', show); $('drift').addEventListener('input', show); $('smooth').addEventListener('input', show); $('morph').addEventListener('input', show); show();
   // #108: to the cloud the line is the limit – WebP both ways (where the browser can write it), and live sources go
@@ -2244,8 +2250,10 @@
   const setPanelW = px => {
     const w = Math.round(Math.max(320, Math.min(innerWidth - 240, px)));
     document.documentElement.style.setProperty('--panelw', w + 'px'); uiPref('panelw', w); layoutAll('user');
+    $('splitter').setAttribute('aria-valuenow', w);
   };
   if (uiPref('panelw')) setPanelW(+uiPref('panelw'));
+  else $('splitter').setAttribute('aria-valuenow', Math.round($('panel').getBoundingClientRect().width));
   $('splitter').addEventListener('pointerdown', e => {
     $('splitter').setPointerCapture(e.pointerId);
     const move = ev => setPanelW(ev.clientX);
@@ -2954,7 +2962,7 @@
     const hand = fxByHand(), list = fxShown(), key = (hand ? 'h' : 'a') + list.join('+');
     $('v-fx_amt').textContent = Math.round(+$('fx_amt').value * 100) + ' %';
     if (key === fxShownKey) return;
-    fxShownKey = key;
+    fxShownKey = key; sliders.paint();
     $('fxtiles').querySelectorAll('button').forEach(b => {
       const on = list.includes(b.dataset.fx);
       b.classList.toggle('on', on); b.classList.toggle('auto', on && !hand); b.setAttribute('aria-pressed', String(on));
@@ -3305,6 +3313,8 @@
       else { const v = $('vid'); v.src = arg.url; v.play(); last = null; setMode('vid'); renderGallery(galleryNow); }
     }
   }
+  // #216: "↺ Reset" – the server glides the picture's settings to their defaults and takes it back for a few seconds
+  const resetMsg = DreamSliders.resetButton($('reset'), sendCtl, t => { status(t); notice = t; noticeUntil = performance.now() + 5000; chips(); });
   function ctlConnect() {
     ctl = new WebSocket(`ws://${location.host}/ctl?role=stage`);
     ctl.onmessage = ev => {
@@ -3316,6 +3326,8 @@
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server
       if (m.eyes_cfg) $('trancefreqm').value = String(m.eyes_cfg.trance_every);
       if (m.gallery) renderGallery(m.gallery);
+      if (m.schema) sliders.schema(m.schema);          // #216
+      if (m.reset) resetMsg(m.reset);
       if (m.state) applyState(m.state);
       if (m.set && m.by) Object.keys(m.set).forEach(apManual);     // changed by hand on the phone, MIDI, …
       if (m.set) applyState(m.set);

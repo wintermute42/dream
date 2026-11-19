@@ -390,11 +390,62 @@ def test_ctl_control_changes_everything(server, saved_state):
 
 def test_ctl_poisoned_numbers_are_not_taken(server, saved_state):
     server.hub.state.update(strength=0.5, prompt="before")
+    server.hub.save_state()
     ctl_session(server, "control", [{"set": {"strength": "NaN", "zoom": 1e400, "seed": "1e999", "hue": float("inf")}},
                                     {"set": {"prompt": "after"}}],
                 done=lambda: server.hub.state["prompt"] == "after")
     assert (server.hub.state["strength"], server.hub.state["zoom"]) == (0.5, saved_state["zoom"])
     assert json.load(open(server.hub.STATE_FILE))["strength"] == 0.5
+
+
+# ---------- #216: "Reset" – only Dream Control and this Mac ----------
+@pytest.fixture
+def quick_glide(server, monkeypatch):
+    """The glide in a fraction of its four seconds; no reset of an earlier test can still be taken back."""
+    monkeypatch.setattr(server.hub, "GLIDE_SECS", 0.15)
+    monkeypatch.setattr(server.hub, "GLIDE_STEP", 0.01)
+    server.hub.undo.update(values=None, until=0.0)
+    yield
+    server.hub.undo.update(values=None, until=0.0)
+
+
+CHANGED = {"zoom": -0.03, "rot": 2.5, "strength": 0.9, "smooth": 0.9, "fx": "tunnel+waves", "fx_amt": 0.2, "auto": True}
+KEPT = {"prompt": "a quiet lake at dawn", "model": "sdxl-turbo", "quality": 3, "size": 768, "aspect": "wide", "mode": "img",
+        "cam_device": "Camera A", "flow_device": "Camera B", "playlist": "", "syphon": True, "master": 0.4, "seed": 77,
+        "running": False, "style": "watercolour", "style_amt": 1.6, "music": "mic", "interval": 30}
+
+
+@pytest.mark.parametrize("role", ["guest", "eyes"])
+def test_ctl_reset_is_refused(server, monkeypatch, saved_state, quick_glide, role):
+    server.hub.state.update(CHANGED)
+    noted = []
+    monkeypatch.setattr(server.eyes, "eyes_note", noted.append)
+    ctl_session(server, role, [{"reset": True}, {"reset": "undo"}, {"set": {"prompt": "the mark"}}, {"done": 1}],
+                done=lambda: server.hub.state["prompt"] == "the mark" or {"done": 1} in noted)
+    time.sleep(0.3)                                    # longer than a glide would take
+    assert {k: server.hub.state[k] for k in CHANGED} == CHANGED
+    assert server.hub.undo["values"] is None and not server.hub.gliding["keys"]
+
+
+@pytest.mark.parametrize("role", ["control", "local"])
+def test_ctl_reset_glides_home_and_undo_brings_everything_back(server, saved_state, quick_glide, role):
+    s, defaults = server.hub.state, server.settings.DEFAULT_STATE
+    s.update({**server.settings.RESET, **KEPT, **CHANGED})
+    with client(server, role).websocket_connect(ws_url(server, "/ctl", role)) as ws:
+        ws.send_text(json.dumps({"reset": True}))
+        seen = []
+        while not (seen and "reset" in seen[-1]):
+            seen.append(ws.receive_json())
+        assert seen[-1]["reset"] == {"undo": server.hub.UNDO_SECS}
+        wait_until(lambda: s["zoom"] == defaults["zoom"] and not server.hub.gliding["task"])
+        assert {k: s[k] for k in server.settings.RESET} == server.settings.RESET     # home, exactly
+        assert (s["fx"], s["auto"], s["fx_amt"]) == ("", False, defaults["fx_amt"])
+        assert {k: s[k] for k in KEPT} == KEPT                                        # and nothing else moved
+        ws.send_text(json.dumps({"reset": "undo"}))
+        wait_until(lambda: s["zoom"] == CHANGED["zoom"] and not server.hub.gliding["task"])
+        assert {k: s[k] for k in CHANGED} == CHANGED                                  # exactly what it was
+        assert {k: s[k] for k in KEPT} == KEPT
+        assert server.hub.undo["values"] is None                                      # once
 
 
 # #208: what a broken or hostile page may send instead of a plain value – not hashable, the wrong type, too big

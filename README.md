@@ -265,6 +265,25 @@ together with the GPU, which makes the run itself a little slower than usual. On
   says so), and phrases need a few clear changes in the music before they are known (before that they count from the
   one). Drum & bass and very fast or slow music may land on half or double time. Changes of the playlist's own timer,
   phone or MIDI “next” are not snapped (only those from the stage Mac's panel and its autopilot).
+- **What the sliders show (#216):** the fill of a slider tells how much it shapes the picture right now – cool violet
+  at its default, through orange to red the further it is from it (weighted: transformation, zoom pull and rotation
+  count most), and it gets thicker with it. The three strongest shimmer softly, and every card carries a narrow strip
+  on its left edge in the same colours, wider the stronger – also while the card is folded – so one look tells where
+  a rotation or a restless picture comes from. A slider whose switch is off (effect strength without an effect,
+  music reaction without music) stays cool. Screen readers hear “strongly changed”.
+  **Zero in the middle:** zoom pull and rotation have their zero inside the range: a mark stands there, the fill
+  starts from it, a dragged thumb snaps to it lightly, and a small **0** button beside the slider (shown while it is
+  not at 0) sets it to zero. **Double click or double tap** on a slider: zero for these two, the default for every
+  other slider. The same in Dream Control on the phone.
+- **↺ Reset** (title bar of the panel and of Dream Control, not for guests): back to a calm, beautiful dream without a
+  break. Everything that shapes the picture glides to its default in about 4 seconds – transformation 0.45, dream
+  share 35 %, zoom pull 0.008, rotation 0.2°, colour drift 2°, drift 50 %, smoothing 30 %, motion between the pictures
+  100 %, music and movement reaction 1×, directness, outline and pose strength, effect strength –, the effects fade
+  out and the autopilot goes off. **What stays:** prompt, model, quality, resolution, format, input and cameras, the
+  style model and style reference with their strengths, MIDI and sensor assignments, playlist, outputs, cloud, master
+  brightness, the keys. For 10 seconds the button reads **“Reset · ↶ Undo”** (a bar runs out underneath): one tap and
+  everything glides back to exactly what it was. No question is asked. A slider you move yourself during the glide
+  is yours at once.
 - **Sliders:** transformation, dream share, zoom pull, rotation, colour drift, quality (1 to 3 steps), resolution,
   seed. **“acts …” below transformation:** shows what the transformation is made of right now, e.g. “acts 0.52 =
   slider 0.03 · music +0.21 · movement +0.13 · minimum 0.15” – so you see at once who turns it up (the AI needs at
@@ -1118,6 +1137,8 @@ and the line saving above.
 
 ## When something gets stuck
 
+- **A picture that turns, races or flickers and you don't know why:** look for the orange and red sliders and card
+  strips (see “What the sliders show”), or tap **↺ Reset** – it glides back to the defaults and can be undone for 10 s.
 - **🔮 Relieve** (title bar of the panel and of Dream Control, not for guests): when Dream gets slow and you don't want
   to hunt for the cause. The face on the button is the load right now – 😌 plenty of power, 🔮 dreams smoothly, 😬 getting
   tight, 🥵 overloaded, 🤯 far overloaded, 😴 paused (smooth means about 3 AI pictures a second on the Mac, 4 in the
@@ -1192,7 +1213,10 @@ without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-sta
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
 graphics context is lost and that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
-than the picture); with `KEEP=1` the page stays open and shows both pictures side by side. GitHub runs all three on
+than the picture); with `KEEP=1` the page stays open and shows both pictures side by side.
+`node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
+reset button). GitHub runs all of them on
 Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull request
 can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of it –
 they run on your own Mac, as below.
@@ -1213,7 +1237,8 @@ may do), the settings (`settings.py`: one table with every setting, its range an
 shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the
 outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the cloud GPU (`cloud.py`), measuring
 (`measure.py`), uploads and the gallery (`media.py`), voice (`voice.py`), and the pages with their links (`pages.py`,
-`net.py`). The pages are in `static/`; what they share is in `static/common.js`.
+`net.py`). The pages are in `static/`; what they share is in `static/common.js`, the sliders of the panel and of Dream
+Control in `static/sliders.js` (drawn from the settings table: default, range and `weight` of a setting).
 
 <sub>[↑ Contents](#contents)</sub>
 

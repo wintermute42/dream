@@ -1,0 +1,96 @@
+<!doctype html>
+<!-- #216: the sliders (static/sliders.js, static/sliders.css) in a real browser; tests/js/sliders.test.mjs reads the report -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sliders</title>
+<link rel="stylesheet" href="/static/sliders.css">
+<style>
+  :root { --accent: #c78bff; --text: #f2eefb; --muted: #b9b1cf; --line: rgba(255,255,255,.16); }
+  body { background: #141220; color: var(--text); font: 16px system-ui, sans-serif; width: 420px; }
+  details.sec, section { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; margin: 8px; }
+</style>
+</head>
+<body>
+<details class="sec" id="card-a" open>
+  <summary>Dream</summary>
+  <label>Rotation <span class="val"></span></label>
+  <input type="range" id="rot" min="0" max="1" step="0.1" value="0.2">
+  <label for="strength">Transformation</label>
+  <input type="range" id="strength" min="0" max="1" step="0.01" value="0.45">
+  <input type="range" id="hue" min="0" max="20" step="0.5" value="2" aria-label="Colour drift" style="margin-top: 4px">
+  <input type="range" id="drift" min="0" max="1" step="0.05" value="0.5" aria-label="Drift">
+</details>
+<section id="card-b">
+  <h2>Effects</h2>
+  <input type="range" id="fx_amt" min="0" max="1" step="0.05" value="0.2" aria-label="Effect strength">
+  <input type="range" id="other" min="0" max="10" step="1" value="5" aria-label="Not a setting" data-only="control">
+</section>
+<script>window.T = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => vars[k]) : text);   // as i18n.js, in English</script>
+<script src="/static/sliders.js"></script>
+<script>
+(async () => {
+  const report = { error: '' };
+  try {
+    const $ = id => document.getElementById(id), box = id => $(id).closest('.sl');
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const state = { fx: '' }, painted = [], inputs = [];
+    document.addEventListener('input', e => inputs.push([e.target.id, e.target.value]));
+    const sliders = DreamSliders.create({ on: k => !!state[k], painted: item => painted.push(item.key) });
+    sliders.schema({
+      rot: { d: 0.2, lo: -3, hi: 3, zero: true, w: 1 }, strength: { d: 0.45, lo: 0, hi: 0.95, w: 1 },
+      hue: { d: 2, lo: 0, hi: 20, w: 0.8 }, drift: { d: 0.5, lo: 0, hi: 1, w: 0.6 }, fx_amt: { d: 0.7, lo: 0, hi: 1, w: 0.8, needs: 'fx' } });
+    const set = (id, v) => { $(id).value = v; $(id).dispatchEvent(new Event('input', { bubbles: true })); };
+    const tap = (id, type) => $(id).dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: 50, clientY: 50 }));
+    const look = id => ({ classes: [...box(id).classList].sort().join(' '), from: +box(id).style.getPropertyValue('--pa'), to: +box(id).style.getPropertyValue('--pb'),
+      mark: +box(id).style.getPropertyValue('--pz'), colour: box(id).style.getPropertyValue('--c'), thick: parseFloat(box(id).style.getPropertyValue('--th')),
+      zero: !box(id).querySelector('.sl-zero').disabled, said: $(id).getAttribute('aria-description') });
+    const strip = id => ({ wide: parseFloat($(id).style.getPropertyValue('--cw')), colour: $(id).style.getPropertyValue('--cc'), said: $(id).querySelector('.sl-sr').textContent });
+
+    report.wrapped = document.querySelectorAll('.sl > .sl-run > input[type=range]').length;
+    report.range = [$('rot').min, $('rot').max, $('rot').value];                 // the range comes from the schema
+    report.named = [$('rot').getAttribute('aria-labelledby') && document.getElementById($('rot').getAttribute('aria-labelledby')).textContent.trim(),
+      $('strength').getAttribute('aria-labelledby'), box('rot').querySelector('.sl-zero').getAttribute('aria-label')];
+    report.moved = [box('hue').style.marginTop, $('hue').style.marginTop, box('other').dataset.only];
+    report.calm = { rot: look('rot'), strength: look('strength'), other: look('other'), card: strip('card-a') };
+    report.markShown = getComputedStyle(box('rot').querySelector('.sl-mark')).display !== 'none' && getComputedStyle(box('hue').querySelector('.sl-mark')).display === 'none';
+
+    set('rot', -2.4); set('strength', 0.9); set('hue', 11); set('drift', 0.8); await wait(20);
+    report.changed = { rot: look('rot'), strength: look('strength'), hue: look('hue'), drift: look('drift'), fx: look('fx_amt'), card: strip('card-a'), cardB: strip('card-b') };
+    report.shimmers = getComputedStyle(box('rot').querySelector('.sl-shine')).animationName;
+    report.still = getComputedStyle(box('drift').querySelector('.sl-shine')).animationName;
+    state.fx = 'tunnel'; sliders.paint();                                         // the effects are on: their strength counts now
+    report.fxOn = { fx: look('fx_amt'), cardB: strip('card-b') };
+
+    box('rot').querySelector('.sl-zero').click(); await wait(20);
+    report.zeroed = [$('rot').value, look('rot').zero];
+    // a dragged thumb snaps to zero, an arrow key does not
+    tap('rot', 'pointerdown'); set('rot', 0.1); report.snapped = $('rot').value; set('rot', 0.4); report.past = $('rot').value;
+    tap('rot', 'pointerup'); set('rot', 0.1); report.byKey = $('rot').value;
+    // two taps: home (zero for a slider with a zero mark, the default for the others)
+    await wait(500);
+    for (const id of ['rot', 'strength', 'other']) {
+      set(id, id === 'other' ? 9 : 0.9);
+      tap(id, 'pointerdown'); tap(id, 'pointerup'); tap(id, 'pointerdown'); tap(id, 'pointerup'); await wait(30);
+    }
+    report.home = [$('rot').value, $('strength').value, $('other').value];
+    set('rot', 0.2); set('hue', 2); set('drift', 0.5); await wait(20);
+    report.back = { card: strip('card-a'), strength: look('strength') };
+    report.painted = painted.length > 0 && painted.every(k => typeof k === 'string');
+    report.inputsSeen = inputs.some(([id, v]) => id === 'rot' && v === '0');
+
+    // "Reset": the button offers the undo for the seconds the server names
+    const sent = [], said = [], b = document.createElement('button'); document.body.append(b);
+    const onReset = DreamSliders.resetButton(b, m => sent.push(m), t => said.push(t));
+    const face = () => [b.textContent, b.classList.contains('sl-undo')];
+    report.reset = { idle: face() };
+    b.click(); onReset({ undo: 0.3 }); report.reset.undo = face(); b.click(); report.reset.sent = sent.slice();
+    onReset({ undo: 0, undone: true }); report.reset.undone = face();
+    onReset({ undo: 0.2 }); await wait(350); report.reset.over = face();
+    onReset({ undo: 0 }); report.reset.said = said;
+  } catch (e) { report.error = String(e && e.stack || e); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>
