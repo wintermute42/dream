@@ -10,8 +10,9 @@
 // to it and a "0" button); a double click or double tap brings it home (zero, else the default); the colour and the
 // thickness of the fill tell how much it shapes the picture right now (cool → orange → red), the three strongest
 // shimmer, and every card carries a strip in the same scale. Only transform and opacity are animated.
-// A later sign on a slider hangs itself in with `sliders.each(item => …)` (item.run is the box around the track) and
-// `create({ painted })`, which is called for every slider whose drawing changed.
+// The moving signs and the shape of the picture's character (#217, signs.js) hang themselves in with `create({ painted })`,
+// which is called for every slider whose drawing changed: item.label is the label that names it, item.acts whether its
+// switch is on, item.u its influence (`sliders.each(item => …)` walks all of them; item.run is the box around the track).
 (function (root) {
   'use strict';
 
@@ -119,7 +120,7 @@
     function setSchema(sc) {
       schema = sc || {};
       for (const item of items) {
-        const s = item.s = schema[item.key] || null, name = labelOf(item);
+        const s = item.s = schema[item.key] || null, name = item.label = labelOf(item);
         if (s) { item.input.min = s.lo; item.input.max = s.hi; }
         item.box.classList.toggle('sl-bipolar', !!(s && s.zero));
         if (name && !item.input.getAttribute('aria-label') && !name.htmlFor) {     // a label beside its slider names it
@@ -141,7 +142,7 @@
       for (const item of items) {
         const { input, s } = item, v = +input.value;
         const acts = s && (!s.needs || on(s.needs)) && !input.closest('.modepart.off');
-        item.u = acts ? influence(s, v) : 0;
+        item.acts = !!acts; item.u = acts ? influence(s, v) : 0;
         byKey[item.key] = Math.max(byKey[item.key] || 0, item.u);
         if (item.card) byCard.set(item.card, Math.max(byCard.get(item.card) || 0, item.u));
       }
@@ -149,7 +150,7 @@
       for (const item of items) {
         const { input, s, box, u } = item, v = +input.value, f = fill(v, +input.min, +input.max, s && s.zero);
         const shimmer = u > 0 && top.includes(item.key), strong = u >= STRONG;
-        const drawn = [f.from, f.to, f.zero, u.toFixed(3), shimmer, cool, v === 0].join('|');
+        const drawn = [f.from, f.to, f.zero, u.toFixed(3), shimmer, cool, v === 0, item.acts].join('|');
         if (drawn === item.drawn) continue;
         item.drawn = drawn;
         const st = box.style;

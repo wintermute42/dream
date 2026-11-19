@@ -973,5 +973,6 @@
  "Already at the defaults.": "Schon auf den Standardwerten.",
  "{name}: set to 0": "{name}: auf 0 stellen",
  "Set to 0": "Auf 0 stellen",
- "strongly changed": "stark verändert"
+ "strongly changed": "stark verändert",
+ "Character of the picture: change {a} %, motion {b} %, colour {c} %, music {d} %": "Bildcharakter: Wandel {a} %, Bewegung {b} %, Farbe {c} %, Musik {d} %"
 }

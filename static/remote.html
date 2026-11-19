@@ -12,6 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="/static/qrbox.css">
 <link rel="stylesheet" href="/static/sliders.css">
+<link rel="stylesheet" href="/static/signs.css">
 <style>
   :root { --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --card: #17141f; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 18px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -80,6 +81,10 @@
   #startdlg-alt { background: var(--accent); color: #140b1f; }
   /* #141: tablet – the show bar, columns, larger touch targets; a phone stays one column without the bar */
   #bar, #fsback { display: none; }
+  /* #217: the shape of the picture's character (signs.js) – on a phone at the head of the sliders' card, on a tablet beside the preview */
+  .haschar > .character { position: absolute; top: 10px; right: 3em; width: 4.6em; }
+  .haschar:not(.closed) > h2 { min-height: 6.6em; }
+  #bar .character { width: 100%; max-width: 132px; justify-self: center; }
   #pvbtn { padding: 0; min-height: 0; overflow: hidden; background: #000; aspect-ratio: 1; position: relative; }
   #pv { width: 100%; height: 100%; object-fit: contain; display: block; }
   #pvoff { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: .8em; padding: 6px; }
@@ -96,7 +101,8 @@
     body { --fs: 19px; }
     main { max-width: none; padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
     #uifs { display: none; }
-    #bar { display: grid; grid-template-columns: 132px 1fr 1fr; gap: 12px; align-items: center; position: sticky; top: 0; z-index: 5;
+    .haschar > .character { display: none; } .haschar:not(.closed) > h2 { min-height: 0; }
+    #bar { display: grid; grid-template-columns: 132px 96px 1fr 1fr; gap: 12px; align-items: center; position: sticky; top: 0; z-index: 5;
       background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
     .barbtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .barbtns button { min-height: 56px; font-weight: 600; }
@@ -157,6 +163,7 @@
   <!-- #141: on a tablet the most important controls stay in reach (top when upright, left when lying) -->
   <div id="bar" role="region" aria-label="Show controls">
     <button id="pvbtn" aria-label="Live preview – tap: on/off, hold: large" title="Live preview – tap: on/off, hold: large"><img id="pv" alt=""><span id="pvoff">Live preview off</span></button>
+    <div class="character"></div>
     <div class="barbtns">
       <button id="bar-run" data-only="control">⏸ Pause</button>
       <button id="bar-next">⏭ Next</button>
@@ -297,8 +304,8 @@
     <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
   </section>
 
-  <section data-key data-sec="motion">
-    <h2>Movement</h2>
+  <section data-key data-sec="motion" class="haschar">
+    <h2>Movement</h2><div class="character"></div>
     <label>Transformation <span class="val" id="v-strength"></span></label><input type="range" id="strength" min="0" max="0.95" step="0.01">
     <label>Dream share <span class="val" id="v-mix"></span></label><input type="range" id="mix" min="0" max="0.9" step="0.01">
     <label>Zoom pull <span class="val" id="v-zoom"></span></label><input type="range" id="zoom" min="-0.04" max="0.06" step="0.002">
@@ -366,6 +373,7 @@
 <script src="/static/measure.js"></script>
 <script src="/static/qrbox.js"></script>
 <script src="/static/sliders.js"></script>
+<script src="/static/signs.js"></script>
 <script>
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
@@ -441,7 +449,10 @@
   const setKey = (k, v) => { state[k] = v; send({ set: { [k]: v } }); };
 
   // #216: the sliders' drawing (sliders.js): what a setting "needs" to act is read from the shared state here
-  const sliders = DreamSliders.create({ on: k => !!state[k] && state[k] !== 'off' });
+  // #217: every drawn slider tells its moving sign and the shape of the picture's character (signs.js)
+  const signs = DreamSigns.create();
+  const sliders = DreamSliders.create({ painted: signs.paint, on: k => !!state[k] && state[k] !== 'off' });
+  document.querySelectorAll('.character').forEach(signs.shape);
   const show = () => {
     const f = (id, t) => { if ($('v-' + id)) $('v-' + id).textContent = t; };
     f('strength', +$('strength').value <= 0.001 ? T('off (picture direct)') : (+$('strength').value).toFixed(2)); f('mix', Math.round($('mix').value * 100) + ' %');
@@ -812,6 +823,7 @@
       if (m.cmd === 'tapstate' && m.arg) $('tapstate').textContent = m.arg.text || T('Tap on the beat, starting on the one: from 2 taps the tempo stands.');
       if (m.live) {
         const l = m.live, p = '';
+        signs.tempo({ pics: l.stages ? l.fps : 0 });        // #217: the signs move in the stage's real tempo
         const ft = l.flowtrack ? T(' · movement {n}/s', { n: l.flowtrack }) : '';
         $('live').textContent = l.stages ? T('Stage connected · {fps} pictures/s', { fps: l.fps || 0 }) + p + ft : T('No stage connected – open Dream on the Mac.');
       }

@@ -285,6 +285,23 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   Füllung beginnt an ihr, ein gezogener Knopf rastet leicht auf ihr ein, und ein kleiner **0**-Knopf neben dem Regler
   (sichtbar, solange er nicht auf 0 steht) stellt ihn auf null. **Doppelklick oder Doppeltipp** auf einen Regler: null
   bei diesen beiden, der Standard bei allen anderen. Genauso in Dream Control auf dem Handy.
+- **Bewegte Zeichen und Bildcharakter (#217):** Neben dem Namen der wichtigsten Regler bewegt sich ein kleines Zeichen
+  im echten Tempo dessen, was der Regler tut – ohne Text. **Drehung:** Eine Marke läuft um ihren Kreis, so schnell,
+  wie sich das Bild dreht (rückwärts, wenn es andersherum dreht). **Zoom-Sog:** Ringe wachsen so schnell, wie das Bild
+  hineingezogen wird (sie schrumpfen, wenn es wegrückt). **Farbdrift:** Ein Farbrad kreist mit den Farben.
+  **Glätten:** Ein Punkt zieht einen Schweif, so lang wie das Nachleuchten. **Verwandlung:** Eine Form wächst in ihren
+  Rahmen, so schnell, wie das Bild ein neues wird. **Musikreaktion:** Balken hüpfen im Takt, so hoch wie die Reaktion.
+  Das Tempo folgt den KI-Bildern pro Sekunde der Bühne und dem Takt der Musik (solange beides unbekannt ist: 4 Bilder
+  pro Sekunde, 120 BPM). Bei 0 – und solange der Schalter aus ist, z. B. Musikreaktion ohne Musik – steht ein Zeichen
+  still und blass; je stärker die Einstellung, desto heller das Zeichen.
+  **Die Form** – unter der Vorschau neben „Jetzt läuft“, in Dream Control neben der Live-Vorschau (auf dem Handy am
+  Kopf der Regler-Karte) – zeigt den Bildcharakter auf vier Achsen: **Wandel** oben (Verwandlung, Drift), **Bewegung**
+  rechts (Zoom-Sog, Drehung), **Farbe** unten (Farbdrift), **Musik** links (Musikreaktion, nur mit Musik). Jede Achse
+  ist so lang wie ihr stärkster Regler und mit dessen Zeichen markiert, nicht mit einem Wort; die Form folgt den
+  Reglern sofort. Ihre Ecken nehmen die Farbe ihres Reglers an (dasselbe Kühl → Orange → Rot), alles andere ist
+  neutral. Zeichen, die nicht zu sehen sind, pausieren (Bedienfeld mit H verborgen, Karte eingeklappt, weggescrollt);
+  mit „Bewegung reduzieren“ im System steht jedes Zeichen still und zeigt nur die Stärke. Die Zeichen kosten die KI
+  nichts. Screenreader überspringen die Zeichen und hören die Form als „Bildcharakter: Wandel … %“.
 - **↺ Zurücksetzen** (Titelleiste des Bedienfelds und von Dream Control, nicht für Gäste): ohne Bruch zurück zu einem
   ruhigen, schönen Traum. Alles, was das Bild formt, gleitet in etwa 4 Sekunden auf seinen Standard – Verwandlung
   0,45, Traum-Anteil 35 %, Zoom-Sog 0,008, Drehung 0,2°, Farbdrift 2°, Drift 50 %, Glätten 30 %, Bewegung zwischen den
@@ -1302,7 +1319,9 @@ und dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, d
 Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander.
 `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
-Kartenstreifen, der Zurücksetzen-Knopf). GitHub lässt sie alle auf Linux
+Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
+die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und
+`tests/js/signs.html` im Browser (Zeichen neben den Namen, Pause im Verborgenen, die Form). GitHub lässt sie alle auf Linux
 und macOS bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein
 Pull-Request lässt sich erst mergen, wenn beide grün sind. Die echte KI auf einer Grafikkarte und die 📏-Messungen
 gehören nicht dazu – die laufen auf dem eigenen Mac, wie unten.
@@ -1326,7 +1345,7 @@ darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlis
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
-`weight` einer Einstellung).
+`weight` einer Einstellung), ihre bewegten Zeichen und die Form des Bildcharakters `static/signs.js`.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
