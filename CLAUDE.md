@@ -61,6 +61,9 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - Dream's own code is under the AGPL-3.0 (`LICENSE`). Model and dependency licences stay listed in the README (section
   "Licences", with what they allow commercially); a new model needs a licence that allows at least free private and
   non-commercial use, open licences (Apache 2.0, MIT) preferred.
+- Outside contributors sign the Contributor License Agreement (`CLA.md`, checked by `.github/workflows/cla.yml`;
+  signatures on the branch `cla-signatures`), so the owner can also license Dream under other terms. Never merge an
+  outside pull request without a signed CLA, and never change `CLA.md` without the owner.
 
 ## Workflow
 

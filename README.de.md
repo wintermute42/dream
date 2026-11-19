@@ -1236,7 +1236,8 @@ von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorscha
 
 **Hängt es weiter, oder ein Fehler?** Ein Issue auf GitHub öffnen (das Formular fragt, was hilft; Schlüssel, QR-Codes
 und eigene Pfade bitte weglassen). Eine Sicherheitslücke bitte privat melden – siehe `SECURITY.md`. Pull Requests sind
-willkommen, siehe `CONTRIBUTING.md`.
+willkommen, siehe `CONTRIBUTING.md`; wer einen schickt, unterschreibt einmal die Contributor License Agreement
+(`CLA.md`) mit einem Kommentar, um den der CLA-Bot bittet.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
