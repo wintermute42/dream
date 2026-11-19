@@ -40,8 +40,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   `/ctl` filter in `ctl.py`), never only in the page: a
   new route or setting that costs money, changes the owner's files or uses the Mac's camera stays Control-only.
 - Tests (#186): `uv run pytest` (no model, no GPU: a stand-in for torch, a temporary HOME and Dream folders – never the
-  real ones) and `python3 scripts/i18n_check.py`; CI runs both on Linux, and the JavaScript tests in `tests/js/`
-  (`node --test`). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
+  real ones) and `python3 scripts/i18n_check.py`; CI runs both on Linux and macOS for every pull request to `main` (#213: both jobs are
+  required checks, a pull request merges only with them green), and the JavaScript tests in `tests/js/` (`node --test`). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
   from `static/fx.js` as fallback); an effect is changed in both, `tests/js/gl-stage.test.mjs` compares their pictures.
   The chain shares the graphics card with the AI (#210): it draws no finer than the picture and nothing while nothing
   moves; a change to it is measured with the real model (`scripts/measure_stage.cjs`, README "Tests"). `tests/test_rights.py` lists every route with the

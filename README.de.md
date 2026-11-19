@@ -1264,8 +1264,10 @@ Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software g
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master), dazu den Rückfall, wenn der Grafik-Kontext verloren geht,
 und dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, die Zeichenfläche nicht feiner als das
-Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt alle drei bei jedem
-Push laufen (`.github/workflows/tests.yml`).
+Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt alle drei auf Linux
+und macOS bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein
+Pull-Request lässt sich erst mergen, wenn beide grün sind. Die echte KI auf einer Grafikkarte und die 📏-Messungen
+gehören nicht dazu – die laufen auf dem eigenen Mac, wie unten.
 
 Was das Zeichnen die KI kostet, wird von Hand gemessen (#210), mit dem echten Modell: ein zweites Dream in einem
 Sandbox-HOME auf einem eigenen Port starten (nie das eigene Dream – das Skript verstellt die Effekte), es so

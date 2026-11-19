@@ -1193,7 +1193,9 @@ WebGL is enough) and compares picture by picture what the WebGL 2 chain and the 
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
 graphics context is lost and that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
 than the picture); with `KEEP=1` the page stays open and shows both pictures side by side. GitHub runs all three on
-every push (`.github/workflows/tests.yml`).
+Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull request
+can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of it –
+they run on your own Mac, as below.
 
 What the drawing costs the AI is measured by hand (#210), with the real model: start a second Dream in a sandbox HOME
 on a port of its own (never your own Dream – the script changes the effects setting), set it to what you want to
