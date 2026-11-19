@@ -45,5 +45,9 @@ jobs:
         run: node --test tests/js/beat.test.mjs
       - name: Sliders (rules, and the drawing in a headless Chrome)
         run: node --test tests/js/sliders.test.mjs
+      - name: Signs of the sliders and the shape of the picture's character
+        run: node --test tests/js/signs.test.mjs
+      - name: Motion between the pictures
+        run: node --test tests/js/morph.test.mjs
       - name: Picture chain (WebGL 2 against Canvas 2D)
         run: node --test tests/js/gl-stage.test.mjs

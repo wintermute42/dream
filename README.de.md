@@ -285,15 +285,36 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   Füllung beginnt an ihr, ein gezogener Knopf rastet leicht auf ihr ein, und ein kleiner **0**-Knopf neben dem Regler
   (sichtbar, solange er nicht auf 0 steht) stellt ihn auf null. **Doppelklick oder Doppeltipp** auf einen Regler: null
   bei diesen beiden, der Standard bei allen anderen. Genauso in Dream Control auf dem Handy.
+- **Bewegte Zeichen und Bildcharakter (#217):** Neben dem Namen der wichtigsten Regler bewegt sich ein kleines Zeichen
+  im echten Tempo dessen, was der Regler tut – ohne Text. **Drehung:** Eine Marke läuft um ihren Kreis, so schnell,
+  wie sich das Bild dreht (rückwärts, wenn es andersherum dreht). **Zoom-Sog:** Ringe wachsen so schnell, wie das Bild
+  hineingezogen wird (sie schrumpfen, wenn es wegrückt). **Farbdrift:** Ein Farbrad kreist mit den Farben.
+  **Glätten:** Ein Punkt zieht einen Schweif, so lang wie das Nachleuchten. **Verwandlung:** Eine Form wächst in ihren
+  Rahmen, so schnell, wie das Bild ein neues wird. **Musikreaktion:** Balken hüpfen im Takt, so hoch wie die Reaktion.
+  Das Tempo folgt den KI-Bildern pro Sekunde der Bühne und dem Takt der Musik (solange beides unbekannt ist: 4 Bilder
+  pro Sekunde, 120 BPM). Bei 0 – und solange der Schalter aus ist, z. B. Musikreaktion ohne Musik – steht ein Zeichen
+  still und blass; je stärker die Einstellung, desto heller das Zeichen.
+  **Die Form** – unter der Vorschau neben „Jetzt läuft“, in Dream Control neben der Live-Vorschau (auf dem Handy am
+  Kopf der Regler-Karte) – zeigt den Bildcharakter auf vier Achsen: **Wandel** oben (Verwandlung, Drift), **Bewegung**
+  rechts (Zoom-Sog, Drehung), **Farbe** unten (Farbdrift), **Musik** links (Musikreaktion, nur mit Musik). Jede Achse
+  ist so lang wie ihr stärkster Regler und mit dessen Zeichen markiert, nicht mit einem Wort; die Form folgt den
+  Reglern sofort. Ihre Ecken nehmen die Farbe ihres Reglers an (dasselbe Kühl → Orange → Rot), alles andere ist
+  neutral. Zeichen, die nicht zu sehen sind, pausieren (Bedienfeld mit H verborgen, Karte eingeklappt, weggescrollt);
+  mit „Bewegung reduzieren“ im System steht jedes Zeichen still und zeigt nur die Stärke. Die Zeichen kosten die KI
+  nichts. Screenreader überspringen die Zeichen und hören die Form als „Bildcharakter: Wandel … %“.
 - **↺ Zurücksetzen** (Titelleiste des Bedienfelds und von Dream Control, nicht für Gäste): ohne Bruch zurück zu einem
-  ruhigen, schönen Traum. Alles, was das Bild formt, gleitet in etwa 4 Sekunden auf seinen Standard – Verwandlung 0,45,
-  Traum-Anteil 35 %, Zoom-Sog 0,008, Drehung 0,2°, Farbdrift 2°, Drift 50 %, Glätten 30 %, Bewegung zwischen den
+  ruhigen, schönen Traum. Alles, was das Bild formt, gleitet in etwa 4 Sekunden auf seinen Standard – Verwandlung
+  0,45, Traum-Anteil 35 %, Zoom-Sog 0,008, Drehung 0,2°, Farbdrift 2°, Drift 50 %, Glätten 30 %, Bewegung zwischen den
   Bildern 100 %, Musik- und Bewegungs-Reaktion 1×, Direktheit, Umriss- und Pose-Stärke, Effekt-Stärke –, die Effekte
-  blenden aus, und der Autopilot geht aus. **Es bleiben:** Prompt, Modell, Qualität, Auflösung, Format, Eingang und
-  Kameras, Stil-Modell und Stil-Referenz mit ihren Stärken, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud,
-  Master-Helligkeit, die Schlüssel. 10 Sekunden lang steht auf dem Knopf **„Zurückgesetzt · ↶ Rückgängig“** (darunter
-  läuft ein Balken ab): ein Tipp, und alles gleitet genau auf die Werte von vorher zurück. Es gibt keine
-  Sicherheitsabfrage. Ein Regler, den du während des Gleitens selbst bewegst, gehört sofort dir.
+  blenden aus, und der Autopilot geht aus. Auch der **Stil** geht – kein Stil-Modell, kein Stil-Referenzbild, beide
+  Stärken auf Standard –, und zwar in einem Schritt am Anfang statt gleitend, damit das Modell nur einmal umgebaut
+  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. **Es bleiben:** Prompt, Modell, Qualität,
+  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud, Master-Helligkeit,
+  die Schlüssel und alle anderen Schalter (Berührungs-Optionen, im Takt pulsieren, Wechsel einrasten, Umrisse und Pose
+  an oder aus …). 10 Sekunden lang steht auf dem Knopf **„Zurückgesetzt · ↶ Rückgängig“** (darunter läuft ein Balken
+  ab): ein Tipp, und alles gleitet genau auf die Werte von vorher zurück (Stil und Muster kommen ebenfalls in einem
+  Schritt wieder). Es gibt keine Sicherheitsabfrage. Ein Regler, den du während des Gleitens selbst bewegst, gehört
+  sofort dir.
 - **Regler:** Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Qualität (1 bis 3 Schritte), Auflösung, Seed.
   **„wirkt …“ unter Verwandlung (#115):** zeigt, woraus die Verwandlung gerade besteht, z. B. „wirkt 0,52 = Regler 0,03 ·
   Musik +0,21 · Bewegung +0,13 · Mindestwert 0,15“ – so sieht man sofort, wer sie hochdreht (die KI braucht mindestens
@@ -322,11 +343,16 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   Ab etwa 0,15 malt die KI wieder (darunter macht sie nicht einmal einen ganzen Rechenschritt).
 - **Bewegung zwischen den Bildern** (Karte Traum, #194): Die KI macht ein paar Bilder pro Sekunde; dazwischen bewegt
   sich jedes Bild so weiter, wie der Traum sich bewegt – um denselben Punkt gezoomt und gedreht, wie es die nächste
-  Eingabe wird –, mit voller Bildrate, und das nächste Bild übernimmt genau dort, wo die Bewegung gerade ist. So steht
-  die Bühne nicht still und springt nicht, lokal wie mit der Cloud-GPU; kommt ein Bild spät, läuft die Bewegung sanft aus,
-  statt davonzulaufen. 100 % (Standard) = die volle Bewegung, 0 = aus (das Bild steht bis zum nächsten). Mit einem
-  Eingang (Kamera, Bild, Video) bewegt sich nur der Traum-Anteil weiter; bei Verwandlung 0 bewegt sich nichts. Das
-  Ausgabefenster bewegt sich mit; Syphon bekommt die Bilder selbst.
+  Eingabe wird –, mit voller Bildrate, und das nächste Bild übernimmt genau dort, wo die Bewegung gerade ist. Es ist
+  eine durchgehende Bewegung (#215): Dream weiß zu jedem Bild, wie weit der Traum war, als seine Eingabe gebaut wurde,
+  und zeigt es um das verschoben, was seitdem passiert ist – ein Bild, das spät kommt, oder eines von mehreren, die
+  gleichzeitig unterwegs sind (Kamera, Video, Lichtspuren), reiht sich in die Bewegung ein, statt sie neu zu beginnen,
+  und das geglättete Bild und das Bild davor bleiben an ihrem Platz, während das neue einblendet. Nichts auf der Bühne
+  bewegt sich zurück, bei jeder Zahl von Bildern pro Sekunde, lokal wie mit der Cloud-GPU; bleiben die Bilder aus,
+  läuft die Bewegung sanft aus, statt davonzulaufen. 100 % (Standard) = die volle Bewegung, 0 = aus (das Bild steht
+  bis zum nächsten). Mit einem Eingang (Kamera, Bild, Video) bewegt sich nur der Traum-Anteil weiter; bei Verwandlung
+  0 bewegt sich nichts. Das Ausgabefenster bewegt sich mit; Syphon bekommt die Bilder selbst (überblendet, ohne diese
+  Bewegung).
 - **Glätten – gegen Flackern** (Karte Traum, auch am Handy und als MIDI-Ziel): Die KI malt jedes Bild neu, feine
   Details springen deshalb von Bild zu Bild leicht – das wirkt wie Flackern. Glätten mischt jedes neue KI-Bild mit
   voller Bildrate weich in das Gezeigte (ein gleitender Mittelwert): kleine Sprünge verschwinden, große Änderungen
@@ -1278,18 +1304,24 @@ prüfen, wer was darf (jede Route des Servers für diesen Mac, Dream Control, G�
 Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung, die Ordner, die Zertifikate fürs Heimnetz, die
 MIDI-, Sensor- und Playlist-Helfer, die Übersetzungen und was Dream flüssig hält (der Prompt wird einmal je Prompt
 kodiert, niemand wartet auf ein ladendes Modell oder ein langsames Gerät, der Zustand wird erst geschrieben, wenn die
-Hände ruhen, die kleine Vorschau). `node --test tests/js/beat.test.mjs` prüft die Takterkennung
+Hände ruhen, die kleine Vorschau). `node --test tests/js/morph.test.mjs` (#215) spielt die Bewegung zwischen den Bildern als reine
+Zahlen durch (`static/morph.js`) – 1 bis 8 Bilder pro Sekunde, ungleichmäßige und verspätete, mehrere Anfragen
+gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zurückbewegt.
+`node --test tests/js/beat.test.mjs` prüft die Takterkennung
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
 `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
-Bewegung, Glättung, Berührungs-Ebenen, Farben, Master), dazu den Rückfall, wenn der Grafik-Kontext verloren geht,
+Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
+ein neues Bild übernimmt), dazu den Rückfall, wenn der Grafik-Kontext verloren geht,
 und dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, die Zeichenfläche nicht feiner als das
 Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander.
 `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
-Kartenstreifen, der Zurücksetzen-Knopf). GitHub lässt alle auf Linux
+Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
+die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und
+`tests/js/signs.html` im Browser (Zeichen neben den Namen, Pause im Verborgenen, die Form). GitHub lässt sie alle auf Linux
 und macOS bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein
 Pull-Request lässt sich erst mergen, wenn beide grün sind. Die echte KI auf einer Grafikkarte und die 📏-Messungen
 gehören nicht dazu – die laufen auf dem eigenen Mac, wie unten.
@@ -1313,7 +1345,7 @@ darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlis
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
-`weight` einer Einstellung).
+`weight` einer Einstellung), ihre bewegten Zeichen und die Form des Bildcharakters `static/signs.js`.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

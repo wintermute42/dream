@@ -144,11 +144,13 @@ undo: dict = {"values": None, "until": 0.0}        # what the last reset changed
 
 
 async def glide_to(goal: dict) -> None:
-    """Numbers glide to their goal in GLIDE_SECS; switches and choices are set at once (the stage fades effects itself)."""
+    """The numbers that shape the picture (those with a weight) glide to their goal in GLIDE_SECS; everything else is
+    set at once, in one step: switches, choices, and the style with its strengths, so the model is rebuilt at most once
+    (the stage fades effects itself)."""
     if gliding["task"]:
         gliding["task"].cancel()
-    start = {k: state[k] for k, v in goal.items() if settings.SETTINGS[k].number and state[k] != v}
-    await apply({k: v for k, v in goal.items() if not settings.SETTINGS[k].number and state[k] != v}, by="reset")
+    start = {k: state[k] for k, v in goal.items() if settings.SETTINGS[k].weight and state[k] != v}
+    await apply({k: v for k, v in goal.items() if not settings.SETTINGS[k].weight and state[k] != v}, by="reset")
     gliding["keys"] = set(start)
     gliding["task"] = asyncio.create_task(_glide(start, goal)) if start else None
 

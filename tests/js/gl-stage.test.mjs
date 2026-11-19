@@ -34,6 +34,10 @@ test('WebGL 2 chain against the Canvas 2D drawing', { skip: !chrome && !process.
     assert.ok(names.length >= 12);
     for (const n of names) assert.ok(report.cases.some(c => c.name === n), `no comparison for the effect ${n}`);
   });
+  await t.test('a new picture under the smoothing: what is shown does not jump back (#215)', st => {
+    st.diagnostic(`difference to the frame before: Canvas 2D ${report.kept.canvas}, WebGL 2 ${report.kept.webgl}`);
+    for (const k of ['canvas', 'webgl']) assert.ok(report.kept[k] <= MEAN, `${k}: the smoothed picture moved when the new one took over (${report.kept[k]} > ${MEAN})`);
+  });
   await t.test('the chain draws sparingly (#210)', () => {
     const s = report.sparing;
     assert.equal(s.still, 0, 'a still picture is not drawn again');

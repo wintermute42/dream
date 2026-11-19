@@ -275,15 +275,35 @@ together with the GPU, which makes the run itself a little slower than usual. On
   starts from it, a dragged thumb snaps to it lightly, and a small **0** button beside the slider (shown while it is
   not at 0) sets it to zero. **Double click or double tap** on a slider: zero for these two, the default for every
   other slider. The same in Dream Control on the phone.
+- **Moving signs and the picture's character (#217):** beside the name of the most important sliders a small sign moves
+  in the real tempo of what the slider does – no words to read. **Rotation:** a mark runs around its circle as fast as
+  the picture turns (backwards when it turns the other way). **Zoom pull:** rings grow as fast as the picture is pulled
+  in (they shrink when it is pushed away). **Colour drift:** a colour wheel circles with the colours. **Smoothing:** a
+  dot draws a trail, as long as the afterglow. **Transformation:** a form grows into its frame as fast as the picture
+  becomes a new one. **Music reaction:** bars bounce on the beat, as high as the reaction. The tempo follows the AI
+  pictures per second of the stage and the beat of the music (until they are known: 4 pictures a second, 120 BPM). At 0
+  – and while the switch is off, e.g. music reaction without music – a sign stands still and pale; the stronger the
+  setting, the brighter the sign.
+  **The shape** – below the preview beside “Now running”, in Dream Control beside the live preview (on a phone at the
+  head of the sliders' card) – shows the character of the picture on four axes: **change** at the top (transformation,
+  drift), **motion** on the right (zoom pull, rotation), **colour** at the bottom (colour drift), **music** on the left
+  (music reaction, only with music on). Each axis is as long as its strongest slider and is marked with that sign, not
+  with a word; the shape follows the sliders at once. Its corners take the colour of their slider (the same cool →
+  orange → red), everything else is neutral. Signs that are not on screen pause (panel hidden with H, card folded,
+  scrolled away); with “Reduce motion” in the system every sign stands still and shows only the strength. The signs
+  cost the AI nothing. Screen readers skip the signs and hear the shape as “Character of the picture: change … %”.
 - **↺ Reset** (title bar of the panel and of Dream Control, not for guests): back to a calm, beautiful dream without a
   break. Everything that shapes the picture glides to its default in about 4 seconds – transformation 0.45, dream
   share 35 %, zoom pull 0.008, rotation 0.2°, colour drift 2°, drift 50 %, smoothing 30 %, motion between the pictures
   100 %, music and movement reaction 1×, directness, outline and pose strength, effect strength –, the effects fade
-  out and the autopilot goes off. **What stays:** prompt, model, quality, resolution, format, input and cameras, the
-  style model and style reference with their strengths, MIDI and sensor assignments, playlist, outputs, cloud, master
-  brightness, the keys. For 10 seconds the button reads **“Reset · ↶ Undo”** (a bar runs out underneath): one tap and
-  everything glides back to exactly what it was. No question is asked. A slider you move yourself during the glide
-  is yours at once.
+  out and the autopilot goes off. The **style** goes too – no style model, no style reference picture, both strengths
+  at their defaults – in one step at the start, not gliding, so the model is rebuilt only once; and the music
+  **pattern** goes back to “Automatic”. **What stays:** prompt, model, quality, resolution, format, input and cameras,
+  MIDI and sensor assignments, playlist, outputs, cloud, master brightness, the keys, and every other switch (touch
+  options, pulse on the beat, snap to the beat, outlines and pose on or off …). For 10 seconds the button reads
+  **“Reset · ↶ Undo”** (a bar runs out underneath): one tap and everything glides back to exactly what it was (style
+  and pattern come back in one step as well). No question is asked. A slider you move yourself during the glide is
+  yours at once.
 - **Sliders:** transformation, dream share, zoom pull, rotation, colour drift, quality (1 to 3 steps), resolution,
   seed. **“acts …” below transformation:** shows what the transformation is made of right now, e.g. “acts 0.52 =
   slider 0.03 · music +0.21 · movement +0.13 · minimum 0.15” – so you see at once who turns it up (the AI needs at
@@ -313,11 +333,15 @@ together with the GPU, which makes the run itself a little slower than usual. On
   that it does not even make a whole computing step).
 - **Motion between the pictures** (Dream card, #194): the AI makes a few pictures a second; in between, each picture
   goes on moving the way the dream moves – zoomed and turned around the same point, as the next input will be – at the
-  full frame rate, and the next picture takes over exactly where the motion has got to. So the stage neither stands
-  still nor jumps, locally and with the cloud GPU alike; if a picture is late, the motion eases out instead of running
-  away. 100 % (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera,
-  picture, video) only the dream's share moves on; at transformation 0 nothing moves. The output window moves along;
-  Syphon gets the pictures themselves.
+  full frame rate, and the next picture takes over exactly where the motion has got to. It is one continuous motion
+  (#215): Dream knows for every picture how far the dream had moved when its input was built, and shows it moved by
+  what has happened since – so a picture that comes late, or one of several on their way at once (camera, video,
+  light trails), joins the motion instead of starting it anew, and the smoothed picture and the picture before keep
+  their place while the new one blends in. Nothing on the stage moves back, at any number of pictures per second,
+  locally and with the cloud GPU alike; if the pictures stop, the motion eases out instead of running away. 100 %
+  (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera, picture, video)
+  only the dream's share moves on; at transformation 0 nothing moves. The output window moves along; Syphon gets the
+  pictures themselves (cross-faded, without this motion).
 - **Smoothing – against flicker** (Dream card, also on the phone and as a MIDI target): the AI paints every picture
   anew, so fine details jump a little from picture to picture – that looks like flicker. Smoothing blends each new AI
   picture softly into what is shown at the full frame rate (a moving average): small jumps vanish, big changes still
@@ -1206,17 +1230,22 @@ a temporary home folder, so your own settings, keys and pictures are never touch
 route of the server for this Mac, Dream Control, guests, Dreamy Eyes and devices without a key), the origin check, the
 ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers, the
 translations and what keeps Dream running smoothly (the prompt encoded once per prompt, no waiting for a loading model
-or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
+or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/morph.test.mjs` (#215) plays the motion between the pictures as plain numbers
+(`static/morph.js`) – 1 to 8 pictures a second, uneven and late ones, several requests at once, a pause – and checks
+that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
-and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
+and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master; #215: that the smoothed
+picture keeps its place when a new picture takes over), plus the fallback when the
 graphics context is lost and that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
 than the picture); with `KEEP=1` the page stays open and shows both pictures side by side.
 `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
-reset button). GitHub runs all of them on
+reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
+strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the
+browser (the signs beside the names, pausing while hidden, the shape). GitHub runs all of them on
 Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull request
 can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of it –
 they run on your own Mac, as below.
@@ -1238,7 +1267,8 @@ shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), M
 outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the cloud GPU (`cloud.py`), measuring
 (`measure.py`), uploads and the gallery (`media.py`), voice (`voice.py`), and the pages with their links (`pages.py`,
 `net.py`). The pages are in `static/`; what they share is in `static/common.js`, the sliders of the panel and of Dream
-Control in `static/sliders.js` (drawn from the settings table: default, range and `weight` of a setting).
+Control in `static/sliders.js` (drawn from the settings table: default, range and `weight` of a setting), their moving
+signs and the shape of the picture's character in `static/signs.js`.
 
 <sub>[↑ Contents](#contents)</sub>
 
