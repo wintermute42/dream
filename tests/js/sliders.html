@@ -59,6 +59,7 @@
     report.changed = { rot: look('rot'), strength: look('strength'), hue: look('hue'), drift: look('drift'), fx: look('fx_amt'), card: strip('card-a'), cardB: strip('card-b') };
     report.shimmers = getComputedStyle(box('rot').querySelector('.sl-shine')).animationName;
     report.still = getComputedStyle(box('drift').querySelector('.sl-shine')).animationName;
+    report.calmMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;   // e.g. a CI runner: then nothing moves
     state.fx = 'tunnel'; sliders.paint();                                         // the effects are on: their strength counts now
     report.fxOn = { fx: look('fx_amt'), cardB: strip('card-b') };
 

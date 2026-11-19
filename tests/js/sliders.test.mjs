@@ -77,7 +77,8 @@ test('the sliders in a browser', { skip: !chrome && !process.env.CI ? 'no Chrome
     assert.match(c.strength.classes, /sl-top/); assert.match(c.hue.classes, /sl-top/);
     assert.doesNotMatch(c.drift.classes, /sl-top/, 'the fourth strongest does not shimmer');
     assert.ok(c.drift.thick > 6 && c.drift.said === null);
-    assert.equal(r.shimmers, 'sl-shimmer'); assert.equal(r.still, 'none');
+    assert.equal(r.shimmers, r.calmMotion ? 'none' : 'sl-shimmer', 'with reduced motion the light stands still');
+    assert.equal(r.still, 'none');
     assert.ok(c.card.wide > 6 && c.card.said.includes('strongly changed') && c.card.colour === c.strength.colour, 'the card shows its strongest slider');
     assert.equal(c.fx.thick, 6, 'effect strength without an effect shapes nothing'); assert.equal(c.cardB.wide, 0);
     assert.ok(r.fxOn.fx.thick > 6 && r.fxOn.cardB.wide > 3, 'with an effect on it counts');
