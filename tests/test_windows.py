@@ -92,7 +92,8 @@ def test_a_motif_wanders_to_another_window(server, win, monkeypatch):
     (dst, src) = sorted(plan, key=lambda c: plan[c][1])
     assert plan[dst][1] == win.DISSOLVE and plan[src][1] == 2 * win.DISSOLVE
     assert win.motifs[dst] == before[src]                                       # the same being, somewhere else
-    assert win.motifs[src]["kind"] not in [m["kind"] for m in before.values()]  # and something new where it was
+    assert win.motifs[src]["kind"] != before[src]["kind"]                       # and something else where it was …
+    apart(server, win)                                                          # … that no other window shows
     for s in socks:                                                             # only the two windows hear of it
         assert [list(m) for m in s.got] == ([["motif"]] if s in plan else [])
     assert dst.got[0]["motif"]["wait"] == win.DISSOLVE
