@@ -1249,8 +1249,10 @@ Hände ruhen, die kleine Vorschau). `node --test tests/js/beat.test.mjs` prüft 
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master), dazu den Rückfall, wenn der Grafik-Kontext verloren geht;
-mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt alle drei bei jedem Push
-laufen (`.github/workflows/tests.yml`).
+mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt alle drei auf Linux und macOS
+bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein Pull-Request lässt
+sich erst mergen, wenn beide grün sind. Die echte KI auf einer Grafikkarte und die 📏-Messungen gehören nicht dazu –
+die laufen auf dem eigenen Mac.
 
 Wo der Code liegt, falls du etwas ändern willst: `server.py` ist das, was `./dream.sh` startet, und setzt nur die Teile
 zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`), die Rechte (`rights.py`: die Rollen und was jede

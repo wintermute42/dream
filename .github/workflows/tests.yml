@@ -1,4 +1,6 @@
-# Tests on Linux (#186): the rights, settings, folders, certificates, MIDI/sensor/playlist helpers and the translations.
+# Tests on Linux and macOS (#186, #213): the rights, settings, folders, certificates, MIDI/sensor/playlist helpers and the
+# translations. Dream is public, so the runners cost nothing: every pull request to main is tested, both jobs are
+# required checks of the "Protect main" ruleset. The real AI on a GPU and the measurements stay local.
 # No model, no GPU, no torch (the tests bring a stand-in for it): only the "ci" dependency group is installed.
 # The beat tracker (#195) is tested with the runner's own Node (no packages, no browser); the picture chain (#204:
 # WebGL 2 against Canvas 2D) with the runner's own Chrome and its software WebGL – nothing is downloaded for it.
@@ -6,7 +8,10 @@ name: tests
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -17,10 +22,13 @@ permissions:
 
 jobs:
   tests:
-    # a branch of this repository runs on push; a pull request only when it comes from a fork (no run twice)
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    name: tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

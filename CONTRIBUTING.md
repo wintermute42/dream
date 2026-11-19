@@ -17,5 +17,6 @@ Pull requests are welcome too. A few things keep Dream consistent:
   needs a licence that allows at least free private and non-commercial use (see "Licences" in the README).
 
 Run the tests before a pull request: `uv run pytest` (no model or GPU needed) and `python3 scripts/i18n_check.py`;
-the CI runs both. A change to the rights (a new route, role or setting) needs its line in `tests/test_rights.py` or
+the CI runs them, with the JavaScript tests, on Linux and macOS for every pull request, and a pull request can only be
+merged when both are green. A change to the rights (a new route, role or setting) needs its line in `tests/test_rights.py` or
 `tests/test_settings.py`. `server.py` only puts the parts together; `CLAUDE.md` says which file holds what. Please also describe in the pull request how you tried your change.
