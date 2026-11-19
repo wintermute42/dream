@@ -1180,7 +1180,9 @@ without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-sta
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
 graphics context is lost; with `KEEP=1` the page stays open and shows both pictures side by side. GitHub runs all
-three on every push (`.github/workflows/tests.yml`).
+three on Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull
+request can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of
+it – they run on your own Mac.
 
 Where the code is, if you want to change something: `server.py` is what `./dream.sh` starts and only puts the parts
 together – one file each for painting (`render.py`, `render_api.py`), the rights (`rights.py`: the roles and what each
