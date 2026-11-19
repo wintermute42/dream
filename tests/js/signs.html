@@ -1,0 +1,94 @@
+<!doctype html>
+<!-- #217: the signs and the shape (static/signs.js, static/signs.css) in a real browser; tests/js/signs.test.mjs reads the report -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Signs</title>
+<link rel="stylesheet" href="/static/sliders.css">
+<link rel="stylesheet" href="/static/signs.css">
+<style>
+  :root { --accent: #c78bff; --text: #f2eefb; --muted: #b9b1cf; --line: rgba(255,255,255,.16); }
+  body { background: #141220; color: var(--text); font: 16px system-ui, sans-serif; width: 420px; }
+  details.sec { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; margin: 8px; }
+  label { display: block; color: var(--muted); } .val { float: right; }
+  #character { width: 96px; margin: 8px; }
+</style>
+</head>
+<body>
+<div id="character"></div>
+<div id="panel">
+<details class="sec" open>
+  <summary>Dream</summary>
+  <label>Rotation <span class="val">1°</span></label>
+  <input type="range" id="rot" min="-3" max="3" step="0.1" value="0.2">
+  <label for="zoom">Zoom pull</label><input type="range" id="zoom" min="-0.04" max="0.06" step="0.002" value="0.008">
+  <label for="hue">Colour drift</label><input type="range" id="hue" min="0" max="20" step="0.5" value="2">
+  <label for="smooth">Smoothing</label><input type="range" id="smooth" min="0" max="1" step="0.05" value="0.3">
+  <label for="strength">Transformation</label><input type="range" id="strength" min="0" max="0.95" step="0.01" value="0.45">
+  <label for="drift">Drift</label><input type="range" id="drift" min="0" max="1" step="0.05" value="0.5">
+  <label for="sens">Reaction</label><input type="range" id="sens" min="0" max="2" step="0.05" value="1">
+</details>
+</div>
+<script>window.T = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => vars[k]) : text);   // as i18n.js, in English</script>
+<script src="/static/sliders.js"></script>
+<script src="/static/signs.js"></script>
+<script>
+(async () => {
+  const report = { error: '' };
+  try {
+    const $ = id => document.getElementById(id);
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const until = async ok => { for (let i = 0; i < 100 && !ok(); i++) await wait(50); };       // the browser tells what is on screen in its own time
+    const state = { music: false };
+    const signs = DreamSigns.create();
+    const sliders = DreamSliders.create({ on: k => !!state[k], painted: signs.paint });
+    signs.shape($('character'));
+    sliders.schema({
+      rot: { d: 0.2, lo: -3, hi: 3, zero: true, w: 1 }, zoom: { d: 0.008, lo: -0.04, hi: 0.06, zero: true, w: 1 }, hue: { d: 2, lo: 0, hi: 20, w: 0.8 },
+      smooth: { d: 0.3, lo: 0, hi: 1, w: 0.5 }, strength: { d: 0.45, lo: 0, hi: 0.95, w: 1 }, drift: { d: 0.5, lo: 0, hi: 1, w: 0.6 },
+      sens: { d: 1, lo: 0, hi: 2, w: 0.5, needs: 'music' } });
+    const keys = ['rot', 'zoom', 'hue', 'smooth', 'strength', 'sens'];
+    const set = (id, v) => { $(id).value = v; $(id).dispatchEvent(new Event('input', { bubbles: true })); };
+    const label = id => document.querySelector(`label[for="${id}"]`) || document.getElementById($(id).getAttribute('aria-labelledby'));
+    const sg = id => label(id).querySelector('.sg');
+    const look = id => { const g = sg(id), a = g.getAnimations({ subtree: true });
+      return { runs: a.length > 0 && a.every(x => x.playState === 'running'), rate: a[0].playbackRate, still: g.classList.contains('sg-still'),
+        back: g.classList.contains('sg-back'), amt: +g.style.getPropertyValue('--amt') }; };
+    const all = () => Object.fromEntries(keys.map(k => [k, look(k)]));
+
+    report.kinds = Object.fromEntries([...keys, 'drift'].map(k => [k, sg(k) ? sg(k).classList[1] : null]));
+    report.hidden = keys.every(k => sg(k).getAttribute('aria-hidden') === 'true');
+    report.beforeValue = sg('rot').nextElementSibling.classList.contains('val');
+    report.name = label('rot').firstChild.textContent.trim();
+    report.calmMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    set('rot', -3); set('zoom', 0.06); set('hue', 20); set('smooth', 0.6); set('strength', 0.5); set('sens', 1); await wait(60);
+    await until(() => look('rot').runs || matchMedia('(prefers-reduced-motion: reduce)').matches);
+    report.moving = all();
+    state.music = true; sliders.paint(); await wait(60);
+    report.music = look('sens');
+    signs.tempo({ pics: 8, bpm: 100 }); await wait(60);
+    report.faster = { rot: look('rot').rate, sens: look('sens').rate };
+    signs.tempo({});
+
+    $('panel').style.display = 'none'; await until(() => !look('rot').runs && !look('strength').runs);
+    report.hiddenPanel = all();
+    $('panel').style.display = ''; await until(() => (look('rot').runs && look('strength').runs) || report.calmMotion);
+    report.shownAgain = all();
+
+    state.music = false; set('strength', 0.95); set('hue', 10); set('drift', 0); await wait(60);
+    const host = $('character');
+    report.shape = { role: host.getAttribute('role'), said: host.getAttribute('aria-label'), points: host.querySelector('.sg-area').getAttribute('points'),
+      marks: [...host.querySelectorAll('.sg-axis')].map(g => g.classList[1]), dots: [...host.querySelectorAll('.sg-dot')].map(d => d.style.fill),
+      heat: getComputedStyle($('strength').closest('.sl')).getPropertyValue('--c') };
+    report.text = host.textContent.trim();
+    for (const k of [...keys, 'drift']) set(k, 0);
+    await wait(60);
+    report.zero = all();
+    report.shapeZero = host.querySelector('.sg-area').getAttribute('points');
+  } catch (e) { report.error = String(e && e.stack || e); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>

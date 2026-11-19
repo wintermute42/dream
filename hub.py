@@ -108,6 +108,8 @@ def status_msg() -> dict:
 
 async def apply(changes: dict, exclude=None, persist=True, by=None):
     """by: who changed it by hand ("remote", "stage", "midi") – the autopilot leaves such settings alone a while."""
+    if by != "glide":                              # #216: whatever else sets a value takes it out of a running glide
+        gliding["keys"] -= changes.keys()
     clean = {}
     for k, v in changes.items():
         if k in settings.DEFAULT_STATE:
@@ -131,3 +133,56 @@ async def apply(changes: dict, exclude=None, persist=True, by=None):
             if not outbox.post(v, json.dumps({"master": state["master"]})):
                 viewers.discard(v)
     await broadcast({"set": clean, **({"by": by} if by else {})}, exclude=exclude)
+
+
+# ---------- #216: reset – the picture's settings glide home, and back again for a few seconds ----------
+# The server steps the values (about twelve a second, eased): every page shows its sliders gliding, the stage gets them
+# like a hand on a slider – nothing more for the AI to do – and it works from Dream Control without a detour.
+GLIDE_SECS, GLIDE_STEP, UNDO_SECS = 4.0, 1 / 12, 10.0
+gliding: dict = {"task": None, "keys": set()}     # the settings on their way right now
+undo: dict = {"values": None, "until": 0.0}        # what the last reset changed, and until when it can be taken back
+
+
+async def glide_to(goal: dict) -> None:
+    """The numbers that shape the picture (those with a weight) glide to their goal in GLIDE_SECS; everything else is
+    set at once, in one step: switches, choices, and the style with its strengths, so the model is rebuilt at most once
+    (the stage fades effects itself)."""
+    if gliding["task"]:
+        gliding["task"].cancel()
+    start = {k: state[k] for k, v in goal.items() if settings.SETTINGS[k].weight and state[k] != v}
+    await apply({k: v for k, v in goal.items() if not settings.SETTINGS[k].weight and state[k] != v}, by="reset")
+    gliding["keys"] = set(start)
+    gliding["task"] = asyncio.create_task(_glide(start, goal)) if start else None
+
+
+async def _glide(start: dict, goal: dict) -> None:
+    t0, keys = time.monotonic(), gliding["keys"]
+    while keys:
+        await asyncio.sleep(GLIDE_STEP)
+        p = min(1.0, (time.monotonic() - t0) / GLIDE_SECS)
+        e = p * p * (3 - 2 * p)                      # leaves and arrives softly
+        # the last step is the goal itself, exactly; only that one is written to the file
+        await apply({k: goal[k] if p >= 1 else start[k] + (goal[k] - start[k]) * e for k in list(keys)},
+                    persist=p >= 1, by="glide")
+        if p >= 1:
+            break
+    if gliding["keys"] is keys:                    # not replaced by a newer glide meanwhile
+        keys.clear()
+        gliding["task"] = None
+
+
+async def reset() -> None:
+    """Everything in settings.RESET goes to its default; what it changed can be taken back for UNDO_SECS."""
+    before = {k: state[k] for k, v in settings.RESET.items() if state[k] != v}
+    undo.update(values=before or None, until=time.monotonic() + UNDO_SECS)
+    await glide_to(dict(settings.RESET))
+    await broadcast({"reset": {"undo": UNDO_SECS if before else 0}})
+
+
+async def reset_undo() -> None:
+    """Back to exactly what was before the reset – as softly as it went."""
+    values, undo["values"] = undo["values"], None
+    if not values or time.monotonic() > undo["until"]:
+        return
+    await glide_to(values)
+    await broadcast({"reset": {"undo": 0, "undone": True}})

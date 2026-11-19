@@ -23,11 +23,18 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
   asked over `/facemarks` – and moved by each window itself; a window never runs a model). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
+  is there). The sliders of the panel and of Dream Control are drawn by `static/sliders.js` and `sliders.css` (#216)
+  from the settings table (`settings.page_schema()`, sent over `/ctl`): zero mark, influence colour, "Reset"; the
+  moving signs beside the sliders and the shape of the picture's character by `static/signs.js` and `signs.css` (#217),
+  hung into the sliders' drawing (`painted`) – only transform and opacity move, paused while not on screen.
+  `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
-  whether a MIDI controller or sensor can move it); the defaults, ranges, guests' keys and `midi.TARGETS` are read from
-  it. A role is one entry in `rights.ROLES` (its capabilities, its key, what it may request); every check asks
+  whether a MIDI controller or sensor can move it; #216: its `weight` – how strongly it shapes the picture – and the
+  setting it `needs` to act); the defaults, ranges, guests' keys, `midi.TARGETS`, what "Reset" brings home
+  (`settings.RESET`) and what the pages draw on a slider are read from it.
+  A role is one entry in `rights.ROLES` (its capabilities, its key, what it may request); every check asks
   `rights.can(role, capability)`, and the remote page gets its role's capabilities with the role.
 - Everything in the repository is English: code, identifiers, values and saved names, comments, log messages, commit
   messages, README. Text a person sees goes through the translation files: English in the code, the German in

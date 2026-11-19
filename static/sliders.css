@@ -1,0 +1,53 @@
+/* #216: the sliders of the panel and of Dream Control (sliders.js) – in the colours of the page they stand on.
+   --pa/--pb: the filled part of the track, --pz: the zero mark (shares of its length); --c: the colour and --th the
+   thickness of the fill, by how much the setting shapes the picture. Only transform and opacity are animated. */
+.sl { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; --thumb: 18px; --th: 6px; --c: var(--accent);
+  --pa: 0; --pb: 0; --pz: 0; --track: rgba(255,255,255,.14);
+  --a: calc((var(--thumb) / 2 + (100% - var(--thumb)) * var(--pa)) * var(--mid, 0)); --b: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pb)); }
+.sl-run { position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; }
+.sl input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; margin: 0; width: 100%;
+  position: relative; z-index: 1; cursor: pointer; touch-action: pan-y; }
+.sl input[type=range]::-webkit-slider-runnable-track { height: var(--th); border-radius: 99px;
+  background: linear-gradient(to right, var(--track) 0 var(--a), var(--c) var(--a) var(--b), var(--track) var(--b) 100%); }
+.sl input[type=range]::-moz-range-track { height: var(--th); border-radius: 99px;
+  background: linear-gradient(to right, var(--track) 0 var(--a), var(--c) var(--a) var(--b), var(--track) var(--b) 100%); }
+.sl input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; box-sizing: border-box; width: var(--thumb); height: var(--thumb);
+  margin-top: calc((var(--th) - var(--thumb)) / 2); border-radius: 50%; background: var(--text); border: 3px solid var(--c);
+  box-shadow: 0 1px 4px rgba(0,0,0,.55); }
+.sl input[type=range]::-moz-range-thumb { box-sizing: border-box; width: var(--thumb); height: var(--thumb); border-radius: 50%;
+  background: var(--text); border: 3px solid var(--c); box-shadow: 0 1px 4px rgba(0,0,0,.55); }
+.sl input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 99px; }
+/* strongly changed: not by colour alone – a thicker fill (--th) and a ring around the thumb */
+.sl-strong input[type=range]::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(255,255,255,.28), 0 1px 4px rgba(0,0,0,.55); }
+.sl-strong input[type=range]::-moz-range-thumb { box-shadow: 0 0 0 3px rgba(255,255,255,.28), 0 1px 4px rgba(0,0,0,.55); }
+/* a zero inside the range: its mark on the track, and the "0" button that brings the slider back to it */
+.sl-mark { display: none; position: absolute; left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--pz)); top: 50%;
+  width: 2px; height: 16px; margin: -8px 0 0 -1px; border-radius: 1px; background: var(--muted); pointer-events: none; }
+.sl-bipolar { --mid: 1; }                                      /* the fill starts at the mark, not at the left end */
+.sl-bipolar .sl-mark { display: block; }
+.sl-zero { display: none; flex: none; width: 1.9em; height: 1.9em; min-width: 0; min-height: 0; padding: 0; border-radius: 50%;
+  border: 1px solid var(--line); background: rgba(255,255,255,.08); color: var(--text); font: inherit; font-size: .8em; font-weight: 700;
+  line-height: 1; cursor: pointer; transition: opacity .15s, transform .15s ease-out; }
+.sl-bipolar .sl-zero { display: block; }                       /* its place is always kept: nothing moves when it comes */
+.sl-zero:disabled { opacity: 0; transform: scale(.6); pointer-events: none; }
+.sl-zero:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* the three strongest shimmer: a light that breathes on the fill */
+.sl-shine { position: absolute; left: var(--a); right: calc(100% - var(--b)); top: 50%; height: var(--th); margin-top: calc(var(--th) / -2);
+  border-radius: 99px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent); opacity: 0;
+  pointer-events: none; z-index: 2; }
+.sl-top .sl-shine { animation: sl-shimmer 2.6s ease-in-out infinite; }
+@keyframes sl-shimmer { 0%, 100% { opacity: .08; transform: scaleX(.55); } 50% { opacity: .7; transform: scaleX(1); } }
+/* a card: a strip on its left edge in the same scale – wider the stronger, also while the card is folded */
+.sl-card { position: relative; }
+.sl-card::before { content: ''; position: absolute; left: -1px; top: 8px; bottom: 8px; width: var(--cw, 0px);
+  border-radius: 0 4px 4px 0; background: var(--cc, transparent); pointer-events: none; }
+.sl-strong-card::before { box-shadow: 0 0 0 1px rgba(255,255,255,.45); }
+.sl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* "↺ Reset": while it can be taken back, a bar runs out underneath */
+.sl-reset { position: relative; overflow: hidden; white-space: nowrap; }
+.sl-reset::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent);
+  transform: scaleX(0); transform-origin: left; }
+.sl-reset.sl-undo::after { animation: sl-undo var(--secs, 10s) linear forwards; }
+@keyframes sl-undo { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (pointer: coarse) { .sl { --thumb: 26px; } .sl-zero { width: 2.3em; height: 2.3em; } }
+@media (prefers-reduced-motion: reduce) { .sl-top .sl-shine { animation: none; opacity: .45; } .sl-zero { transition: none; } }
