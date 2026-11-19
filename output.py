@@ -15,7 +15,6 @@ from fastapi.responses import FileResponse
 from PIL import Image
 
 import config
-import eyes
 import flow
 import hub
 import outbox
@@ -238,7 +237,7 @@ async def view(sock: WebSocket):
     try:
         outbox.post(sock, json.dumps({"master": hub.state["master"]}))
         if sock in hub.windows:
-            outbox.post(sock, json.dumps(eyes.aimask_msg()))
+            windows.window_greet(sock)             # #214: the painted faces, their points, its motif
             await windows.window_tell_all()
         frame = shown["frame"]
         if frame and small:
@@ -262,8 +261,8 @@ async def view(sock: WebSocket):
         hub.previews.pop(sock, None)
         hub.key_roles.pop(sock, None)
         outbox.drop(sock)
-        if hub.windows.pop(sock, None) is not None:
-            await windows.window_tell_all()
+        if sock in hub.windows:
+            await windows.window_remove(sock)
         await hub.broadcast(hub.status_msg())
 
 
