@@ -214,10 +214,19 @@ together with the GPU, which makes the run itself a little slower than usual. On
   dreams on from the current picture. **Camera:** which of the Mac's cameras Dream takes (e.g. a 60 fps webcam or a
   phone via Continuity, Iriun or DroidCam), also selectable on the phone. Below it **“Prompt – what does the AI paint
   from it?”**: the one text field for the dream (at transformation 0: “AI off”, the prompt rests).
+- **Soft switches (#211):** a new input and a new prompt blend in over about 3 s instead of jumping, with nothing to
+  set. **Input** (by hand, autopilot, scene, MIDI or Dream Control; also another picture or video): the last picture
+  the AI got from the old input lies over the new one and leaves within 3 s, counted from the new source's first
+  picture. **Prompt** (typing, voice, Dream Control): the AI gets the old and the new prompt mixed, shifting to the
+  new one; while you type, the old one stays until you pause. Playlist scenes keep their own fade time, the
+  autopilot's jump back into the dream on a drop stays a hard cut. A switch during a running blend goes on from where
+  it stands: for the input exactly, for the prompt the stronger of the two keeps its share and the weaker one makes
+  room for the new prompt (the AI blends two prompts, not three). It costs the AI no time: the pictures are mixed in
+  the browser, the prompts as for a scene change.
 - **The AI gets:** right below the prompt it says what the AI really gets: your text, and after it every addition as
   a coloured chip – purple **Vary the prompt gently** (the two variants and how far it is from one to the other),
   green **Content reacts to energy** (calm ⇄ wild, how wild right now), blue **Autopilot: words for the music**, grey
-  a running **scene change**. A ✕ in the chip switches that addition off at once (the same as the checkbox at its
+  a running **prompt change** (a scene, or a change by hand). A ✕ in the chip switches that addition off at once (the same as the checkbox at its
   place; for the music words: “Add words for the music to the prompt” in the Autopilot card). When it says “exactly
   the prompt above, nothing added”, nobody mixes anything in. Style model and reference picture never change the
   prompt; “rephrase in English” only acts on speaking – its result already stands in the text field.
@@ -1175,7 +1184,8 @@ ranges of every setting, the folders, the home-network certificates, the MIDI, s
 translations and what keeps Dream running smoothly (the prompt encoded once per prompt, no waiting for a loading model
 or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
-without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-stage.test.mjs` (#204) opens
+without drums, a 120 Hz display) and the beat grid. `node --test tests/js/soft.test.mjs` (#211) tests the shares of the soft switches
+(old input picture, old and new prompt, a change during a running fade). `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
