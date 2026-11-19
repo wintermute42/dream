@@ -316,11 +316,15 @@ together with the GPU, which makes the run itself a little slower than usual. On
   that it does not even make a whole computing step).
 - **Motion between the pictures** (Dream card, #194): the AI makes a few pictures a second; in between, each picture
   goes on moving the way the dream moves – zoomed and turned around the same point, as the next input will be – at the
-  full frame rate, and the next picture takes over exactly where the motion has got to. So the stage neither stands
-  still nor jumps, locally and with the cloud GPU alike; if a picture is late, the motion eases out instead of running
-  away. 100 % (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera,
-  picture, video) only the dream's share moves on; at transformation 0 nothing moves. The output window moves along;
-  Syphon gets the pictures themselves.
+  full frame rate, and the next picture takes over exactly where the motion has got to. It is one continuous motion
+  (#215): Dream knows for every picture how far the dream had moved when its input was built, and shows it moved by
+  what has happened since – so a picture that comes late, or one of several on their way at once (camera, video,
+  light trails), joins the motion instead of starting it anew, and the smoothed picture and the picture before keep
+  their place while the new one blends in. Nothing on the stage moves back, at any number of pictures per second,
+  locally and with the cloud GPU alike; if the pictures stop, the motion eases out instead of running away. 100 %
+  (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera, picture, video)
+  only the dream's share moves on; at transformation 0 nothing moves. The output window moves along; Syphon gets the
+  pictures themselves (cross-faded, without this motion).
 - **Smoothing – against flicker** (Dream card, also on the phone and as a MIDI target): the AI paints every picture
   anew, so fine details jump a little from picture to picture – that looks like flicker. Smoothing blends each new AI
   picture softly into what is shown at the full frame rate (a moving average): small jumps vanish, big changes still
@@ -1209,12 +1213,15 @@ a temporary home folder, so your own settings, keys and pictures are never touch
 route of the server for this Mac, Dream Control, guests, Dreamy Eyes and devices without a key), the origin check, the
 ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers, the
 translations and what keeps Dream running smoothly (the prompt encoded once per prompt, no waiting for a loading model
-or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
+or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/morph.test.mjs` (#215) plays the motion between the pictures as plain numbers
+(`static/morph.js`) – 1 to 8 pictures a second, uneven and late ones, several requests at once, a pause – and checks
+that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
-and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
+and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master; #215: that the smoothed
+picture keeps its place when a new picture takes over), plus the fallback when the
 graphics context is lost and that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
 than the picture); with `KEEP=1` the page stays open and shows both pictures side by side.
 `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
