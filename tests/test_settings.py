@@ -193,11 +193,15 @@ def test_reset_brings_home_what_shapes_the_picture_and_nothing_else():
     weighted = {k for k, s in settings.SETTINGS.items() if s.weight}
     assert weighted == {"strength", "mix", "zoom", "rot", "hue", "sens", "motion_sens", "pose_scale", "drift", "smooth",
                         "morph", "touch_amt", "edges_scale", "fx_amt"}
-    assert settings.RESET == {**{k: settings.DEFAULT_STATE[k] for k in weighted}, "fx": "", "auto": False}
+    # in one step, never gliding: effects, autopilot and the style (a style strength costs the AI a rebuild per change)
+    assert settings.RESET == {**{k: settings.DEFAULT_STATE[k] for k in weighted}, "fx": "", "auto": False,
+                              "music_pattern": "auto",
+                              "style": "", "style_amt": 1.0, "style_ref": "", "style_ref_amt": 0.8}
+    assert not weighted & set(settings.RESET_AT_ONCE)
     # what stays, whatever else changes: the dream's content, the model and its cost, inputs, outputs, the cloud
     for kept in ("prompt", "model", "quality", "size", "aspect", "mode", "cam_device", "flow_device", "playlist", "interval",
-                 "shuffle", "syphon", "backend", "master", "seed", "running", "style", "style_amt", "style_ref",
-                 "style_ref_amt", "music", "calib"):
+                 "shuffle", "syphon", "backend", "master", "seed", "running", "music", "calib", "music_patterns", "music_drop",
+                 "beat_snap", "fx_beat", "drift_prompt", "touch_paint", "edges", "pose", "flowtrack", "motion"):
         assert kept not in settings.RESET, kept
     for k, s in settings.SETTINGS.items():
         assert 0 <= s.weight <= 1 and (not s.weight or s.number), k
@@ -245,6 +249,36 @@ def test_reset_glides_in_steps_and_ends_exactly(server, quiet_hub):
     assert max(a - b for a, b in zip([3.0] + steps, steps)) < 1.5                   # no hard jump
     assert steps[-1] == 0.2 and hub.state["zoom"] == 0.008
     assert quiet_hub[0] == {"set": {"fx": "", "auto": False}, "by": "reset"}       # the stage fades the effects itself
+
+
+def test_reset_sets_the_music_pattern_to_automatic_and_undo_brings_it_back(server, quiet_hub):
+    hub = server.hub
+
+    async def go():
+        hub.state.update(music_pattern="Jolt", music_patterns=False, fx_beat=False)
+        await hub.reset()
+        assert (hub.state["music_pattern"], hub.state["music_patterns"], hub.state["fx_beat"]) == ("auto", False, False)
+        await hub.reset_undo()
+    asyncio.run(go())
+    assert [m["set"] for m in quiet_hub if "set" in m] == [{"music_pattern": "auto"}, {"music_pattern": "Jolt"}]
+    assert hub.state["music_pattern"] == "Jolt"
+
+
+def test_reset_changes_the_style_in_one_step_and_undo_too(server, quiet_hub):
+    """The style and its strengths never glide: one message there, one back – the model is rebuilt at most once."""
+    hub = server.hub
+    style = {"style": "watercolour", "style_amt": 1.7, "style_ref": "0123456789ab", "style_ref_amt": 0.3}
+
+    async def go():
+        hub.state.update(style, rot=3.0)
+        await hub.reset()
+        await hub.gliding["task"]
+        await hub.reset_undo()
+        await hub.gliding["task"]
+    asyncio.run(go())
+    touching = [m["set"] for m in quiet_hub if set(m.get("set", {})) & set(style)]
+    assert touching == [{"style": "", "style_amt": 1.0, "style_ref": "", "style_ref_amt": 0.8}, style]
+    assert {k: hub.state[k] for k in style} == style and hub.state["rot"] == 3.0
     assert {"reset": {"undo": hub.UNDO_SECS}} in quiet_hub
 
 

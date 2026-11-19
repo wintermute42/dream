@@ -155,10 +155,14 @@ CHOICES = {k: s.choices for k, s in SETTINGS.items() if s.choices}
 GUEST_KEYS = {k for k, s in SETTINGS.items() if s.guest}
 GUEST_MODES = SETTINGS["mode"].guest
 TARGETS = {k: (s.lo, s.hi) for k, s in SETTINGS.items() if s.target}   # what a controller can move: key → (min, max)
-# #216: where "Reset" brings the dream: every number that shapes the picture glides to its default; the effects and the
-# autopilot go off. Everything else stays – prompt, model, quality, size, format, cameras, playlist, output, cloud, master;
-# the style too: it is part of what is dreamed, and every change of its strength costs the AI about a second.
-RESET = {**{k: s.default for k, s in SETTINGS.items() if s.weight}, "fx": "", "auto": False}
+# #216: where "Reset" brings the dream: every number that shapes the picture glides to its default (the ones with a
+# weight); the effects, the autopilot, the music pattern (back to "auto") and the style (model, reference picture and
+# both strengths: no style) are set in one step – a glide of a style strength would make the AI rebuild its model about
+# once a second. Everything else stays – prompt, model, quality, size, format, cameras, playlist, output, cloud, master,
+# and every other switch.
+RESET_AT_ONCE = ("fx", "auto", "music_pattern", "style", "style_amt", "style_ref", "style_ref_amt")
+RESET = {k: s.default for k, s in SETTINGS.items() if s.weight or k in RESET_AT_ONCE}
+assert not any(SETTINGS[k].weight for k in RESET_AT_ONCE)
 assert all(s.number and 0 < s.weight <= 1 for s in SETTINGS.values() if s.weight)
 assert all(s.needs in SETTINGS for s in SETTINGS.values() if s.needs)
 

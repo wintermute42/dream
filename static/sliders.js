@@ -181,7 +181,7 @@
     function show() {
       button.textContent = undo ? T('Reset · ↶ Undo') : T('↺ Reset');
       button.title = undo ? T('Undo the reset: everything glides back to what it was')
-        : T('Reset: zoom, rotation, colour and the other picture settings glide to their defaults, effects and autopilot go off – prompt, model, inputs and outputs stay');
+        : T('Reset: zoom, rotation, colour and the other picture settings glide to their defaults, effects, style and autopilot go off – prompt, model, inputs and outputs stay');
       button.classList.remove('sl-undo');
       if (undo) { void button.offsetWidth; button.classList.add('sl-undo'); }   // the bar of the seconds starts anew
     }

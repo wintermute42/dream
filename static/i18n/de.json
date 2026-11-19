@@ -968,7 +968,7 @@
  "↺ Reset": "↺ Zurücksetzen",
  "Reset · ↶ Undo": "Zurückgesetzt · ↶ Rückgängig",
  "Undo the reset: everything glides back to what it was": "Zurücksetzen rückgängig machen: alles gleitet auf die Werte von vorher zurück",
- "Reset: zoom, rotation, colour and the other picture settings glide to their defaults, effects and autopilot go off – prompt, model, inputs and outputs stay": "Zurücksetzen: Zoom, Drehung, Farbe und die anderen Bildeinstellungen gleiten auf ihren Standard, Effekte und Autopilot gehen aus – Prompt, Modell, Eingänge und Ausgaben bleiben",
+ "Reset: zoom, rotation, colour and the other picture settings glide to their defaults, effects, style and autopilot go off – prompt, model, inputs and outputs stay": "Zurücksetzen: Zoom, Drehung, Farbe und die anderen Bildeinstellungen gleiten auf ihren Standard, Effekte, Stil und Autopilot gehen aus – Prompt, Modell, Eingänge und Ausgaben bleiben",
  "Reset – the picture glides to its defaults.": "Zurückgesetzt – das Bild gleitet auf die Standardwerte.",
  "Already at the defaults.": "Schon auf den Standardwerten.",
  "{name}: set to 0": "{name}: auf 0 stellen",

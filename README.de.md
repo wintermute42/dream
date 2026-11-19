@@ -286,14 +286,18 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   (sichtbar, solange er nicht auf 0 steht) stellt ihn auf null. **Doppelklick oder Doppeltipp** auf einen Regler: null
   bei diesen beiden, der Standard bei allen anderen. Genauso in Dream Control auf dem Handy.
 - **↺ Zurücksetzen** (Titelleiste des Bedienfelds und von Dream Control, nicht für Gäste): ohne Bruch zurück zu einem
-  ruhigen, schönen Traum. Alles, was das Bild formt, gleitet in etwa 4 Sekunden auf seinen Standard – Verwandlung 0,45,
-  Traum-Anteil 35 %, Zoom-Sog 0,008, Drehung 0,2°, Farbdrift 2°, Drift 50 %, Glätten 30 %, Bewegung zwischen den
+  ruhigen, schönen Traum. Alles, was das Bild formt, gleitet in etwa 4 Sekunden auf seinen Standard – Verwandlung
+  0,45, Traum-Anteil 35 %, Zoom-Sog 0,008, Drehung 0,2°, Farbdrift 2°, Drift 50 %, Glätten 30 %, Bewegung zwischen den
   Bildern 100 %, Musik- und Bewegungs-Reaktion 1×, Direktheit, Umriss- und Pose-Stärke, Effekt-Stärke –, die Effekte
-  blenden aus, und der Autopilot geht aus. **Es bleiben:** Prompt, Modell, Qualität, Auflösung, Format, Eingang und
-  Kameras, Stil-Modell und Stil-Referenz mit ihren Stärken, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud,
-  Master-Helligkeit, die Schlüssel. 10 Sekunden lang steht auf dem Knopf **„Zurückgesetzt · ↶ Rückgängig“** (darunter
-  läuft ein Balken ab): ein Tipp, und alles gleitet genau auf die Werte von vorher zurück. Es gibt keine
-  Sicherheitsabfrage. Ein Regler, den du während des Gleitens selbst bewegst, gehört sofort dir.
+  blenden aus, und der Autopilot geht aus. Auch der **Stil** geht – kein Stil-Modell, kein Stil-Referenzbild, beide
+  Stärken auf Standard –, und zwar in einem Schritt am Anfang statt gleitend, damit das Modell nur einmal umgebaut
+  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. **Es bleiben:** Prompt, Modell, Qualität,
+  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud, Master-Helligkeit,
+  die Schlüssel und alle anderen Schalter (Berührungs-Optionen, im Takt pulsieren, Wechsel einrasten, Umrisse und Pose
+  an oder aus …). 10 Sekunden lang steht auf dem Knopf **„Zurückgesetzt · ↶ Rückgängig“** (darunter läuft ein Balken
+  ab): ein Tipp, und alles gleitet genau auf die Werte von vorher zurück (Stil und Muster kommen ebenfalls in einem
+  Schritt wieder). Es gibt keine Sicherheitsabfrage. Ein Regler, den du während des Gleitens selbst bewegst, gehört
+  sofort dir.
 - **Regler:** Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Qualität (1 bis 3 Schritte), Auflösung, Seed.
   **„wirkt …“ unter Verwandlung (#115):** zeigt, woraus die Verwandlung gerade besteht, z. B. „wirkt 0,52 = Regler 0,03 ·
   Musik +0,21 · Bewegung +0,13 · Mindestwert 0,15“ – so sieht man sofort, wer sie hochdreht (die KI braucht mindestens

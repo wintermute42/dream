@@ -279,11 +279,14 @@ together with the GPU, which makes the run itself a little slower than usual. On
   break. Everything that shapes the picture glides to its default in about 4 seconds – transformation 0.45, dream
   share 35 %, zoom pull 0.008, rotation 0.2°, colour drift 2°, drift 50 %, smoothing 30 %, motion between the pictures
   100 %, music and movement reaction 1×, directness, outline and pose strength, effect strength –, the effects fade
-  out and the autopilot goes off. **What stays:** prompt, model, quality, resolution, format, input and cameras, the
-  style model and style reference with their strengths, MIDI and sensor assignments, playlist, outputs, cloud, master
-  brightness, the keys. For 10 seconds the button reads **“Reset · ↶ Undo”** (a bar runs out underneath): one tap and
-  everything glides back to exactly what it was. No question is asked. A slider you move yourself during the glide
-  is yours at once.
+  out and the autopilot goes off. The **style** goes too – no style model, no style reference picture, both strengths
+  at their defaults – in one step at the start, not gliding, so the model is rebuilt only once; and the music
+  **pattern** goes back to “Automatic”. **What stays:** prompt, model, quality, resolution, format, input and cameras,
+  MIDI and sensor assignments, playlist, outputs, cloud, master brightness, the keys, and every other switch (touch
+  options, pulse on the beat, snap to the beat, outlines and pose on or off …). For 10 seconds the button reads
+  **“Reset · ↶ Undo”** (a bar runs out underneath): one tap and everything glides back to exactly what it was (style
+  and pattern come back in one step as well). No question is asked. A slider you move yourself during the glide is
+  yours at once.
 - **Sliders:** transformation, dream share, zoom pull, rotation, colour drift, quality (1 to 3 steps), resolution,
   seed. **“acts …” below transformation:** shows what the transformation is made of right now, e.g. “acts 0.52 =
   slider 0.03 · music +0.21 · movement +0.13 · minimum 0.15” – so you see at once who turns it up (the AI needs at
