@@ -358,13 +358,22 @@ when ticked.
   driving (or broken) music add a little, calm music takes a little away. No strobe, no hard black frames. The
   effects run at the full frame rate (60 fps) however fast the AI computes (measured on a Mac with graphics chip: 60
   fps with three effects) and appear in the output window too (projector, Wi-Fi output), not in Syphon.
-- **Drawing on the graphics card (#204, for trying out):** the stage and the output window can draw the picture as
-  one chain in WebGL 2 – the last two AI pictures with their motion and cross-fade, the smoothing, the effects, the
-  touch layers, colour rotation, brightness and master. For now it is **off by default**: on a Mac it shares the
-  graphics card with the AI and costs it about 40 % of its pictures. To try it, add `?render=webgl` to the address of
-  the stage or the output window (http://127.0.0.1:7860/?render=webgl). Without it the pages draw with Canvas 2D as
-  before. **📏 Measure** shows for the stage what draws. Syphon, the preview of Dream Control and the dream windows
-  get the AI pictures themselves; Dreamy Eyes and the dream windows draw on their own.
+- **Drawn on the graphics card (#204, #210):** the stage and the output window draw the picture as one chain in
+  WebGL 2 – the last two AI pictures with their motion and cross-fade, the smoothing, the effects, the touch layers
+  (light strokes, stirring, light circle), colour rotation, brightness and master. On a Mac this chain shares the
+  graphics card with the AI, so it draws sparingly: at the resolution the picture really has (an AI picture of 512 px,
+  or the effects' buffer – not every pixel of a Retina screen; the browser scales it up like any picture), only when
+  something moves (a still picture is not drawn again, the smoothing rests once it has caught up with the newest
+  picture), and the preview beside the panel at 30 instead of 60 frames per second while an output window is open.
+  Measured on a Mac with an M2 Max (sd-turbo, 512 px, 1 step, transformation 0.5; the stage alone and the panel with
+  an output window, each also at Retina resolution), the AI makes as many pictures with it as with Canvas 2D: the
+  difference stays within the spread of the measurement (about 2 %); how to repeat it is under “Tests”. Nothing to
+  set: without WebGL 2, or if the graphics card's drawing stops while Dream runs, the same pages draw with Canvas 2D
+  by themselves (a badge below the preview says so; when it comes back, WebGL 2 takes over again). **📏 Measure**
+  shows for the stage what draws: “graphics card (WebGL 2)” or “Canvas 2D (no WebGL 2)”. To compare the two, or if a
+  graphics driver makes trouble, add `?render=canvas` to the address of the stage or the output window
+  (http://127.0.0.1:7860/?render=canvas). Syphon, the preview of Dream Control and the dream windows get the AI
+  pictures themselves; Dreamy Eyes and the dream windows draw on their own.
 - **Effects by hand:** the same effects without the autopilot in the **Effects** card (below Dream): twelve tiles to
   switch on and off (one of each family at a time – kaleidoscope/mandala/mirror, pixel/grid, feedback/afterglow),
   **Effect strength** for all, **Pulse on the beat** (only on real beats of music or tap; off = the effects stand
@@ -1151,10 +1160,13 @@ and the line saving above.
   tabs, SD-Turbo instead of SDXL-Turbo, 512 px instead of more.
 - **The stage stays black or dark:** restart and update Dream (see above). In prompt mode drift helps; an entirely black
   picture after an update usually means the old version still runs.
-- **The picture looks wrong (stripes, black, wrong colours) or the AI gets slow with `?render=webgl`:** leave the
-  address without it – then the page draws with Canvas 2D. If that helps, please report it with the browser and the
-  Mac. A badge “The graphics card’s drawing (WebGL 2) stopped …” means the browser lost its graphics context; Dream
-  goes on with Canvas 2D and returns by itself.
+- **The picture on the stage or in the output window looks wrong (stripes, black, wrong colours), stutters, or the
+  AI makes clearly fewer pictures than it used to:** the graphics card draws the picture (WebGL 2) and shares its time
+  with the AI. Open the page with `?render=canvas` at the end of the address (http://127.0.0.1:7860/?render=canvas,
+  http://127.0.0.1:7860/output?render=canvas): then it draws with Canvas 2D. If that helps, please report it with the
+  browser and the Mac. In the first seconds after a start the AI is slower either way (the model warms up) – compare
+  after that. A badge “The graphics card’s drawing (WebGL 2) stopped …” means the browser lost its graphics context;
+  Dream goes on with Canvas 2D and returns by itself.
 - **The controls are extremely slow:** is a second Dream, a second stage or another GPU program running? Keep only one
   stage open.
 - **“site can't be reached” on the phone:** see “If the phone does not connect”. The macOS firewall was not the reason
@@ -1204,15 +1216,26 @@ without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-sta
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
-graphics context is lost; with `KEEP=1` the page stays open and shows both pictures side by side.
-`node --test tests/js/window.test.mjs` (#214) opens four dream windows of different sizes in the same browser and is
+graphics context is lost and that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
+than the picture); with `KEEP=1` the page stays open and shows both pictures side by side. `node --test tests/js/window.test.mjs` (#214) opens four dream windows of different sizes in the same browser and is
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
 `KEEP=1` the windows stay open. GitHub runs all
-four on Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull
-request can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of
-it – they run on your own Mac.
+four on
+Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull request
+can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of it –
+they run on your own Mac, as below.
+
+What the drawing costs the AI is measured by hand (#210), with the real model: start a second Dream in a sandbox HOME
+on a port of its own (never your own Dream – the script changes the effects setting), set it to what you want to
+compare (e.g. sd-turbo, 1 step, transformation 0.5), then `PORT=7885 node scripts/measure_stage.cjs <playwright>`
+(the folder of an installed Playwright). It opens the stage in a headless Chromium on the real graphics card and
+counts the AI pictures that come back in windows of 20 s after 8 s of warming up – drawn with Canvas 2D and with
+WebGL 2, for the stage alone and the panel with an output window, at device scale 1 and 2, alternating and three
+times each – and prints mean, spread and the difference, plus how many passes and megapixels per second the WebGL
+chain drew. `SECONDS`, `WARMUP`, `RUNS`, `SCENES`, `SCALES`, `FX` (effects on) and `HEADED=1` (real windows) change
+the run. Let the model warm up first: the first seconds after a start are slower whatever draws.
 
 Where the code is, if you want to change something: `server.py` is what `./dream.sh` starts and only puts the parts
 together – one file each for painting (`render.py`, `render_api.py`), the rights (`rights.py`: the roles and what each

@@ -3,6 +3,10 @@
 // (#194) and cross-fade → smoothing → the effects of fx.js as shaders (same names, same numbers) → the touch layers →
 // colour rotation and negative → brightness, saturation and master. Without WebGL 2, or when the context is lost, the
 // same call draws with Canvas 2D as before (fx.js); `renderer` tells which one is at work.
+// #210: the chain shares the graphics card with the AI, so it draws sparingly – its canvas is only as fine as what it
+// shows (an AI picture of 512 px stays 512 px on a Retina screen; the browser scales it up as it does a picture
+// element), a frame in which nothing moves is not drawn, the smoothing rests once it has caught up, and a preview
+// beside the real output draws at a lower rate.
 window.DreamStage = (() => {
   'use strict';
   const Fx = window.DreamFx;
@@ -232,26 +236,28 @@ void main() {
       t.w = w; t.h = h; return true;
     }
     // the pictures and layers as textures: loaded anew only when the element shows something else
-    const pic = () => ({ tex: texture(gl.LINEAR_MIPMAP_LINEAR), src: '', w: 0, h: 0 });
+    const pic = () => ({ tex: texture(gl.LINEAR_MIPMAP_LINEAR), src: '', w: 0, h: 0, n: 0 });
     function load(p, el) {
       if (el.src === p.src || !el.complete || !el.naturalWidth) return;
       gl.bindTexture(gl.TEXTURE_2D, p.tex); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, el); gl.generateMipmap(gl.TEXTURE_2D);
-      p.src = el.src; p.w = el.naturalWidth; p.h = el.naturalHeight; shown = '';
+      p.src = el.src; p.w = el.naturalWidth; p.h = el.naturalHeight; p.n++; shown = '';
     }
     const pics = new Map(), layerTex = [texture(gl.LINEAR), texture(gl.LINEAR), texture(gl.LINEAR)];
     const smooth = target(), bufs = [target(), target(), target()], small = target(gl.NEAREST), st = {};
-    let smoothReady = false, prevAt = -1, shown = '', last = null;
+    const SETTLED = 1 / 512;                             // what is left of the older pictures in the smoothed one: nothing to see
+    let smoothReady = false, smoothOf = null, rest = 1, prevAt = -1, shown = '', last = null, drawn = 0;
 
-    // the effects in their order, from the smoothed picture or the two cross-fading ones; returns the buffer with the result
+    // the effects in their order, from the smoothed picture or the two cross-fading ones; returns the buffer with the
+    // result. The smoothed picture is read where it is; the two pictures are first laid into a buffer, covering it.
     function effects(f, front, back) {
       const [w, h] = f.fxSize, p = f.fx, R = [w, h];
       if (bufs.map(b => fit(b, w, h)).some(Boolean)) prevAt = -1;
       const free = [0, 1, 2].filter(i => i !== prevAt), prev = prevAt < 0 ? null : bufs[prevAt];
-      let cur = free[0], nxt = free[1];
-      const mixv = f.smoothing ? 1 : back.w && f.mix < 0.99 ? Math.max(0, f.mix) : 1;
-      draw('cover', { cNew: f.smoothing ? FULL : cover(front.w, front.h, w, h), cOld: back.w ? cover(back.w, back.h, w, h) : FULL, mixv },
-        { tOld: back.tex, tNew: f.smoothing ? smooth.tex : front.tex }, bufs[cur]);
+      let out = free[0], spare = free[1], from = smooth, done = -1;
+      const pass = (name, vals, texs) => { draw(name, vals, texs, bufs[out]); from = bufs[out]; done = out; [out, spare] = [spare, out]; };
+      if (!f.smoothing) pass('cover', { cNew: cover(front.w, front.h, w, h), cOld: back.w ? cover(back.w, back.h, w, h) : FULL,
+        mixv: back.w && f.mix < 0.99 ? Math.max(0, f.mix) : 1 }, { tOld: back.tex, tNew: front.tex });
       const common = { R, c: [w * (p.cx == null ? 0.5 : p.cx), h * (p.cy == null ? 0.5 : p.cy)], pulse: +p.pulse || 0, bass: +p.bass || 0,
         spin: +p.spin || 0, t: +p.t || 0, dir: p.dir || 1, loc: p.loc || 0, ang: p.ang || 0 };
       const seed = Math.abs(Math.round(+p.seed || 0));
@@ -265,40 +271,50 @@ void main() {
         if (name === 'pixel' || name === 'raster') {
           vals.grid = name === 'pixel' ? Fx.pixelGrid(w, h, a, p) : Fx.rasterGrid(w, h); vals.opt = seed % 3 !== 0 ? 1 : 0;
           fit(small, vals.grid[0], vals.grid[1]);
-          draw('down', {}, { src: bufs[cur].tex }, small);
+          draw('down', {}, { src: from.tex }, small);
         }
-        draw(name, vals, { src: bufs[cur].tex, prev: (prev || bufs[cur]).tex, small: small.tex }, bufs[nxt]);
-        [cur, nxt] = [nxt, cur];
+        pass(name, vals, { src: from.tex, prev: (prev || from).tex, small: small.tex });
       }
-      prevAt = cur;
-      return bufs[cur];
+      // nothing drawn (only feedback or trails asked for, and no frame before this one): they need a first frame to read
+      if (done < 0) pass('cover', { cNew: FULL, cOld: FULL, mixv: 1 }, { tOld: smooth.tex, tNew: smooth.tex });
+      prevAt = done;
+      return from;
     }
     const present = () => { if (last) draw('final', last.vals, last.texs, null); };
     return {
       // f: {a, b, front (elements), oA, oB (their opacity), mA, mB (their motion), tau, dt, fx, k, br, sat, master,
-      //     layers: [{el, screen} or null], size (the canvas), rect (the picture's place on it, as shares),
-      //     fxSize, smoothSize (buffers)}
+      //     layers: [{el, screen} or null], view (the canvas in CSS pixels), dpr (device pixels per CSS pixel),
+      //     rect (the picture's place on the canvas, as shares), fxSize, smoothSize (the buffers at their largest)}
       draw(f) {
         for (const el of [f.a, f.b]) { if (!pics.has(el)) pics.set(el, pic()); load(pics.get(el), el); }
         const A = pics.get(f.a), B = pics.get(f.b), front = pics.get(f.front), back = front === A ? B : A;
-        const [w, h] = f.size;
+        const p = f.fx, k = p ? f.k : 0, on = f.layers.map(l => l && l.el.width ? l : null);
+        // #210: the canvas is as fine as the finest thing on it – a picture covering its place at its own resolution, the
+        // effects' buffer, a touch layer – and never finer than the screen: every pixel more is work the AI waits for
+        const [vw, vh] = f.view, bw = vw * f.rect[2], bh = vh * f.rect[3], own = q => q.w ? Math.min(q.w / bw, q.h / bh) : 0;
+        const fine = Math.min(f.dpr, Math.max(own(A), own(B), k > 0 ? f.fxSize[0] / bw : 0, ...on.map(l => l ? l.el.width / bw : 0)) || f.dpr);
+        const [w, h] = Fx.fit(vw * fine, vh * fine, 2560);
         if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; shown = ''; }
         if (!front.w) { smoothReady = false; prevAt = -1; gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); last = null; return; }
         const smoothing = f.tau > 0.02;
         if (smoothing) {                                 // a little of the newest picture into what is shown
-          const [sw, sh] = f.smoothSize;
+          const ks = Math.min(1, own(front) * bw / f.smoothSize[0]);   // no finer than the picture itself
+          const sw = Math.max(2, Math.round(f.smoothSize[0] * ks)), sh = Math.max(2, Math.round(f.smoothSize[1] * ks));
           if (fit(smooth, sw, sh)) smoothReady = false;
-          const share = smoothReady ? 1 - Math.exp(-f.dt / Math.max(0.016, f.tau)) : 1;
-          gl.enable(gl.BLEND); gl.blendColor(0, 0, 0, share); gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
-          draw('cover', { cNew: cover(front.w, front.h, sw, sh), cOld: FULL, mixv: 1 }, { tOld: front.tex, tNew: front.tex }, smooth);
-          gl.disable(gl.BLEND); smoothReady = true;
+          if (!smoothReady || smoothOf !== front.tex || smooth.n !== front.n) rest = 1;   // a new picture to catch up with
+          smoothOf = front.tex; smooth.n = front.n;
+          if (rest > SETTLED) {                          // once it has caught up, it rests until the next picture
+            const share = smoothReady ? 1 - Math.exp(-f.dt / Math.max(0.016, f.tau)) : 1;
+            gl.enable(gl.BLEND); gl.blendColor(0, 0, 0, share); gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
+            draw('cover', { cNew: cover(front.w, front.h, sw, sh), cOld: FULL, mixv: 1 }, { tOld: front.tex, tNew: front.tex }, smooth);
+            gl.disable(gl.BLEND); smoothReady = true; rest *= 1 - share; shown = '';
+          }
         } else smoothReady = false;
-        const p = f.fx, k = p ? f.k : 0;
         let result = null;
         if (k > 0) result = effects({ ...f, smoothing, mix: f.front === f.a ? f.oA : f.oB }, front, back); else prevAt = -1;
         const lay = [0, 0, 0];
-        f.layers.forEach((l, i) => {
-          if (!l || !l.el.width) return;
+        on.forEach((l, i) => {
+          if (!l) return;
           gl.bindTexture(gl.TEXTURE_2D, layerTex[i]); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, l.el); lay[i] = l.screen ? 2 : 1;
         });
@@ -307,31 +323,30 @@ void main() {
         const vals = { cA: A.w ? cover(A.w, A.h, ...box) : FULL, cB: B.w ? cover(B.w, B.h, ...box) : FULL, mA: f.mA, mB: f.mB, mF: f.front === f.a ? f.mA : f.mB,
           rect: f.rect, box, oA: A.w ? f.oA : 0, oB: B.w ? f.oB : 0, smoothOn: smoothing ? 1 : 0, k, inv, br: f.br, master: f.master, lay,
           hue: hueMatrix(hue), sat: satMatrix(f.sat) };
-        // a still picture (no motion, fade, smoothing, effect or layer at work) is not drawn again
-        const still = !smoothing && !result && !lay.some(Boolean) ? JSON.stringify(vals) : '';
+        // a still picture (no motion or fade, the smoothing caught up, no effect or layer at work) is not drawn again
+        const still = (!smoothing || rest <= SETTLED) && !result && !lay.some(Boolean) ? JSON.stringify(vals) : '';
         if (still && still === shown) return;
-        shown = still;
+        shown = still; drawn++;
         last = { vals, texs: { tA: A.tex, tB: B.tex, tS: smooth.tex, tF: (result || smooth).tex, tL0: layerTex[0], tL1: layerTex[1], tL2: layerTex[2] } };
         present();
       },
       present,                                         // the last picture once more (a copy of the canvas needs it fresh)
+      get drawn() { return drawn; },                   // how many frames were really drawn
       lost: () => gl.isContextLost(),
     };
   }
 
   // ---------- one view: the elements of a page, drawn by the chain or – without WebGL 2 – by fx.js as before ----------
   // o: {box, a, b, smooth, fx, gl (elements), layers: [{el, screen, on()}], contain (the picture letterboxed in the
-  //     window), fxMax, smoothMax (buffer widths), webgl (true: draw with WebGL 2 – the address ?render=webgl asks
-  //     for it too; otherwise Canvas 2D: on a Mac the WebGL chain shares the graphics card with the AI and costs it
-  //     about 40 % of its pictures, so it stays opt-in until it draws lighter), canvas (true: never WebGL),
-  //     software (true: a software WebGL counts too), random, onRenderer(name, why)}
+  //     window), fxMax, smoothMax (buffer widths), canvas (true: never WebGL – the address ?render=canvas asks for
+  //     that too), software (true: a software WebGL counts too), random, onRenderer(name, why)}
   function create(o) {
     const { box, a, b, smooth, fx, gl: glcv, layers = [], fxMax = 960, smoothMax = 1920, random = Math.random } = o;
     const engine = Fx.create(fx, fxMax, random), smoother = Fx.smoother(smooth, smoothMax);
     const stacked = [a, b, smooth, fx, ...layers.map(l => l.el)];
     const asked = new URLSearchParams(location.search).get('render');
-    const canvasOnly = o.canvas || asked === 'canvas' || !(o.webgl || asked === 'webgl');
-    let chain = null, master = null, front = a, fxK = 0, rect = [0, 0, 1, 1];
+    const canvasOnly = o.canvas || asked === 'canvas';
+    let chain = null, master = null, front = a, fxK = 0, rect = [0, 0, 1, 1], drawnAt = -1e9, owed = 0;
     // the picture's place in the window when it is shown letterboxed ("contain")
     function place(el) {
       const iw = front.naturalWidth || 16, ih = front.naturalHeight || 9, s = Math.min(innerWidth / iw, innerHeight / ih);
@@ -378,17 +393,20 @@ void main() {
       rect = [fx.offsetLeft / cw, fx.offsetTop / ch, Math.max(1, pw) / cw, Math.max(1, ph) / ch];
       chain.draw({ a, b, front, oA: +getComputedStyle(a).opacity, oB: +getComputedStyle(b).opacity, mA: motion(a), mB: motion(b),
         tau: f.tau, dt: f.dt, fx: f.fx, k: fxK, br: f.br, sat: f.sat, master, layers: layers.map(l => l.on() ? l : null),
-        size: Fx.fit(cw * dpr, ch * dpr, 2560), rect, fxSize: Fx.fit(pw, ph, fxMax), smoothSize: Fx.fit(pw, ph, smoothMax) });
+        view: [cw, ch], dpr, rect, fxSize: Fx.fit(pw, ph, fxMax), smoothSize: Fx.fit(pw, ph, smoothMax) });
     }
     return {
       // one screen frame. f: {front (the picture element now shown), now (ms), dt (s), tau (smoothing, s), fx (the
       // effects' numbers as fx.js takes them, or null), k (how much of the effects shows, 0…1), sc (zoom of the whole
-      // box), br, sat (brightness and saturation, 1 = unchanged), master (0…1)}
+      // box), br, sat (brightness and saturation, 1 = unchanged), master (0…1), fps (#210: the WebGL chain draws at
+      // most this often – a preview beside the real output; 0 or missing: every frame)}
       draw(f) {
         front = f.front; fxK = f.fx ? Math.max(0, Math.min(1, f.k)) : 0;
         box.style.transform = f.sc !== 1 ? `scale(${f.sc.toFixed(4)})` : '';
         if (!chain) { drawCanvas(f, front === a ? b : a); return; }
-        try { drawGl(f); } catch (e) { console.warn('Dream: WebGL 2 drawing failed –', e); turnTo(null, 'error'); }
+        if (f.fps > 0 && f.now - drawnAt < 1000 / f.fps - 4) { owed += f.dt; return; }   // its time counts for the next one
+        const dt = f.dt + owed; owed = 0; drawnAt = f.now;
+        try { drawGl(dt === f.dt ? f : { ...f, dt }); } catch (e) { console.warn('Dream: WebGL 2 drawing failed –', e); turnTo(null, 'error'); }
       },
       // what the audience sees right now, drawn into another canvas (the movement detection looks at it)
       snapshot(ctx, w, h) {
@@ -398,6 +416,7 @@ void main() {
         if (fx.width && fxK > 0.02) { ctx.globalAlpha = fxK; ctx.drawImage(fx, 0, 0, w, h); ctx.globalAlpha = 1; }
       },
       get renderer() { return chain ? 'webgl2' : 'canvas'; },
+      get drawn() { return chain ? chain.drawn : 0; },   // frames the WebGL chain really drew (it skips still ones)
     };
   }
   return { create };

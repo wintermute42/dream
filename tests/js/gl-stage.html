@@ -33,7 +33,7 @@
     c.strokeStyle = n ? '#00e0ff' : '#ff4060'; c.lineWidth = 3; c.beginPath(); c.arc(w * 0.7, h * 0.45, h * 0.3, 0, 7); c.stroke();
     return cv.toDataURL('image/png');
   }
-  const PICS = [picture(0), picture(1), picture(0, 256, 256)];
+  const PICS = [picture(0), picture(1), picture(0, 256, 256), picture(1, 640, 360)];
   const rng = seed => () => { seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   // the elements of a page (as index.html and output.html have them) and their view
   function stage(opts) {
@@ -94,6 +94,7 @@
     'motion under effects': [{ motion: { a: { z: 0.15, r: 0, px: 0.4, py: 0.5 } }, fx: P({ amts: { kaleido: 0.8 } }), k: 0.8 }],
     smoothing: [0, 1, 1, 1].map(n => ({ pics: [0, n], front: n ? 'b' : 'a', tau: 0.2, dt: 0.05 })),
     'smoothing under effects': [0, 1, 1].map(n => ({ pics: [0, n], front: n ? 'b' : 'a', tau: 0.3, dt: 0.1, fx: P({ amts: { waves: 0.8 } }), k: 0.8 })),
+    'smoothing under trails': [0, 1, 1].map(n => ({ pics: [0, n], front: n ? 'b' : 'a', tau: 0.3, dt: 0.1, fx: P({ amts: { trails: 0.9 } }), k: 1 })),
     'touch layers': [{ layers: true }],
     'touch layers under effects': [{ layers: true, fx: P({ amts: { rgb: 0.8 } }), k: 0.5 }],
     'brightness and saturation': [{ br: 1.35, sat: 1.3 }],
@@ -126,7 +127,7 @@
   }
   const report = { cases: [], error: '' };
   try {
-    const plain = stage({ canvas: true }), cv2d = stage({ canvas: true }), gl = stage({ software: true, webgl: true });
+    const plain = stage({ canvas: true }), cv2d = stage({ canvas: true }), gl = stage({ software: true });
     report.renderer = gl.view.renderer; report.forced = cv2d.view.renderer;
     await play(plain, [{}]); const untouched = pixels(stacked(plain, { front: plain.a, now: 1300 }));
     for (const [name, frames] of Object.entries(CASES)) {
@@ -139,6 +140,27 @@
       const row = document.body.appendChild(document.createElement('p'));
       row.append(name, document.createElement('br'), want, ' ', got); row.style.cssText = 'color:#ccc;font:12px sans-serif;margin:8px';
     }
+    // #210: the chain draws sparingly – nothing when nothing moves, the smoothing rests once it has caught up, a
+    // preview draws at the rate it is given, and the canvas is only as fine as what it shows
+    const sp = stage({ software: true }), spare = report.sparing = {};
+    const frame = extra => ({ front: sp.a, now: 1300, dt: 0.1, tau: 0, fx: null, k: 0, sc: 1, br: 1, sat: 1, master: 1, ...extra });
+    const count = (n, f) => { const before = sp.view.drawn; for (let i = 0; i < n; i++) sp.view.draw(f(i)); return sp.view.drawn - before; };
+    await play(sp, [{}]);
+    spare.still = count(5, () => frame());
+    spare.changed = count(1, () => frame({ br: 1.2 }));
+    await play(sp, [{ tau: 0.2, dt: 0.1 }, { pics: [0, 1], front: 'b', tau: 0.2, dt: 0.1 }]);   // smoothed, then a new picture
+    spare.settling = count(60, () => frame({ front: sp.b, tau: 0.2 }));
+    spare.settled = count(20, () => frame({ front: sp.b, tau: 0.2 }));
+    const rested = canvas(); sp.view.snapshot(rested.getContext('2d'), W, H);
+    await play(plain, [{ pics: [0, 1], front: 'b' }]);
+    spare.caughtUp = differ(pixels(stacked(plain, { front: plain.b, now: 1300 })), pixels(rested)).mean;
+    await loaded(sp.a, PICS[1]); await loaded(sp.b, PICS[0]);
+    spare.woken = count(5, () => frame({ front: sp.b, tau: 0.2 }));
+    spare.limited = count(30, i => frame({ now: 5000 + i * 16.7, br: 1 + i / 100, fps: 30 }));
+    await play(sp, [{ pics: [2, 2] }]); spare.square = [sp.gl.width, sp.gl.height];
+    await play(sp, [{ pics: [2, 2], fx: P({ amts: { kaleido: 0.8 } }), k: 1 }]); spare.effects = [sp.gl.width, sp.gl.height];
+    await play(sp, [{ pics: [3, 3] }]); spare.large = [sp.gl.width, sp.gl.height];
+    sp.box.remove();
     // the context goes away: the same view draws with Canvas 2D; it comes back: WebGL 2 again
     const ctx = gl.gl.getContext('webgl2'), lose = ctx && ctx.getExtension('WEBGL_lose_context'), said = [];
     if (lose) {

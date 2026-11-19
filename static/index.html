@@ -2979,6 +2979,9 @@
       notice = T('The graphics card’s drawing (WebGL 2) stopped – Dream draws with Canvas 2D now.'); noticeUntil = performance.now() + 8000; status(notice); chips();
     } });
   const smoothTau = () => Math.pow(+$('smooth').value, 1.5) * 1.6;      // 0 … 1.6 s
+  // #210: while an output window shows the audience the picture, the one beside the panel is a preview – the graphics
+  // card draws it half as often and has more time for the AI
+  const previewFps = () => outViewers > 0 && !bodyHas('hide') && !bodyHas('stage-only') ? 30 : 0;
   let smoothSentAt = 0;
   Object.assign(ap, { fxSet: [], fxTarget: {}, fxAmts: {}, fxHist: [], fxPhrase: 0, fxSeed: 1, hueDeg: 0, inv: 0, invAt: -1e9 });
   function apFxPick(byHand) {
@@ -3086,7 +3089,7 @@
     const k = on ? clamp(top * 1.6, 0, 1) : 0, now = performance.now();
     // pure camera (#111): no smoothing, zoom or brightness of Dream's own – only the chosen effects
     const plain = bodyHas('pure'), tau = smoothTau();
-    view.draw({ front, now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master });
+    view.draw({ front, now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master, fps: previewFps() });
     if ((outViewers || $('syphon').checked) && outWs && outWs.readyState === 1 && now - smoothSentAt > 1000) {
       outWs.send(JSON.stringify({ smooth: +tau.toFixed(3) })); smoothSentAt = now;
     }
