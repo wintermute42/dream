@@ -9,7 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="/static/icons/logo.svg">
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <style>
-  /* #201: a dream window – an old phone or tablet; the dream's living things drift through it and on to the others */
+  /* #201, #214: a dream window – an old phone or tablet. One large, living motif, the dream around it as drifting clouds */
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: manipulation; }
   canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
   #hint { position: fixed; left: 50%; bottom: max(18px, env(safe-area-inset-bottom)); transform: translateX(-50%);
@@ -20,6 +20,8 @@
 <script src="/static/common.js" data-hide-key></script><!-- #175: the key stays in the cookie, not in the address bar; and what the pages share -->
 <script src="/static/i18n.js"></script>
 <script src="/static/dreamlife.js"></script>
+<script src="/static/dreameye.js"></script>
+<script src="/static/dreamface.js"></script>
 </head>
 <body>
 <canvas id="cv" aria-label="A window to the dream"></canvas>
@@ -34,33 +36,50 @@
   const lerp = (a, b, k) => a + (b - a) * k, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ease = x => x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2;
   const { hueOf, draw: drawLife, SCALE } = DreamLife;
-  // ---------- what Dream tells this window ----------
-  const st = { index: 0, of: 1, pulse: 0, master: 1, wave: -1e9, blush: -1e9, trance: -1e9 };
-  const dream = { cur: null, prev: null, at: 0, col: [120, 90, 170] };
-  const faces = { urls: [], imgs: {} };
-  const life = [];                                     // the living things in this window right now
-  const small = document.createElement('canvas'); small.width = small.height = 8;
-  function analyse(img) {                              // the dream's colour, from an 8×8 copy
-    const s = small.getContext('2d'); s.drawImage(img, 0, 0, 8, 8);
-    const d = s.getImageData(0, 0, 8, 8).data;
-    let r = 0, gg = 0, b = 0;
-    for (let i = 0; i < 64; i++) { r += d[i * 4]; gg += d[i * 4 + 1]; b += d[i * 4 + 2]; }
-    dream.col = [r / 64, gg / 64, b / 64];
-  }
+  const canvas = (w, h = w) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   function rng(seed) {                                 // the same random numbers from the same seed (mulberry32)
     let a = seed >>> 0;
     return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   }
-  const KINDS = new Set(['cloud', 'moth', 'eye', 'eyes', 'symbol', 'bubbles', 'aurora', 'picture', 'orbit', 'mandala', 'bloom', 'tree', 'kaleido', 'face']);
-  const EDGES = new Set(['left', 'right', 'top', 'bottom', 'in']);
-  function sow(m, t) {                                 // a seed from Dream: a living thing comes in (or blooms here)
+  const hash = (seed, k) => rng((seed ^ Math.imul(k + 1, 0x9E3779B1)) >>> 0)();   // one random number for a seed and a moment
+  // ---------- what Dream tells this window ----------
+  const st = { index: 0, of: 1, pulse: 0, master: 1, wave: -1e9, blush: -1e9, trance: -1e9, ahead: 0 };
+  const now = () => Date.now() + st.ahead;             // Dream's clock: all windows breathe, look and blink by it
+  const dream = { cur: null, prev: null, at: 0, col: [120, 90, 170], lum: 0.4 };
+  const faces = { urls: [], set: {}, marks: {} };      // the painted faces: their pictures, and where each has its eyes, brows, mouth
+  const life = [];                                     // the small beings in this window right now
+  const motif = { cur: null, next: null };             // the one large motif, and what forms once it has dissolved
+  const MOTIFS = new Set(['eye', 'pair', 'face', 'penrose', 'stairs', 'fork', 'cube', 'third', 'mandala']);
+  const FORM = 4000;                                   // ms a motif takes to form out of clouds, or to dissolve into them
+  const small = canvas(8), smallG = small.getContext('2d', { willReadFrequently: true });
+  function analyse(img) {                              // the dream's colour and brightness, from an 8×8 copy
+    smallG.drawImage(img, 0, 0, 8, 8);
+    const d = smallG.getImageData(0, 0, 8, 8).data;
+    let r = 0, gg = 0, b = 0;
+    for (let i = 0; i < 64; i++) { r += d[i * 4]; gg += d[i * 4 + 1]; b += d[i * 4 + 2]; }
+    dream.col = [r / 64, gg / 64, b / 64];
+    dream.lum = (0.2126 * r + 0.7152 * gg + 0.0722 * b) / 64 / 255;
+  }
+  const KINDS = new Set(['cloud', 'moth', 'bubbles', 'aurora']);
+  const EDGES = new Set(['left', 'right', 'top', 'bottom']);
+  function sow(m, t) {                                 // a seed from Dream: a small being of light drifts through
     if (!m || !KINDS.has(m.kind) || !EDGES.has(m.enter) || !EDGES.has(m.exit)) return;
     if (life.length >= room()) return;                 // a weak device shows fewer at once
     const r = rng(+m.seed || 1);
-    life.push({ kind: m.kind, variant: String(m.variant || ''), enter: m.enter, exit: m.exit, born: t,
+    life.push({ kind: m.kind, enter: m.enter, exit: m.exit, born: t,
       life: clamp(+m.life || 10, 3, 30) * 1000, hueOff: clamp(+m.hue || 0, -90, 90), sizeK: clamp(+m.size || 1, 0.5, 1.5),
       u: [r(), r(), r(), r()], spin: (r() < 0.5 ? -1 : 1) * (0.5 + r()), puffs: Array.from({ length: 7 }, () => [r() - 0.5, r() - 0.5, 0.35 + r() * 0.45]),
-      wob: r() * 6.28, face: faces.urls.length ? faces.urls[(r() * faces.urls.length) | 0] : null });
+      wob: r() * 6.28 });
+  }
+  const FACE_URL = /^\/eyes\/mask\/[0-9a-f]{12}\.jpg$/;
+  function show(m, t) {                                // Dream says what this window shows: the old motif dissolves, then this one forms
+    if (!m || !MOTIFS.has(m.kind)) return;
+    if (m.kind === 'face' && !FACE_URL.test(m.face)) return;
+    if (Number.isFinite(+m.now)) st.ahead = +m.now - Date.now();
+    const cur = motif.cur;
+    if (cur && !cur.left) cur.left = t - (1 - Math.min(1, (t - cur.born) / FORM)) * FORM;   // half formed: it dissolves from there
+    motif.next = { kind: m.kind, seed: (+m.seed || 1) >>> 0, half: m.half === 1 ? 1 : m.half === 0 ? 0 : null, face: m.face || null,
+      at: t + clamp(+m.wait || 0, 0, 60) * 1000 };
   }
   function connect() {
     const ws = new WebSocket(`ws://${location.host}/view?as=window`);
@@ -78,18 +97,23 @@
         return;
       }
       let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-      const now = performance.now();
+      const t = performance.now();
       if (m.window) { st.index = +m.window.index || 0; st.of = +m.window.of || 1; }
-      if (m.life) sow(m.life, now);
-      if (m.wave) st.wave = now + (+m.wave.index || 0) * 320;   // a wave reaches this window in its turn
-      if (m.mood && m.mood.kind === 'trance') st.trance = now;
-      if (m.mood && m.mood.kind === 'blush') st.blush = now + (+m.mood.index || 0) * 300;
+      if (m.motif) show(m.motif, t);
+      if (m.life) sow(m.life, t);
+      if (m.wave) st.wave = t + (+m.wave.index || 0) * 320;   // a wave reaches this window in its turn
+      if (m.mood && m.mood.kind === 'trance') st.trance = t;
+      if (m.mood && m.mood.kind === 'blush') st.blush = t + (+m.mood.index || 0) * 300;
       if (m.fx) st.pulse = Math.max(st.pulse, clamp(+m.fx.pulse || 0, 0, 1) * clamp(+m.fx.k || 0, 0, 1) + clamp(+m.fx.bass || 0, 0, 1) * 0.3);
       if ('pulse' in m) st.pulse = Math.max(st.pulse, clamp(+m.pulse || 0, 0, 1));
       if ('master' in m) st.master = clamp(+m.master, 0, 1);
       if (m.aimasks) {
-        faces.urls = Object.values(m.aimasks).filter(u => typeof u === 'string' && /^\/eyes\/mask\/[0-9a-f]{12}\.jpg$/.test(u));
-        for (const u of Object.keys(faces.imgs)) if (!faces.urls.includes(u)) delete faces.imgs[u];
+        faces.urls = Object.values(m.aimasks).filter(u => typeof u === 'string' && FACE_URL.test(u));
+        for (const u of Object.keys(faces.set)) if (!faces.urls.includes(u) && !(motif.cur && motif.cur.face === u) && !(motif.next && motif.next.face === u)) delete faces.set[u];
+      }
+      if (m.marks && typeof m.marks === 'object') {    // where a painted face has its eyes, brows and mouth – found once, on Dream's Mac
+        for (const [id, pts] of Object.entries(m.marks)) if (/^[0-9a-f]{12}$/.test(id) && Array.isArray(pts) && pts.length === 2 * DreamFace.PICK.length) faces.marks[id] = pts;
+        for (const id of Object.keys(faces.marks)) if (!faces.urls.some(u => u.includes(id)) && !(motif.cur && motif.cur.face && motif.cur.face.includes(id))) delete faces.marks[id];
       }
     };
     ws.onclose = ev => {
@@ -98,25 +122,24 @@
     };
   }
   // ---------- screen, fullscreen, staying awake ----------
+  // a weak device draws with fewer pixels (res) and less detail (tier: 2 all of it, 1 less, 0 the least) until it keeps up
   let W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2), res = 1, slowSince = 0, fastSince = 0;
+  const STEPS = [1, 0.75, 0.5, 0.36];                  // pixels per pixel of the screen, step by step
+  const tier = () => res >= 1 ? 2 : res >= 0.75 ? 1 : 0;
+  const layer = canvas(2), lg = layer.getContext('2d');   // a motif that forms, dissolves or dims is drawn here first
   function size() {
     W = innerWidth; H = innerHeight;
     const k = dpr * res; cv.width = Math.round(W * k); cv.height = Math.round(H * k); g.setTransform(k, 0, 0, k, 0, 0);
   }
   addEventListener('resize', size); size();
-  let lock = null, vid = null;
-  async function awake() {
-    try { if ('wakeLock' in navigator && !lock) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); return; } } catch (e) { /* not on http: the video below */ }
-    if (!vid) { vid = Object.assign(document.createElement('video'), { muted: true, loop: true, playsInline: true, src: '/static/awake.webm' }); vid.setAttribute('playsinline', ''); vid.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0'; document.body.append(vid); }
-    vid.play().catch(() => {});
-  }
+  const keepAwake = DreamCommon.wakeLock(true);        // the screen stays on (over http: a tiny silent video)
   addEventListener('click', () => {
-    awake();
+    keepAwake();
     const d = document.documentElement, fs = d.requestFullscreen || d.webkitRequestFullscreen;
     if (fs && !document.fullscreenElement && !document.webkitFullscreenElement) { try { fs.call(d); } catch (e) { /* not on this device */ } }
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) awake(); });
-  // ---------- drawing helpers ----------
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
+  // ---------- the dream's picture ----------
   function cover(c, img, x, y, w, h, zoom = 1, cx = 0.5, cy = 0.5) {   // a picture filling a box, zoomed around (cx, cy)
     const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
     if (!iw || !ih) return;
@@ -130,131 +153,379 @@
     if (dream.prev && k < 1) cover(c, dream.prev, x, y, w, h, zoom, cx, cy);
     c.globalAlpha = a0 * k; cover(c, dream.cur, x, y, w, h, zoom, cx, cy); c.globalAlpha = a0;
   }
-  // a soft-edged round piece (part of the dream, a kaleidoscope, a painted face): drawn small off screen, its edge
-  // dissolved once by a soft light, then put on the screen – no hard edge anywhere
-  const soft = document.createElement('canvas'), sg = soft.getContext('2d'), SOFT = 192;
-  soft.width = soft.height = SOFT;
-  const EDGE = DreamLife.softLight([[0, 'rgba(0,0,0,1)'], [0.62, 'rgba(0,0,0,1)'], [1, 'rgba(0,0,0,0)']], SOFT);
-  function softPiece(paint, x, y, r, al, oval = 1) {
-    sg.globalCompositeOperation = 'source-over'; sg.globalAlpha = 1; sg.clearRect(0, 0, SOFT, SOFT);
-    paint(sg, SOFT);
-    sg.globalCompositeOperation = 'destination-in'; sg.drawImage(EDGE, 0, 0);
-    g.globalAlpha = al; g.drawImage(soft, x - r, y - r * oval, r * 2, r * 2 * oval); g.globalAlpha = 1;
+  // the motifs take the dream from a small square copy, made once per frame: an iris, the faces of an impossible shape
+  // and the folds of a mandala draw it many times over
+  const pic = canvas(256), picG = pic.getContext('2d');
+  function picTick() {
+    const n = tier() > 1 ? 384 : 256;
+    if (pic.width !== n) pic.width = pic.height = n;
+    picG.globalAlpha = 1;
+    if (dream.cur) dreamPic(picG, 0, 0, n, n, 1, 0.5, 0.5); else { picG.fillStyle = '#0a0812'; picG.fillRect(0, 0, n, n); }
   }
-  function kaleido(c, n, t, seed) {                    // the dream folded into a turning eightfold kaleidoscope
-    if (!dream.cur) return;
-    const R = n / 2, k = 8, rot = t / 9000 + seed;
+  // ---------- #214: clouds. Noise that repeats at its edges, made once; the dream is seen through fields of it ----------
+  const NOISE = (navigator.hardwareConcurrency || 4) <= 2 ? 128 : 256;
+  function fbm(seed) {                                 // five octaves of soft noise, 0–1
+    const N = NOISE, r = rng(seed), out = new Float32Array(N * N);
+    for (let o = 0, amp = 1; o < 5; o++, amp *= 0.5) {
+      const cells = 3 << o, grid = Float32Array.from({ length: cells * cells }, r);
+      for (let y = 0; y < N; y++) {
+        const fy = y / N * cells, y0 = fy | 0, ty = fy - y0, sy = ty * ty * (3 - 2 * ty), ya = y0 * cells, yb = ((y0 + 1) % cells) * cells;
+        for (let x = 0; x < N; x++) {
+          const fx = x / N * cells, x0 = fx | 0, tx = fx - x0, sx = tx * tx * (3 - 2 * tx), x1 = (x0 + 1) % cells;
+          out[y * N + x] += amp * lerp(lerp(grid[ya + x0], grid[ya + x1], sx), lerp(grid[yb + x0], grid[yb + x1], sx), sy);
+        }
+      }
+    }
+    return out;
+  }
+  // a field of clouds from noise: white, opaque where the noise is among its highest `share`, with a soft edge
+  function field(noise, share, soft) {
+    const N = NOISE, sorted = Float32Array.from(noise).sort(), at = q => sorted[clamp(Math.round(q * (sorted.length - 1)), 0, sorted.length - 1)];
+    const lo = share >= 1 ? -1 : at(1 - share - soft), hi = share >= 1 ? -0.5 : share <= 0 ? 3 : at(1 - share + soft);
+    const c = canvas(N), x = c.getContext('2d'), im = x.createImageData(N, N), d = im.data;
+    for (let i = 0; i < N * N; i++) {
+      const u = share <= 0 ? 0 : clamp((noise[i] - lo) / (hi - lo || 1), 0, 1);
+      d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = 255 * u * u * (3 - 2 * u);
+    }
+    x.putImageData(im, 0, 0);
+    return c;
+  }
+  const nA = fbm(11), nB = fbm(23), nC = fbm(37);
+  const CLOUD = { thin: field(nA, 0.6, 0.1), full: field(nA, 0.82, 0.1), other: field(nB, 0.72, 0.12), wisp: field(nC, 0.45, 0.22) };
+  const EATEN = Array.from({ length: 7 }, (_, i) => field(nC, 1 - i / 6, 0.1));   // from whole (0) to gone (6): a motif dissolving
+  const FRINGE = field(nB, 0.6, 0.2);
+  const patterns = new Map();
+  // a field laid over a canvas of w×h, repeating: `span` of them side by side fill the longer side; shifted, turned
+  function tile(c, tex, w, h, span, ox, oy, rot) {
+    let p = patterns.get(tex);
+    if (!p) patterns.set(tex, p = c.createPattern(tex, 'repeat'));
+    const s = Math.max(w, h) / span / NOISE, far = (w + h) / s;
+    ox -= Math.floor(ox); oy -= Math.floor(oy);       // it repeats: the same picture, and small numbers however long the night
+    c.save(); c.translate(w / 2, h / 2); c.rotate(rot); c.scale(s, s); c.translate(ox * NOISE, oy * NOISE);
+    c.fillStyle = p; c.fillRect(-ox * NOISE - far, -oy * NOISE - far, far * 2, far * 2); c.restore();
+  }
+  const cl = canvas(2), cg = cl.getContext('2d'), mk = canvas(2), mg = mk.getContext('2d');
+  const VIGNETTE = (() => { const c = canvas(64), x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 12, 32, 32, 46);
+    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,.62)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return c; })();
+  const drift = Math.random() * 50;                    // every window has its own piece of the sky
+  let cloudAt = -1e9;
+  function clouds(t, breath) {                         // the dream, seen through drifting fields of cloud, darkness between
+    const q = [0.16, 0.24, 0.32][tier()] * Math.min(1.5, dpr), w = Math.max(48, Math.round(W * q)), h = Math.max(48, Math.round(H * q));
+    const resized = cl.width !== w || cl.height !== h;
+    if (resized) { cl.width = mk.width = w; cl.height = mk.height = h; }
+    if (!resized && tier() === 0 && t - cloudAt < 30) return;   // the weakest: every other frame is enough, clouds are slow
+    cloudAt = t;
+    const s = t / 1000 + drift * 40, swell = clamp(0.25 + 0.5 * breath + 0.6 * st.pulse, 0, 1);
+    cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'source-over'; cg.globalAlpha = 1; cg.clearRect(0, 0, w, h);
+    tile(cg, CLOUD.thin, w, h, 0.8, s / 46 + drift, s / 110, 0.2);
+    cg.globalAlpha = swell; tile(cg, CLOUD.full, w, h, 0.8, s / 46 + drift, s / 110, 0.2); cg.globalAlpha = 1;   // they swell with the breath and the beat
+    cg.globalCompositeOperation = 'destination-in';     // a second field drifts across and turns: where both are, the dream shows
+    tile(cg, CLOUD.other, w, h, 1.15, -s / 70 + drift * 0.7, s / 58, 1.1 + s / 150);
+    if (tier() > 0) { cg.globalCompositeOperation = 'destination-out'; cg.globalAlpha = 0.42; tile(cg, CLOUD.wisp, w, h, 2.2, s / 30, -s / 37 + drift, -0.7 - s / 240); cg.globalAlpha = 1; }   // fine wisps of dark in them
+    cg.globalCompositeOperation = 'destination-in'; cg.drawImage(VIGNETTE, 0, 0, w, h);
+    cg.globalCompositeOperation = 'source-atop';        // the dream into them: large, drifting slowly, another part in every window
+    const cx = 0.5 + 0.25 * Math.sin(t / 26000 + st.index * 1.7 + drift), cy = 0.5 + 0.25 * Math.cos(t / 33000 + st.index * 2.3 + drift);
+    if (dream.cur) dreamPic(cg, 0, 0, w, h, 1.3 + 0.15 * Math.sin(t / 19000 + st.index), cx, cy);
+    else { cg.fillStyle = '#17122a'; cg.fillRect(0, 0, w, h); }
+  }
+  // ---------- drawing helpers ----------
+  // a soft-edged round piece (a mandala of the dream): drawn small off screen, its edge dissolved once by a soft light
+  const soft = canvas(2), sg = soft.getContext('2d');
+  let EDGE = null, softAt = -1e9;
+  function softPiece(c, t, paint, x, y, r, al) {
+    const n = [192, 256, 384][tier()], fresh = soft.width !== n;
+    if (fresh) { soft.width = soft.height = n; EDGE = DreamLife.softLight([[0, 'rgba(0,0,0,1)'], [0.7, 'rgba(0,0,0,1)'], [1, 'rgba(0,0,0,0)']], n); }
+    if (fresh || t - softAt >= [70, 30, 0][tier()]) {   // it turns slowly: a weak device paints it less often
+      softAt = t;
+      sg.globalCompositeOperation = 'source-over'; sg.globalAlpha = 1; sg.clearRect(0, 0, n, n);
+      paint(sg, n);
+      sg.globalCompositeOperation = 'destination-in'; sg.drawImage(EDGE, 0, 0);
+    }
+    c.globalAlpha = al; c.drawImage(soft, x - r, y - r, r * 2, r * 2); c.globalAlpha = 1;
+  }
+  function kaleido(c, n, t, seed, k) {                 // the dream folded into a turning kaleidoscope of k wedges
+    const R = n / 2, rot = t / 9000 + seed;
     c.save(); c.translate(R, R);
     for (let i = 0; i < k; i++) {
       c.save(); c.rotate(rot + i * Math.PI * 2 / k); if (i % 2) c.scale(1, -1);
       c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R, -Math.PI / k - 0.02, Math.PI / k + 0.02); c.closePath(); c.clip();
-      cover(c, dream.cur, 0, -R / 2, R, R, 1.8, 0.5 + 0.3 * Math.sin(t / 7000 + seed), 0.5 + 0.2 * Math.cos(seed));
+      cover(c, pic, 0, -R / 2, R, R, 1.8, 0.5 + 0.3 * Math.sin(t / 7000 + seed), 0.5 + 0.2 * Math.cos(seed));
       c.restore();
     }
     c.restore();
   }
-  // a dreaming eye: its iris is the dream; blinks now and then, looks around (a pair looks and blinks together)
-  function eye(x, y, a, mirror, clock, env, open = 1) {
-    const b = a * 0.52, gx = Math.sin(clock / 3100) * 0.35 + Math.sin(clock / 1700) * 0.15, gy = Math.sin(clock / 4300) * 0.25;
-    const ph = (clock % 5300) / 5300, op = open * (1 - (ph > 0.96 ? Math.sin((ph - 0.96) / 0.04 * Math.PI) : 0));
-    if (op < 0.02) return;
-    g.save(); g.globalAlpha = env; g.translate(x, y); g.scale(mirror, 1);
-    const almond = () => { g.beginPath(); g.moveTo(-a, 0); g.quadraticCurveTo(0, -b * 2 * op, a, 0); g.quadraticCurveTo(0, b * 2 * op, -a, 0); g.closePath(); };
-    const glow = g.createRadialGradient(0, 0, a * 0.3, 0, 0, a * 1.4);   // a soft halo in the dream's colour
-    glow.addColorStop(0, `rgba(${dream.col[0] | 0},${dream.col[1] | 0},${dream.col[2] | 0},.35)`); glow.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = glow; g.fillRect(-a * 1.4, -a * 1.4, a * 2.8, a * 2.8);
-    g.save(); almond(); g.clip();
-    g.fillStyle = '#f3eef8'; g.fillRect(-a, -b * 2, a * 2, b * 4);
-    const ir = b * 0.95, ix = gx * a * 0.45, iy = gy * b * 0.35;
-    g.save(); g.beginPath(); g.arc(ix, iy, ir, 0, Math.PI * 2); g.clip();
-    g.translate(ix, iy); g.rotate(clock / 9000); if (dream.cur) cover(g, dream.cur, -ir, -ir, ir * 2, ir * 2, 1.2); g.restore();
-    const ring = g.createRadialGradient(ix, iy, ir * 0.55, ix, iy, ir);
-    ring.addColorStop(0, 'rgba(0,0,0,0)'); ring.addColorStop(1, `rgba(${dream.col[0] * 0.4 | 0},${dream.col[1] * 0.4 | 0},${dream.col[2] * 0.4 | 0},.85)`);
-    g.fillStyle = ring; g.beginPath(); g.arc(ix, iy, ir, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#06040a'; g.beginPath(); g.arc(ix, iy, ir * (0.38 + 0.12 * st.pulse), 0, Math.PI * 2); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(ix + ir * 0.3, iy - ir * 0.32, ir * 0.1, 0, Math.PI * 2); g.fill();
-    g.restore();
-    g.strokeStyle = '#1b0f22'; g.lineWidth = Math.max(1.5, a * 0.03); almond(); g.stroke();
-    g.strokeStyle = 'rgba(40,20,50,.9)'; g.lineWidth = Math.max(1, a * 0.012);   // lashes
-    for (let i = 0; i < 9; i++) {
-      const u = -0.8 + i * 0.2, lx = u * a, ly = -b * 2 * op * (1 - u * u) * 0.5;
-      g.beginPath(); g.moveTo(lx, ly); g.lineTo(lx * 1.08 + a * 0.05, ly - a * 0.12 * (0.6 + 0.4 * (1 - Math.abs(u)))); g.stroke();
-    }
-    g.restore();
+  function night(c, x, y, r, al) {                     // a soft darkness behind a motif: it stays the clearest thing in its window
+    const gr = c.createRadialGradient(x, y, r * 0.25, x, y, r);
+    gr.addColorStop(0, `rgba(5,4,10,${al})`); gr.addColorStop(1, 'rgba(5,4,10,0)');
+    c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2);
   }
-  // ---------- the living things: where they are, how they fade ----------
+  // ---------- the motifs. Each is drawn into c around the window's middle; m is what Dream said, with its own memory ----------
+  const mid = t => [W / 2 + Math.sin(t / 7100) * W * 0.012, H / 2 + Math.cos(t / 9300) * H * 0.012];   // it floats a little
+  // --- the large eye: the very eye of Dreamy Eyes (static/dreameye.js). When it looks where and when it blinks follows
+  // from its seed and Dream's clock, so the two eyes of a pair in two windows look and blink together
+  const fib = DreamEye.fibres(), irisStars = DreamEye.stars();
+  const LOOKS = Object.values(DreamEye.LOOKS), FEEL = Object.values(DreamEye.EMO), IRIS = ['dream', 'kaleido', 'vortex', 'galaxy'];
+  const flick = p => p < 0 || p >= 1 ? 0 : p < 0.45 ? p / 0.45 : 1 - (p - 0.45) / 0.55;   // a lid closing and opening
+  function eyeLife(m, dt, calm) {
+    const e = m.e || (m.e = { gx: 0, gy: 0, open: 0.1, pupil: 0.4, blink: 0, browAl: 0, brow: { inner: 0, peak: 0, outer: 0 } });
+    const clk = now(), s = m.seed, k = Math.floor(clk / 2600);
+    const straight = hash(s, k + 9000) < 0.3;          // now and then straight at whoever stands in front
+    const kk = 1 - Math.exp(-dt * 9);
+    e.gx = lerp(e.gx, straight ? 0 : (hash(s, k) * 2 - 1) * 0.8, kk); e.gy = lerp(e.gy, straight ? 0 : (hash(s, k + 5000) * 2 - 1) * 0.5, kk);
+    const b = Math.floor(clk / 3400), ph = clk - b * 3400 - hash(s, b + 31000) * 2600;
+    e.blink = Math.max(flick(ph / 170), hash(s, b + 32000) < 0.18 ? flick((ph - 430) / 170) : 0);   // sometimes twice
+    e.open = lerp(e.open, calm ? 0.5 : 0.82 + 0.18 * st.pulse, 1 - Math.exp(-dt * 2.5));
+    e.pupil = lerp(e.pupil, 0.54 - 0.3 * dream.lum + 0.1 * st.pulse, 1 - Math.exp(-dt * 1.6));   // wide in a dark dream, and with the beat
+    e.rot = (clk % 1e8) / 14000;
+    const w = Math.floor(clk / 28000);                 // the iris is a world of its own that changes now and then
+    e.iris = IRIS[hash(s, w + 41000) * 4 | 0]; e.irisPrev = IRIS[hash(s, w + 40999) * 4 | 0]; e.irisMix = Math.min(1, (clk - w * 28000) / 2500);
+    const f = Math.floor(clk / 19000), feels = hash(s, f + 51000) < 0.5 && clk - f * 19000 < 3600;   // a feeling: the brow comes
+    const want = feels ? FEEL[hash(s, f + 52000) * FEEL.length | 0][m.mirror ? 1 : 0] : null;
+    e.browAl = lerp(e.browAl, feels ? 1 : 0, 1 - Math.exp(-dt * (feels ? 7 : 2.5)));
+    for (const key in e.brow) e.brow[key] = lerp(e.brow[key], want ? want[key] : 0, 1 - Math.exp(-dt * 8));
+    return e;
+  }
+  function eyeDraw(c, m, e, cx, cy, a, look) {
+    const o = { rot: e.rot, hue: hueOf(dream.col), stars: irisStars, pic: (x, y, n, al) => { c.globalAlpha = al; c.drawImage(pic, x - n / 2, y - n / 2, n, n); } };
+    DreamEye.draw(c, cx, cy, a, a * 0.56, m.mirror, { open: e.open, blink: e.blink, grin: 0, squint: 0, col: dream.col, energy: 0.3 + 0.5 * st.pulse,
+      look, brow: e.brow, browAl: e.browAl, fib, gx: e.gx, gy: e.gy, pupil: e.pupil, pupilMix: 0,
+      iris: (ix, iy, R) => {
+        for (const [style, al] of [[e.irisPrev, 1 - e.irisMix], [e.iris, e.irisMix]]) if (al > 0.01) DreamEye.irisWorld(c, style, ix, iy, R, m.mirror, al, o);
+        c.globalAlpha = 1;
+      } });
+  }
+  function drawEye(c, m, t, dt) {
+    if (m.mirror === undefined) m.mirror = m.half === null ? (m.seed & 1) === 1 : m.half === 1;   // of a pair: the left one, the right one
+    const [cx, cy] = mid(t), a = Math.min(W * 0.38, H * 0.5) * (1 + 0.02 * st.pulse);
+    night(c, cx, cy + a * 0.12, a * 1.55, 0.7);
+    eyeDraw(c, m, eyeLife(m, dt, false), cx, cy + a * 0.12, a, LOOKS[m.seed % LOOKS.length]);
+  }
+  // --- the third eye: an eye in a triangle of light, a mandala turning behind it. In trance it opens in every window
+  function drawThird(c, m, t, dt) {
+    const [cx, cy0] = mid(t), R = Math.min(W, H) * 0.44 * (1 + 0.02 * st.pulse), cy = cy0 + R * 0.12, hue = hueOf(dream.col);
+    night(c, cx, cy, R * 1.2, 0.6);
+    c.save(); c.globalCompositeOperation = 'lighter';
+    drawLife(c, { kind: 'mandala', x: cx, y: cy, spin: -1, hue }, t, 0.5, R * 1.2, cy, { H });
+    c.lineCap = 'round'; c.lineWidth = Math.max(1, R * 0.014);
+    for (let k = 0; k < 24; k++) {                     // rays, breathing
+      const an = k * Math.PI / 12 + t / 30000, r0 = R * 1.08, r1 = R * (1.2 + 0.09 * Math.sin(t / 600 + k * 1.9));
+      c.strokeStyle = `hsla(${hue + 40 + k * 6},90%,72%,${0.35 + 0.2 * Math.sin(t / 900 + k)})`;
+      c.beginPath(); c.moveTo(cx + Math.cos(an) * r0, cy + Math.sin(an) * r0); c.lineTo(cx + Math.cos(an) * r1, cy + Math.sin(an) * r1); c.stroke();
+    }
+    c.restore(); c.globalAlpha = 1;
+    const tri = k => { c.beginPath(); for (let i = 0; i < 3; i++) { const an = -Math.PI / 2 + i * Math.PI * 2 / 3; c.lineTo(cx + Math.cos(an) * R * k, cy + Math.sin(an) * R * k); } c.closePath(); };
+    c.save(); tri(1); c.clip();                        // the dream inside the triangle, as in deep water
+    c.globalAlpha = 0.6; c.drawImage(pic, cx - R, cy - R, R * 2, R * 2); c.globalAlpha = 1;
+    c.fillStyle = 'rgba(6,4,14,.45)'; c.fillRect(cx - R, cy - R, R * 2, R * 2);
+    c.restore();
+    c.save(); c.globalCompositeOperation = 'lighter'; c.lineJoin = 'round';
+    for (const [w, al] of [[0.07, 0.1], [0.035, 0.22], [0.012, 0.85]]) { c.strokeStyle = `hsla(${hue + 30},95%,72%,${al})`; c.lineWidth = Math.max(1, R * w); tri(1); c.stroke(); }
+    c.strokeStyle = `hsla(${hue + 70},90%,70%,.3)`; c.lineWidth = Math.max(1, R * 0.008); tri(0.84); c.stroke();
+    c.restore();
+    const a = R * 0.33;
+    night(c, cx, cy, a * 1.5, 0.75);
+    m.mirror = false;
+    eyeDraw(c, m, eyeLife(m, dt, false), cx, cy + a * 0.08, a, DreamEye.LOOKS.golden);
+  }
+  // --- a mandala: the dream folded twelvefold (eightfold on a weak device), petals of light turning over it
+  function drawMandala(c, m, t) {
+    const [cx, cy] = mid(t), R = Math.min(W, H) * 0.47 * (1 + 0.03 * st.pulse), hue = hueOf(dream.col), ph = (m.seed % 628) / 100;
+    night(c, cx, cy, R * 1.12, 0.55);
+    softPiece(c, t, (sc, n) => kaleido(sc, n, t, ph, tier() ? 12 : 8), cx, cy, R, 1);
+    c.save(); c.globalCompositeOperation = 'lighter';
+    drawLife(c, { kind: 'mandala', x: cx, y: cy, spin: 1, hue }, t, 0.9, R * 0.8, cy, { H });
+    if (tier() > 0) drawLife(c, { kind: 'mandala', x: cx, y: cy, spin: -1.7, hue: hue + 60 }, t, 0.75, R * 0.42, cy, { H });
+    if (tier() > 1) drawLife(c, { kind: 'bloom', x: cx, y: cy, spin: 1, hue: hue + 120 }, t, 0.8, R * 0.2, cy, { H });
+    c.restore(); c.globalAlpha = 1;
+  }
+  // --- impossible shapes (DreamLife.impossible): slowly turning, every face filled with another part of the dream
+  function drawShape(c, m, t) {
+    const sh = DreamLife.impossible(m.kind), [cx, cy] = mid(t), S = Math.min(W, H) * 0.485 * (1 + 0.025 * st.pulse), hue = hueOf(dream.col);
+    const path = f => { c.beginPath(); for (const [x, y] of f.pts) c.lineTo(x * S, y * S); c.closePath(); };
+    night(c, cx, cy, S * 1.15, 0.6);
+    c.save(); c.translate(cx, cy); c.rotate((m.seed & 1 ? 1 : -1) * t / 1000 * Math.PI * 2 / 150 + m.seed % 7);   // once around in two and a half minutes
+    sh.faces.forEach((f, i) => {
+      c.save(); path(f); c.clip();
+      const n = S * 3.1, u = 0.5 + 0.14 * Math.sin(i * 2.1 + t / 9000), v = 0.5 + 0.14 * Math.cos(i * 1.3 + t / 11000);
+      const fill = al => { c.globalAlpha = al; c.drawImage(pic, -u * n, -v * n, n, n); c.globalAlpha = al * Math.min(0.86, f.shade * 1.2); c.fillStyle = '#05030c'; c.fillRect(-S * 1.1, -S * 1.1, S * 2.2, S * 2.2); };
+      if (f.fade) {                                    // a face that comes out of nothing: the paradox of the fork
+        let x0 = 1e9, x1 = -1e9;
+        for (const [x] of f.pts) { x0 = Math.min(x0, x * S); x1 = Math.max(x1, x * S); }
+        const cuts = tier() ? 8 : 4;
+        for (let k = 0; k < cuts; k++) { c.save(); c.beginPath(); c.rect(x0 + (x1 - x0) * k / cuts, -S * 1.1, (x1 - x0) / cuts + 0.6, S * 2.2); c.clip(); fill((k + 0.5) / cuts); c.restore(); }
+      } else fill(f.glass ? 0.2 : 1);
+      c.restore();
+    });
+    c.globalAlpha = 1; c.globalCompositeOperation = 'lighter'; c.lineJoin = 'round'; c.lineWidth = Math.max(1, S * 0.011);   // edges of light
+    sh.faces.forEach((f, i) => { c.strokeStyle = `hsla(${hue + 40 + i * 9 + t * 0.01},90%,74%,${f.fade ? 0.18 : f.glass ? 0.12 : f.wall ? 0.1 : 0.42})`; path(f); c.stroke(); });
+    if (sh.path) {                                     // a light walks the stairs – always upwards, never arriving
+      const n = sh.path.length, u = (t / 620) % n, k = u | 0, fr = u - k, [ax, ay] = sh.path[k], [bx, by] = sh.path[(k + 1) % n];
+      const x = lerp(ax, bx, ease(fr)) * S, y = (lerp(ay, by, ease(fr)) - 0.06 - 0.07 * Math.sin(fr * Math.PI)) * S, r = S * 0.11;
+      const gr = c.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, `hsla(${hue + 60},95%,90%,.95)`); gr.addColorStop(0.3, `hsla(${hue + 40},95%,70%,.5)`); gr.addColorStop(1, `hsla(${hue + 40},95%,60%,0)`);
+      c.fillStyle = gr; c.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    c.restore(); c.globalAlpha = 1;
+  }
+  // --- a painted face, alive: its points come with it (found once on Dream's Mac); this window moves them (blink, look,
+  // smile, brows, a slight turn) and draws the moved net of triangles. Without points the face is shown still.
+  const fringe = canvas(2), fg = fringe.getContext('2d');
+  function faceEdge(n, mx, my, t) {                    // the face's edge: whole in the middle, torn into cloud around – no square
+    if (fringe.width !== n) fringe.width = fringe.height = n;
+    const x = mx * n, y = my * n, ring = (r0, r1) => { const gr = fg.createRadialGradient(x, y, n * r0, x, y, n * r1); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); fg.fillStyle = gr; fg.fillRect(0, 0, n, n); };
+    fg.setTransform(1, 0, 0, 1, 0, 0); fg.globalCompositeOperation = 'source-over'; fg.clearRect(0, 0, n, n);
+    ring(0.3, Math.min(mx, my, 1 - mx, 1 - my) * 0.98);
+    fg.globalCompositeOperation = 'destination-in'; tile(fg, FRINGE, n, n, 0.9, t / 60000, t / 90000, 0.4);
+    fg.globalCompositeOperation = 'source-over'; ring(0.2, 0.36);
+    return fringe;
+  }
+  function faceLife(m, t, dt) {                        // what the face does next: by itself, with the beat, with Dreamy Eyes
+    const f = m.f || (m.f = { blink: 0, blinkAt: t + 1500, wink: -1, look: [0, 0], want: [0, 0], lookAt: 0, smile: 0, smileUntil: 0, smileNext: t + 4000 + Math.random() * 6000,
+      brow: [0, 0], browWant: [0, 0], kind: 0, kindWant: 0, browUntil: 0, browNext: t + 7000 + Math.random() * 6000, ph: Math.random() * 6 });
+    if (t > f.blinkAt) {
+      const p = (t - f.blinkAt) / 200;
+      f.blink = flick(p);
+      if (p >= 1) { f.blink = 0; f.blinkAt = t + (Math.random() < 0.15 ? 280 : 2200 + Math.random() * 4500); f.wink = Math.random() < 0.07 ? (Math.random() < 0.5 ? 0 : 1) : -1; }
+    }
+    if (t > f.lookAt) { f.want = Math.random() < 0.35 ? [0, 0] : [Math.random() * 2 - 1, (Math.random() * 2 - 1) * 0.7]; f.lookAt = t + 900 + Math.random() * 2800; }
+    const kl = 1 - Math.exp(-dt * 8);
+    f.look = [lerp(f.look[0], f.want[0], kl), lerp(f.look[1], f.want[1], kl)];
+    if (t > f.smileNext) { f.smileUntil = t + 3500 + Math.random() * 3500; f.smileNext = f.smileUntil + 8000 + Math.random() * 14000; }
+    const petted = t > st.blush && t - st.blush < 5000;   // Dreamy Eyes are petted: the faces smile along
+    f.smile = lerp(f.smile, petted ? 1 : t < f.smileUntil ? 0.75 : 0.06, 1 - Math.exp(-dt * 1.8));
+    if (t > f.browNext) {
+      const pick = Math.random() * 4 | 0;                // both up, one up, kind (the inner ends up), a little frown
+      f.browWant = pick === 0 ? [1, 1] : pick === 1 ? (Math.random() < 0.5 ? [1, 0] : [0, 1]) : pick === 2 ? [0.2, 0.2] : [-0.6, -0.6];
+      f.kindWant = pick === 2 ? 1 : 0; f.browUntil = t + 1600 + Math.random() * 2200; f.browNext = f.browUntil + 6000 + Math.random() * 12000;
+    }
+    const on = t < f.browUntil, kb = 1 - Math.exp(-dt * 6);
+    for (const k of [0, 1]) f.brow[k] = lerp(f.brow[k], on ? f.browWant[k] : 0.5 * st.pulse, kb);   // and they lift a little with the beat
+    f.kind = lerp(f.kind, on ? f.kindWant : 0, kb);
+    const closed = trance() > 0.3 ? 1 : 0;             // in trance the eyes close
+    return { blink: [Math.max(closed, f.wink === 1 ? 0 : f.blink), Math.max(closed, f.wink === 0 ? 0 : f.blink)], look: f.look, smile: f.smile, brow: f.brow, kind: f.kind,
+      turn: 0.7 * Math.sin(t / 4700 + f.ph) + 0.25 * Math.sin(t / 1900), nod: 0.6 * Math.sin(t / 6100 + f.ph * 2) };
+  }
+  function faceOf(url) {
+    let f = faces.set[url];
+    if (!f) { f = faces.set[url] = { img: new Image(), net: null, alive: false }; f.img.src = url; }
+    return f;
+  }
+  function drawFace(c, m, t, dt) {
+    const f = faceOf(m.face);
+    if (!f.img.complete || !f.img.naturalWidth) return;
+    const n = [256, 320, 448][tier()], pts = faces.marks[m.face.slice(11, 23)];
+    if (!f.net || f.net.size !== n || !!pts !== f.alive) {   // its net: made once (again when its points arrive, or for fewer pixels)
+      const net = pts && DreamFace.mesh(pts, f.img, n);
+      f.net = net || DreamFace.plain(f.img, n); f.alive = !!pts; f.net.moves = !!net; f.at = -1e9;
+    }
+    const net = f.net, e = faceLife(m, t, dt);
+    if (t - f.at >= [110, 60, 33][tier()]) {           // a weak device moves the face less often
+      f.at = t;
+      DreamFace.render(net, net.moves ? DreamFace.pose(net, tier() ? e : { ...e, turn: 0, nod: 0 }) : null, faceEdge(n, net.mid[0], net.mid[1], t));
+    }
+    const [cx, cy] = mid(t), breath = Math.sin(now() / 4500 * Math.PI * 2);
+    const side = Math.min(H * 1.3, W * 1.55) * (1 + 0.012 * breath + 0.02 * st.pulse), hue = hueOf(dream.col);
+    night(c, cx, cy, side * 0.44, 0.7);
+    c.save(); c.globalCompositeOperation = 'lighter';  // a glow of the dream's colour around it
+    const halo = c.createRadialGradient(cx, cy, side * 0.2, cx, cy, side * 0.5);
+    halo.addColorStop(0, `hsla(${hue},85%,60%,.22)`); halo.addColorStop(1, `hsla(${hue + 40},85%,60%,0)`);
+    c.fillStyle = halo; c.fillRect(cx - side / 2, cy - side / 2, side, side); c.restore();
+    c.save(); c.translate(cx, cy); c.rotate(0.035 * Math.sin(t / 5300 + m.seed % 9));   // the head tilts a little
+    c.drawImage(net.cv, -net.mid[0] * side, -net.mid[1] * side, side, side); c.restore();
+  }
+  const DRAW = { eye: drawEye, pair: drawEye, third: drawThird, mandala: drawMandala, face: drawFace, penrose: drawShape, stairs: drawShape, fork: drawShape, cube: drawShape };
+  // ---------- a motif forms out of clouds, stays, dissolves into them ----------
+  // drawn through a layer of its own whenever it is not simply there: eaten by a field of cloud as it comes or goes
+  // (p: how much of it is there, 0–1), or faded (al)
+  function throughLayer(m, t, dt, p, al) {
+    const k = dpr * res * (tier() ? 1 : 0.75), w = Math.round(W * k), h = Math.round(H * k);
+    if (layer.width !== w || layer.height !== h) { layer.width = w; layer.height = h; }
+    lg.setTransform(1, 0, 0, 1, 0, 0); lg.globalCompositeOperation = 'source-over'; lg.globalAlpha = 1; lg.clearRect(0, 0, w, h);
+    lg.setTransform(k, 0, 0, k, 0, 0);
+    DRAW[m.kind](lg, m, t, dt);
+    lg.setTransform(1, 0, 0, 1, 0, 0);
+    const [cx, cy] = mid(t);
+    if (p < 1) {
+      const f = (1 - p) * (EATEN.length - 1), i = Math.min(EATEN.length - 2, f | 0), mw = mk.width, mh = mk.height, s = t / 1000;
+      mg.setTransform(1, 0, 0, 1, 0, 0); mg.globalCompositeOperation = 'source-over'; mg.clearRect(0, 0, mw, mh);
+      for (const [tex, a] of [[EATEN[i], 1 - (f - i)], [EATEN[i + 1], f - i]]) { mg.globalAlpha = a; tile(mg, tex, mw, mh, 1.3 + 0.5 * p, s / 40 + drift, s / 90, 0.5); mg.globalCompositeOperation = 'lighter'; }
+      mg.globalAlpha = 1;
+      lg.globalCompositeOperation = 'destination-in'; lg.drawImage(mk, 0, 0, w, h);
+    }
+    const grow = 1 + 0.14 * (1 - p) ** 2;              // it widens as it goes, like smoke
+    g.save(); g.globalAlpha = al * Math.min(1, p * 1.8); g.translate(cx, cy); g.scale(grow, grow); g.drawImage(layer, -cx, -cy, W, H); g.restore();
+    if (p < 1) {                                       // and where it was, or will be, a mist glows in the dream's colours
+      const mist = Math.sin(p * Math.PI) * 0.26 * al, R = Math.min(W, H) * 0.42, hue = hueOf(dream.col);
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (let j = 0; j < 9; j++) {
+        const an = j * 2.4 + t / 5200, rr = R * (0.25 + 0.75 * hash(m.seed, j)) * (1.25 - 0.45 * p);
+        DreamLife.stamp(g, DreamLife.tinted(hue - 20 + j * 5), cx + Math.cos(an) * rr, cy + Math.sin(an) * rr * 0.8, R * (0.5 + 0.3 * hash(m.seed, j + 50)), mist);
+      }
+      g.restore(); g.globalAlpha = 1;
+    }
+  }
+  const there = (m, t) => Math.min(1, (t - m.born) / FORM) * (m.left ? Math.max(0, 1 - (t - m.left) / FORM) : 1);
+  const trance = () => { const tr = (performance.now() - st.trance) / 20000; return tr > 0 && tr < 1 ? Math.min(1, tr * 6, (1 - tr) * 5) : 0; };
+  const tranceEye = { kind: 'third', seed: 7, half: null };   // Dreamy Eyes in trance: here too the third eye opens
+  function drawMotif(t, dt) {
+    let m = motif.cur;
+    if (m && m.left && t - m.left >= FORM) m = motif.cur = null;
+    if (!m && motif.next && t >= motif.next.at) { m = motif.cur = motif.next; motif.next = null; m.born = t; }
+    const tr = trance(), p = m ? ease(there(m, t)) : 0, al = m && m.kind === 'third' ? 1 : 1 - 0.92 * tr;
+    if (m && p > 0.004 && al > 0.01) {
+      if (p >= 1 && al >= 1) DRAW[m.kind](g, m, t, dt); else throughLayer(m, t, dt, p, al);
+      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    }
+    if (tr > 0 && !(m && m.kind === 'third' && p >= 1)) { throughLayer(tranceEye, t, dt, 1, tr); g.globalAlpha = 1; }
+  }
+  // ---------- the small beings: where they are, how they fade ----------
   function edgeAt(edge, u, s) {
     if (edge === 'left') return [-s, H * (0.2 + 0.6 * u)];
     if (edge === 'right') return [W + s, H * (0.2 + 0.6 * u)];
     if (edge === 'top') return [W * (0.2 + 0.6 * u), -s];
-    if (edge === 'bottom') return [W * (0.2 + 0.6 * u), H + s];
-    return [W * (0.22 + 0.56 * u), H * (0.22 + 0.56 * ((u * 7.13) % 1))];
+    return [W * (0.2 + 0.6 * u), H + s];
   }
-  const room = () => fps > 50 ? 7 : fps > 35 ? 4 : 2;
+  const room = () => fps > 50 ? 3 : fps > 35 ? 2 : 1;
   function drawLiving(t) {
     const base = Math.min(W, H);
-    for (let i = 0, over = life.length - room(); i < life.length && over > 0; i++) {   // too many for this device:
-      const d = life[i];                               // the oldest fade out early (once each)
-      if (!d.shed) { d.shed = t; over--; }
-    }
+    g.save(); g.globalCompositeOperation = 'lighter';
     for (let i = life.length - 1; i >= 0; i--) {
       const d = life[i], age = t - d.born, p = age / d.life;
-      if (p >= 1 || (d.shed && t - d.shed > 2000)) { life.splice(i, 1); continue; }
-      const s = base * 0.26 * d.sizeK * (SCALE[d.kind] || 1) * (1 + 0.06 * st.pulse);
-      const [ax, ay] = edgeAt(d.enter, d.u[0], s * 1.6), [bx, by] = d.exit === 'in' ? [ax + (d.u[2] - 0.5) * base * 0.15, ay - base * 0.08] : edgeAt(d.exit, d.u[1], s * 1.6);
-      const q = d.enter === 'in' ? p : ease(p), wob = Math.sin(p * Math.PI * 2 + d.wob) * s * 0.25;
+      if (p >= 1) { life.splice(i, 1); continue; }
+      const s = base * 0.2 * d.sizeK * (SCALE[d.kind] || 1) * (1 + 0.06 * st.pulse);
+      const [ax, ay] = edgeAt(d.enter, d.u[0], s * 1.6), [bx, by] = edgeAt(d.exit, d.u[1], s * 1.6);
+      const q = ease(p), wob = Math.sin(p * Math.PI * 2 + d.wob) * s * 0.25;
       const nx = by - ay, ny = ax - bx, nl = Math.hypot(nx, ny) || 1;
       const x = lerp(ax, bx, q) + nx / nl * wob, y = lerp(ay, by, q) + ny / nl * wob;
-      const env = Math.min(1, d.enter === 'in' ? age / 1500 : 1, d.exit === 'in' ? (d.life - age) / 2000 : 1, d.shed ? 1 - (t - d.shed) / 2000 : 1);
-      if (env <= 0) continue;
-      const hue = hueOf(dream.col) + d.hueOff;
-      if (d.kind === 'eye' || d.kind === 'eyes') {
-        const clock = Date.now() + (d.kind === 'eye' ? d.u[3] * 1e5 : 0);
-        if (d.kind === 'eye') eye(x, y, s * 0.9, d.u[3] < 0.5 ? 1 : -1, clock, env);
-        else { eye(x - s * 0.95, y, s * 0.8, 1, clock, env); eye(x + s * 0.95, y, s * 0.8, -1, clock, env); }
-      } else if (d.kind === 'picture') {               // a piece of the dream, a different part, floating by
-        softPiece((c, n) => dreamPic(c, 0, 0, n, n, 2 + d.u[3], d.u[0], d.u[1]), x, y, s * 1.1, env * 0.95);
-      } else if (d.kind === 'kaleido') {
-        softPiece((c, n) => kaleido(c, n, t, d.wob), x, y, s * 1.3, env * 0.9);
-      } else if (d.kind === 'face') {                  // a face the AI painted, in a soft cloud
-        const img = d.face && (faces.imgs[d.face] || (faces.imgs[d.face] = Object.assign(new Image(), { src: d.face })));
-        if (img && img.complete && img.naturalWidth) softPiece((c, n) => cover(c, img, 0, 0, n, n, 1.05), x, y, s * 1.3, env, 1.2);
-      } else {                                         // clouds, moths, symbols, mandalas … – the same as around Dreamy Eyes
-        g.save(); g.globalCompositeOperation = 'lighter';
-        drawLife(g, { ...d, x, y, size: s, hue }, age, env, s, y, { H });
-        g.restore(); g.globalAlpha = 1;
-      }
+      drawLife(g, { ...d, x, y, size: s, hue: hueOf(dream.col) + d.hueOff }, age, 0.8, s, y, { H });
     }
+    g.restore(); g.globalAlpha = 1;
   }
   // ---------- the frame ----------
-  let last = performance.now(), fps = 60, upWait = 8000, upAt = -1e9;
+  let last = performance.now(), fps = 60, upWait = 8000, upAt = -1e9, held = false;
   function frame(t) {
     const dt = Math.min(0.1, (t - last) / 1000); last = t;
     fps = lerp(fps, 1 / Math.max(dt, 1e-3), 0.05);
-    // a weak device draws with fewer pixels until it keeps up (like Dreamy Eyes, #188)
+    // a weak device draws with fewer pixels and less detail until it keeps up (like Dreamy Eyes, #188)
     if (fps < 38) { if (!slowSince) slowSince = t; fastSince = 0; } else if (fps > 52) { if (!fastSince) fastSince = t; slowSince = 0; }
-    if (slowSince && t - slowSince > 2500 && res > 0.5) {
+    const step = held ? -1 : STEPS.indexOf(res);       // (a test holds the pixels where it set them)
+    if (step >= 0 && slowSince && t - slowSince > 2500 && step < STEPS.length - 1) {
       if (t - upAt < upWait + 6000) upWait = Math.min(upWait * 2, 120000);   // went up and could not hold it: wait longer
-      res = res > 0.75 ? 0.75 : 0.5; slowSince = t; size();
+      res = STEPS[step + 1]; slowSince = t; size();
     }
-    if (fastSince && t - fastSince > upWait && res < 1) { res = res < 0.75 ? 0.75 : 1; fastSince = t; upAt = t; size(); }
+    if (step > 0 && fastSince && t - fastSince > upWait) { res = STEPS[step - 1]; fastSince = t; upAt = t; size(); }
     st.pulse *= Math.pow(0.04, dt);                    // the pulse fades within a beat
-    const breath = 0.5 + 0.5 * Math.sin(Date.now() / 9000 * Math.PI * 2);   // all windows breathe together (shared clock)
-    const tr = (t - st.trance) / 20000, trance = tr > 0 && tr < 1 ? Math.min(1, tr * 6, (1 - tr) * 5) : 0;
-    g.globalAlpha = 1; g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    // the dream as the ground: large, drifting slowly, a little different in every window
-    const cx = 0.5 + 0.25 * Math.sin(t / 26000 + st.index * 1.7), cy = 0.5 + 0.25 * Math.cos(t / 33000 + st.index * 2.3);
-    g.globalAlpha = (0.42 + 0.14 * breath + 0.15 * st.pulse) * (1 - 0.6 * trance);
-    dreamPic(g, 0, 0, W, H, 1.5 + 0.2 * Math.sin(t / 19000 + st.index), cx, cy); g.globalAlpha = 1;
+    const breath = 0.5 + 0.5 * Math.sin(now() / 9000 * Math.PI * 2);   // all windows breathe together (Dream's clock)
+    const tr = trance();
+    g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    picTick();
+    clouds(t, breath);
+    g.globalAlpha = (0.72 + 0.16 * breath + 0.12 * st.pulse) * (1 - 0.55 * tr); g.drawImage(cl, 0, 0, W, H);
+    const spill = (0.1 + 0.08 * breath + 0.3 * st.pulse) * (1 - 0.55 * tr);   // their light spills over a little, more on the beat
+    if (tier() > 0 || spill > 0.2) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = spill; g.drawImage(cl, -W * 0.05, -H * 0.05, W * 1.1, H * 1.1); }
+    g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
     drawLiving(t);
-    if (trance > 0) {                                  // Dreamy Eyes in trance: here too the third eye opens
-      const R = Math.min(W, H) * 0.42;
-      g.save(); g.globalCompositeOperation = 'lighter';
-      drawLife(g, { kind: 'symbol', variant: 'third', x: W / 2, y: H / 2, spin: 1, hue: hueOf(dream.col) + 40 }, t - st.trance, trance, R, H / 2, { H });
-      drawLife(g, { kind: 'mandala', x: W / 2, y: H / 2, spin: -1, hue: hueOf(dream.col) }, t - st.trance, trance * 0.8, R * 1.5, H / 2, { H });
-      g.restore(); g.globalAlpha = 1;
-      eye(W / 2, H / 2 + R * 0.1, R * 0.42, 1, Date.now(), trance, clamp((tr - 0.08) * 5, 0, 1));
-    }
+    drawMotif(t, dt);
     const wk = (t - st.wave) / 650;                    // the wave passes: a soft bloom of light
     const bk = (t - st.blush) / 1200;                  // the eyes blush: a rosy shimmer passes
     for (const [k, col] of [[wk, [dream.col[0] + 80, dream.col[1] + 80, dream.col[2] + 80]], [bk, [255, 120, 165]]]) {
@@ -266,7 +537,10 @@
     if (st.master < 0.999) { g.fillStyle = `rgba(0,0,0,${1 - st.master})`; g.fillRect(0, 0, W, H); }
     requestAnimationFrame(frame);
   }
-  if (new URLSearchParams(location.search).has('debug')) window.dreamWindow = { st, dream, faces, life, sow, get res() { return res; }, get fps() { return fps; } };   // for the tests only
+  if (new URLSearchParams(location.search).has('debug')) {   // for the tests only
+    window.dreamWindow = { st, dream, faces, life, motif, sow, show, faceOf, cloud: cl, frame: { canvas: cv, get t() { return last; } },
+      get res() { return res; }, set res(v) { if (STEPS.includes(v)) { res = v; held = true; size(); } }, get fps() { return fps; }, get tier() { return tier(); } };
+  }
   connect();
   requestAnimationFrame(frame);
 })();
