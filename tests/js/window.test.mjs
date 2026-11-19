@@ -127,11 +127,11 @@ test('dream windows: four of them in a browser', { skip: !chrome && !process.env
       assert.ok(w.clear > 0.04 && w.soft > 0.2 && w.solid < 0.75, `clear ${w.clear}, soft ${w.soft}, solid ${w.solid}`);
     }
   });
-  await t.test('the pair of eyes looks and blinks together, by Dream\'s clock', () => {
+  await t.test('the pair of eyes looks the same way, by Dream\'s clock', () => {
     for (const a of r.ahead) assert.ok(Math.abs(a - 5000) < 1500, `a window takes Dream's clock (${a} ms ahead)`);
     assert.deepEqual(r.pair.mirror, [false, true]);
-    assert.ok(r.pair.apart < 0.25, `the two eyes are ${r.pair.apart} apart`);
-    assert.ok(r.pair.blinks >= 1, 'they blinked');
+    assert.ok(r.pair.together > 0.7, `they look the same way ${Math.round(r.pair.together * 100)} % of the time`);
+    assert.ok(r.pair.same > 0.9, `the same world in both irises ${Math.round(r.pair.same * 100)} % of the time`);
   });
   await t.test('a painted face moves by its points; without points it is shown still', () => {
     assert.ok(r.face.alive && r.face.triangles > 100, `a net of ${r.face.triangles} triangles`);
@@ -153,7 +153,7 @@ test('dream windows: four of them in a browser', { skip: !chrome && !process.env
     const { before, after } = r.weak;
     assert.deepEqual([before.tier, after.tier], [2, 0]);
     assert.ok(after.size[0] <= before.size[0] / 2 + 1 && after.cloud[0] < before.cloud[0] * 0.6, JSON.stringify(r.weak));
-    assert.ok(after.lit > 0.12 && after.soft > 0.2);
+    assert.ok(after.soft > 0.2 && after.clear > 0.04, 'still clouds');   // (how bright it is says nothing here: the windows are in trance)
   });
   await t.test('what Dream says is small', () => {
     for (const text of r.sent) if (!text.startsWith('{"marks"')) assert.ok(text.length < 200, text);

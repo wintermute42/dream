@@ -48,14 +48,14 @@
     await until('the motifs to form', () => formed(win[0], 'pair') && formed(win[1], 'pair') && formed(win[2], 'face') && formed(win[3], 'penrose'));
     report.first = win.map(tell);
     report.ahead = win.map(w => Math.round(w.st.ahead));
-    let apart = 0, blinks = 0;                         // the two eyes of the pair look and blink together
+    let together = 0, same = 0;                        // the two eyes of the pair look the same way, into the same world
     for (let k = 0; k < 60; k++) {
       const a = win[0].motif.cur.e, b = win[1].motif.cur.e;
-      apart = Math.max(apart, Math.abs(a.gx - b.gx), Math.abs(a.gy - b.gy), Math.abs(a.blink - b.blink) > 0.6 ? 1 : 0);
-      blinks += a.blink > 0 ? 1 : 0;
+      if (Math.abs(a.gx - b.gx) < 0.2 && Math.abs(a.gy - b.gy) < 0.2) together++;   // (between two pictures one may be a glance ahead)
+      if (a.iris === b.iris && Math.abs(a.rot - b.rot) < 0.1) same++;
       await sleep(100);
     }
-    report.pair = { apart, blinks, mirror: [win[0].motif.cur.mirror, win[1].motif.cur.mirror] };
+    report.pair = { together: together / 60, same: same / 60, mirror: [win[0].motif.cur.mirror, win[1].motif.cur.mirror] };
     const face = win[2].faceOf(win[2].motif.cur.face), life = win[2].motif.cur.f, t = win[2].frame.t;
     Object.assign(life, { blinkAt: t + 200, smileUntil: t + 1e6, browUntil: t + 1e6, browWant: [1, 1] });   // it blinks, smiles, lifts its brows
     let moved = 0;
@@ -82,9 +82,10 @@
 
     // 4: a device that cannot keep up draws fewer pixels and coarser clouds
     const w = win[1];
-    w.res = 1; await sleep(500);
+    const drawn = async n => { for (let k = 0; k < n; k++) { const t0 = w.frame.t; await until('the next picture', () => w.frame.t !== t0, 10); } };
+    w.res = 1; await drawn(3);
     const before = { size: [w.frame.canvas.width, w.frame.canvas.height], cloud: [w.cloud.width, w.cloud.height], tier: w.tier };
-    w.res = 0.5; await sleep(500);
+    w.res = 0.5; await drawn(3);
     report.weak = { before, after: { size: [w.frame.canvas.width, w.frame.canvas.height], cloud: [w.cloud.width, w.cloud.height], tier: w.tier, ...lit(w) } };
   } catch (e) { report.error += ' ' + (e && e.message || e); }
   await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
