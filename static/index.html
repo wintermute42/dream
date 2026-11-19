@@ -725,6 +725,7 @@
 <script src="/static/common.js"></script>
 <script src="/static/measure.js"></script>
 <script src="/static/qrbox.js"></script>
+<script src="/static/morph.js"></script>
 <script src="/static/fx.js"></script>
 <script src="/static/gl-stage.js"></script>
 <script src="/static/calib.js"></script>
@@ -746,6 +747,9 @@
   // #100: AI frames on their way; live sources keep two in flight (the GPU never waits), a dream that builds on its
   // last picture one (two would split it into two alternating dreams)
   let inflight = 0, sentAt = [], wayMs = 0, switchShownUntil = 0;
+  // #215: the motion phase (morph.js) each frame on its way will have as a picture – that of the picture its input was
+  // built from plus the step feedback() painted in; null: built on no picture. In step with sentAt.
+  let sentPhase = [], builtPhase = null, camera = null;
   // as many as fill the way there and back: a fast cloud GPU (30 ms) behind a 40 ms way wants three, the Mac two
   const depth = () => (mode === 'cam' || mode === 'vid' || mode === 'flow')
     ? Math.min(3, Math.max(2, Math.ceil((lastMs + wayMs + 10) / Math.max(lastMs, 10)))) : 1;
@@ -882,9 +886,9 @@
     const sock = ws = new WebSocket(wsUrl());
     sock._backend = myBackend;
     ws.binaryType = 'arraybuffer';
-    ws.onopen = () => { sentKey = ''; nextFlow = null; lastFromAi = false; inflight = 0; sentAt = []; answers = 0; answerAt = performance.now(); status(T('Connected.')); refSent = ''; refSend(); tick(); };
+    ws.onopen = () => { sentKey = ''; nextFlow = null; lastFromAi = false; inflight = 0; sentAt = []; sentPhase = []; answers = 0; answerAt = performance.now(); status(T('Connected.')); refSent = ''; refSend(); tick(); };
     ws.onclose = () => {
-      busy = false; inflight = 0; sentAt = [];
+      busy = false; inflight = 0; sentAt = []; sentPhase = [];
       if (sock._switching || sock !== ws) return;           // a deliberate switch reconnects itself
       status(T('Connection lost – trying again …')); setTimeout(connect, 1500);
     };
@@ -893,7 +897,7 @@
       if (typeof ev.data === 'string') {
         const m = JSON.parse(ev.data);
         if (m.skipped) {                               // #177: no picture for this frame (broken, or the AI failed): send on
-          sentAt.shift(); inflight = Math.max(0, inflight - 1);
+          sentAt.shift(); sentPhase.shift(); inflight = Math.max(0, inflight - 1);
           if (m.render_error) { status(m.render_error); notice = '⚠ ' + m.render_error; noticeUntil = performance.now() + 8000; chips(); setTimeout(tick, 2000); }
           else tick();
           return;
@@ -912,7 +916,7 @@
       const t0 = sentAt.shift();                       // the way there and back, without the server's own time
       if (t0) wayMs = wayMs * 0.8 + Math.max(0, performance.now() - t0 - serverMs) * 0.2;
       answers++;
-      showFrame(new Blob([ev.data]), () => { inflight = Math.max(0, inflight - 1); tick(); }, field);
+      showFrame(new Blob([ev.data]), () => { inflight = Math.max(0, inflight - 1); tick(); }, sentPhase.shift(), field);
     };
   }
   // #177: a watchman – frames out but no answer for a while: the line hangs; open it anew (the first picture of a
@@ -939,14 +943,18 @@
     const head = new Uint8Array(buf, 0, 8), cols = head[4], rows = head[5];
     return cols >= 2 && rows >= 2 && buf.byteLength === 8 + cols * rows * 2 ? { cols, rows, data: new Int8Array(buf, 8) } : null;
   }
-  function showFrame(blob, after, field) {
+  // field: the flow field from the picture before (null: none came; undefined: the picture is not the AI's)
+  function showFrame(blob, after, phase = null, field) {
     {
       const url = URL.createObjectURL(blob), img = new Image();
       img.onload = () => {
         back.src = url;
         const old = front; front = back; back = old;
-        const mv = morphNow(1000 / Math.max(0.3, fps));   // #194: this picture goes on moving until the next one comes
-        DreamFx.morph.start(front, mv, performance.now());
+        // #194, #215: the picture joins the one continuous motion where its phase puts it, and goes on moving until the next one comes
+        camera = DreamMorph.arrive(camera, phase, performance.now(), 1000 / Math.max(0.3, fps));
+        img.phase = camera.phase;
+        const mv = morphNow(camera);
+        DreamFx.morph.show(front, back, mv, performance.now());
         // #205: with a flow field the two pictures morph into each other – not into the first picture of a new model
         // or a fresh start (those blend in slowly), not from a picture that was not the AI's, and not with the setting off
         const flow = field && lastFromAi && !slowFade && flowAmt() > 0 ? { ...field, k: flowAmt() } : null;
@@ -978,13 +986,13 @@
     }
   }
   const status = t => { $('status').textContent = t; };
-  // #194: the motion of the dream right now (as feedback() applies it to the next input), for the pictures in between
-  function morphNow(period) {
+  // #194: what the picture just shown is told about the motion of the dream (as feedback() applies it to the next
+  // input), for the time until the next one; arrival: where the camera is and how fast it goes on (morph.js)
+  function morphNow(arrival) {
     const amt = +($('morph') ? $('morph').value : 1);
     const share = mode === 'dream' ? 1 : clamp(+ui.mix.value, 0, 1);       // with an input, only the dream's share moves on
     if (passThrough() || amt <= 0.001 || share <= 0.001) return null;
-    return { z: +(mod.zoom() * amt * share).toFixed(5), r: +(mod.rot() * amt * share).toFixed(3),
-      px: +clamp(pivot.x, 0, 1).toFixed(3), py: +clamp(pivot.y, 0, 1).toFixed(3), period: Math.round(clamp(period, 120, 3000)) };
+    return DreamMorph.record(arrival, amt * share, pivot.x, pivot.y);
   }
   // Syphon: every shown frame also goes to the server, which publishes it for Resolume
   let outWs = null;
@@ -1083,6 +1091,7 @@
     // the last output, slightly zoomed, turned and hue-shifted: the "endless dream" motion
     if (!last) return;
     const z = 1 + mod.zoom(), r = mod.rot() * Math.PI / 180, hue = mod.hue();
+    builtPhase = DreamMorph.step(last.phase || DreamMorph.zero(), z - 1, r * 180 / Math.PI);   // #215: where this input stands in the motion
     wctx.save(); wctx.globalAlpha = alpha;
     wctx.filter = hue ? `hue-rotate(${hue.toFixed(1)}deg)` : 'none';
     // the swirl turns around the tracked point (flowtrack) or the centre
@@ -1159,7 +1168,9 @@
     const pass = passThrough();
     if (!pass && (!ws || ws.readyState !== 1)) return;
     driftAdvance();
+    builtPhase = null;
     if (!buildFrame()) { setTimeout(tick, 200); return; }
+    const phase = builtPhase;
     document.body.classList.toggle('pure', pure());
     if (!pure()) paintInto(wctx, work.width, work.height);
     if (pass) {                                        // AI off: the built frame is the picture (~30 per second)
@@ -1186,7 +1197,7 @@
       if (!b) { inflight = Math.max(0, inflight - 1); setTimeout(tick, 200); return; }   // #177: no picture – never send "null"
       if (b) upKB = upKB * 0.8 + b.size / 1024 * 0.2;
       if (ws.readyState !== 1) { inflight = Math.max(0, inflight - 1); return; }
-      sentAt.push(performance.now());
+      sentAt.push(performance.now()); sentPhase.push(phase);
       if (!withPose) ws.send(b);
       else {                                           // b"DRM2" + length of the frame + frame JPEG + skeleton JPEG
         const head = new Uint8Array(8); head.set([68, 82, 77, 50]); new DataView(head.buffer).setUint32(4, b.size);
@@ -1762,7 +1773,7 @@
     document.querySelectorAll('#backends button').forEach(x => x.classList.toggle('on', x.dataset.b === b));
     $('cloudbox').classList.toggle('off', b !== 'cloud');   // always there; pale while computing locally
     if (ws) { ws._switching = true; try { ws.close(); } catch (e) {} }
-    busy = false; inflight = 0; sentAt = []; sentKey = '';
+    busy = false; inflight = 0; sentAt = []; sentPhase = []; sentKey = '';
     setTimeout(connect, 200);
     pollCloud();
   }
@@ -3007,6 +3018,9 @@
       notice = T('The graphics card’s drawing (WebGL 2) stopped – Dream draws with Canvas 2D now.'); noticeUntil = performance.now() + 8000; status(notice); chips();
     } });
   const smoothTau = () => Math.pow(+$('smooth').value, 1.5) * 1.6;      // 0 … 1.6 s
+  // #210: while an output window shows the audience the picture, the one beside the panel is a preview – the graphics
+  // card draws it half as often and has more time for the AI
+  const previewFps = () => outViewers > 0 && !bodyHas('hide') && !bodyHas('stage-only') ? 30 : 0;
   let smoothSentAt = 0;
   Object.assign(ap, { fxSet: [], fxTarget: {}, fxAmts: {}, fxHist: [], fxPhrase: 0, fxSeed: 1, hueDeg: 0, inv: 0, invAt: -1e9 });
   function apFxPick(byHand) {
@@ -3114,7 +3128,7 @@
     const k = on ? clamp(top * 1.6, 0, 1) : 0, now = performance.now();
     // pure camera (#111): no smoothing, zoom or brightness of Dream's own – only the chosen effects
     const plain = bodyHas('pure'), tau = smoothTau();
-    view.draw({ now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master });
+    view.draw({ front, now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master, fps: previewFps() });
     if ((outViewers || $('syphon').checked) && outWs && outWs.readyState === 1 && now - smoothSentAt > 1000) {
       outWs.send(JSON.stringify({ smooth: +tau.toFixed(3) })); smoothSentAt = now;
     }

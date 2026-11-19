@@ -30,6 +30,7 @@
 <div id="calib" hidden><i hidden></i></div>
 <div id="hint" role="status">Dream · output – waiting for pictures (the stage or panel must be open). Tap or F = fullscreen</div>
 <script src="/static/i18n.js"></script>
+<script src="/static/morph.js"></script>
 <script src="/static/fx.js"></script>
 <script src="/static/gl-stage.js"></script>
 <script>
@@ -50,7 +51,7 @@
     const now = performance.now(), dt = Math.min(0.1, (now - drawnAt) / 1000), f = fx && now - fxAt <= 1000 ? fx : null;
     const k = f ? Math.max(0, Math.min(1, +f.k || 0)) : 0;
     drawnAt = now;
-    view.draw({ now, dt, tau: smoothTau, fx: k > 0.005 ? f : null, k, sc: f ? +f.sc || 1 : 1, br: f ? +f.br || 1 : 1, sat: 1, master });
+    view.draw({ front, now, dt, tau: smoothTau, fx: k > 0.005 ? f : null, k, sc: f ? +f.sc || 1 : 1, br: f ? +f.br || 1 : 1, sat: 1, master });
     requestAnimationFrame(frame);
   })();
   // #205: the flow field as the stage passes it on ({cols, rows, k, data: the vectors' bytes as base64}); null if it is not one
@@ -104,7 +105,7 @@
         // may leave a picture out), otherwise the two cross-fade
         view.show(front, { fade, flow: n === shownN + 1 ? flow : null });
         shownN = n;
-        DreamFx.morph.start(front, nextMorph, performance.now());   // #194: it goes on moving like on the stage
+        DreamFx.morph.show(front, back, nextMorph, performance.now());   // #194, #215: it joins the motion like on the stage
         setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1500);
         document.body.classList.add('live');
         clearTimeout(hideHint);
