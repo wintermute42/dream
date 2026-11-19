@@ -33,7 +33,8 @@ def _summary(values: list) -> dict:
 STEP_NAMES = [("queue", "waiting before rendering"), ("decode_in", "decoding the incoming picture"),
               ("wait_gpu", "waiting for the GPU"), ("prompt", "prompt encoding"), ("unet", "UNet (diffusion)"),
               ("controlnet", "ControlNet"), ("decode", "decoder (latents → picture)"), ("render", "picture in all"),
-              ("encode_out", "JPEG/WebP encoding"), ("send", "sending"), ("server", "server time per picture")]
+              ("encode_out", "JPEG/WebP encoding"), ("flow", "flow field (beside the next picture)"), ("send", "sending"),
+              ("server", "server time per picture")]
 
 # #204: what draws the dream picture on a page – the graphics card, or the Canvas 2D drawing it falls back to
 RENDER_NAMES = {"webgl2": "WebGL 2 · ", "canvas": "Canvas 2D (no WebGL 2) · ", "mixed": "WebGL 2 and Canvas 2D · "}
@@ -50,7 +51,8 @@ def measure_table(r: dict) -> str:
             lines.append(f"{name:34} {st['mean']:>8} {st['p50']:>8} {st['p95']:>8}")
     for kind, d in sorted(r["devices"].items()):
         lines.append(f"{kind:12} {d.get('n', 1)}× · {RENDER_NAMES.get(d.get('render'), '')}{d.get('fps', '–')} fps display · frame {d.get('ms_avg', '–')} ms"
-                     f" (p95 {d.get('ms_p95', '–')}) · slow frames {d.get('slow_pct', '–')} %")
+                     f" (p95 {d.get('ms_p95', '–')}) · slow frames {d.get('slow_pct', '–')} %"
+                     + (f" · flow field for {d['flow_pct']} % of the pictures ({d['flow_ms']} ms each)" if "flow_pct" in d else ""))
     return "\n".join(lines)
 
 
@@ -72,12 +74,17 @@ async def measure_run(seconds: int, fixed: bool):
         await asyncio.sleep(6)                     # the devices' reports (a busy page may report a little late)
         devices: dict = {}
         for (kind, _), rep_ in measure["reports"].items():
-            d = devices.setdefault(kind, {"n": 0, "fps": [], "ms_avg": [], "ms_p95": [], "slow_pct": [], "render": set()})
+            d = devices.setdefault(kind, {"n": 0, "fps": [], "ms_avg": [], "ms_p95": [], "slow_pct": [], "render": set(),
+                                          "flow_pct": [], "flow_ms": []})
             d["n"] += 1
             d["render"].add(rep_.get("render"))
             for k in ("fps", "ms_avg", "ms_p95", "slow_pct"):
                 d[k].append(rep_.get(k, 0))
+            for k in ("flow_pct", "flow_ms"):      # #205: only the stage tells these
+                if k in rep_:
+                    d[k].append(rep_[k])
         devices = {k: {"n": d["n"], **{f: round(sum(d[f]) / len(d[f]), 1) for f in ("fps", "ms_avg", "ms_p95", "slow_pct")},
+                       **{f: round(sum(d[f]) / len(d[f]), 1) for f in ("flow_pct", "flow_ms") if d[f]},
                        "render": "mixed" if len(d["render"]) > 1 else next(iter(d["render"]))}
                    for k, d in devices.items()}
         st = render_api.stats()
