@@ -223,10 +223,20 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   dann träumt es aus dem aktuellen Bild weiter. **Kamera:** welche Kamera des Macs Dream nimmt
   (z. B. eine 60-fps-Webcam oder ein Handy per Continuity, Iriun oder DroidCam), auch am Handy wählbar. Darunter **„Prompt – was malt die KI daraus?“**: das eine Textfeld
   für den Traum (Verwandlung 0: „KI aus“, der Prompt ruht).
+- **Weiche Wechsel (#211):** Ein neuer Eingang und ein neuer Prompt blenden in etwa 3 s über, statt zu springen;
+  einzustellen ist nichts. **Eingang** (von Hand, Autopilot, Szene, MIDI oder Dream Control; auch ein anderes Bild
+  oder Video): Das letzte Bild, das die KI aus dem alten Eingang bekam, liegt über dem neuen und geht in 3 s, gezählt
+  ab dem ersten Bild der neuen Quelle. **Prompt** (Tippen, Sprache, Dream Control): Die KI bekommt den alten und den
+  neuen Prompt gemischt, die Mischung wandert zum neuen; beim Tippen bleibt der alte, bis du innehältst.
+  Playlist-Szenen behalten ihre eigene Überblendzeit, der Sprung des Autopiloten zurück in den Traum bei einem Drop
+  bleibt ein harter Schnitt. Ein Wechsel während einer laufenden Überblendung geht vom Zwischenstand aus weiter: beim
+  Eingang genau, beim Prompt behält der stärkere der beiden seinen Anteil und der schwächere macht dem neuen Prompt
+  Platz (die KI mischt zwei Prompts, nicht drei). Es kostet die KI keine Zeit: Die Bilder mischt der Browser, die
+  Prompts wie bei einem Szenenwechsel.
 - **Die KI bekommt (#127):** Direkt unter dem Prompt steht, was die KI wirklich bekommt: dein Text, dahinter jeder
   Zusatz als farbiger Chip – lila **Prompt sanft variieren** (die zwei Varianten und wie weit es gerade von der einen
   zur anderen ist), grün **Inhalt reagiert auf Energie** (ruhig ⇄ wild, wie wild gerade), blau **Autopilot: Wörter zur
-  Musik**, grau ein laufender **Szenenwechsel**. Ein ✕ im Chip schaltet den Zusatz sofort ab (dasselbe wie der Haken
+  Musik**, grau ein laufender **Prompt-Wechsel** (eine Szene oder ein Wechsel von Hand). Ein ✕ im Chip schaltet den Zusatz sofort ab (dasselbe wie der Haken
   an seinem Platz; für die Musik-Wörter neu in der Karte Autopilot: „Wörter zur Musik an den Prompt hängen“). Steht
   dort „genau den Prompt oben, nichts dazu“, mischt niemand etwas hinein. Stil-Modell und Referenzbild (#123)
   ändern den Prompt nie; „in Englisch umformulieren“ wirkt nur beim Sprechen – das Ergebnis steht dann schon im Textfeld.
@@ -1295,7 +1305,8 @@ gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zur�
 `node --test tests/js/beat.test.mjs` prüft die Takterkennung
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
-`node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
+`node --test tests/js/soft.test.mjs` (#211) prüft die Anteile der weichen Wechsel (altes Eingangsbild, alter und
+neuer Prompt, ein Wechsel während einer laufenden Überblendung). `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
