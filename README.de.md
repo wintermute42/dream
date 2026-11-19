@@ -275,6 +275,29 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   zählen sie ab der Eins). Drum & Bass und sehr schnelle oder langsame Musik können auf halbem oder doppeltem Tempo
   landen. Wechsel durch den Timer der Playlist, das Handy oder MIDI-„Nächste Szene“ rasten nicht ein (nur die aus dem
   Bedienfeld des Bühnen-Macs und seinem Autopiloten).
+- **Was die Regler zeigen (#216):** Die Füllung eines Reglers zeigt, wie stark er das Bild gerade prägt – kühles
+  Violett auf seinem Standard, über Orange zu Rot, je weiter er davon weg ist (gewichtet: Verwandlung, Zoom-Sog und
+  Drehung zählen am meisten), und sie wird dabei dicker. Die drei stärksten schimmern sanft, und jede Karte trägt am
+  linken Rand einen schmalen Streifen in denselben Farben, breiter, je stärker – auch eingeklappt. So zeigt ein Blick,
+  woher eine Drehung oder ein unruhiges Bild kommt. Ein Regler, dessen Schalter aus ist (Effekt-Stärke ohne Effekt,
+  Musik-Reaktion ohne Musik), bleibt kühl. Screenreader hören „stark verändert“.
+  **Null in der Mitte:** Zoom-Sog und Drehung haben ihre Null innerhalb des Bereichs: Dort steht eine Marke, die
+  Füllung beginnt an ihr, ein gezogener Knopf rastet leicht auf ihr ein, und ein kleiner **0**-Knopf neben dem Regler
+  (sichtbar, solange er nicht auf 0 steht) stellt ihn auf null. **Doppelklick oder Doppeltipp** auf einen Regler: null
+  bei diesen beiden, der Standard bei allen anderen. Genauso in Dream Control auf dem Handy.
+- **↺ Zurücksetzen** (Titelleiste des Bedienfelds und von Dream Control, nicht für Gäste): ohne Bruch zurück zu einem
+  ruhigen, schönen Traum. Alles, was das Bild formt, gleitet in etwa 4 Sekunden auf seinen Standard – Verwandlung
+  0,45, Traum-Anteil 35 %, Zoom-Sog 0,008, Drehung 0,2°, Farbdrift 2°, Drift 50 %, Glätten 30 %, Bewegung zwischen den
+  Bildern 100 %, Musik- und Bewegungs-Reaktion 1×, Direktheit, Umriss- und Pose-Stärke, Effekt-Stärke –, die Effekte
+  blenden aus, und der Autopilot geht aus. Auch der **Stil** geht – kein Stil-Modell, kein Stil-Referenzbild, beide
+  Stärken auf Standard –, und zwar in einem Schritt am Anfang statt gleitend, damit das Modell nur einmal umgebaut
+  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. **Es bleiben:** Prompt, Modell, Qualität,
+  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud, Master-Helligkeit,
+  die Schlüssel und alle anderen Schalter (Berührungs-Optionen, im Takt pulsieren, Wechsel einrasten, Umrisse und Pose
+  an oder aus …). 10 Sekunden lang steht auf dem Knopf **„Zurückgesetzt · ↶ Rückgängig“** (darunter läuft ein Balken
+  ab): ein Tipp, und alles gleitet genau auf die Werte von vorher zurück (Stil und Muster kommen ebenfalls in einem
+  Schritt wieder). Es gibt keine Sicherheitsabfrage. Ein Regler, den du während des Gleitens selbst bewegst, gehört
+  sofort dir.
 - **Regler:** Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Qualität (1 bis 3 Schritte), Auflösung, Seed.
   **„wirkt …“ unter Verwandlung (#115):** zeigt, woraus die Verwandlung gerade besteht, z. B. „wirkt 0,52 = Regler 0,03 ·
   Musik +0,21 · Bewegung +0,13 · Mindestwert 0,15“ – so sieht man sofort, wer sie hochdreht (die KI braucht mindestens
@@ -1187,6 +1210,9 @@ von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorscha
 
 ## Wenn etwas hakt
 
+- **Das Bild dreht, rast oder flackert, und du weißt nicht, warum:** Such die orangen und roten Regler und
+  Kartenstreifen (siehe „Was die Regler zeigen“), oder tipp auf **↺ Zurücksetzen** – es gleitet auf die Standardwerte
+  zurück und lässt sich 10 s lang rückgängig machen.
 - **🔮 Entlasten** (Titelleiste des Bedienfelds und von Dream Control, nicht für Gäste): wenn Dream langsam wird und du
   nicht nach der Ursache suchen willst. Das Gesicht auf dem Knopf ist die Auslastung gerade – 😌 viel Luft, 🔮 träumt
   flüssig, 😬 wird eng, 🥵 überlastet, 🤯 stark überlastet, 😴 pausiert (flüssig heißt etwa 3 KI-Bilder pro Sekunde auf
@@ -1273,7 +1299,10 @@ was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schr
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
 ein neues Bild übernimmt), dazu den Rückfall, wenn der Grafik-Kontext verloren geht,
 und dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, die Zeichenfläche nicht feiner als das
-Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt sie alle auf Linux
+Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander.
+`node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
+Kartenstreifen, der Zurücksetzen-Knopf). GitHub lässt sie alle auf Linux
 und macOS bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein
 Pull-Request lässt sich erst mergen, wenn beide grün sind. Die echte KI auf einer Grafikkarte und die 📏-Messungen
 gehören nicht dazu – die laufen auf dem eigenen Mac, wie unten.
@@ -1295,7 +1324,9 @@ darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihr
 darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
 (`inputs.py`), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
-ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`.
+ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
+Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
+`weight` einer Einstellung).
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

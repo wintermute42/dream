@@ -11,6 +11,7 @@
 <link rel="manifest" href="/static/remote.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="/static/qrbox.css">
+<link rel="stylesheet" href="/static/sliders.css">
 <style>
   :root { --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --card: #17141f; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 18px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -145,6 +146,7 @@
     <div class="tools">
       <button id="relieve" class="relieve" data-only="control" hidden title="Relieve: takes back, step by step and softly, what costs the most – until Dream runs smoothly again">🔮 Relieve</button>
       <button id="relieveundo" data-only="control" hidden aria-label="Undo the relief: everything back as it was">↶</button>
+      <button id="reset" data-only="control" hidden>↺ Reset</button>
       <button id="uishow" aria-pressed="false">Show</button>
       <button id="uismaller" aria-label="A− smaller type">A−</button>
       <button id="uibigger" aria-label="A+ larger type">A+</button>
@@ -164,9 +166,9 @@
     </div>
     <div class="barsl">
       <label for="bar-strength">Transformation <span class="val" id="bar-v-strength"></span></label>
-      <input type="range" id="bar-strength" min="0" max="0.95" step="0.01">
+      <input type="range" id="bar-strength" data-setting="strength" min="0" max="0.95" step="0.01">
       <label for="bar-master" data-only="control">Master brightness <span class="val" id="bar-v-master"></span></label>
-      <input type="range" data-only="control" id="bar-master" min="0" max="1" step="0.01">
+      <input type="range" data-only="control" id="bar-master" data-setting="master" min="0" max="1" step="0.01">
     </div>
   </div>
   <div id="fsback" hidden><button id="fsagain">⛶ Fullscreen again?</button><button id="fsno" aria-label="No">✕</button></div>
@@ -363,6 +365,7 @@
 <script src="/static/i18n.js"></script>
 <script src="/static/measure.js"></script>
 <script src="/static/qrbox.js"></script>
+<script src="/static/sliders.js"></script>
 <script>
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
@@ -437,6 +440,8 @@
   const measureMe = DreamMeasure('remote', send);     // #180: its frames during a measurement run
   const setKey = (k, v) => { state[k] = v; send({ set: { [k]: v } }); };
 
+  // #216: the sliders' drawing (sliders.js): what a setting "needs" to act is read from the shared state here
+  const sliders = DreamSliders.create({ on: k => !!state[k] && state[k] !== 'off' });
   const show = () => {
     const f = (id, t) => { if ($('v-' + id)) $('v-' + id).textContent = t; };
     f('strength', +$('strength').value <= 0.001 ? T('off (picture direct)') : (+$('strength').value).toFixed(2)); f('mix', Math.round($('mix').value * 100) + ' %');
@@ -446,6 +451,7 @@
     const lv = +$('auto_level').value; f('auto_level', lv < 0.34 ? T('calm') : lv < 0.67 ? T('medium') : T('wild'));
     const on = $('auto').checked, b = $('autobtn');
     b.setAttribute('aria-pressed', String(on)); b.textContent = on ? T('🤖 Autopilot: ON') : T('🤖 Autopilot: OFF'); b.classList.toggle('on', on);
+    sliders.paint();
   };
   const seg = (id, attr, val) => document.querySelectorAll(`#${id} button`).forEach(b => b.classList.toggle('on', b.dataset[attr] === val));
 
@@ -643,6 +649,7 @@
       : T('Guest – you steer the dream; some settings only Dream Control changes.');
     $('takectl').hidden = !m.can_take;
     role = m.role; showInstall();
+    $('reset').hidden = !can('set:all');               // #216: never a guest (the server refuses it anyway)
     if (!can('feed')) { devStop('cam', false); devStop('motion', false); }   // #146: feeds end with the rights
     else send({ cmd: 'relieve_ask' });                // #152: the stage tells how it is doing
   }
@@ -663,6 +670,7 @@
     $('relieveundo').hidden = !a.undo;
     if (a.said && a.said !== relSaid) { relSaid = a.said; $('nowline').textContent = a.said; }
   }
+  const resetMsg = DreamSliders.resetButton($('reset'), send, t => { $('nowline').textContent = t; });   // #216
   $('relieve').onclick = () => send({ cmd: 'relieve' });
   $('relieveundo').onclick = () => send({ cmd: 'relieve_undo' });
   // #145: Dream Control as an app of its own (Chrome offers it over https); the button only where it can work
@@ -792,6 +800,8 @@
       if (m.sensors) devSensors(m.sensors);
       if (m.feed_taken) devStop(m.feed_taken, false, T('Another device took over.'));
       if (m.cams) fillCams(m.cams);
+      if (m.schema) sliders.schema(m.schema);          // #216
+      if (m.reset) resetMsg(m.reset);
       if (m.state) apply(m.state);
       if (m.set) apply(m.set);
       if (m.gallery) renderGallery(m.gallery);
@@ -841,6 +851,7 @@
     for (const k of ['strength', 'master']) if (document.activeElement !== bar[k]) bar[k].value = $(k).value;
     $('bar-v-strength').textContent = +bar.strength.value <= 0.001 ? T('off') : (+bar.strength.value).toFixed(2);
     $('bar-v-master').textContent = pct(+bar.master.value);
+    sliders.paint();
   }, 250);
 
   // live preview: what the stage shows, a few pictures per second (tap: on/off, hold: large)
