@@ -4,6 +4,7 @@
 # No model, no GPU, no torch (the tests bring a stand-in for it): only the "ci" dependency group is installed.
 # The beat tracker (#195) is tested with the runner's own Node (no packages, no browser); the picture chain (#204:
 # WebGL 2 against Canvas 2D) with the runner's own Chrome and its software WebGL – nothing is downloaded for it.
+# The dream windows (#214) run in the same Chrome, four of them side by side; the test itself is their Dream.
 name: tests
 
 on:
@@ -45,3 +46,5 @@ jobs:
         run: node --test tests/js/beat.test.mjs
       - name: Picture chain (WebGL 2 against Canvas 2D)
         run: node --test tests/js/gl-stage.test.mjs
+      - name: Dream windows (several of them in the runner's Chrome)
+        run: node --test tests/js/window.test.mjs

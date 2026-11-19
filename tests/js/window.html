@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dream windows – several of them, driven by the test</title>
+<style>body { margin: 0; background: #222; } iframe { border: 0; margin: 4px; background: #000; }</style>
+</head>
+<body>
+<script>
+// #214: four dream windows of different sizes side by side (tests/js/window.test.mjs is their Dream: it serves the page,
+// speaks the /view stream and sends what the steps below ask for). What the windows show is read from their debug hook
+// and their canvases and reported back.
+(async () => {
+  'use strict';
+  const SIZES = [[420, 240], [420, 240], [240, 400], [520, 320]];
+  const report = { error: '' };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const step = name => fetch('/step', { method: 'POST', body: name });
+  try {
+    const frames = SIZES.map(([w, h]) => { const f = document.createElement('iframe'); f.width = w; f.height = h; f.src = '/window?debug'; document.body.append(f); return f; });
+    const until = async (what, cond, secs = 40) => {
+      const end = performance.now() + secs * 1000;
+      while (performance.now() < end) { try { if (cond()) return; } catch (e) { /* not there yet */ } await sleep(100); }
+      throw new Error('waited in vain for: ' + what);
+    };
+    const dw = f => f.contentWindow.dreamWindow;
+    await until('four windows with the dream', () => frames.every(f => dw(f) && dw(f).st.of === 4 && dw(f).dream.cur));
+    frames.forEach(f => { f.contentWindow.addEventListener('error', e => { report.error += ` window error: ${e.message}`; }); });
+    const win = Array.from({ length: 4 }, (_, i) => dw(frames.find(f => dw(f).st.index === i)));   // in Dream's order
+    const formed = (w, kind) => w.motif.cur && w.motif.cur.kind === kind && !w.motif.cur.left && w.frame.t - w.motif.cur.born > 4300;
+    const small = document.createElement('canvas'), sg = small.getContext('2d', { willReadFrequently: true });
+    const lit = w => {                                 // how much of the window is not dark, and of the cloud field: clear, soft, solid
+      const cv = w.frame.canvas, cl = w.cloud;
+      small.width = small.height = 64; sg.drawImage(cv, 0, 0, 64, 64);
+      let d = sg.getImageData(0, 0, 64, 64).data, on = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 60) on++;
+      small.width = cl.width; small.height = cl.height; sg.clearRect(0, 0, cl.width, cl.height); sg.drawImage(cl, 0, 0);
+      d = sg.getImageData(0, 0, cl.width, cl.height).data;
+      let clear = 0, solid = 0;
+      for (let i = 3; i < d.length; i += 4) { if (d[i] < 12) clear++; else if (d[i] > 243) solid++; }
+      const n = d.length / 4;
+      return { lit: on / 4096, clear: clear / n, solid: solid / n, soft: 1 - (clear + solid) / n };
+    };
+    const tell = w => ({ kind: w.motif.cur && w.motif.cur.kind, seed: w.motif.cur && w.motif.cur.seed, res: w.res, tier: w.tier, size: [w.frame.canvas.width, w.frame.canvas.height], ...lit(w) });
+
+    // 1: every window its motif – a pair of eyes in two of them, a painted face with its points, an impossible shape
+    await step('start');
+    await until('the motifs to form', () => formed(win[0], 'pair') && formed(win[1], 'pair') && formed(win[2], 'face') && formed(win[3], 'penrose'));
+    report.first = win.map(tell);
+    report.ahead = win.map(w => Math.round(w.st.ahead));
+    let together = 0, same = 0;                        // the two eyes of the pair look the same way, into the same world
+    for (let k = 0; k < 60; k++) {
+      const a = win[0].motif.cur.e, b = win[1].motif.cur.e;
+      if (Math.abs(a.gx - b.gx) < 0.2 && Math.abs(a.gy - b.gy) < 0.2) together++;   // (between two pictures one may be a glance ahead)
+      if (a.iris === b.iris && Math.abs(a.rot - b.rot) < 0.1) same++;
+      await sleep(100);
+    }
+    report.pair = { together: together / 60, same: same / 60, mirror: [win[0].motif.cur.mirror, win[1].motif.cur.mirror] };
+    const face = win[2].faceOf(win[2].motif.cur.face), life = win[2].motif.cur.f, t = win[2].frame.t;
+    Object.assign(life, { blinkAt: t + 200, smileUntil: t + 1e6, browUntil: t + 1e6, browWant: [1, 1] });   // it blinks, smiles, lifts its brows
+    let moved = 0;
+    for (let k = 0; k < 12; k++) { await sleep(100); moved = Math.max(moved, face.net.drawn); }
+    report.face = { alive: face.alive, triangles: face.net.tris.length / 3, moved, smile: life.smile };
+
+    // 2: the shape wanders into the first window; the pair is over, the last window gets a face without points
+    const seed = win[3].motif.cur.seed;
+    await step('wander');
+    await until('the old motifs to dissolve', () => win[0].motif.cur && win[0].motif.cur.left && win[3].motif.cur.left && win[0].motif.next.kind === 'penrose');
+    await sleep(1500);
+    report.mid = win.map(w => ({ leaving: !!(w.motif.cur && w.motif.cur.left), next: w.motif.next && w.motif.next.kind }));
+    await until('the motifs to form again', () => formed(win[0], 'penrose') && formed(win[1], 'mandala') && formed(win[3], 'face'));
+    report.second = win.map(tell);
+    report.sameBeing = win[0].motif.cur.seed === seed;
+    const still = win[3].faceOf(win[3].motif.cur.face);
+    report.still = { alive: still.alive, triangles: still.net.tris.length };
+
+    // 3: a wave, a blush and the trance of Dreamy Eyes reach every window
+    await step('moods');
+    await until('the moods', () => win.every(w => w.st.wave > 0 && w.st.blush > 0 && w.st.trance > 0), 10);
+    await sleep(800);
+    report.moods = win.map(w => ({ ...lit(w), trance: w.frame.t - w.st.trance < 20000 }));
+
+    // 4: a device that cannot keep up draws fewer pixels and coarser clouds
+    const w = win[1];
+    const drawn = async n => { for (let k = 0; k < n; k++) { const t0 = w.frame.t; await until('the next picture', () => w.frame.t !== t0, 10); } };
+    w.res = 1; await drawn(3);
+    const before = { size: [w.frame.canvas.width, w.frame.canvas.height], cloud: [w.cloud.width, w.cloud.height], tier: w.tier };
+    w.res = 0.5; await drawn(3);
+    report.weak = { before, after: { size: [w.frame.canvas.width, w.frame.canvas.height], cloud: [w.cloud.width, w.cloud.height], tier: w.tier, ...lit(w) } };
+  } catch (e) { report.error += ' ' + (e && e.message || e); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>

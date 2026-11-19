@@ -18,7 +18,10 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   another part with the part (`hub.state`, `rights.can(...)`), never `from part import name` – tests replace such names.
 - `static/index.html` is the stage (with optional panel), `static/remote.html` the phone remote, `static/output.html`
   the output window; what the pages share is in `static/common.js` (#189: no page keeps its own copy of a helper that
-  is there). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
+  is there). Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
+  (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
+  and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
+  asked over `/facemarks` – and moved by each window itself; a window never runs a model). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
@@ -41,7 +44,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   new route or setting that costs money, changes the owner's files or uses the Mac's camera stays Control-only.
 - Tests (#186): `uv run pytest` (no model, no GPU: a stand-in for torch, a temporary HOME and Dream folders – never the
   real ones) and `python3 scripts/i18n_check.py`; CI runs both on Linux and macOS for every pull request to `main` (#213: both jobs are
-  required checks, a pull request merges only with them green), and the JavaScript tests in `tests/js/` (`node --test`). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
+  required checks, a pull request merges only with them green), and the JavaScript tests in `tests/js/` (`node --test`;
+  `window.test.mjs` runs several dream windows in a headless Chrome and is their Dream itself). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
   from `static/fx.js` as fallback); an effect is changed in both, `tests/js/gl-stage.test.mjs` compares their pictures.
   The chain shares the graphics card with the AI (#210): it draws no finer than the picture and nothing while nothing
   moves; a change to it is measured with the real model (`scripts/measure_stage.cjs`, README "Tests"). `tests/test_rights.py` lists every route with the
