@@ -370,13 +370,23 @@ dazu, wenn das Häkchen gesetzt ist.
   legen etwas drauf, ruhige Musik nimmt etwas weg. Kein Stroboskop, keine harten Schwarzbilder. Die Effekte laufen
   mit voller Bildrate (60 fps), egal wie schnell die KI rechnet (auf dem Mac mit Grafikchip gemessen: 60 fps mit
   drei Effekten), und erscheinen auch im Ausgabefenster (Beamer, WLAN-Ausgabe), nicht aber in Syphon.
-- **Zeichnen auf der Grafikkarte (#204, zum Ausprobieren):** Bühne und Ausgabefenster können das Bild als eine Kette
-  in WebGL 2 zeichnen – die letzten zwei KI-Bilder mit ihrer Bewegung und Überblendung, die Glättung, die Effekte, die
-  Berührungs-Ebenen, Farbrotation, Helligkeit und Master. Vorerst ist das **standardmäßig aus**: Auf einem Mac teilt
-  es sich die Grafikkarte mit der KI und kostet sie etwa 40 % ihrer Bilder. Zum Ausprobieren `?render=webgl` an die
-  Adresse der Bühne oder des Ausgabefensters hängen (http://127.0.0.1:7860/?render=webgl). Ohne das zeichnen die
-  Seiten wie bisher mit Canvas 2D. **📏 Messen** zeigt für die Bühne, was zeichnet. Syphon, die Vorschau von Dream
-  Control und die Traum-Fenster bekommen die KI-Bilder selbst; Dreamy Eyes und die Traum-Fenster zeichnen für sich.
+- **Auf der Grafikkarte gezeichnet (#204, #210):** Bühne und Ausgabefenster zeichnen das Bild als eine Kette in
+  WebGL 2 – die letzten zwei KI-Bilder mit ihrer Bewegung und Überblendung, die Glättung, die Effekte, die
+  Berührungs-Ebenen (Lichtstriche, Rühren, Lichtkreis), Farbrotation, Helligkeit und Master. Auf einem Mac teilt sich
+  diese Kette die Grafikkarte mit der KI, deshalb zeichnet sie sparsam: in der Auflösung, die das Bild wirklich hat
+  (ein KI-Bild mit 512 px oder der Puffer der Effekte – nicht jeder Pixel eines Retina-Bildschirms; der Browser
+  vergrößert es wie jedes Bild), nur wenn sich etwas bewegt (ein stehendes Bild wird nicht neu gezeichnet, die
+  Glättung ruht, sobald sie das neueste Bild eingeholt hat), und die Vorschau neben dem Bedienfeld mit 30 statt 60
+  Bildern pro Sekunde, solange ein Ausgabefenster offen ist. Gemessen auf einem Mac mit M2 Max (sd-turbo, 512 px,
+  1 Schritt, Verwandlung 0,5; die Bühne allein und das Bedienfeld mit Ausgabefenster, jeweils auch in
+  Retina-Auflösung) malt die KI damit so viele Bilder wie mit Canvas 2D: Der Unterschied liegt in der Streuung der
+  Messung (etwa 2 %); wie man sie wiederholt, steht unter „Tests“. Einzustellen ist nichts: Ohne WebGL 2, oder wenn
+  das Zeichnen auf der Grafikkarte im Betrieb ausfällt, zeichnen dieselben Seiten von selbst mit Canvas 2D (ein Chip
+  unter der Vorschau sagt es; kommt die Grafikkarte zurück, übernimmt wieder WebGL 2). **📏 Messen** zeigt für die
+  Bühne, was zeichnet: „Grafikkarte (WebGL 2)“ oder „Canvas 2D (kein WebGL 2)“. Zum Vergleichen, oder wenn ein
+  Grafiktreiber Ärger macht, `?render=canvas` an die Adresse der Bühne oder des Ausgabefensters hängen
+  (http://127.0.0.1:7860/?render=canvas). Syphon, die Vorschau von Dream Control und die Traum-Fenster bekommen die
+  KI-Bilder selbst; Dreamy Eyes und die Traum-Fenster zeichnen für sich.
 - **Effekte von Hand:** Dieselben Effekte gibt es ohne Autopilot in der Karte **Effekte** (unter Traum): zwölf Kacheln
   zum An- und Ausschalten (aus jeder Familie – Kaleidoskop/Mandala/Spiegel, Pixel/Raster, Rückkopplung/Nachleuchten –
   einer zur Zeit), **Effekt-Stärke** für alle, **Im Takt pulsieren** (nur auf echte Beats von Musik oder Tap; aus = die
@@ -1190,10 +1200,14 @@ von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorscha
 
 - **Bühne bleibt schwarz oder dunkel:** Dream neu starten und aktualisieren (siehe oben). Im Prompt-Modus hilft
   Drift; ein ganz schwarzes Bild nach einem Update heißt meist, dass noch der alte Stand läuft.
-- **Das Bild sieht mit `?render=webgl` falsch aus (Streifen, schwarz, falsche Farben) oder die KI wird langsam:**
-  Die Adresse ohne den Zusatz öffnen – dann zeichnet die Seite mit Canvas 2D. Hilft das, bitte mit Browser und Mac
-  melden. Der Chip „Das Zeichnen auf der Grafikkarte (WebGL 2) ist ausgefallen …“ heißt, dass der Browser seinen
-  Grafik-Kontext verloren hat; Dream macht mit Canvas 2D weiter und kehrt von selbst zurück.
+- **Das Bild auf der Bühne oder im Ausgabefenster sieht falsch aus (Streifen, schwarz, falsche Farben), ruckelt,
+  oder die KI malt deutlich weniger Bilder als sonst:** Das Bild zeichnet die Grafikkarte (WebGL 2), und sie teilt
+  ihre Zeit mit der KI. Die Seite mit `?render=canvas` am Ende der Adresse öffnen
+  (http://127.0.0.1:7860/?render=canvas, http://127.0.0.1:7860/output?render=canvas): Dann zeichnet sie mit
+  Canvas 2D. Hilft das, bitte mit Browser und Mac melden. In den ersten Sekunden nach einem Start ist die KI so oder
+  so langsamer (das Modell läuft warm) – erst danach vergleichen. Der Chip „Das Zeichnen auf der Grafikkarte
+  (WebGL 2) ist ausgefallen …“ heißt, dass der Browser seinen Grafik-Kontext verloren hat; Dream macht mit Canvas 2D
+  weiter und kehrt von selbst zurück.
 - **Bedienung extrem langsam:** Läuft ein zweites Dream, eine zweite Bühne oder ein anderes GPU-Programm? Nur
   eine Bühne offen lassen.
 - **„site can't be reached“ am Handy:** siehe „Wenn das Handy nicht verbindet“. Die macOS-Firewall war es im
@@ -1248,9 +1262,21 @@ Hände ruhen, die kleine Vorschau). `node --test tests/js/beat.test.mjs` prüft 
 `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
-Bewegung, Glättung, Berührungs-Ebenen, Farben, Master), dazu den Rückfall, wenn der Grafik-Kontext verloren geht;
-mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt alle drei bei jedem Push
-laufen (`.github/workflows/tests.yml`).
+Bewegung, Glättung, Berührungs-Ebenen, Farben, Master), dazu den Rückfall, wenn der Grafik-Kontext verloren geht,
+und dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, die Zeichenfläche nicht feiner als das
+Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt alle drei bei jedem
+Push laufen (`.github/workflows/tests.yml`).
+
+Was das Zeichnen die KI kostet, wird von Hand gemessen (#210), mit dem echten Modell: ein zweites Dream in einem
+Sandbox-HOME auf einem eigenen Port starten (nie das eigene Dream – das Skript verstellt die Effekte), es so
+einstellen, wie verglichen werden soll (z. B. sd-turbo, 1 Schritt, Verwandlung 0,5), dann
+`PORT=7885 node scripts/measure_stage.cjs <playwright>` (der Ordner eines installierten Playwright). Es öffnet die
+Bühne in einem Chromium ohne Fenster auf der echten Grafikkarte und zählt die KI-Bilder, die zurückkommen, in
+Fenstern von 20 s nach 8 s Warmlaufen – gezeichnet mit Canvas 2D und mit WebGL 2, für die Bühne allein und das
+Bedienfeld mit Ausgabefenster, bei Geräte-Skalierung 1 und 2, abwechselnd und je dreimal – und gibt Mittelwert,
+Streuung und den Unterschied aus, dazu, wie viele Durchgänge und Megapixel pro Sekunde die WebGL-Kette gezeichnet
+hat. `SECONDS`, `WARMUP`, `RUNS`, `SCENES`, `SCALES`, `FX` (Effekte an) und `HEADED=1` (echte Fenster) ändern den
+Lauf. Das Modell erst warmlaufen lassen: Die ersten Sekunden nach einem Start sind langsamer, egal was zeichnet.
 
 Wo der Code liegt, falls du etwas ändern willst: `server.py` ist das, was `./dream.sh` startet, und setzt nur die Teile
 zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`), die Rechte (`rights.py`: die Rollen und was jede

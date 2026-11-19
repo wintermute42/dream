@@ -89,6 +89,19 @@ test('WebGL 2 chain against the Canvas 2D drawing', { skip: !chrome && !process.
     assert.ok(names.length >= 12);
     for (const n of names) assert.ok(report.cases.some(c => c.name === n), `no comparison for the effect ${n}`);
   });
+  await t.test('the chain draws sparingly (#210)', () => {
+    const s = report.sparing;
+    assert.equal(s.still, 0, 'a still picture is not drawn again');
+    assert.equal(s.changed, 1, 'a change is drawn');
+    assert.ok(s.settling >= 5 && s.settling <= 25, `the smoothing draws while it catches up, then rests (${s.settling} of 60 frames)`);
+    assert.equal(s.settled, 0, 'the smoothing at rest draws nothing');
+    assert.ok(s.caughtUp <= MEAN, `at rest the smoothed picture is the newest one (${s.caughtUp})`);
+    assert.ok(s.woken >= 4, `a new picture wakes the smoothing (${s.woken})`);
+    assert.ok(s.limited >= 13 && s.limited <= 17, `a preview at 30 frames per second draws every other frame (${s.limited} of 30)`);
+    assert.deepEqual(s.square, [256, 144], 'the canvas is as fine as the picture covering it');
+    assert.deepEqual(s.effects, [320, 180], 'with effects it is as fine as their buffer');
+    assert.deepEqual(s.large, [320, 180], 'and never finer than the screen');
+  });
   await t.test('context lost: Canvas 2D takes over, restored: WebGL 2 again', () => {
     assert.ok(report.lost && report.restored, 'the browser cannot lose a context on purpose');
     assert.equal(report.lost.renderer, 'canvas');
