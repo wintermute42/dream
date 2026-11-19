@@ -152,7 +152,7 @@ test('dream windows: four of them in a browser', { skip: !chrome && !process.env
   await t.test('a weak device: fewer pixels, coarser clouds', () => {
     const { before, after } = r.weak;
     assert.deepEqual([before.tier, after.tier], [2, 0]);
-    assert.ok(after.size[0] <= before.size[0] / 2 + 1 && after.cloud[0] < before.cloud[0] * 0.6, JSON.stringify(r.weak));
+    assert.ok(after.size[0] <= before.size[0] / 2 + 1 && after.cloud[0] * after.cloud[1] < before.cloud[0] * before.cloud[1] * 0.6, JSON.stringify(r.weak));
     assert.ok(after.soft > 0.2 && after.clear > 0.04, 'still clouds');   // (how bright it is says nothing here: the windows are in trance)
   });
   await t.test('what Dream says is small', () => {
