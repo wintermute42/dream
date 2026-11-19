@@ -1,8 +1,9 @@
 // #204: the picture chain of the stage (index.html) and the output windows (output.html), drawn on the graphics card.
 // One WebGL 2 canvas takes the place of the stacked pictures and canvases: the last two AI pictures with their motion
-// (#194) and cross-fade → smoothing → the effects of fx.js as shaders (same names, same numbers) → the touch layers →
-// colour rotation and negative → brightness, saturation and master. Without WebGL 2, or when the context is lost, the
-// same call draws with Canvas 2D as before (fx.js); `renderer` tells which one is at work.
+// (#194), morphed into each other along the flow field between them (#205) or cross-faded → smoothing → the effects of
+// fx.js as shaders (same names, same numbers) → the touch layers → colour rotation and negative → brightness,
+// saturation and master. Without WebGL 2, or when the context is lost, the same call draws with Canvas 2D as before
+// (fx.js; there the two pictures cross-fade, without the field); `renderer` tells which one is at work.
 // #210: the chain shares the graphics card with the AI, so it draws sparingly – its canvas is only as fine as what it
 // shows (an AI picture of 512 px stays 512 px on a Retina screen; the browser scales it up as it does a picture
 // element), a frame in which nothing moves is not drawn, the smoothing rests once it has caught up, and a preview
@@ -48,15 +49,45 @@ vec2 moved(vec2 u, vec4 m) {
   vec2 q = (u - m.xy) * box; float cs = cos(m.z), sn = sin(m.z);
   return m.xy + vec2(q.x * cs + q.y * sn, q.y * cs - q.x * sn) / (m.w * box);
 }`;
+  // #205: the old picture on its way into the new one. u is a place in the picture's box; each picture lies there as
+  // the camera shows it (#215: turned and scaled around m.xy, mOld and mNew). The field says where a point of the old
+  // picture is in the new one; d is the way that point still has to go on the screen – what the field tells beyond
+  // the camera's own motion. The old picture is pulled forward along it by the share of the way that is done (mixv),
+  // the new one back by the rest, and the two are blended: shapes travel instead of appearing twice. Without a field
+  // (flowK 0) d is nothing and the two simply cross-fade. A picture ends where its motion puts its edge (the new one
+  // lies under the old one's edges); the field only reaches as far as the picture goes (its edge repeats).
+  const MORPH = `${MOVED}
+uniform sampler2D tOld, tNew, tFlow;
+uniform vec4 cOld, cNew, mOld, mNew;
+uniform float mixv, hasOld, flowK;
+vec2 placed(vec2 p, vec4 m) {                          // the other way round than moved(): where a point of that picture lies in the box
+  vec2 q = (p - m.xy) * m.w * box; float cs = cos(m.z), sn = sin(m.z);
+  return m.xy + vec2(q.x * cs - q.y * sn, q.x * sn + q.y * cs) / box;
+}
+vec3 morphed(vec2 u) {
+  vec2 d = vec2(0.);
+  if (flowK > 0.) {
+    vec2 p = moved(u, mOld);
+    d = placed(p + texture(tFlow, p * cOld.xy + cOld.zw).xy * flowK / cOld.xy, mNew) - u;
+  }
+  vec2 un = clamp(moved(u + (1. - mixv) * d, mNew), 0., 1.);
+  vec3 n = texture(tNew, un * cNew.xy + cNew.zw).rgb * inside(moved(u, mNew)) * (hasOld > .5 ? 1. : mixv);   // the very first picture comes out of the black
+  if (hasOld > .5 && mixv < 1.) {
+    vec2 uo = clamp(moved(u - mixv * d, mOld), 0., 1.);
+    n = mix(mix(n, texture(tOld, uo * cOld.xy + cOld.zw).rgb, inside(moved(u, mOld))), n, mixv);
+  }
+  return n;
+}`;
   const FRAG = {
-    // the picture covering the buffer, blended from the one before it (the cross-fade stays visible in the effects);
-    // #215: the one before lies as it was shown against the new one (mOld), the new one under its edges
-    cover: `${HEAD}${MOVED}
-uniform sampler2D tOld, tNew; uniform vec4 cOld, cNew, mOld; uniform float mixv;
+    // the picture covering the buffer as the new picture lies in it, coming from the one before it (the cross-fade or
+    // morph stays visible in the effects); #215: the one before lies as it was shown against the new one (mOld), the
+    // new one under its edges. With share below 1 only that much of it is mixed into what the buffer `acc` held: the
+    // smoothing, a moving average in time.
+    cover: `${HEAD}${MORPH}
+uniform sampler2D acc; uniform float share;
 void main() {
-  vec3 n = texture(tNew, v * cNew.xy + cNew.zw).rgb;
-  if (mixv < 1.) { vec2 u = moved(v, mOld); n = mix(mix(n, texture(tOld, u * cOld.xy + cOld.zw).rgb, inside(u)), n, mixv); }
-  o = vec4(n, 1.);
+  vec3 c = morphed(v);
+  o = vec4(share < 1. ? mix(texture(acc, v).rgb, c, share) : c, 1.);
 }`,
     // #215: the smoothed picture laid out anew when a new picture takes over (see smoother.rebase in fx.js)
     rebase: `${HEAD}${MOVED}
@@ -145,13 +176,13 @@ vec3 fx(vec2 P) {
 }`),
     trails: EFFECT(`
 vec3 fx(vec2 P) { vec3 s = S(P); return max(mix(s, texture(prev, v).rgb, .88 * a), s); }`),
-    // what the audience sees: the two pictures as they lie over each other (b over a), each moved by its motion; the
-    // smoothed picture; the touch layers; the effects with colour rotation and negative; brightness, saturation, master
-    final: `${HEAD}${MOVED}
-uniform sampler2D tA, tB, tS, tF, tL0, tL1, tL2;
-uniform vec4 cA, cB, mA, mB, mF, rect;
+    // what the audience sees: the two pictures, each moved by its motion, morphed or cross-faded; the smoothed picture;
+    // the touch layers; the effects with colour rotation and negative; brightness, saturation, master
+    final: `${HEAD}${MORPH}
+uniform sampler2D tS, tF, tL0, tL1, tL2;
+uniform vec4 rect;
 uniform vec3 lay;
-uniform float oA, oB, smoothOn, k, inv, br, master;
+uniform float smoothOn, k, inv, br, master;
 uniform mat3 hue, sat;
 vec3 layer(vec3 col, sampler2D tex, vec2 u, float mode) {   // 1 = over, 2 = screen (the textures hold colour times alpha)
   if (mode < .5) return col;
@@ -160,9 +191,8 @@ vec3 layer(vec3 col, sampler2D tex, vec2 u, float mode) {   // 1 = over, 2 = scr
 }
 void main() {
   vec2 u = (v - rect.xy) / rect.zw;                    // the picture's place on the canvas; a moving picture may reach past it
-  vec2 ua = moved(u, mA), ub = moved(u, mB), uf = moved(u, mF);
-  float ab = oB * inside(ub), inF = inside(uf);
-  vec3 col = texture(tA, ua * cA.xy + cA.zw).rgb * oA * inside(ua) * (1. - ab) + texture(tB, ub * cB.xy + cB.zw).rgb * ab;
+  vec2 uf = moved(u, mNew); float inF = inside(uf);
+  vec3 col = morphed(u);
   if (smoothOn > .5) col = mix(col, texture(tS, uf).rgb, inF);
   col = layer(layer(layer(col, tL0, u, lay.x), tL1, u, lay.y), tL2, u, lay.z);
   if (k > 0.) { vec3 f = clamp(hue * texture(tF, uf).rgb, 0., 1.); col = mix(col, f * (1. - 2. * inv) + inv, k * inF); }
@@ -179,6 +209,7 @@ void main() {
   const satMatrix = s => [0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s,
     0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s];
   const REST = [0.5, 0.5, 0, 1], FULL = [1, 1, 0, 0];
+  const FLOW_UNIT = 508;                                // the field's bytes: steps of 1/508 of the picture (flow.py)
   // a picture of iw × ih covering a buffer of w × h: scale and offset of its texture coordinates
   const cover = (iw, ih, w, h) => {
     const s = Math.max(w / iw, h / ih), sx = w / (iw * s), sy = h / (ih * s);
@@ -235,17 +266,36 @@ void main() {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       return tex;
     }
-    // a buffer to draw into; fit() tells whether it had to be made anew (then it is empty)
-    function target(filter = gl.LINEAR) {
-      const t = { tex: texture(filter), fbo: gl.createFramebuffer(), w: 1, h: 1 };
+    // a buffer to draw into (kind: how its colours are kept); fit() tells whether it had to be made anew (then it is empty)
+    const BYTES = [gl.RGBA, gl.UNSIGNED_BYTE];
+    function target(filter = gl.LINEAR, kind = BYTES) {
+      const t = { tex: texture(filter), fbo: gl.createFramebuffer(), w: 1, h: 1, kind };
       gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t.tex, 0);
       return t;
     }
     function fit(t, w, h) {
       if (t.w === w && t.h === h) return false;
-      gl.bindTexture(gl.TEXTURE_2D, t.tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.bindTexture(gl.TEXTURE_2D, t.tex); gl.texImage2D(gl.TEXTURE_2D, 0, t.kind[0], w, h, 0, gl.RGBA, t.kind[1], null);
       t.w = w; t.h = h; return true;
     }
+    // #205 (Pf-4 of #187): the smoothing mixes a little of the new picture into what is shown, sixty times a second.
+    // Kept in 8 bits, a step smaller than half a brightness level is rounded away and a shadow of the old picture
+    // stays for good; kept as floating-point numbers it arrives. The finest kind the graphics card can draw into wins.
+    const precise = (() => {
+      const kinds = [];
+      if (gl.getExtension('EXT_color_buffer_float')) {
+        if (gl.getExtension('OES_texture_float_linear')) kinds.push([gl.RGBA32F, gl.FLOAT]);
+        kinds.push([gl.RGBA16F, gl.HALF_FLOAT]);
+      }
+      for (const kind of kinds) {
+        const t = target(gl.LINEAR, kind); fit(t, 2, 2);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, t.fbo);
+        const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+        gl.deleteFramebuffer(t.fbo); gl.deleteTexture(t.tex);
+        if (ok) return kind;
+      }
+      return null;
+    })();
     // the pictures and layers as textures: loaded anew only when the element shows something else
     const pic = () => ({ tex: texture(gl.LINEAR_MIPMAP_LINEAR), src: '', w: 0, h: 0, n: 0 });
     function load(p, el) {
@@ -255,20 +305,37 @@ void main() {
       p.src = el.src; p.w = el.naturalWidth; p.h = el.naturalHeight; p.n++; shown = '';
     }
     const pics = new Map(), layerTex = [texture(gl.LINEAR), texture(gl.LINEAR), texture(gl.LINEAR)];
-    const smooth = target(), relaid = target(), bufs = [target(), target(), target()], small = target(gl.NEAREST), st = {};
+    // the smoothed picture and a second buffer of its kind: every step is drawn from the one into the other
+    const smooth = target(gl.LINEAR, precise || BYTES), relaid = target(gl.LINEAR, precise || BYTES);
+    const bufs = [target(), target(), target()], small = target(gl.NEAREST), st = {};
     const SETTLED = 1 / 512;                             // what is left of the older pictures in the smoothed one: nothing to see
-    let smoothReady = false, smoothOf = null, rest = 1, prevAt = -1, shown = '', last = null, drawn = 0;
+    let smoothReady = false, smoothOf = null, smoothWait = 0, rest = 1, prevAt = -1, shown = '', last = null, drawn = 0;
+    const turn = () => { [smooth.tex, relaid.tex, smooth.fbo, relaid.fbo] = [relaid.tex, smooth.tex, relaid.fbo, smooth.fbo]; };
+    // #205: the flow field as a texture – two signed bytes per vector, read between its points
+    const flowTex = texture(gl.LINEAR);
+    let flowOf = null;
+    function loadFlow(fl) {
+      if (fl === flowOf) return;
+      gl.bindTexture(gl.TEXTURE_2D, flowTex); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG8_SNORM, fl.cols, fl.rows, 0, gl.RG, gl.BYTE, fl.data);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+      flowOf = fl; shown = '';
+    }
+    // a small copy of what is shown, read back without making the graphics card wait (snapshot below)
+    const shot = { t: target(), buf: null, sync: null, w: 0, h: 0, cv: null, px: null, n: 0 };
+    // the smoothed picture as the effects read it: as it is, covering the buffer
+    const plain = (tex, bw, bh) => ({ vals: { cNew: FULL, cOld: FULL, mOld: REST, mNew: REST, box: [bw, bh], mixv: 1, hasOld: 0, flowK: 0, share: 1 },
+      texs: { tOld: tex, tNew: tex, tFlow: flowTex, acc: tex } });
 
     // the effects in their order, from the smoothed picture or the two cross-fading ones; returns the buffer with the
     // result. The smoothed picture is read where it is; the two pictures are first laid into a buffer, covering it.
-    function effects(f, front, back) {
+    function effects(f, pair) {
       const [w, h] = f.fxSize, p = f.fx, R = [w, h];
       if (bufs.map(b => fit(b, w, h)).some(Boolean)) prevAt = -1;
       const free = [0, 1, 2].filter(i => i !== prevAt), prev = prevAt < 0 ? null : bufs[prevAt];
       let out = free[0], spare = free[1], from = smooth, done = -1;
       const pass = (name, vals, texs) => { draw(name, vals, texs, bufs[out]); from = bufs[out]; done = out; [out, spare] = [spare, out]; };
-      if (!f.smoothing) pass('cover', { cNew: cover(front.w, front.h, w, h), cOld: back.w ? cover(back.w, back.h, w, h) : FULL,
-        mixv: back.w && f.mix < 0.99 ? Math.max(0, f.mix) : 1, mOld: f.mOld, box: R }, { tOld: back.tex, tNew: front.tex });
+      if (!f.smoothing) { const two = pair(w, h); pass('cover', two.vals, two.texs); }
       const common = { R, c: [w * (p.cx == null ? 0.5 : p.cx), h * (p.cy == null ? 0.5 : p.cy)], pulse: +p.pulse || 0, bass: +p.bass || 0,
         spin: +p.spin || 0, t: +p.t || 0, dir: p.dir || 1, loc: p.loc || 0, ang: p.ang || 0 };
       const seed = Math.abs(Math.round(+p.seed || 0));
@@ -287,14 +354,15 @@ void main() {
         pass(name, vals, { src: from.tex, prev: (prev || from).tex, small: small.tex });
       }
       // nothing drawn (only feedback or trails asked for, and no frame before this one): they need a first frame to read
-      if (done < 0) pass('cover', { cNew: FULL, cOld: FULL, mixv: 1 }, { tOld: smooth.tex, tNew: smooth.tex });
+      if (done < 0) { const same = plain(smooth.tex, w, h); pass('cover', same.vals, same.texs); }
       prevAt = done;
       return from;
     }
     const present = () => { if (last) draw('final', last.vals, last.texs, null); };
     return {
-      // f: {a, b, front (elements), oA, oB (their opacity), mA, mB (their motion), rebase (#215: a new picture took over –
-      //     how the one before lies against it, or null), tau, dt, fx, k, br, sat, master,
+      // f: {a, b, front (elements), mix (how far the front picture is there, 0…1), mA, mB (their motion), flow (#205: the
+      //     field from the picture before to the front one, {cols, rows, data: Int8Array, k}, or null), rebase (#215: a new
+      //     picture took over – how the one before lies against it, or null), tau, dt, fx, k, br, sat, master,
       //     layers: [{el, screen} or null], view (the canvas in CSS pixels), dpr (device pixels per CSS pixel),
       //     rect (the picture's place on the canvas, as shares), fxSize, smoothSize (the buffers at their largest)}
       draw(f) {
@@ -308,29 +376,43 @@ void main() {
         const [w, h] = Fx.fit(vw * fine, vh * fine, 2560);
         if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; shown = ''; }
         if (!front.w) { smoothReady = false; prevAt = -1; gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); last = null; return; }
+        // #205: for a frame or two the element of a new picture is still loading and its texture holds the picture from
+        // two pictures ago – blending towards that would move the stage back: the picture before stays until it is there
+        const late = front.src !== f.front.src && back.w > 0;
+        const mixv = late ? 0 : Math.max(0, Math.min(1, f.mix)), fading = back.w > 0 && mixv < 1;
+        const flowK = fading && f.flow && f.flow.k > 0 ? f.flow.k * 127 / FLOW_UNIT : 0;
+        if (flowK) loadFlow(f.flow);
+        const mF = f.front === f.a ? f.mA : f.mB, mO = f.front === f.a ? f.mB : f.mA;
+        // the two pictures on their way into each other, covering a box of bw × bh: as they lie on the stage, or
+        // (lying: false) in a buffer that is drawn as the front one lies – the one before lies against it there
+        const pair = (pw, ph, lying) => ({ vals: { cNew: cover(front.w, front.h, pw, ph), cOld: back.w ? cover(back.w, back.h, pw, ph) : FULL,
+          mNew: lying ? mF : REST, mOld: lying ? mO : [mF[0], mF[1], mO[2] - mF[2], mO[3] / mF[3]], box: [pw, ph], mixv, hasOld: fading ? 1 : 0, flowK, share: 1 },
+          texs: { tOld: back.tex, tNew: front.tex, tFlow: flowTex, acc: front.tex } });
         const smoothing = f.tau > 0.02;
-        if (smoothing) {                                 // a little of the newest picture into what is shown
+        if (smoothing) {                                 // a little of what the two pictures show now into the smoothed picture
           const ks = Math.min(1, own(front) * bw / f.smoothSize[0]);   // no finer than the picture itself
           const sw = Math.max(2, Math.round(f.smoothSize[0] * ks)), sh = Math.max(2, Math.round(f.smoothSize[1] * ks));
-          if (fit(smooth, sw, sh)) smoothReady = false;
+          if ([fit(smooth, sw, sh), fit(relaid, sw, sh)].some(Boolean)) smoothReady = false;
           if (smoothReady && f.rebase) {                 // what is shown stays where it is; the new picture joins it there
-            fit(relaid, sw, sh);
             draw('rebase', { cNew: cover(front.w, front.h, sw, sh), mOld: f.rebase, box: [sw, sh] }, { tOld: smooth.tex, tNew: front.tex }, relaid);
-            [smooth.tex, relaid.tex, smooth.fbo, relaid.fbo] = [relaid.tex, smooth.tex, relaid.fbo, smooth.fbo];
+            turn();
           }
-          if (!smoothReady || smoothOf !== front.tex || smooth.n !== front.n) rest = 1;   // a new picture to catch up with
+          // a new picture to catch up with, or the two still on their way: nothing rests
+          if (!smoothReady || smoothOf !== front.tex || smooth.n !== front.n || fading) rest = 1;
           smoothOf = front.tex; smooth.n = front.n;
           if (rest > SETTLED) {                          // once it has caught up, it rests until the next picture
-            const share = smoothReady ? 1 - Math.exp(-f.dt / Math.max(0.016, f.tau)) : 1;
-            gl.enable(gl.BLEND); gl.blendColor(0, 0, 0, share); gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA);
-            draw('cover', { cNew: cover(front.w, front.h, sw, sh), cOld: FULL, mixv: 1 }, { tOld: front.tex, tNew: front.tex }, smooth);
-            gl.disable(gl.BLEND); smoothReady = true; rest *= 1 - share; shown = '';
+            smoothWait += f.dt;
+            const share = smoothReady ? 1 - Math.exp(-smoothWait / Math.max(0.016, f.tau)) : 1;
+            // without a precise buffer a tiny share would be rounded away: it waits until it has grown to a tenth
+            if (precise || share >= 0.1) {
+              const from = pair(sw, sh, false); from.vals.share = share; from.texs.acc = smooth.tex;
+              draw('cover', from.vals, from.texs, relaid); turn();
+              smoothReady = true; smoothWait = 0; rest *= 1 - share; shown = '';
+            }
           }
-        } else smoothReady = false;
+        } else { smoothReady = false; smoothWait = 0; }
         let result = null;
-        // the picture before against the front one: the effects are drawn as the front one lies
-        const mF = f.front === f.a ? f.mA : f.mB, mO = f.front === f.a ? f.mB : f.mA;
-        if (k > 0) result = effects({ ...f, smoothing, mix: f.front === f.a ? f.oA : f.oB, mOld: [mF[0], mF[1], mO[2] - mF[2], mO[3] / mF[3]] }, front, back); else prevAt = -1;
+        if (k > 0) result = effects({ ...f, smoothing }, (pw, ph) => pair(pw, ph, false)); else prevAt = -1;
         const lay = [0, 0, 0];
         on.forEach((l, i) => {
           if (!l) return;
@@ -338,18 +420,47 @@ void main() {
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, l.el); lay[i] = l.screen ? 2 : 1;
         });
         const hue = p && p.hue ? Math.round(p.hue) : 0, inv = p && p.inv > 0.02 ? Math.min(0.85, p.inv) : 0;
-        const box = [w * f.rect[2], h * f.rect[3]];
-        const vals = { cA: A.w ? cover(A.w, A.h, ...box) : FULL, cB: B.w ? cover(B.w, B.h, ...box) : FULL, mA: f.mA, mB: f.mB, mF,
-          rect: f.rect, box, oA: A.w ? f.oA : 0, oB: B.w ? f.oB : 0, smoothOn: smoothing ? 1 : 0, k, inv, br: f.br, master: f.master, lay,
+        const lying = pair(w * f.rect[2], h * f.rect[3], true);
+        const vals = { ...lying.vals, rect: f.rect, smoothOn: smoothing ? 1 : 0, k, inv, br: f.br, master: f.master, lay,
           hue: hueMatrix(hue), sat: satMatrix(f.sat) };
         // a still picture (no motion or fade, the smoothing caught up, no effect or layer at work) is not drawn again
         const still = (!smoothing || rest <= SETTLED) && !result && !lay.some(Boolean) ? JSON.stringify(vals) : '';
         if (still && still === shown) return;
         shown = still; drawn++;
-        last = { vals, texs: { tA: A.tex, tB: B.tex, tS: smooth.tex, tF: (result || smooth).tex, tL0: layerTex[0], tL1: layerTex[1], tL2: layerTex[2] } };
+        last = { vals, texs: { ...lying.texs, tS: smooth.tex, tF: (result || smooth).tex, tL0: layerTex[0], tL1: layerTex[1], tL2: layerTex[2] } };
         present();
       },
-      present,                                         // the last picture once more (a copy of the canvas needs it fresh)
+      // #205 (Pf-6 of #187): what the audience sees, small (w × h), as a canvas – without holding up the graphics card.
+      // Each call asks for a copy of the picture as it is now and returns the copy the call before asked for (cv: null
+      // until one has arrived; n: how many have): the pixels travel to the page's memory beside the drawing instead
+      // of stopping it.
+      snapshot(w, h) {
+        if (shot.sync) {
+          const state = gl.clientWaitSync(shot.sync, 0, 0);
+          if (state === gl.TIMEOUT_EXPIRED) return shot;
+          gl.deleteSync(shot.sync); shot.sync = null;
+          if (state !== gl.WAIT_FAILED) {
+            if (!shot.cv) shot.cv = document.createElement('canvas');
+            if (shot.cv.width !== shot.w || shot.cv.height !== shot.h) { shot.cv.width = shot.w; shot.cv.height = shot.h; shot.px = null; }
+            const ctx = shot.cv.getContext('2d');
+            if (!shot.px) shot.px = ctx.createImageData(shot.w, shot.h);
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, shot.buf); gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, shot.px.data); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+            ctx.putImageData(shot.px, 0, 0); shot.n++;
+          }
+        }
+        if (last) {
+          fit(shot.t, w, h); shot.w = w; shot.h = h;
+          draw('final', { ...last.vals, rect: [0, 0, 1, 1] }, last.texs, shot.t);   // the picture alone, top row first
+          if (!shot.buf) shot.buf = gl.createBuffer();
+          gl.bindBuffer(gl.PIXEL_PACK_BUFFER, shot.buf);
+          gl.bufferData(gl.PIXEL_PACK_BUFFER, w * h * 4, gl.STREAM_READ);   // a fresh store every time: Chrome keeps its quick copy of the last one otherwise and warns
+          gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, 0);   // into the buffer on the card: returns at once
+          gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+          shot.sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush();
+        }
+        return shot;
+      },
+      precise: !!precise,                              // the smoothed picture is kept as floating-point numbers
       get drawn() { return drawn; },                   // how many frames were really drawn
       lost: () => gl.isContextLost(),
     };
@@ -367,13 +478,20 @@ void main() {
     const canvasOnly = o.canvas || asked === 'canvas';
     let chain = null, master = null, front = a, fxK = 0, rect = [0, 0, 1, 1], drawnAt = -1e9, owed = 0;
     let rebase = null;                                 // #215: a new picture took over: how the one before lies against it (Fx.morph.rel)
-    // the picture's place in the window when it is shown letterboxed ("contain")
-    function place(el) {
-      const iw = front.naturalWidth || 16, ih = front.naturalHeight || 9, s = Math.min(innerWidth / iw, innerHeight / ih);
-      Object.assign(el.style, { width: iw * s + 'px', height: ih * s + 'px', left: (innerWidth - iw * s) / 2 + 'px', top: (innerHeight - ih * s) / 2 + 'px' });
+    // #205: the picture now coming – since when, over how long, and the flow field it comes along
+    const coming = { at: 0, ms: 0, flow: null };
+    const mixAt = now => coming.ms > 0 ? Math.max(0, Math.min(1, (now - coming.at) / coming.ms)) : 1;
+    // the picture's place in the window when it is shown letterboxed ("contain"); written only when it changes
+    let placedFor = '', laidFor = '', sizes = null;
+    function place() {
+      const iw = front.naturalWidth || 16, ih = front.naturalHeight || 9, key = `${iw} ${ih} ${innerWidth} ${innerHeight}`;
+      if (key === placedFor) return;
+      placedFor = key;
+      const s = Math.min(innerWidth / iw, innerHeight / ih);
+      for (const el of [smooth, fx]) Object.assign(el.style, { width: iw * s + 'px', height: ih * s + 'px', left: (innerWidth - iw * s) / 2 + 'px', top: (innerHeight - ih * s) / 2 + 'px' });
     }
     function turnTo(c, why) {
-      chain = c; master = null;
+      chain = c; master = null; laidFor = '';
       glcv.style.display = c ? 'block' : 'none';
       for (const el of stacked) el.style.visibility = c ? 'hidden' : '';
       if (c) {                                           // what the Canvas 2D drawing left on the elements
@@ -392,31 +510,53 @@ void main() {
       const { now, tau, fx: p } = f;
       Fx.morph.apply(front, now); Fx.morph.apply(back, now); Fx.morph.apply(front, now, smooth); Fx.morph.apply(front, now, fx);
       const smoothing = tau > 0.02 && !!front.naturalWidth;
-      if (smoothing) { if (o.contain) place(smooth); smooth.style.display = 'block'; smoother.rebase(rebase, front); smoother.push(front); smoother.step(f.dt, tau); }
+      if (o.contain) place();                            // the smoothed picture and the effects lie only over the picture itself
+      if (smoothing) { smooth.style.display = 'block'; smoother.rebase(rebase, front); smoother.push(front); smoother.step(f.dt, tau); }
       else if (smooth.style.display !== 'none') { smooth.style.display = 'none'; smoother.reset(); }
       if (p) {
-        if (o.contain) place(fx);                        // only over the picture itself
-        if (smoothing && smoother.ready) engine.render(smooth, p); else engine.render(front, p, back, +getComputedStyle(front).opacity, Fx.morph.rel(back, front, now));
+        if (smoothing && smoother.ready) engine.render(smooth, p); else engine.render(front, p, back, mixAt(now), Fx.morph.rel(back, front, now));
         fx.style.filter = Fx.cssFilter(p);
       } else if (fx.width) { engine.reset(); fx.style.filter = ''; }
       fx.style.opacity = fxK.toFixed(3);
       box.style.filter = f.br !== 1 || f.sat !== 1 ? `brightness(${f.br.toFixed(3)}) saturate(${f.sat.toFixed(3)})` : '';
       box.style.opacity = f.master;
     }
+    // #205 (Pf-6 of #187): where the picture lies on the WebGL canvas. The sizes come from Fx.box (the browser tells
+    // when one changes); the offsets are asked for only when a size changed – nothing makes the browser lay the page
+    // out anew in the middle of a frame.
+    function layout() {
+      const [gw, gh] = Fx.box(glcv), [pw, ph] = Fx.box(fx), key = `${gw} ${gh} ${pw} ${ph} ${placedFor}`;
+      if (key === laidFor) return sizes;
+      laidFor = key;
+      const cw = Math.max(1, gw), ch = Math.max(1, gh);
+      rect = [fx.offsetLeft / cw, fx.offsetTop / ch, Math.max(1, pw) / cw, Math.max(1, ph) / ch];
+      return (sizes = { view: [cw, ch], fxSize: Fx.fit(pw, ph, fxMax), smoothSize: Fx.fit(pw, ph, smoothMax) });
+    }
     function drawGl(f) {
-      if (o.contain) place(fx);
+      if (o.contain) place();
       const motion = el => { const m = Fx.morph.at(el, f.now); return m ? [m.px, m.py, m.r * Math.PI / 180, m.s] : REST; };
       // the master fader glides for an eighth of a second, like the CSS transition of the Canvas 2D drawing
       master = master === null ? f.master : master + Math.max(-f.dt / 0.12, Math.min(f.dt / 0.12, f.master - master));
       // the canvas fills the whole box; the picture has its place on it where the (hidden) effects canvas lies
-      const cw = Math.max(1, glcv.clientWidth), ch = Math.max(1, glcv.clientHeight), dpr = devicePixelRatio || 1, pw = fx.clientWidth, ph = fx.clientHeight;
-      rect = [fx.offsetLeft / cw, fx.offsetTop / ch, Math.max(1, pw) / cw, Math.max(1, ph) / ch];
-      chain.draw({ a, b, front, oA: +getComputedStyle(a).opacity, oB: +getComputedStyle(b).opacity, mA: motion(a), mB: motion(b),
+      const laid = layout();
+      chain.draw({ a, b, front, mix: mixAt(f.now), flow: coming.flow, mA: motion(a), mB: motion(b),
         rebase: rebase && [rebase.px, rebase.py, rebase.r * Math.PI / 180, rebase.s],
         tau: f.tau, dt: f.dt, fx: f.fx, k: fxK, br: f.br, sat: f.sat, master, layers: layers.map(l => l.on() ? l : null),
-        view: [cw, ch], dpr, rect, fxSize: Fx.fit(pw, ph, fxMax), smoothSize: Fx.fit(pw, ph, smoothMax) });
+        dpr: devicePixelRatio || 1, rect, ...laid });
     }
     return {
+      // a new picture is in the element el (a or b): it comes in over `fade` ms, from the picture in the other element.
+      // flow: the field between the two ({cols, rows, data: Int8Array of dx, dy per vector, k: how much of it, 0…1})
+      // – then the two morph into each other (#205); without one they cross-fade. The view counts the fade itself.
+      show(el, { fade = 0, flow = null, now = performance.now() } = {}) {
+        coming.at = now; coming.ms = Math.max(0, fade);
+        coming.flow = flow && flow.k > 0 && flow.data && flow.data.length === flow.cols * flow.rows * 2 ? flow : null;
+        // the Canvas 2D drawing: the upper picture (b) fades in over the lower one or away from it, the lower one is
+        // simply there (and gone once it is covered) – a true cross-fade, never darker in the middle
+        const up = el === b;
+        b.style.transition = `opacity ${coming.ms}ms linear`; b.style.opacity = up ? 1 : 0;
+        a.style.transition = up ? `opacity 0s linear ${coming.ms}ms` : 'none'; a.style.opacity = up ? 0 : 1;
+      },
       // one screen frame. f: {front (the picture element now shown), now (ms), dt (s), tau (smoothing, s), fx (the
       // effects' numbers as fx.js takes them, or null), k (how much of the effects shows, 0…1), sc (zoom of the whole
       // box), br, sat (brightness and saturation, 1 = unchanged), master (0…1), fps (#210: the WebGL chain draws at
@@ -424,22 +564,26 @@ void main() {
       draw(f) {
         if (f.front !== front) rebase = Fx.morph.rel(front, f.front, f.now);   // kept until a frame is really drawn
         front = f.front; fxK = f.fx ? Math.max(0, Math.min(1, f.k)) : 0;
-        box.style.transform = f.sc !== 1 ? `scale(${f.sc.toFixed(4)})` : '';
+        const sc = f.sc !== 1 ? `scale(${f.sc.toFixed(4)})` : '';
+        if (box.style.transform !== sc) box.style.transform = sc;
         if (!chain) { drawCanvas(f, front === a ? b : a); rebase = null; return; }
         if (f.fps > 0 && f.now - drawnAt < 1000 / f.fps - 4) { owed += f.dt; return; }   // its time counts for the next one
         const dt = f.dt + owed; owed = 0; drawnAt = f.now;
         try { drawGl(dt === f.dt ? f : { ...f, dt }); } catch (e) { console.warn('Dream: WebGL 2 drawing failed –', e); turnTo(null, 'error'); }
         rebase = null;
       },
-      // what the audience sees right now, drawn into another canvas (the movement detection looks at it)
+      // what the audience sees, drawn into another canvas (the movement detection looks at it). The WebGL chain hands
+      // out the copy it was asked for the call before (a frame old, never waited for) and returns how many copies
+      // have arrived so far.
       snapshot(ctx, w, h) {
-        if (chain) { chain.present(); ctx.drawImage(glcv, rect[0] * glcv.width, rect[1] * glcv.height, rect[2] * glcv.width, rect[3] * glcv.height, 0, 0, w, h); return; }
+        if (chain) { const shot = chain.snapshot(w, h); if (shot.cv) ctx.drawImage(shot.cv, 0, 0, w, h); return shot.n; }
         const src = smoother.ready ? smooth : front;
         if (src.naturalWidth || src.width) ctx.drawImage(src, 0, 0, w, h);
         if (fx.width && fxK > 0.02) { ctx.globalAlpha = fxK; ctx.drawImage(fx, 0, 0, w, h); ctx.globalAlpha = 1; }
       },
       get renderer() { return chain ? 'webgl2' : 'canvas'; },
-      get drawn() { return chain ? chain.drawn : 0; },   // frames the WebGL chain really drew (it skips still ones)
+      get drawn() { return chain ? chain.drawn : 0; },
+      get precise() { return !!chain && chain.precise; },   // the smoothing is kept as floating-point numbers   // frames the WebGL chain really drew (it skips still ones)
     };
   }
   return { create };

@@ -4,9 +4,11 @@ guests); the worker on the cloud GPU is reached only through the SSH tunnel and 
 import asyncio
 import base64
 import binascii
+import concurrent.futures
 import contextlib
 import io
 import json
+import multiprocessing
 import os
 import re
 import time
@@ -15,12 +17,41 @@ from fastapi import WebSocket, WebSocketDisconnect
 from PIL import Image
 
 import config
+import flow
 import i18n
 import render
 import styles
 from web import app
 
 guard = None                   # set by the app: may this socket paint?
+
+# #205: the flow field between two pictures is estimated in a process of its own. In this process its many small steps
+# would take turns with the thread that paints (Python runs one thread at a time): measured, the picture took as much
+# longer as the estimate lasted. If the process cannot be started or dies, the estimate runs here in a thread instead.
+flow_process = {"pool": None, "use": True}
+
+
+def flow_pool():
+    if flow_process["use"] and flow_process["pool"] is None:
+        try:
+            flow_process["pool"] = concurrent.futures.ProcessPoolExecutor(
+                1, mp_context=multiprocessing.get_context("spawn"), initializer=flow.leave_with_parent)
+        except (OSError, ValueError) as e:
+            flow_process["use"] = False
+            print("flow field: no process of its own, estimating in the renderer:", repr(e)[:200], flush=True)
+    return flow_process["pool"] if flow_process["use"] else None
+
+
+async def flow_packed(loop, before, small):
+    """The packed field from the grey picture before to small (None: too little in common)."""
+    pool = flow_pool()
+    if pool is not None:
+        try:
+            return await loop.run_in_executor(pool, flow.packed_between, before.tobytes(), small.tobytes(), small.shape)
+        except (concurrent.futures.process.BrokenProcessPool, OSError, RuntimeError) as e:
+            flow_process.update(pool=None, use=False)
+            print("flow field: its process is gone, estimating in the renderer:", repr(e)[:200], flush=True)
+    return await loop.run_in_executor(None, flow.packed_between, before.tobytes(), small.tobytes(), small.shape)
 
 
 @app.get("/health")
@@ -67,7 +98,9 @@ def stats():
 @app.websocket("/ws")
 async def ws(sock: WebSocket):
     """Protocol: a JSON text message with the settings, then a binary JPEG frame; answer: JPEG + timing JSON.
-    With a pose, the binary message is b"DRM2" + 4-byte length of the frame JPEG + frame JPEG + skeleton JPEG."""
+    With a pose, the binary message is b"DRM2" + 4-byte length of the frame JPEG + frame JPEG + skeleton JPEG.
+    #205: when the settings ask for it ("flow": true), a picture that follows from the one before is preceded by a
+    binary message with the flow field between the two (flow.pack: it starts with b"DRMF")."""
     if guard and not guard(sock):                 # #148: rendering is for the stage, not for guests
         await sock.close(code=4403)
         return
@@ -96,6 +129,24 @@ async def ws(sock: WebSocket):
         else:
             img.save(buf, "JPEG", quality=90)
         return buf.getvalue()
+
+    async def field_after(earlier, out, follows):
+        """#205: the picture small and grey, the flow field from the one before to it (None when it does not follow
+        from it or the two have too little in common) and how long that took; beside the next picture's rendering."""
+        t = time.perf_counter()
+        small = packed = None
+        try:
+            before = (await earlier)[0] if earlier else None
+            small = await loop.run_in_executor(None, flow.gray, out)
+            if before is None and flow_pool() is not None:
+                flow_pool().submit(flow.ready)        # the first picture of a run: the process starts meanwhile
+            if follows and before is not None and before.shape == small.shape:
+                packed = await flow_packed(loop, before, small)
+        except Exception as e:                        # never worth a picture: it cross-fades
+            print("flow field failed:", repr(e)[:200], flush=True)
+        ms = (time.perf_counter() - t) * 1000
+        render.perf_add("flow", ms)
+        return small, packed, ms
 
     def _take_ref(m):
         h = str(m.get("ref") or "")
@@ -134,6 +185,8 @@ async def ws(sock: WebSocket):
 
     reader = asyncio.create_task(receive())
     sending = None
+    flowing = None                                # #205: the flow field of the last picture, with its grey picture
+    seeds = ()                                    # the seeds the last picture came from
     try:
         while True:
             item = await frames.get()
@@ -175,20 +228,31 @@ async def ws(sock: WebSocket):
             gpu_ms = int((time.time() - t0) * 1000)
             switch = used if painted_with and used != painted_with else None   # first picture of a new model: slow blend
             painted_with = used
+            if fs.get("flow"):
+                # #205: a new seed (not the one the drift was blending towards) or another model is a cut – no field
+                follows = not switch and int(fs["seed"]) in seeds
+                flowing = asyncio.create_task(field_after(flowing, out, follows))
+            else:
+                flowing = None
+            seeds = (int(fs["seed"]), drift["seed2"] if drift["st"] > 0 else None)
 
-            async def send(prev, out=out, gpu_ms=gpu_ms, switch=switch, t_in=t_in, used=used, fmt=fs.get("fmt")):
+            async def send(prev, out=out, gpu_ms=gpu_ms, switch=switch, t_in=t_in, used=used, fmt=fs.get("fmt"), flowing=flowing):
                 t_enc = time.perf_counter()
                 jpg = await loop.run_in_executor(None, encode, out, fmt)
                 render.perf_add("encode_out", (time.perf_counter() - t_enc) * 1000)   # #180
+                packed, flow_ms = (await flowing)[1:] if flowing else (None, None)
                 if prev:
                     await asyncio.gather(prev, return_exceptions=True)   # the answers leave in the order the frames came
                 if switch:
                     await sock.send_text(json.dumps({"switch": switch}))
                 t_send = time.perf_counter()
+                if packed:
+                    await sock.send_bytes(packed)
                 await sock.send_bytes(jpg)
                 render.perf_add("send", (time.perf_counter() - t_send) * 1000)
                 render.perf_add("server", (time.time() - t_in) * 1000)
                 await sock.send_text(json.dumps({"ms": gpu_ms, "server_ms": int((time.time() - t_in) * 1000), "device": render.device,
+                                                 **({} if flow_ms is None else {"flow_ms": round(flow_ms, 1)}),
                                                  "model": used, "loading": render.model_state["loading"], "error": render.model_state["error"],
                                                  "style_loading": styles.state["loading"],
                                                  "style_error": i18n.msg(styles.state["error"])}))
