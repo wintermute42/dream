@@ -128,17 +128,22 @@ window.DreamFx = (() => {
   function create(cv, maxW = 960, rnd = Math.random) {
     const st = { rnd }, A = mk(), B = mk(), prev = mk();
     return {
-      // img: the picture now shown, old/mix: the one it is blending from and how far (the cross-fade stays visible);
+      // img: the picture now shown, old/mix: the one it is blending from and how far (the cross-fade stays visible),
+      // rel: how old lies against img (morph.rel; #215: the canvas moves with img, old keeps its own place under it);
       // p: {amts: {name: 0…1}, pulse, bass, spin, t, seed, dir, cx, cy (centre 0…1), loc (how much it follows it), ang (radians)}
-      render(img, p, old, mix = 1) {
-        const r = cv.getBoundingClientRect(), [w, h] = fit(r.width, r.height, maxW);
+      render(img, p, old, mix = 1, rel = null) {
+        const [w, h] = fit(cv.clientWidth, cv.clientHeight, maxW);   // its size on the page, whatever the motion (#215) makes of it
         const out = size(cv, w, h);
         const iw = img && (img.naturalWidth || img.width), ih = img && (img.naturalHeight || img.height);
         if (!iw || !ih) return;
         let src = A, dst = B, sctx = size(A, w, h); size(B, w, h);
         const cover = (im, alpha) => { const ow = im.naturalWidth || im.width, oh = im.naturalHeight || im.height; if (!ow || !oh) return;
           const s = Math.max(w / ow, h / oh); sctx.globalAlpha = alpha; sctx.drawImage(im, (w - ow * s) / 2, (h - oh * s) / 2, ow * s, oh * s); };
-        if (old && mix < 0.99) cover(old, 1);            // the picture covers the canvas
+        if (old && mix < 0.99) {                         // the picture covers the canvas
+          if (rel) { cover(img, 1); sctx.save(); placed(sctx, rel, w, h); }   // img under old's edges, where a turned picture ends
+          cover(old, 1);
+          if (rel) sctx.restore();
+        }
         cover(img, old && mix < 0.99 ? Math.max(0, mix) : 1); sctx.globalAlpha = 1;
         st.prev = prev.width === w && prev.height === h ? prev : null;
         for (const name of ORDER) {
@@ -167,13 +172,24 @@ window.DreamFx = (() => {
   // average in time. Small jumps of detail from picture to picture (flicker) melt away, big changes still come
   // through, just softer. tau: seconds until a new picture is ~63 % there.
   function smoother(cv, maxW = 1280) {
-    let src = null, ready = false;
+    let src = null, ready = false, copy = null;
     return {
       push(img) { src = img; },
+      // #215: a new picture takes over, and the canvas will move with it: what is on it is laid out anew the way it
+      // was shown (m: morph.rel of the picture before against the new one), so the picture before does not jump back
+      // to where the new one starts. img: the new picture, under the edges of a turned one.
+      rebase(m, img) {
+        if (!ready || !m || !cv.width) return;
+        const w = cv.width, h = cv.height, ctx = cv.getContext('2d');
+        size(copy || (copy = mk()), w, h).drawImage(cv, 0, 0);
+        const iw = img && (img.naturalWidth || img.width), ih = img && (img.naturalHeight || img.height);
+        if (iw && ih) { const s = Math.max(w / iw, h / ih); ctx.drawImage(img, (w - iw * s) / 2, (h - ih * s) / 2, iw * s, ih * s); }
+        ctx.save(); placed(ctx, m, w, h); ctx.drawImage(copy, 0, 0); ctx.restore();
+      },
       step(dt, tau) {
         const iw = src && (src.naturalWidth || src.width), ih = src && (src.naturalHeight || src.height);
         if (!iw || !ih) return;
-        const r = cv.getBoundingClientRect(), [w, h] = fit(r.width, r.height, maxW);
+        const [w, h] = fit(cv.clientWidth, cv.clientHeight, maxW);
         if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; ready = false; }
         const ctx = cv.getContext('2d'), s = Math.max(w / iw, h / ih);
         ctx.globalAlpha = ready ? 1 - Math.exp(-dt / Math.max(0.016, tau)) : 1;
@@ -184,19 +200,35 @@ window.DreamFx = (() => {
       get ready() { return ready; },
     };
   }
-  // #194: the motion between two AI pictures. Each picture goes on moving the way the dream moves – zoomed and turned
-  // around its pivot, as the next input will be – until the next picture comes; so the stage neither stands still nor
-  // jumps, however few pictures per second the AI makes. Only a CSS transform (60 fps, almost free). Past the expected
-  // time the motion eases out instead of running away when a picture is late.
+  // #194, #215: the motion between two AI pictures. Each picture goes on moving the way the dream moves – zoomed and
+  // turned around its pivot, as the next input will be – until the next picture comes; so the stage neither stands
+  // still nor jumps, however few pictures per second the AI makes. Only a transform (60 fps, almost free). The numbers
+  // come from morph.js: one camera runs through all pictures, and each is told how far it is moved right now and how
+  // fast it goes on (a record), so a new picture joins the motion instead of starting it anew.
+  const Morph = window.DreamMorph;
+  const raw = (el, now) => (el._morph ? Morph.moved(el._morph, now - el._morph.born) : null);
   const morph = {
-    start(el, m, now) { el._morph = m && (m.z || m.r) ? { ...m, born: now } : null; },
+    start(el, m, now) { el._morph = Morph.valid(m) ? { ...m, born: now } : null; },
+    // a new picture `front` with record m takes over from `back`: that one goes on from where it is, at the new pace –
+    // the two move as one while they cross-fade
+    show(front, back, m, now) {
+      const was = raw(back, now), old = back._morph;
+      morph.start(front, m, now);
+      const f = front._morph, by = f || old;
+      back._morph = by && (f || was.r || was.l) ? { r0: was ? was.r : 0, l0: was ? was.l : 0, vr: f ? f.vr : 0, vl: f ? f.vl : 0,
+        period: by.period, px: (old || f).px, py: (old || f).py, born: now } : null;
+    },
     // how far the picture has moved by now: turned by r degrees and scaled by s around (px, py); null = it rests
     at(el, now) {
-      const m = el._morph;
-      if (!m) return null;
-      const k0 = (now - m.born) / Math.max(80, m.period || 400);
-      const k = k0 <= 1 ? k0 : 1 + 0.6 * (1 - Math.exp(-(k0 - 1) * 1.5));
-      return { r: m.r * k, s: 1 + m.z * k, px: m.px, py: m.py };
+      const m = raw(el, now);
+      return m ? { r: m.r, s: Math.exp(m.l), px: el._morph.px, py: el._morph.py } : null;
+    },
+    // how `old` lies against `el` right now (what was drawn of it stays in place when the drawing turns to el); null: just as el
+    rel(old, el, now) {
+      const o = morph.at(old, now), n = morph.at(el, now);
+      if (!o && !n) return null;
+      const m = { r: (o ? o.r : 0) - (n ? n.r : 0), s: (o ? o.s : 1) / (n ? n.s : 1), px: (n || o).px, py: (n || o).py };
+      return Math.abs(m.r) > 1e-3 || Math.abs(m.s - 1) > 1e-5 ? m : null;
     },
     apply(el, now, target = el) {
       const m = morph.at(el, now);
@@ -205,5 +237,7 @@ window.DreamFx = (() => {
       target.style.transform = `rotate(${m.r.toFixed(3)}deg) scale(${m.s.toFixed(5)})`;
     },
   };
+  // a drawing turned by m.r degrees and scaled by m.s around the pivot of a w × h canvas
+  function placed(ctx, m, w, h) { ctx.translate(m.px * w, m.py * h); ctx.rotate(m.r * Math.PI / 180); ctx.scale(m.s, m.s); ctx.translate(-m.px * w, -m.py * h); }
   return { create, cssFilter, smoother, morph, fit, slices, pixelGrid, rasterGrid, ORDER, FILTERS, ALL };
 })();

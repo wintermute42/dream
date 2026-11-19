@@ -31,6 +31,7 @@
 <div id="calib" hidden><i hidden></i></div>
 <div id="hint" role="status">Dream · output – waiting for pictures (the stage or panel must be open). Tap or F = fullscreen</div>
 <script src="/static/i18n.js"></script>
+<script src="/static/morph.js"></script>
 <script src="/static/fx.js"></script>
 <script src="/static/gl-stage.js"></script>
 <script>
@@ -88,7 +89,7 @@
         document.documentElement.style.setProperty('--fade', (nextFade || Math.round(Math.min(900, dt * 0.9) * (1 - 0.9 * fxk))) + 'ms'); nextFade = 0;
         img.style.opacity = 1; front.style.opacity = 0;
         const old = front; front = img; back = old;
-        DreamFx.morph.start(front, nextMorph, performance.now());   // #194: it goes on moving like on the stage
+        DreamFx.morph.show(front, back, nextMorph, performance.now());   // #194, #215: it joins the motion like on the stage
         setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1500);
         document.body.classList.add('live');
         clearTimeout(hideHint);
