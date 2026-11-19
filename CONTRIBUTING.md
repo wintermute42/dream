@@ -13,8 +13,12 @@ Pull requests are welcome too. A few things keep Dream consistent:
   owner's files or uses the Mac's camera is for Dream Control only (`rights.py`: the roles table, `CONTROL_ONLY`,
   `GUEST_HTTP`; a setting a guest may change says so in the settings table, `settings.py`).
 - **No personal data** anywhere: examples use invented, neutral values.
-- **Licence:** Dream is under the AGPL-3.0-or-later; by contributing you agree that your contribution is too. A new model
-  needs a licence that allows at least free private and non-commercial use (see "Licences" in the README).
+- **Licence:** Dream is under the AGPL-3.0-or-later. A new model needs a licence that allows at least free private and
+  non-commercial use (see "Licences" in the README).
+- **Contributor License Agreement:** before a pull request can be merged, its author signs the [CLA](CLA.md) once, by
+  commenting on the pull request with the sentence the CLA bot asks for. You keep the copyright in your contribution;
+  the CLA lets the maintainer offer Dream under the AGPL and also under other licences (for example a commercial
+  licence), which the AGPL alone would not allow for code of several authors. Dream stays available under the AGPL.
 
 Run the tests before a pull request: `uv run pytest` (no model or GPU needed) and `python3 scripts/i18n_check.py`;
 the CI runs them, with the JavaScript tests, on Linux and macOS for every pull request, and a pull request can only be

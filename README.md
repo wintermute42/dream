@@ -1166,7 +1166,8 @@ and the line saving above.
 
 **Still stuck, or found a bug?** Open an issue on GitHub (the form asks for what helps; leave out keys, QR codes and
 your own paths). A security problem goes privately – see `SECURITY.md`. Pull requests are welcome, see
-`CONTRIBUTING.md`.
+`CONTRIBUTING.md`; their authors sign the Contributor License Agreement (`CLA.md`) once, by a comment the CLA bot
+asks for.
 
 <sub>[↑ Contents](#contents)</sub>
 
