@@ -353,3 +353,16 @@ def test_remote_page_hides_from_guests_what_they_may_not_change():
         if k in page.never_shown:                      # a hidden carrier of a value (its visible switch is marked)
             continue
         assert page.control_only[k] is (k not in settings.GUEST_KEYS), k
+
+
+def test_both_pages_show_the_signs_with_the_shared_file():
+    """#217: the moving signs and the shape of the picture's character are drawn by signs.js for both pages, hung into
+    the sliders' drawing; nothing in its style sheet moves by itself (signs.js animates transform and opacity only –
+    tests/js/signs.test.mjs)."""
+    for page in ("index.html", "remote.html"):
+        src = open(os.path.join(ROOT, "static", page), encoding="utf-8").read()
+        assert '<script src="/static/signs.js"></script>' in src and '<link rel="stylesheet" href="/static/signs.css">' in src, page
+        assert "DreamSliders.create({ painted: signs.paint," in src and "signs.shape" in src and "signs.tempo(" in src, page
+        assert not re.search(r"sg-(turn|rings|wheel|trail|grow|bars)", src), page
+    css = open(os.path.join(ROOT, "static", "signs.css"), encoding="utf-8").read()
+    assert not re.search(r"animation|transition|@keyframes", re.sub(r"/\*.*?\*/", "", css, flags=re.S))
