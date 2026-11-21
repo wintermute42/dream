@@ -91,7 +91,9 @@ async def ctl(sock: WebSocket):
                 with contextlib.suppress(TypeError, ValueError, OverflowError):
                     measure.measure["reports"][(kind, id(sock))] = {
                         **{k: float(min(max(float(mr.get(k) or 0), 0), 10000)) for k in ("fps", "ms_avg", "ms_p95", "slow_pct")},
-                        "render": mr.get("render") if mr.get("render") in ("webgl2", "canvas") else ""}
+                        "render": mr.get("render") if mr.get("render") in ("webgl2", "canvas") else "",
+                        # #205: the stage's share of pictures that came with a flow field, and what a field cost
+                        **{k: float(min(max(float(mr[k]), 0), 10000)) for k in ("flow_pct", "flow_ms") if k in mr}}
             if rights.can(hub.roles.get(sock), "eyes_only"):  # #156: Dreamy Eyes only lends (or stops) its front camera
                 f = msg.get("feed")
                 msg = {"feed": {"cam": bool(f.get("cam")), "facing": "user"}} if isinstance(f, dict) and "cam" in f else {}

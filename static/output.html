@@ -9,8 +9,7 @@
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
-  img { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; opacity: 0;
-    transition: opacity var(--fade, 400ms) linear; }
+  img { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: contain; opacity: 0; }   /* the cross-fade: gl-stage.js */
   #pics { transition: opacity .12s linear; }           /* master brightness (Canvas 2D drawing; the WebGL chain fades itself) */
   /* autopilot effects on driving music (sent by the stage): kaleidoscope over the picture, pulse and flash on the beat */
   #fxcv { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; opacity: 0; pointer-events: none; }
@@ -31,6 +30,7 @@
 <div id="calib" hidden><i hidden></i></div>
 <div id="hint" role="status">Dream · output – waiting for pictures (the stage or panel must be open). Tap or F = fullscreen</div>
 <script src="/static/i18n.js"></script>
+<script src="/static/morph.js"></script>
 <script src="/static/fx.js"></script>
 <script src="/static/gl-stage.js"></script>
 <script>
@@ -41,6 +41,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   let front = $('a'), back = $('b'), lastT = 0, hideHint = null, nextFade = 0, nextMorph = null;
+  let nextFlow = null, nextN = 0, shownN = 0;         // #205: the flow field for the next picture, and which picture that is
   // #204: one chain draws the pictures, their motion (#194), the smoothing and the effects as the stage shows them –
   // on the graphics card, or with Canvas 2D without WebGL 2. The effects fade out by themselves if the stage stops
   // sending (closed, switched off).
@@ -53,6 +54,15 @@
     view.draw({ front, now, dt, tau: smoothTau, fx: k > 0.005 ? f : null, k, sc: f ? +f.sc || 1 : 1, br: f ? +f.br || 1 : 1, sat: 1, master });
     requestAnimationFrame(frame);
   })();
+  // #205: the flow field as the stage passes it on ({cols, rows, k, data: the vectors' bytes as base64}); null if it is not one
+  function flowField(f) {
+    if (!f || typeof f !== 'object' || typeof f.data !== 'string' || f.data.length > 8000) return null;
+    try {
+      const bytes = Uint8Array.from(atob(f.data), c => c.charCodeAt(0)), cols = +f.cols | 0, rows = +f.rows | 0;
+      if (cols < 2 || rows < 2 || bytes.length !== cols * rows * 2) return null;
+      return { cols, rows, k: Math.max(0, Math.min(1, +f.k || 0)), data: new Int8Array(bytes.buffer) };
+    } catch (e) { return null; }
+  }
   const WAIT = $('hint').textContent;
   const hint = t => { $('hint').textContent = t; document.body.classList.remove('live'); };
   function connect() {
@@ -74,21 +84,28 @@
         let m; try { m = JSON.parse(ev.data); } catch (e) { return; }   // a broken message: skip it
         if ('master' in m) master = Math.max(0, Math.min(1, +m.master || 0));
         if (m.fade) nextFade = Math.min(4000, +m.fade);
-        if ('morph' in m) nextMorph = m.morph && typeof m.morph === 'object' ? m.morph : null;   // #194: for the next picture
+        if ('morph' in m) {                              // #194: the motion for the next picture, #205: and its flow field
+          nextMorph = m.morph && typeof m.morph === 'object' ? m.morph : null;
+          nextN = +m.n || 0; nextFlow = flowField(m.flow);
+        }
         if (m.fx) { fx = m.fx; fxAt = performance.now(); }
         if ('smooth' in m) smoothTau = +m.smooth || 0;         // smoothing as on the stage (seconds)
         if ('calib' in m) showCalib(m.calib);
         return;
       }
-      const url = URL.createObjectURL(ev.data), img = back;
+      const url = URL.createObjectURL(ev.data), img = back, n = nextN, flow = nextFlow;   // as announced for this picture
+      nextFlow = null;
       img.onload = () => {
         const t = performance.now(), dt = lastT ? t - lastT : 400; lastT = t;
         // cross-fade over most of the time until the next picture: smooth even at 2–3 pictures per second
         const fxk = fx && performance.now() - fxAt < 1000 ? +fx.k || 0 : 0;    // stage effects on: snappier, like the stage
-        document.documentElement.style.setProperty('--fade', (nextFade || Math.round(Math.min(900, dt * 0.9) * (1 - 0.9 * fxk))) + 'ms'); nextFade = 0;
-        img.style.opacity = 1; front.style.opacity = 0;
+        const fade = nextFade || Math.round(Math.min(900, dt * 0.9) * (1 - 0.9 * fxk)); nextFade = 0;
         const old = front; front = img; back = old;
-        DreamFx.morph.start(front, nextMorph, performance.now());   // #194: it goes on moving like on the stage
+        // #205: the field leads from the picture before to this one – only if this window showed that one (the line
+        // may leave a picture out), otherwise the two cross-fade
+        view.show(front, { fade, flow: n === shownN + 1 ? flow : null });
+        shownN = n;
+        DreamFx.morph.show(front, back, nextMorph, performance.now());   // #194, #215: it joins the motion like on the stage
         setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1500);
         document.body.classList.add('live');
         clearTimeout(hideHint);

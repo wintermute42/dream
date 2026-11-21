@@ -191,10 +191,12 @@ move there. The values are also available as JSON at http://127.0.0.1:7860/stats
 
 **📏 Measure** (below the load, #180) runs for 60 s with fixed settings (a fixed prompt and seed, 512 px, 2 steps, no
 effects, outlines, pose or style; afterwards everything is as before) and shows where the time of a picture goes: waiting,
-decoding the incoming picture, waiting for the GPU, prompt encoding, UNet, decoder, encoding and sending – mean, median
+decoding the incoming picture, waiting for the GPU, prompt encoding, UNet, decoder, encoding, the flow field (#205: it
+is estimated beside the next picture, so its time is not part of the picture's) and sending – mean, median
 and the slowest 5 % in milliseconds – plus how smoothly every open page drew meanwhile (the stage, Dream Remote, Dreamy
 Eyes: frames per second, frame time, share of slow frames; for the stage also what draws the picture, #204: the graphics
-card with WebGL 2, or Canvas 2D without it). The table also goes to the terminal and into
+card with WebGL 2, or Canvas 2D without it, and #205: for how many of the AI's pictures a flow field came and what one
+cost – that line also tells it for the cloud GPU, whose own parts the table does not show). The table also goes to the terminal and into
 `~/.local/state/dream/measure/` as JSON, to compare a change before and after. While measuring, the parts are timed
 together with the GPU, which makes the run itself a little slower than usual. Only Dream Control and the Mac can start it.
 
@@ -303,17 +305,42 @@ together with the GPU, which makes the run itself a little slower than usual. On
   that it does not even make a whole computing step).
 - **Motion between the pictures** (Dream card, #194): the AI makes a few pictures a second; in between, each picture
   goes on moving the way the dream moves – zoomed and turned around the same point, as the next input will be – at the
-  full frame rate, and the next picture takes over exactly where the motion has got to. So the stage neither stands
-  still nor jumps, locally and with the cloud GPU alike; if a picture is late, the motion eases out instead of running
-  away. 100 % (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera,
-  picture, video) only the dream's share moves on; at transformation 0 nothing moves. The output window moves along;
-  Syphon gets the pictures themselves.
+  full frame rate, and the next picture takes over exactly where the motion has got to. It is one continuous motion
+  (#215): Dream knows for every picture how far the dream had moved when its input was built, and shows it moved by
+  what has happened since – so a picture that comes late, or one of several on their way at once (camera, video,
+  light trails), joins the motion instead of starting it anew, and the smoothed picture and the picture before keep
+  their place while the new one blends in. Nothing on the stage moves back, at any number of pictures per second,
+  locally and with the cloud GPU alike; if the pictures stop, the motion eases out instead of running away. 100 %
+  (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera, picture, video)
+  only the dream's share moves on; at transformation 0 nothing moves. The output window moves along; Syphon gets the
+  pictures themselves (without this motion).
+- **Shapes travel between the pictures** (Dream card, #205): what the AI itself changes from one picture to the next
+  – a tentacle that has grown, a face that has turned – used to fade: for a moment the shape was there twice. Now the
+  renderer estimates with every new picture where the shapes of the one before have gone (a coarse flow field: optical
+  flow on a grey picture 128 pixels wide, in a process of its own beside the next picture, on the Mac or on the cloud
+  GPU; it travels with the picture as 48 × 27 small vectors, under 3 kB). The stage pulls the old picture forward along
+  that way and the new one back, and blends the two, so the shapes travel – within the one continuous motion above
+  (the field counts from where the camera shows the two pictures, so it adds what the AI changed and nothing moves
+  back), at the full frame rate. Where the field explains nothing (the old picture, moved, does not agree with the new one there),
+  its vectors shrink to nothing and that part simply cross-fades; a picture that has too little to do with the one
+  before (a new seed, a new scene, a drop, another model, a fresh start) gets no field at all and cross-fades as a
+  whole. 100 % (default) = the shapes go the whole way, less = part of it, 0 = off (nothing is estimated, the pictures
+  cross-fade). The output window and the Wi-Fi output morph the same way; the Syphon source morphs along the same
+  field at 30 pictures per second (without the stage's motion and effects, as before). It needs the graphics card's
+  drawing (WebGL 2); the Canvas 2D drawing cross-fades. The cross-fade itself is now a true blend of the two pictures
+  – it no longer gets darker in the middle. **📏 Measure** shows what a field costs and for how many pictures there
+  was one. Limits: the morph starts when the next picture is there (the delay of one picture stays); the field is
+  coarse, so fine detail still fades rather than travels; shapes that travel further than a quarter of the picture
+  between two pictures are not followed.
 - **Smoothing – against flicker** (Dream card, also on the phone and as a MIDI target): the AI paints every picture
   anew, so fine details jump a little from picture to picture – that looks like flicker. Smoothing blends each new AI
   picture softly into what is shown at the full frame rate (a moving average): small jumps vanish, big changes still
   come, only softer. 0 = off, 30 % (default) takes about half the flicker, 60 % a good four fifths, 100 % almost all
   (then it gets sluggish). Projector window and Wi-Fi output smooth the same way, the effects sit on the smoothed
-  picture; the AI itself still gets the real pictures, Syphon the unsmoothed picture.
+  picture; the AI itself still gets the real pictures, Syphon the unsmoothed picture. With the graphics card's drawing
+  the smoothed picture is kept as floating-point numbers (#205), so even the strongest smoothing arrives at the new
+  picture – before, a faint shadow of the old one could stay for good (up to 48 of 255 brightness levels at 100 %).
+  The Canvas 2D drawing mixes in larger, rarer steps instead (at most 4 levels are left).
 - **Drift – the dream stays alive:** without new input (prompt only) the picture-to-picture loop would freeze after a
   while. Drift lets the noise wander softly from seed to seed, moves the picture a little by itself (breathing,
   swaying, wandering) and gives a push when the picture hardly changes for a few seconds. “Vary the prompt gently”
@@ -367,13 +394,24 @@ when ticked.
   driving (or broken) music add a little, calm music takes a little away. No strobe, no hard black frames. The
   effects run at the full frame rate (60 fps) however fast the AI computes (measured on a Mac with graphics chip: 60
   fps with three effects) and appear in the output window too (projector, Wi-Fi output), not in Syphon.
-- **Drawing on the graphics card (#204, for trying out):** the stage and the output window can draw the picture as
-  one chain in WebGL 2 – the last two AI pictures with their motion and cross-fade, the smoothing, the effects, the
-  touch layers, colour rotation, brightness and master. For now it is **off by default**: on a Mac it shares the
-  graphics card with the AI and costs it about 40 % of its pictures. To try it, add `?render=webgl` to the address of
-  the stage or the output window (http://127.0.0.1:7860/?render=webgl). Without it the pages draw with Canvas 2D as
-  before. **📏 Measure** shows for the stage what draws. Syphon, the preview of Dream Control and the dream windows
-  get the AI pictures themselves; Dreamy Eyes and the dream windows draw on their own.
+- **Drawn on the graphics card (#204, #210):** the stage and the output window draw the picture as one chain in
+  WebGL 2 – the last two AI pictures with their motion, morphed into each other (#205) or cross-faded, the smoothing, the effects, the touch layers
+  (light strokes, stirring, light circle), colour rotation, brightness and master. On a Mac this chain shares the
+  graphics card with the AI, so it draws sparingly: at the resolution the picture really has (an AI picture of 512 px,
+  or the effects' buffer – not every pixel of a Retina screen; the browser scales it up like any picture), only when
+  something moves (a still picture is not drawn again, the smoothing rests once it has caught up with the newest
+  picture), and the preview beside the panel at 30 instead of 60 frames per second while an output window is open. The page
+  does not ask the browser for sizes and styles in every frame, and the movement detection's look at the shown picture
+  (for “subtract the projection”) does not make the graphics card wait (#205).
+  Measured on a Mac with an M2 Max (sd-turbo, 512 px, 1 step, transformation 0.5; the stage alone and the panel with
+  an output window, each also at Retina resolution), the AI makes as many pictures with it as with Canvas 2D: the
+  difference stays within the spread of the measurement (about 2 %); how to repeat it is under “Tests”. Nothing to
+  set: without WebGL 2, or if the graphics card's drawing stops while Dream runs, the same pages draw with Canvas 2D
+  by themselves (a badge below the preview says so; when it comes back, WebGL 2 takes over again). **📏 Measure**
+  shows for the stage what draws: “graphics card (WebGL 2)” or “Canvas 2D (no WebGL 2)”. To compare the two, or if a
+  graphics driver makes trouble, add `?render=canvas` to the address of the stage or the output window
+  (http://127.0.0.1:7860/?render=canvas). Syphon, the preview of Dream Control and the dream windows get the AI
+  pictures themselves; Dreamy Eyes and the dream windows draw on their own.
 - **Effects by hand:** the same effects without the autopilot in the **Effects** card (below Dream): twelve tiles to
   switch on and off (one of each family at a time – kaleidoscope/mandala/mirror, pixel/grid, feedback/afterglow),
   **Effect strength** for all, **Pulse on the beat** (only on real beats of music or tap; off = the effects stand
@@ -502,7 +540,8 @@ Good to know:
 ## As a source in Resolume (Syphon)
 
 Switch “Syphon output “Dream” for Resolume” (stage or phone). Then the source **“Python – Dream”** appears in Resolume
-under **Sources → Syphon**. Dream sends it at 30 pictures per second and blends softly between the AI pictures, so it
+under **Sources → Syphon**. Dream sends it at 30 pictures per second and blends softly between the AI pictures – with
+“Shapes travel between the pictures” on (#205) it morphs them along the flow field, like the stage –, so it
 looks fluid even at 2–5 AI pictures per second. The stage must be open for it (it delivers the pictures). Without
 Resolume just leave it off.
 
@@ -1135,10 +1174,13 @@ and the line saving above.
   tabs, SD-Turbo instead of SDXL-Turbo, 512 px instead of more.
 - **The stage stays black or dark:** restart and update Dream (see above). In prompt mode drift helps; an entirely black
   picture after an update usually means the old version still runs.
-- **The picture looks wrong (stripes, black, wrong colours) or the AI gets slow with `?render=webgl`:** leave the
-  address without it – then the page draws with Canvas 2D. If that helps, please report it with the browser and the
-  Mac. A badge “The graphics card’s drawing (WebGL 2) stopped …” means the browser lost its graphics context; Dream
-  goes on with Canvas 2D and returns by itself.
+- **The picture on the stage or in the output window looks wrong (stripes, black, wrong colours), stutters, or the
+  AI makes clearly fewer pictures than it used to:** the graphics card draws the picture (WebGL 2) and shares its time
+  with the AI. Open the page with `?render=canvas` at the end of the address (http://127.0.0.1:7860/?render=canvas,
+  http://127.0.0.1:7860/output?render=canvas): then it draws with Canvas 2D. If that helps, please report it with the
+  browser and the Mac. In the first seconds after a start the AI is slower either way (the model warms up) – compare
+  after that. A badge “The graphics card’s drawing (WebGL 2) stopped …” means the browser lost its graphics context;
+  Dream goes on with Canvas 2D and returns by itself.
 - **The controls are extremely slow:** is a second Dream, a second stage or another GPU program running? Keep only one
   stage open.
 - **“site can't be reached” on the phone:** see “If the phone does not connect”. The macOS firewall was not the reason
@@ -1159,7 +1201,8 @@ and the line saving above.
 
 **Still stuck, or found a bug?** Open an issue on GitHub (the form asks for what helps; leave out keys, QR codes and
 your own paths). A security problem goes privately – see `SECURITY.md`. Pull requests are welcome, see
-`CONTRIBUTING.md`.
+`CONTRIBUTING.md`; their authors sign the Contributor License Agreement (`CLA.md`) once, by a comment the CLA bot
+asks for.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -1182,20 +1225,35 @@ a temporary home folder, so your own settings, keys and pictures are never touch
 route of the server for this Mac, Dream Control, guests, Dreamy Eyes and devices without a key), the origin check, the
 ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers, the
 translations and what keeps Dream running smoothly (the prompt encoded once per prompt, no waiting for a loading model
-or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
+or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/morph.test.mjs` (#215) plays the motion between the pictures as plain numbers
+(`static/morph.js`) – 1 to 8 pictures a second, uneven and late ones, several requests at once, a pause – and checks
+that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. `node --test tests/js/soft.test.mjs` (#211) tests the shares of the soft switches
 (old input picture, old and new prompt, a change during a running fade). `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
-and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master), plus the fallback when the
-graphics context is lost; with `KEEP=1` the page stays open and shows both pictures side by side. GitHub runs all
-three on Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull
-request can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of
-it – they run on your own Mac.
+and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master; #215: that the smoothed
+picture keeps its place when a new picture takes over), plus the fallback when the
+graphics context is lost, that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
+than the picture), and #205: that the morph along a flow field shows a moved picture half-way where the cross-fade
+shows it twice – also within the camera's motion – and that the strongest smoothing arrives at the new picture; with `KEEP=1` the page stays open and shows both pictures side by side. GitHub runs all of them on
+Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull request
+can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of it –
+they run on your own Mac, as below.
+
+What the drawing costs the AI is measured by hand (#210), with the real model: start a second Dream in a sandbox HOME
+on a port of its own (never your own Dream – the script changes the effects setting), set it to what you want to
+compare (e.g. sd-turbo, 1 step, transformation 0.5), then `PORT=7885 node scripts/measure_stage.cjs <playwright>`
+(the folder of an installed Playwright). It opens the stage in a headless Chromium on the real graphics card and
+counts the AI pictures that come back in windows of 20 s after 8 s of warming up – drawn with Canvas 2D and with
+WebGL 2, for the stage alone and the panel with an output window, at device scale 1 and 2, alternating and three
+times each – and prints mean, spread and the difference, plus how many passes and megapixels per second the WebGL
+chain drew. `SECONDS`, `WARMUP`, `RUNS`, `SCENES`, `SCALES`, `FX` (effects on) and `HEADED=1` (real windows) change
+the run. Let the model warm up first: the first seconds after a start are slower whatever draws.
 
 Where the code is, if you want to change something: `server.py` is what `./dream.sh` starts and only puts the parts
-together – one file each for painting (`render.py`, `render_api.py`), the rights (`rights.py`: the roles and what each
+together – one file each for painting (`render.py`, `render_api.py`, `flow.py` for the flow field between two pictures), the rights (`rights.py`: the roles and what each
 may do), the settings (`settings.py`: one table with every setting, its range and whether a guest may change it), the
 shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the
 outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the cloud GPU (`cloud.py`), measuring
