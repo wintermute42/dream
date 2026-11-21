@@ -823,29 +823,54 @@ eyes** that invite people to step up and play:
 
 ## Dream windows – old phones and tablets as windows to the dream
 
-<p align="center"><img src="docs/images/windows.webp" alt="Five dream windows: eyes and a moon orbit, a kaleidoscope, flowers of light, a mandala, and the third eye in trance" width="840"></p>
+<p align="center"><img src="docs/images/windows.webp" alt="Six dream windows, the dream drifting through each as clouds: a large eye, a painted face, a Penrose triangle, the endless staircase, the third eye in its triangle and a mandala" width="840"></p>
 
-Any number of old phones and tablets around the room become windows to the dream. Nothing to assign, no roles, no
-fixed motifs: one organism lives in all of them.
+Any number of old phones and tablets around the room become windows to the dream. Nothing to assign, no roles: every
+window shows **one large, living motif**, the dream drifts around it as clouds, and now and then a motif wanders from
+one device to another.
 
-- **What drifts through:** in every window the dream lies as a soft, slowly drifting ground. On it, the dream's living
-  things keep appearing, swirling and fading: eyes whose iris is the dream (alone or as a pair, blinking together),
-  mandalas, kaleidoscopes of the dream, floating pieces of other parts of the dream, symbols (spiral, flower of life,
-  star, moon, third eye, sun), clouds, blooming light spirals, fractal trees, light moths, bubbles, northern lights,
-  little moons and now and then a face painted by the AI – all in the dream's colours, drawn the same way as around
-  Dreamy Eyes.
-- **One organism:** things wander from window to window – what leaves one window comes into the next one from the
-  other side. All windows breathe together, pulse to the beat, and now and then a wave of light runs through them in
-  turn. When Dreamy Eyes go into trance, the third eye opens in every window too; when someone pets the eyes, a rosy
-  shimmer runs through the windows. They dim with the stage's master fader.
-- **Light on the Mac:** Dream only sows seeds (which thing, where it comes in and goes out, a random number – a few
-  bytes every few seconds); every window draws by itself.
-- **Old devices:** a window that can't keep up shows fewer things at once and draws with fewer pixels, and goes back up
-  when it can. It needs no certificate (plain http in the home Wi-Fi) and keeps the screen on.
+- **One large motif per window:**
+  - a **large eye** – the very eye of Dreamy Eyes: iris fibres, lids, lashes, a brow when it feels something. It looks
+    around, blinks, its pupil widens in a dark dream and with the beat, and its iris is the dream – plain, folded into
+    a kaleidoscope, a tunnel or a galaxy;
+  - a **pair of eyes across two devices**: one eye each, looking and blinking together;
+  - a **dream face**: a face painted by the AI, alive (see below);
+  - **impossible shapes**: the Penrose triangle, the endless staircase (a light climbs it and never arrives), the
+    devil's fork and the impossible cube – slowly turning, every face filled with another part of the dream;
+  - the **third eye** in its triangle of light, and a **mandala**: the dream folded twelvefold under turning petals.
+- **The dream as clouds:** the dream is no picture in a frame. It shines through soft fields of cloud that drift, turn
+  and tear open, with darkness between – no rectangle, no hard edge. The clouds swell with a breath all windows share
+  and glow on the beat. Small beings of light (moths, bubbles, northern lights, little clouds) drift through and on
+  into the next window.
+- **Wandering:** every one to three minutes a motif dissolves into clouds and forms again on another device a few
+  seconds later; the device it left gets a new one. Dream hands the motifs out by itself, and no two windows show the
+  same one at a time – except the pair of eyes, which now and then opens in two windows next to each other (in the
+  order they connected) and later moves on or closes. Only with more windows than motifs (nine or more) one is shown
+  twice. A single window changes its motif the same way. `DREAM_WANDER_EVERY=…` in `~/.config/dream/dream.env` sets
+  the shortest pause in seconds (default 60; the longest is three times that) – e.g. 10 to watch it while setting up.
+- **Living faces:** where a painted face has its eyes, brows, mouth and outline is found **once per painted face, on
+  the Mac** – by the stage, in a background worker, with the face model Dream has anyway (well under a second per
+  face; the stage's own drawing never waits for it) – never by a window and not again for another window. The 82
+  points travel with the face (under 1 kB). Every window moves them itself over a net of triangles: it blinks, lets
+  its gaze wander, smiles, lifts a brow, breathes and tilts and turns its head a little – subtle, like a painting
+  that is alive. A picture in which no face is found (a cat, a mask), or one painted while no stage is open, is shown
+  still.
+- **One organism:** all windows breathe together and pulse to the beat, and now and then a wave of light runs
+  through them in turn. When Dreamy Eyes go into trance, the third eye opens in every window too (and the painted
+  faces close their eyes); when someone pets the eyes, a rosy shimmer runs through the windows and the faces smile.
+  They dim with the stage's master fader.
+- **Light on the Mac:** Dream only says which motif a window shows (its kind and a random number, about a hundred
+  bytes per change); every window draws by itself. The Mac's work does not grow with the number of windows: the
+  points of a face are found once, whoever looks.
+- **Old devices:** a window that can't keep up draws with fewer pixels (in four steps, down to about a third), with
+  coarser clouds (a smaller field, no fine wisps, every other frame), moves a face less often and folds the mandala
+  eightfold – and goes back up when it can. Everything is drawn with the plain 2D canvas; it needs no WebGL and no
+  certificate (plain http in the home Wi-Fi), and it keeps the screen on.
 - **Setting up:** panel → “Output” → **🪟 Dream windows** (or Dream Control → card **“🪟 Dream windows”**) → scan the
   code with each device and tap its screen for fullscreen. The output line in the panel counts the connected windows.
 - **They only look:** a window's key (`~/.local/state/dream/window-token`, a cookie of its own) opens the window page,
-  the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money.
+  the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money. Where
+  a face has its eyes only the stage on the Mac may say, never a window.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -1237,7 +1262,11 @@ and every step of the chain (cross-fade, motion, smoothing, touch layers, colour
 picture keeps its place when a new picture takes over), plus the fallback when the
 graphics context is lost, that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
 than the picture), and #205: that the morph along a flow field shows a moved picture half-way where the cross-fade
-shows it twice – also within the camera's motion – and that the strongest smoothing arrives at the new picture; with `KEEP=1` the page stays open and shows both pictures side by side. GitHub runs all of them on
+shows it twice – also within the camera's motion – and that the strongest smoothing arrives at the new picture; with `KEEP=1` the page stays open and shows both pictures side by side. `node --test tests/js/window.test.mjs` (#214) opens four dream windows of different sizes in the same browser and is
+their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
+the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
+motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
+`KEEP=1` the windows stay open. GitHub runs all of them on
 Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull request
 can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of it –
 they run on your own Mac, as below.
