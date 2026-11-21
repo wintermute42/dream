@@ -20,7 +20,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - `static/index.html` is the stage (with optional panel), `static/remote.html` the phone remote, `static/output.html`
   the output window; what the pages share is in `static/common.js` (#189: no page keeps its own copy of a helper that
   is there). The sliders of the panel and of Dream Control are drawn by `static/sliders.js` and `sliders.css` (#216)
-  from the settings table (`settings.page_schema()`, sent over `/ctl`): zero mark, influence colour, "Reset".
+  from the settings table (`settings.page_schema()`, sent over `/ctl`): zero mark, influence colour, "Reset". The moving signs beside the sliders and the shape of the picture's character by `static/signs.js` and `signs.css` (#217),
+  hung into the sliders' drawing (`painted`) – only transform and opacity move, paused while not on screen.
   Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
