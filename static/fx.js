@@ -14,6 +14,17 @@ window.DreamFx = (() => {
   const size = (c, w, h) => { if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } return c.getContext('2d'); };
   // the buffer for a box of cw × ch CSS pixels: at most maxW wide, the same format
   const fit = (cw, ch, maxW) => { const k = Math.min(1, maxW / Math.max(1, cw)); return [Math.max(2, Math.round(cw * k)), Math.max(2, Math.round(ch * k))]; };
+  // #205 (Pf-6 of #187): an element's size in CSS pixels without asking the browser every frame (that makes it lay
+  // the page out in the middle of drawing): the browser tells when it changes. Only an element not measured yet, or
+  // one that was hidden a moment ago, is asked directly. It is the size on the page, whatever the motion (#215) makes of it.
+  const sizes = new WeakMap();
+  const watch = typeof ResizeObserver === 'function' ? new ResizeObserver(list => { for (const e of list) sizes.set(e.target, [e.contentRect.width, e.contentRect.height]); }) : null;
+  function box(el) {
+    let s = sizes.get(el);
+    if (!s && watch) watch.observe(el);
+    if (!s || !s[0]) { s = [el.clientWidth, el.clientHeight]; if (watch) sizes.set(el, s); }
+    return s;
+  }
   // glitch: a few slices [top, height, shift] (shares of the picture), new ones on every strong beat and now and then
   function slices(st, p, rnd) {
     if (p.pulse > 0.6 || !st.slices || rnd() < 0.05) {
@@ -132,7 +143,7 @@ window.DreamFx = (() => {
       // rel: how old lies against img (morph.rel; #215: the canvas moves with img, old keeps its own place under it);
       // p: {amts: {name: 0…1}, pulse, bass, spin, t, seed, dir, cx, cy (centre 0…1), loc (how much it follows it), ang (radians)}
       render(img, p, old, mix = 1, rel = null) {
-        const [w, h] = fit(cv.clientWidth, cv.clientHeight, maxW);   // its size on the page, whatever the motion (#215) makes of it
+        const [w, h] = fit(...box(cv), maxW);            // its size on the page, whatever the motion (#215) makes of it
         const out = size(cv, w, h);
         const iw = img && (img.naturalWidth || img.width), ih = img && (img.naturalHeight || img.height);
         if (!iw || !ih) return;
@@ -172,7 +183,7 @@ window.DreamFx = (() => {
   // average in time. Small jumps of detail from picture to picture (flicker) melt away, big changes still come
   // through, just softer. tau: seconds until a new picture is ~63 % there.
   function smoother(cv, maxW = 1280) {
-    let src = null, ready = false, copy = null;
+    let src = null, ready = false, copy = null, wait = 0;
     return {
       push(img) { src = img; },
       // #215: a new picture takes over, and the canvas will move with it: what is on it is laid out anew the way it
@@ -189,14 +200,21 @@ window.DreamFx = (() => {
       step(dt, tau) {
         const iw = src && (src.naturalWidth || src.width), ih = src && (src.naturalHeight || src.height);
         if (!iw || !ih) return;
-        const [w, h] = fit(cv.clientWidth, cv.clientHeight, maxW);
+        const [w, h] = fit(...box(cv), maxW);
         if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; ready = false; }
+        // #205 (Pf-4 of #187): a canvas keeps 8 bits per colour, so a share of a hundredth per frame would be rounded
+        // away and leave a shadow of the old picture for good. A small share waits until it has grown to a tenth
+        // (the WebGL chain keeps the smoothed picture as floating-point numbers and needs no such step).
+        wait += dt;
+        const share = ready ? 1 - Math.exp(-wait / Math.max(0.016, tau)) : 1;
+        if (share < 0.1) return;
+        wait = 0;
         const ctx = cv.getContext('2d'), s = Math.max(w / iw, h / ih);
-        ctx.globalAlpha = ready ? 1 - Math.exp(-dt / Math.max(0.016, tau)) : 1;
+        ctx.globalAlpha = share;
         ctx.drawImage(src, (w - iw * s) / 2, (h - ih * s) / 2, iw * s, ih * s);
         ctx.globalAlpha = 1; ready = true;
       },
-      reset() { ready = false; cv.width = cv.height = 0; },
+      reset() { ready = false; wait = 0; cv.width = cv.height = 0; },
       get ready() { return ready; },
     };
   }
@@ -239,5 +257,5 @@ window.DreamFx = (() => {
   };
   // a drawing turned by m.r degrees and scaled by m.s around the pivot of a w × h canvas
   function placed(ctx, m, w, h) { ctx.translate(m.px * w, m.py * h); ctx.rotate(m.r * Math.PI / 180); ctx.scale(m.s, m.s); ctx.translate(-m.px * w, -m.py * h); }
-  return { create, cssFilter, smoother, morph, fit, slices, pixelGrid, rasterGrid, ORDER, FILTERS, ALL };
+  return { create, cssFilter, smoother, morph, fit, box, slices, pixelGrid, rasterGrid, ORDER, FILTERS, ALL };
 })();

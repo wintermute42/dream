@@ -1,5 +1,6 @@
 /* Dream – the dream's living things, drawn the same way by Dreamy Eyes (eyes.html) and the dream windows (window.html).
-   #201: moved here from eyes.html so that both speak one visual language. No DOM besides canvases; a global `DreamLife`. */
+   #201: moved here from eyes.html so that both speak one visual language. No DOM besides canvases; a global `DreamLife`.
+   #214: the eye itself is in dreameye.js, the painted faces' life in dreamface.js. */
 (function (root) {
   'use strict';
   const hueOf = ([r, gg, b]) => {                      // the hue of an RGB colour, 0–360
@@ -181,5 +182,69 @@
     g.restore();
   }
 
-  root.DreamLife = { hueOf, softLight, stamp, tinted, draw, puffs, SCALE, SYMBOLS };
+
+  // #214: impossible shapes for the dream windows – the faces of a figure that cannot be, as polygons in the order
+  // they are drawn (far ones first), in a square from -1 to 1. A face: { pts, shade (0 light … 1 dark), fade (it comes
+  // out of nothing from the left), glass (a pane one sees through), wall (one of many in a row) }. `path`: where a light may walk (the stairs).
+  const shapes = {};
+  function impossible(kind) {
+    if (shapes[kind]) return shapes[kind];
+    let faces = [], path = null, own = false;         // own: it turns around its own middle, not that of its outline
+    const quad = (x0, y0, x1, y1, w) => {              // a beam from one point to another, w wide, a little longer than that
+      const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l * w / 2, ny = dx / l * w / 2, ex = dx / l * w / 2, ey = dy / l * w / 2;
+      return [[x0 - ex + nx, y0 - ey + ny], [x1 + ex + nx, y1 + ey + ny], [x1 + ex - nx, y1 + ey - ny], [x0 - ex - nx, y0 - ey - ny]];
+    };
+    if (kind === 'penrose') {                          // the tribar: three bars, each at a right angle to the next
+      own = true;
+      const h = 2, P = (i, j) => [i + j / 2 - h / 2, -(j - h / 3) * Math.sqrt(3) / 2];   // a lattice of triangles, the hole in the middle
+      faces = [
+        { shade: 0.05, pts: [P(0, h), P(-1, h + 1), P(-1, -2), P(h + 3, -2), P(h + 3, -1), P(0, -1)] },
+        { shade: 0.34, pts: [P(0, 0), P(0, -1), P(h + 3, -1), P(-1, h + 3), P(-2, h + 3), P(h + 1, 0)] },
+        { shade: 0.62, pts: [P(h, 0), P(h + 1, 0), P(-2, h + 3), P(-2, -1), P(-1, -2), P(-1, h + 1)] },
+      ];
+    } else if (kind === 'stairs') {                    // the endless staircase: four flights around a yard, always upwards
+      const flights = [[1, 0, 5], [0, 1, 4], [-1, 0, 3], [0, -1, 2]], N = 14, rise = 2 / N, c = Math.cos(Math.PI / 6);
+      const pr = (x, y, z) => [(x - y) * c, (x + y) / 2 - z];
+      const cells = [];
+      let x = 0, y = 0, k = 0;
+      for (const [dx, dy, n] of flights) for (let i = 0; i < n; i++) { cells.push([x, y, 1.1 + k * rise, k]); x += dx; y += dy; k++; }
+      path = cells.map(([cx, cy, z]) => pr(cx, cy, z));
+      cells.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]) || a[2] - b[2]);
+      for (const [cx, cy, z] of cells) {
+        faces.push({ shade: 0.42, wall: true, pts: [pr(cx + 0.5, cy - 0.5, z), pr(cx + 0.5, cy + 0.5, z), pr(cx + 0.5, cy + 0.5, 0), pr(cx + 0.5, cy - 0.5, 0)] });
+        faces.push({ shade: 0.68, wall: true, pts: [pr(cx - 0.5, cy + 0.5, z), pr(cx + 0.5, cy + 0.5, z), pr(cx + 0.5, cy + 0.5, 0), pr(cx - 0.5, cy + 0.5, 0)] });
+        faces.push({ shade: 0.04, pts: [pr(cx - 0.5, cy - 0.5, z), pr(cx + 0.5, cy - 0.5, z), pr(cx + 0.5, cy + 0.5, z), pr(cx - 0.5, cy + 0.5, z)] });
+      }
+    } else if (kind === 'fork') {                      // the devil's fork: three round prongs that are two square bars
+      const Y = [-1.25, -0.75, -0.25, 0.25, 0.75, 1.25].map(v => v * 0.52), x0 = -1.5, L = 1.5, a = 0.5, sk = (x, y) => [x, y - 0.26 * x];
+      const rect = (xa, ya, xb, yb) => [sk(xa, ya), sk(xb, ya), sk(xb, yb), sk(xa, yb)];
+      faces.push({ shade: 0.7, fade: true, pts: rect(x0 + 0.5, Y[1], L - a, Y[2]) }, { shade: 0.7, fade: true, pts: rect(x0 + 0.5, Y[3], L - a, Y[4]) });
+      for (let j = 0; j < 3; j++) faces.push({ shade: j === 1 ? 0.22 : 0.05, pts: rect(x0, Y[2 * j], j === 1 ? L - a : L, Y[2 * j + 1]) });
+      faces.push({ shade: 0.4, pts: rect(L - a, Y[1], L, Y[4]) });
+      for (let j = 0; j < 3; j++) {                    // their round ends
+        const cy = (Y[2 * j] + Y[2 * j + 1]) / 2, ry = (Y[2 * j + 1] - Y[2 * j]) / 2, pts = [];
+        for (let q = 0; q < 20; q++) { const an = q / 20 * Math.PI * 2; pts.push(sk(x0 + Math.cos(an) * 0.11, cy + Math.sin(an) * ry)); }
+        faces.push({ shade: 0.3, pts });
+      }
+    } else {                                           // the impossible cube: a beam at the back crosses in front of one at the front
+      const F = [[-0.78, -0.38], [0.38, -0.38], [0.38, 0.78], [-0.78, 0.78]], d = 0.4, B = F.map(([px, py]) => [px + d, py - d]), w = 0.15;
+      faces.push({ glass: true, shade: 0, pts: F }, { glass: true, shade: 0.3, pts: [F[0], B[0], B[1], F[1]] }, { glass: true, shade: 0.5, pts: [F[1], B[1], B[2], F[2]] });
+      for (let i = 0; i < 4; i++) faces.push({ shade: 0.6, pts: quad(...B[i], ...B[(i + 1) % 4], w) });
+      for (let i = 0; i < 4; i++) faces.push({ shade: 0.34, pts: quad(...F[i], ...B[i], w) });
+      for (let i = 0; i < 4; i++) faces.push({ shade: 0.05, pts: quad(...F[i], ...F[(i + 1) % 4], w) });
+      faces.push({ shade: 0.6, pts: quad(B[0][0], F[0][1] - 0.2, B[0][0], F[0][1] + 0.2, w) });   // … which cannot be
+      faces.push({ shade: 0.6, pts: quad(F[1][0] - 0.2, B[2][1], F[1][0] + 0.2, B[2][1], w) });
+    }
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;       // into the square from -1 to 1, around its middle
+    for (const f of faces) for (const [px, py] of f.pts) { x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py); }
+    const mx = own ? 0 : (x0 + x1) / 2, my = own ? 0 : (y0 + y1) / 2;
+    let far = 0;
+    for (const f of faces) for (const [px, py] of f.pts) far = Math.max(far, Math.hypot(px - mx, py - my));
+    const fit = ([px, py]) => [(px - mx) / far, (py - my) / far];
+    for (const f of faces) f.pts = f.pts.map(fit);
+    return (shapes[kind] = { faces, path: path && path.map(fit) });
+  }
+  const IMPOSSIBLE = ['penrose', 'stairs', 'fork', 'cube'];
+
+  root.DreamLife = { hueOf, softLight, stamp, tinted, draw, puffs, SCALE, SYMBOLS, impossible, IMPOSSIBLE };
 })(typeof window !== 'undefined' ? window : globalThis);

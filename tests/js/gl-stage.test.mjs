@@ -51,6 +51,25 @@ test('WebGL 2 chain against the Canvas 2D drawing', { skip: !chrome && !process.
     assert.deepEqual(s.effects, [320, 180], 'with effects it is as fine as their buffer');
     assert.deepEqual(s.large, [320, 180], 'and never finer than the screen');
   });
+  await t.test('flow morph: shapes travel instead of appearing twice', st => {
+    st.diagnostic(JSON.stringify(report.morph));
+    const m = report.morph;
+    assert.ok(m, 'no report on the morph');
+    assert.ok(m.flow.mean <= MEAN, `half-way along the field the picture is the one half-way (mean difference ${m.flow.mean})`);
+    assert.ok(m.flow.far <= FAR, `the morph leaves no dark edge where the field points out of the picture (${m.flow.far} % of the pixels differ clearly)`);
+    assert.ok(m.fade.mean > 3 * m.flow.mean, `without the field the two pictures only cross-fade (${m.fade.mean} against ${m.flow.mean})`);
+    assert.ok(m.broken <= 0.01, `a broken field is not used (${m.broken})`);
+    assert.ok(m.camera.flow.mean <= MEAN && m.camera.fade.mean > 3 * m.camera.flow.mean,
+      `within the camera's motion (#215) the field leads to the half-way picture too (${m.camera.flow.mean}, cross-fade ${m.camera.fade.mean})`);
+  });
+  await t.test('smoothing arrives at the new picture', st => {
+    st.diagnostic(JSON.stringify(report.arrive));
+    const a = report.arrive;
+    assert.ok(a, 'no report on the smoothing');
+    assert.ok(a.precise, 'the browser keeps the smoothed picture as floating-point numbers');
+    assert.ok(a.webgl <= 2, `WebGL 2: at most ${a.webgl} brightness levels of the old picture are left (≤ 2)`);
+    assert.ok(a.canvas <= 6, `Canvas 2D: at most ${a.canvas} brightness levels of the old picture are left (≤ 6)`);
+  });
   await t.test('context lost: Canvas 2D takes over, restored: WebGL 2 again', () => {
     assert.ok(report.lost && report.restored, 'the browser cannot lose a context on purpose');
     assert.equal(report.lost.renderer, 'canvas');

@@ -111,6 +111,7 @@ SETTINGS: dict[str, Setting] = {
     "beat_snap": text("bar", choices=("off", "beat", "bar", "phrase")),   # #195: changes snap to the beat
     "smooth": num(0.3, 0.0, 1.0, guest=True, target=True, weight=0.5),      # smoothing: moving average of the shown pictures (0 = off)
     "morph": num(1.0, 0.0, 1.0, weight=0.5),                                # #194: motion between two AI pictures (0 = off)
+    "flow": num(1.0, 0.0, 1.0, weight=0.4),                     # #205: shapes travel between two AI pictures (0 = off)
     # auto, or a fixed pattern (Pulse, Jolt, Jump, Flow; #133: old German names too)
     "music_pattern": text("auto", choices=("auto", *playlists.PATTERNS), guest=True,
                           clean=lambda v: playlists.OLD_PATTERNS.get(v, v)),

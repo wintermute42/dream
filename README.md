@@ -191,10 +191,12 @@ move there. The values are also available as JSON at http://127.0.0.1:7860/stats
 
 **📏 Measure** (below the load, #180) runs for 60 s with fixed settings (a fixed prompt and seed, 512 px, 2 steps, no
 effects, outlines, pose or style; afterwards everything is as before) and shows where the time of a picture goes: waiting,
-decoding the incoming picture, waiting for the GPU, prompt encoding, UNet, decoder, encoding and sending – mean, median
+decoding the incoming picture, waiting for the GPU, prompt encoding, UNet, decoder, encoding, the flow field (#205: it
+is estimated beside the next picture, so its time is not part of the picture's) and sending – mean, median
 and the slowest 5 % in milliseconds – plus how smoothly every open page drew meanwhile (the stage, Dream Remote, Dreamy
 Eyes: frames per second, frame time, share of slow frames; for the stage also what draws the picture, #204: the graphics
-card with WebGL 2, or Canvas 2D without it). The table also goes to the terminal and into
+card with WebGL 2, or Canvas 2D without it, and #205: for how many of the AI's pictures a flow field came and what one
+cost – that line also tells it for the cloud GPU, whose own parts the table does not show). The table also goes to the terminal and into
 `~/.local/state/dream/measure/` as JSON, to compare a change before and after. While measuring, the parts are timed
 together with the GPU, which makes the run itself a little slower than usual. Only Dream Control and the Mac can start it.
 
@@ -214,10 +216,19 @@ together with the GPU, which makes the run itself a little slower than usual. On
   dreams on from the current picture. **Camera:** which of the Mac's cameras Dream takes (e.g. a 60 fps webcam or a
   phone via Continuity, Iriun or DroidCam), also selectable on the phone. Below it **“Prompt – what does the AI paint
   from it?”**: the one text field for the dream (at transformation 0: “AI off”, the prompt rests).
+- **Soft switches (#211):** a new input and a new prompt blend in over about 3 s instead of jumping, with nothing to
+  set. **Input** (by hand, autopilot, scene, MIDI or Dream Control; also another picture or video): the last picture
+  the AI got from the old input lies over the new one and leaves within 3 s, counted from the new source's first
+  picture. **Prompt** (typing, voice, Dream Control): the AI gets the old and the new prompt mixed, shifting to the
+  new one; while you type, the old one stays until you pause. Playlist scenes keep their own fade time, the
+  autopilot's jump back into the dream on a drop stays a hard cut. A switch during a running blend goes on from where
+  it stands: for the input exactly, for the prompt the stronger of the two keeps its share and the weaker one makes
+  room for the new prompt (the AI blends two prompts, not three). It costs the AI no time: the pictures are mixed in
+  the browser, the prompts as for a scene change.
 - **The AI gets:** right below the prompt it says what the AI really gets: your text, and after it every addition as
   a coloured chip – purple **Vary the prompt gently** (the two variants and how far it is from one to the other),
   green **Content reacts to energy** (calm ⇄ wild, how wild right now), blue **Autopilot: words for the music**, grey
-  a running **scene change**. A ✕ in the chip switches that addition off at once (the same as the checkbox at its
+  a running **prompt change** (a scene, or a change by hand). A ✕ in the chip switches that addition off at once (the same as the checkbox at its
   place; for the music words: “Add words for the music to the prompt” in the Autopilot card). When it says “exactly
   the prompt above, nothing added”, nobody mixes anything in. Style model and reference picture never change the
   prompt; “rephrase in English” only acts on speaking – its result already stands in the text field.
@@ -341,13 +352,34 @@ together with the GPU, which makes the run itself a little slower than usual. On
   locally and with the cloud GPU alike; if the pictures stop, the motion eases out instead of running away. 100 %
   (default) = the full motion, 0 = off (the picture stands until the next one). With an input (camera, picture, video)
   only the dream's share moves on; at transformation 0 nothing moves. The output window moves along; Syphon gets the
-  pictures themselves (cross-faded, without this motion).
+  pictures themselves (without this motion).
+- **Shapes travel between the pictures** (Dream card, #205): what the AI itself changes from one picture to the next
+  – a tentacle that has grown, a face that has turned – used to fade: for a moment the shape was there twice. Now the
+  renderer estimates with every new picture where the shapes of the one before have gone (a coarse flow field: optical
+  flow on a grey picture 128 pixels wide, in a process of its own beside the next picture, on the Mac or on the cloud
+  GPU; it travels with the picture as 48 × 27 small vectors, under 3 kB). The stage pulls the old picture forward along
+  that way and the new one back, and blends the two, so the shapes travel – within the one continuous motion above
+  (the field counts from where the camera shows the two pictures, so it adds what the AI changed and nothing moves
+  back), at the full frame rate. Where the field explains nothing (the old picture, moved, does not agree with the new one there),
+  its vectors shrink to nothing and that part simply cross-fades; a picture that has too little to do with the one
+  before (a new seed, a new scene, a drop, another model, a fresh start) gets no field at all and cross-fades as a
+  whole. 100 % (default) = the shapes go the whole way, less = part of it, 0 = off (nothing is estimated, the pictures
+  cross-fade). The output window and the Wi-Fi output morph the same way; the Syphon source morphs along the same
+  field at 30 pictures per second (without the stage's motion and effects, as before). It needs the graphics card's
+  drawing (WebGL 2); the Canvas 2D drawing cross-fades. The cross-fade itself is now a true blend of the two pictures
+  – it no longer gets darker in the middle. **📏 Measure** shows what a field costs and for how many pictures there
+  was one. Limits: the morph starts when the next picture is there (the delay of one picture stays); the field is
+  coarse, so fine detail still fades rather than travels; shapes that travel further than a quarter of the picture
+  between two pictures are not followed.
 - **Smoothing – against flicker** (Dream card, also on the phone and as a MIDI target): the AI paints every picture
   anew, so fine details jump a little from picture to picture – that looks like flicker. Smoothing blends each new AI
   picture softly into what is shown at the full frame rate (a moving average): small jumps vanish, big changes still
   come, only softer. 0 = off, 30 % (default) takes about half the flicker, 60 % a good four fifths, 100 % almost all
   (then it gets sluggish). Projector window and Wi-Fi output smooth the same way, the effects sit on the smoothed
-  picture; the AI itself still gets the real pictures, Syphon the unsmoothed picture.
+  picture; the AI itself still gets the real pictures, Syphon the unsmoothed picture. With the graphics card's drawing
+  the smoothed picture is kept as floating-point numbers (#205), so even the strongest smoothing arrives at the new
+  picture – before, a faint shadow of the old one could stay for good (up to 48 of 255 brightness levels at 100 %).
+  The Canvas 2D drawing mixes in larger, rarer steps instead (at most 4 levels are left).
 - **Drift – the dream stays alive:** without new input (prompt only) the picture-to-picture loop would freeze after a
   while. Drift lets the noise wander softly from seed to seed, moves the picture a little by itself (breathing,
   swaying, wandering) and gives a push when the picture hardly changes for a few seconds. “Vary the prompt gently”
@@ -402,12 +434,14 @@ when ticked.
   effects run at the full frame rate (60 fps) however fast the AI computes (measured on a Mac with graphics chip: 60
   fps with three effects) and appear in the output window too (projector, Wi-Fi output), not in Syphon.
 - **Drawn on the graphics card (#204, #210):** the stage and the output window draw the picture as one chain in
-  WebGL 2 – the last two AI pictures with their motion and cross-fade, the smoothing, the effects, the touch layers
+  WebGL 2 – the last two AI pictures with their motion, morphed into each other (#205) or cross-faded, the smoothing, the effects, the touch layers
   (light strokes, stirring, light circle), colour rotation, brightness and master. On a Mac this chain shares the
   graphics card with the AI, so it draws sparingly: at the resolution the picture really has (an AI picture of 512 px,
   or the effects' buffer – not every pixel of a Retina screen; the browser scales it up like any picture), only when
   something moves (a still picture is not drawn again, the smoothing rests once it has caught up with the newest
-  picture), and the preview beside the panel at 30 instead of 60 frames per second while an output window is open.
+  picture), and the preview beside the panel at 30 instead of 60 frames per second while an output window is open. The page
+  does not ask the browser for sizes and styles in every frame, and the movement detection's look at the shown picture
+  (for “subtract the projection”) does not make the graphics card wait (#205).
   Measured on a Mac with an M2 Max (sd-turbo, 512 px, 1 step, transformation 0.5; the stage alone and the panel with
   an output window, each also at Retina resolution), the AI makes as many pictures with it as with Canvas 2D: the
   difference stays within the spread of the measurement (about 2 %); how to repeat it is under “Tests”. Nothing to
@@ -545,7 +579,8 @@ Good to know:
 ## As a source in Resolume (Syphon)
 
 Switch “Syphon output “Dream” for Resolume” (stage or phone). Then the source **“Python – Dream”** appears in Resolume
-under **Sources → Syphon**. Dream sends it at 30 pictures per second and blends softly between the AI pictures, so it
+under **Sources → Syphon**. Dream sends it at 30 pictures per second and blends softly between the AI pictures – with
+“Shapes travel between the pictures” on (#205) it morphs them along the flow field, like the stage –, so it
 looks fluid even at 2–5 AI pictures per second. The stage must be open for it (it delivers the pictures). Without
 Resolume just leave it off.
 
@@ -827,29 +862,54 @@ eyes** that invite people to step up and play:
 
 ## Dream windows – old phones and tablets as windows to the dream
 
-<p align="center"><img src="docs/images/windows.webp" alt="Five dream windows: eyes and a moon orbit, a kaleidoscope, flowers of light, a mandala, and the third eye in trance" width="840"></p>
+<p align="center"><img src="docs/images/windows.webp" alt="Six dream windows, the dream drifting through each as clouds: a large eye, a painted face, a Penrose triangle, the endless staircase, the third eye in its triangle and a mandala" width="840"></p>
 
-Any number of old phones and tablets around the room become windows to the dream. Nothing to assign, no roles, no
-fixed motifs: one organism lives in all of them.
+Any number of old phones and tablets around the room become windows to the dream. Nothing to assign, no roles: every
+window shows **one large, living motif**, the dream drifts around it as clouds, and now and then a motif wanders from
+one device to another.
 
-- **What drifts through:** in every window the dream lies as a soft, slowly drifting ground. On it, the dream's living
-  things keep appearing, swirling and fading: eyes whose iris is the dream (alone or as a pair, blinking together),
-  mandalas, kaleidoscopes of the dream, floating pieces of other parts of the dream, symbols (spiral, flower of life,
-  star, moon, third eye, sun), clouds, blooming light spirals, fractal trees, light moths, bubbles, northern lights,
-  little moons and now and then a face painted by the AI – all in the dream's colours, drawn the same way as around
-  Dreamy Eyes.
-- **One organism:** things wander from window to window – what leaves one window comes into the next one from the
-  other side. All windows breathe together, pulse to the beat, and now and then a wave of light runs through them in
-  turn. When Dreamy Eyes go into trance, the third eye opens in every window too; when someone pets the eyes, a rosy
-  shimmer runs through the windows. They dim with the stage's master fader.
-- **Light on the Mac:** Dream only sows seeds (which thing, where it comes in and goes out, a random number – a few
-  bytes every few seconds); every window draws by itself.
-- **Old devices:** a window that can't keep up shows fewer things at once and draws with fewer pixels, and goes back up
-  when it can. It needs no certificate (plain http in the home Wi-Fi) and keeps the screen on.
+- **One large motif per window:**
+  - a **large eye** – the very eye of Dreamy Eyes: iris fibres, lids, lashes, a brow when it feels something. It looks
+    around, blinks, its pupil widens in a dark dream and with the beat, and its iris is the dream – plain, folded into
+    a kaleidoscope, a tunnel or a galaxy;
+  - a **pair of eyes across two devices**: one eye each, looking and blinking together;
+  - a **dream face**: a face painted by the AI, alive (see below);
+  - **impossible shapes**: the Penrose triangle, the endless staircase (a light climbs it and never arrives), the
+    devil's fork and the impossible cube – slowly turning, every face filled with another part of the dream;
+  - the **third eye** in its triangle of light, and a **mandala**: the dream folded twelvefold under turning petals.
+- **The dream as clouds:** the dream is no picture in a frame. It shines through soft fields of cloud that drift, turn
+  and tear open, with darkness between – no rectangle, no hard edge. The clouds swell with a breath all windows share
+  and glow on the beat. Small beings of light (moths, bubbles, northern lights, little clouds) drift through and on
+  into the next window.
+- **Wandering:** every one to three minutes a motif dissolves into clouds and forms again on another device a few
+  seconds later; the device it left gets a new one. Dream hands the motifs out by itself, and no two windows show the
+  same one at a time – except the pair of eyes, which now and then opens in two windows next to each other (in the
+  order they connected) and later moves on or closes. Only with more windows than motifs (nine or more) one is shown
+  twice. A single window changes its motif the same way. `DREAM_WANDER_EVERY=…` in `~/.config/dream/dream.env` sets
+  the shortest pause in seconds (default 60; the longest is three times that) – e.g. 10 to watch it while setting up.
+- **Living faces:** where a painted face has its eyes, brows, mouth and outline is found **once per painted face, on
+  the Mac** – by the stage, in a background worker, with the face model Dream has anyway (well under a second per
+  face; the stage's own drawing never waits for it) – never by a window and not again for another window. The 82
+  points travel with the face (under 1 kB). Every window moves them itself over a net of triangles: it blinks, lets
+  its gaze wander, smiles, lifts a brow, breathes and tilts and turns its head a little – subtle, like a painting
+  that is alive. A picture in which no face is found (a cat, a mask), or one painted while no stage is open, is shown
+  still.
+- **One organism:** all windows breathe together and pulse to the beat, and now and then a wave of light runs
+  through them in turn. When Dreamy Eyes go into trance, the third eye opens in every window too (and the painted
+  faces close their eyes); when someone pets the eyes, a rosy shimmer runs through the windows and the faces smile.
+  They dim with the stage's master fader.
+- **Light on the Mac:** Dream only says which motif a window shows (its kind and a random number, about a hundred
+  bytes per change); every window draws by itself. The Mac's work does not grow with the number of windows: the
+  points of a face are found once, whoever looks.
+- **Old devices:** a window that can't keep up draws with fewer pixels (in four steps, down to about a third), with
+  coarser clouds (a smaller field, no fine wisps, every other frame), moves a face less often and folds the mandala
+  eightfold – and goes back up when it can. Everything is drawn with the plain 2D canvas; it needs no WebGL and no
+  certificate (plain http in the home Wi-Fi), and it keeps the screen on.
 - **Setting up:** panel → “Output” → **🪟 Dream windows** (or Dream Control → card **“🪟 Dream windows”**) → scan the
   code with each device and tap its screen for fullscreen. The output line in the panel counts the connected windows.
 - **They only look:** a window's key (`~/.local/state/dream/window-token`, a cookie of its own) opens the window page,
-  the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money.
+  the dream's pictures and the painted faces – no settings, no commands, no camera, nothing that costs money. Where
+  a face has its eyes only the stage on the Mac may say, never a window.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -1207,7 +1267,8 @@ and the line saving above.
 
 **Still stuck, or found a bug?** Open an issue on GitHub (the form asks for what helps; leave out keys, QR codes and
 your own paths). A security problem goes privately – see `SECURITY.md`. Pull requests are welcome, see
-`CONTRIBUTING.md`.
+`CONTRIBUTING.md`; their authors sign the Contributor License Agreement (`CLA.md`) once, by a comment the CLA bot
+asks for.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -1234,14 +1295,19 @@ or a slow device, the state file written once the hands rest, the small preview)
 (`static/morph.js`) – 1 to 8 pictures a second, uneven and late ones, several requests at once, a pause – and checks
 that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
-without drums, a 120 Hz display) and the beat grid. `node --test tests/js/gl-stage.test.mjs` (#204) opens
+without drums, a 120 Hz display) and the beat grid. `node --test tests/js/soft.test.mjs` (#211) tests the shares of the soft switches
+(old input picture, old and new prompt, a change during a running fade). `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master; #215: that the smoothed
 picture keeps its place when a new picture takes over), plus the fallback when the
-graphics context is lost and that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
-than the picture); with `KEEP=1` the page stays open and shows both pictures side by side.
-`node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+graphics context is lost, that the chain draws sparingly (#210: nothing while nothing moves, the canvas no finer
+than the picture), and #205: that the morph along a flow field shows a moved picture half-way where the cross-fade
+shows it twice – also within the camera's motion – and that the strongest smoothing arrives at the new picture; with `KEEP=1` the page stays open and shows both pictures side by side. `node --test tests/js/window.test.mjs` (#214) opens four dream windows of different sizes in the same browser and is
+their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
+the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
+motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
+`KEEP=1` the windows stay open. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the
@@ -1261,7 +1327,7 @@ chain drew. `SECONDS`, `WARMUP`, `RUNS`, `SCENES`, `SCALES`, `FX` (effects on) a
 the run. Let the model warm up first: the first seconds after a start are slower whatever draws.
 
 Where the code is, if you want to change something: `server.py` is what `./dream.sh` starts and only puts the parts
-together – one file each for painting (`render.py`, `render_api.py`), the rights (`rights.py`: the roles and what each
+together – one file each for painting (`render.py`, `render_api.py`, `flow.py` for the flow field between two pictures), the rights (`rights.py`: the roles and what each
 may do), the settings (`settings.py`: one table with every setting, its range and whether a guest may change it), the
 shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the
 outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the cloud GPU (`cloud.py`), measuring

@@ -8,7 +8,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - `server.py` is the entry point (`uvicorn server:app`) and only puts the parts together (#189); role "app" (Mac: pages,
   voice, control state, cloud control, local rendering) or "worker" (cloud: rendering only – it loads `render.py`,
   `render_api.py` and nothing of the app). The parts, each one file: `render.py` (the image models and one picture; with
-  `styles.py`, the style models and the reference adapter, the only code that loads PyTorch), `render_api.py` (`/ws`,
+  `styles.py`, the style models and the reference adapter, the only code that loads PyTorch; `flow.py`, the flow field
+  between two pictures for the stage's morph, #205: numpy only, estimated in a process of its own), `render_api.py` (`/ws`,
   `/make`, `/health`, `/stats`), `rights.py` (keys, roles, the middleware), `settings.py` (the settings table),
   `hub.py` (shared state, who is connected, `apply`, `broadcast`), `ctl.py` (`/ctl`, the feeds a device lends),
   `scenes.py`, `inputs.py` (MIDI, sensors, movement rules), `output.py` (Syphon, `/out`, `/view`), `eyes.py`,
@@ -19,10 +20,12 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - `static/index.html` is the stage (with optional panel), `static/remote.html` the phone remote, `static/output.html`
   the output window; what the pages share is in `static/common.js` (#189: no page keeps its own copy of a helper that
   is there). The sliders of the panel and of Dream Control are drawn by `static/sliders.js` and `sliders.css` (#216)
-  from the settings table (`settings.page_schema()`, sent over `/ctl`): zero mark, influence colour, "Reset"; the
-  moving signs beside the sliders and the shape of the picture's character by `static/signs.js` and `signs.css` (#217),
+  from the settings table (`settings.page_schema()`, sent over `/ctl`): zero mark, influence colour, "Reset". The moving signs beside the sliders and the shape of the picture's character by `static/signs.js` and `signs.css` (#217),
   hung into the sliders' drawing (`painted`) – only transform and opacity move, paused while not on screen.
-  `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
+  Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
+  (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
+  and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
+  asked over `/facemarks` – and moved by each window itself; a window never runs a model). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
@@ -47,7 +50,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   new route or setting that costs money, changes the owner's files or uses the Mac's camera stays Control-only.
 - Tests (#186): `uv run pytest` (no model, no GPU: a stand-in for torch, a temporary HOME and Dream folders – never the
   real ones) and `python3 scripts/i18n_check.py`; CI runs both on Linux and macOS for every pull request to `main` (#213: both jobs are
-  required checks, a pull request merges only with them green), and the JavaScript tests in `tests/js/` (`node --test`). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
+  required checks, a pull request merges only with them green), and the JavaScript tests in `tests/js/` (`node --test`;
+  `window.test.mjs` runs several dream windows in a headless Chrome and is their Dream itself). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
   from `static/fx.js` as fallback); an effect is changed in both, `tests/js/gl-stage.test.mjs` compares their pictures.
   The motion between the AI pictures (#194, #215) is one continuous camera: its numbers live in `static/morph.js` (the
   phase of every picture, the camera's pace, the record a picture is shown with; `tests/js/morph.test.mjs`), and
@@ -67,6 +71,9 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - Dream's own code is under the AGPL-3.0 (`LICENSE`). Model and dependency licences stay listed in the README (section
   "Licences", with what they allow commercially); a new model needs a licence that allows at least free private and
   non-commercial use, open licences (Apache 2.0, MIT) preferred.
+- Outside contributors sign the Contributor License Agreement (`CLA.md`, checked by `.github/workflows/cla.yml`;
+  signatures on the branch `cla-signatures`), so the owner can also license Dream under other terms. Never merge an
+  outside pull request without a signed CLA, and never change `CLA.md` without the owner.
 
 ## Workflow
 

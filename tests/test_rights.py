@@ -74,7 +74,8 @@ EXTRA = [
     ("POST", "/health", LC),
     ("PUT", "/playlists/Calm", LC),
 ]
-WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW}
+WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW,
+      "/facemarks": {"local"}}                         # #214: only the stage on this Mac says where a painted face has its eyes
 # what each role may do (rights.ROLES), written down by hand too: the pages are told it with their role
 CAN = {
     "local": ["control", "ctl", "eyes", "faces", "feed", "render", "set:all", "stage", "state", "view"],
@@ -563,8 +564,8 @@ def test_render_allowed_only_for_the_stage_side(server):
     assert not server.rights.ws_can(Sock("192.168.1.30"), "render")
 
 
-# ---------- dream windows (#201): any number, one organism over all of them, they only look ----------
-def test_dream_windows_get_seeds_and_cannot_steer(server):
+# ---------- dream windows (#201, #214): any number, they only look (what they show: tests/test_windows.py) ----------
+def test_dream_windows_cannot_steer(server):
     k = server.rights.keys["window"]
     c = client(server, "window")
     with c.websocket_connect(f"ws://192.168.1.20:7860/view?as=window&k={k}") as a, \
@@ -578,33 +579,3 @@ def test_dream_windows_get_seeds_and_cannot_steer(server):
     with pytest.raises(WebSocketDisconnect):                           # a window may not open /ctl
         with c.websocket_connect(f"ws://192.168.1.20:7860/ctl?role=remote&k={k}") as w:
             w.receive_text()
-
-
-def test_window_seeds_wander_from_window_to_window(server, monkeypatch):
-    """A wanderer that leaves one window comes into the next one from the other side – the same being."""
-    import asyncio
-    sent = []
-
-    class Sock:
-        def __init__(self, n): self.n = n
-        async def send_text(self, text): sent.append((self.n, json.loads(text)))
-    one, two = Sock(1), Sock(2)
-    ws, wd = server.hub.windows, server.windows.wanderers
-    ws.clear(); ws.update({one: {"next": 0}, two: {"next": 1e12}}); wd.clear()
-    monkeypatch.setattr(server.windows.random, "random", lambda: 0.0)          # a wanderer, surely
-    asyncio.run(server.windows.windows_tick(100.0))
-    seed = next(m["life"] for n, m in sent if n == 1)
-    assert seed["kind"] in server.windows.WANDER_KINDS and seed["exit"] != "in"
-    sent.clear()
-    asyncio.run(server.windows.windows_tick(100.0 + seed["life"] + 0.1))
-    nxt = next(m["life"] for n, m in sent if n == 2)
-    assert nxt["seed"] == seed["seed"] and nxt["kind"] == seed["kind"]
-    assert nxt["enter"] == {"left": "right", "right": "left", "top": "bottom", "bottom": "top"}[seed["exit"]]
-    ws.clear(); wd.clear()
-
-
-def test_window_seeds_are_only_what_a_window_needs(server):
-    """A seed carries no prompt, no setting, no picture – only what to draw."""
-    for wander in (True, False):
-        s = server.windows.window_seed("cloud", wander, "left" if wander else "in")
-        assert set(s) == {"id", "kind", "variant", "seed", "life", "enter", "exit", "hue", "size"}

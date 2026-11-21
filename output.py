@@ -1,6 +1,7 @@
 """Where the stage's pictures go: the Syphon source for Resolume, the output windows and the small previews on
 remotes (/view), fed by the stage over /out."""
 import asyncio
+import base64
 import contextlib
 import io
 import json
@@ -14,7 +15,7 @@ from fastapi.responses import FileResponse
 from PIL import Image
 
 import config
-import eyes
+import flow
 import hub
 import outbox
 import render
@@ -23,8 +24,11 @@ import windows
 from web import app
 
 # ---------- Syphon: the stage sends every shown frame, Dream publishes it smoothly for Resolume ----------
-# The AI makes only a few frames per second; the publisher crossfades between the last two at 30 fps.
-syph = {"prev": None, "cur": None, "t_prev": 0.0, "t_cur": 0.0, "thread": None, "lock": threading.Lock(), "error": ""}
+# The AI makes only a few frames per second; the publisher shows the way from the last one to the newest at 30 fps:
+# morphed along the flow field between them when the stage passed one on (#205), cross-faded otherwise.
+syph = {"prev": None, "cur": None, "t_prev": 0.0, "t_cur": 0.0, "thread": None, "lock": threading.Lock(), "error": "",
+        "field": None, "n": 0}   # field: (vectors, how much of them) for the newest picture; n: its number
+announced = {"n": 0, "field": None}        # what the stage said about the picture that comes next
 
 
 shown = {"frame": None}     # the last picture the stage showed (JPEG)
@@ -43,21 +47,28 @@ def syphon_worker():
         return
     from Foundation import NSDate, NSRunLoop
     tex, size = None, None
+    way, way_of = None, None                    # the morph between the last two pictures (flow.Between)
     print("Syphon source 'Dream' running", flush=True)
     while hub.state["syphon"]:
         # a run-loop step instead of sleep: lets Syphon answer programs that look for sources later (Resolume)
         NSRunLoop.currentRunLoop().runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(1 / 30))
         with syph["lock"]:
-            cur, prev, t0, t1 = syph["cur"], syph["prev"], syph["t_prev"], syph["t_cur"]
+            cur, prev, t0, t1, field = syph["cur"], syph["prev"], syph["t_prev"], syph["t_cur"], syph["field"]
         if cur is None:
             continue
+        frame = cur
         if prev is not None and prev.shape == cur.shape:
             span = min(max(t1 - t0, 0.1), 1.5)
             a = min(1.0, (time.time() - t1) / span)
-            frame = cur if a >= 1.0 else prev * (1 - a) + cur * a
-        else:
-            frame = cur
-        frame = np.ascontiguousarray(frame, dtype=np.uint8)
+            if a < 1.0:
+                if way_of is not cur:           # a new pair: its morph is prepared once
+                    way, way_of = None, cur
+                    if field is not None:
+                        try:
+                            way = flow.Between(prev, cur, field[0], field[1])
+                        except Exception as e:  # a field that does not fit: this pair cross-fades
+                            print("Syphon: flow field not usable:", repr(e)[:200], flush=True)
+                frame = way.at(a) if way is not None else crossfade(prev, cur, a)
         h, w = frame.shape[:2]
         if size != (w, h):
             tex, size = create_mtl_texture(server.device, w, h), (w, h)
@@ -66,6 +77,39 @@ def syphon_worker():
     server.stop()
     syph["thread"] = None
     print("Syphon stopped", flush=True)
+
+
+def crossfade(prev, cur, a):
+    """The cross-fade from prev to cur at a (0…1), 8 bit."""
+    k = int(round(a * 256))
+    return ((prev.astype(np.uint16) * (256 - k) + cur.astype(np.uint16) * k) >> 8).astype(np.uint8)
+
+
+def syphon_picture(data: bytes, master: float) -> np.ndarray:
+    """A picture of the stage as the Syphon source takes it (rows × columns × 4, 8 bit), dimmed by the master fader."""
+    img = np.asarray(Image.open(io.BytesIO(data)).convert("RGBA"))
+    if master < 1:
+        img = img.astype(np.float32)
+        img[..., :3] *= master
+        img = img.astype(np.uint8)
+    return np.ascontiguousarray(img)
+
+
+def announce(text: str):
+    """#205: the stage's word about the next picture – its number and the flow field from the one before it
+    ({"n": 12, "flow": {"cols", "rows", "k", "data": base64}}). Anything that is not a usable field counts as none."""
+    try:
+        m = json.loads(text)
+        n, f = int(m.get("n") or 0), m.get("flow")
+        field = None
+        if isinstance(f, dict):
+            cols, rows, k = int(f["cols"]), int(f["rows"]), min(1.0, max(0.0, float(f["k"])))
+            raw = base64.b64decode(str(f["data"]), validate=True)
+            if cols >= 2 and rows >= 2 and len(raw) == cols * rows * 2 and k > 0:
+                field = (np.frombuffer(raw, dtype=np.int8).reshape(rows, cols, 2).astype(np.float32) / flow.UNIT, k)
+    except (ValueError, TypeError, KeyError, AttributeError):
+        n, field = 0, None
+    announced.update(n=n, field=field)
 
 
 async def main_runloop():
@@ -134,8 +178,10 @@ async def out(sock: WebSocket):
                 break
             if msg.get("text"):                    # {"fade": …} at a model switch, {"fx": …} the autopilot's effects
                 text = msg["text"]
-                if len(text) > 4000:               # far more than these ever are: not passed on
+                if len(text) > 6000:               # far more than these ever are (the largest carries a flow field): not passed on
                     continue
+                if '"morph"' in text:              # #205: what the next picture is, for the Syphon source
+                    announce(text)
                 for v in list(hub.viewers):
                     outbox.post(v, text)
                 continue
@@ -151,12 +197,16 @@ async def out(sock: WebSocket):
                 if not outbox.post_frame(v, data):
                     hub.viewers.discard(v)
             if hub.state["syphon"]:
-                img = np.asarray(Image.open(io.BytesIO(data)).convert("RGBA"), dtype=np.float32)
-                if hub.state["master"] < 1:
-                    img[..., :3] *= hub.state["master"]
+                # #205 (Pf-6 of #187): decoded beside the event loop, so no other device waits for it
+                n, field = announced["n"], announced["field"]
+                announced.update(n=0, field=None)
+                img = await asyncio.get_running_loop().run_in_executor(None, syphon_picture, data, hub.state["master"])
                 with syph["lock"]:
                     syph["prev"], syph["t_prev"] = syph["cur"], syph["t_cur"]
                     syph["cur"], syph["t_cur"] = img, time.time()
+                    # the field leads here from the picture before: only if that one is the one Syphon has
+                    syph["field"] = field if n and n == syph["n"] + 1 else None
+                    syph["n"] = n
                 syphon_sync()
     except (WebSocketDisconnect, RuntimeError):
         pass
@@ -187,7 +237,7 @@ async def view(sock: WebSocket):
     try:
         outbox.post(sock, json.dumps({"master": hub.state["master"]}))
         if sock in hub.windows:
-            outbox.post(sock, json.dumps(eyes.aimask_msg()))
+            windows.window_greet(sock)             # #214: the painted faces, their points, its motif
             await windows.window_tell_all()
         frame = shown["frame"]
         if frame and small:
@@ -211,8 +261,8 @@ async def view(sock: WebSocket):
         hub.previews.pop(sock, None)
         hub.key_roles.pop(sock, None)
         outbox.drop(sock)
-        if hub.windows.pop(sock, None) is not None:
-            await windows.window_tell_all()
+        if sock in hub.windows:
+            await windows.window_remove(sock)
         await hub.broadcast(hub.status_msg())
 
 

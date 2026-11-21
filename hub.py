@@ -35,7 +35,7 @@ roles: dict = {}            # #148: control socket -> what it may do now: "local
 key_roles: dict = {}        # #148: socket (control, output, preview) -> the role its key gives
 viewers: set = set()        # output windows (/output): they only show what the stage shows
 previews: dict = {}         # #141: small live previews on remotes and Dreamy Eyes – socket → "small" | "full" (#187)
-windows: dict = {}          # #201: dream windows: socket -> {"next": when it gets its next seed}; in the order they came
+windows: dict = {}          # #201: dream windows (what each one shows: windows.motifs); in the order they came
 midi_ports: list = []       # the MIDI controllers plugged in right now, by name
 # what else happens when a setting changes: setting -> functions, registered by the module that acts on it
 # (the Syphon output on "syphon", the cloud watcher on "backend")
