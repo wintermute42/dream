@@ -8,7 +8,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - `server.py` is the entry point (`uvicorn server:app`) and only puts the parts together (#189); role "app" (Mac: pages,
   voice, control state, cloud control, local rendering) or "worker" (cloud: rendering only – it loads `render.py`,
   `render_api.py` and nothing of the app). The parts, each one file: `render.py` (the image models and one picture; with
-  `styles.py`, the style models and the reference adapter, the only code that loads PyTorch), `render_api.py` (`/ws`,
+  `styles.py`, the style models and the reference adapter, the only code that loads PyTorch; `flow.py`, the flow field
+  between two pictures for the stage's morph, #205: numpy only, estimated in a process of its own), `render_api.py` (`/ws`,
   `/make`, `/health`, `/stats`), `rights.py` (keys, roles, the middleware), `settings.py` (the settings table),
   `hub.py` (shared state, who is connected, `apply`, `broadcast`), `ctl.py` (`/ctl`, the feeds a device lends),
   `scenes.py`, `inputs.py` (MIDI, sensors, movement rules), `output.py` (Syphon, `/out`, `/view`), `eyes.py`,

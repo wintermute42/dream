@@ -187,10 +187,12 @@ http://127.0.0.1:7860/stats.
 
 **📏 Messen** (unter der Auslastung, #180) läuft 60 s mit festen Einstellungen (fester Prompt und Seed, 512 px, 2 Schritte,
 ohne Effekte, Umrisse, Pose oder Stil; danach ist alles wie vorher) und zeigt, wohin die Zeit eines Bildes geht: Warten,
-Eingangsbild dekodieren, Warten auf die GPU, Prompt kodieren, UNet, Decoder, Kodieren und Senden – Mittel, Median und die
+Eingangsbild dekodieren, Warten auf die GPU, Prompt kodieren, UNet, Decoder, Kodieren, das Flussfeld (#205: es wird neben
+dem nächsten Bild geschätzt, seine Zeit gehört also nicht zur Zeit des Bildes) und Senden – Mittel, Median und die
 langsamsten 5 % in Millisekunden –, dazu, wie flüssig jede offene Seite währenddessen gezeichnet hat (Bühne, Dream Remote,
 Dreamy Eyes: Bilder pro Sekunde, Frame-Zeit, Anteil langsamer Frames; für die Bühne auch, was das Bild zeichnet, #204:
-die Grafikkarte mit WebGL 2 oder ohne sie Canvas 2D). Die Tabelle steht auch im Terminal und als JSON in
+die Grafikkarte mit WebGL 2 oder ohne sie Canvas 2D, und #205: für wie viele KI-Bilder ein Flussfeld kam und was eines
+gekostet hat – diese Zeile sagt es auch für die Cloud-GPU, deren eigene Teile die Tabelle nicht zeigt). Die Tabelle steht auch im Terminal und als JSON in
 `~/.local/state/dream/measure/`, um eine Änderung vorher und nachher zu vergleichen. Beim Messen werden die Teile zusammen
 mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Starten können ihn nur Dream Control und der Mac.
 - Die Schrift im Bedienfeld passt sich selbst an (#125: Show-Ansicht, A−/A+ und Nachtmodus gibt es dort nicht mehr).
@@ -311,14 +313,36 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   bewegt sich zurück, bei jeder Zahl von Bildern pro Sekunde, lokal wie mit der Cloud-GPU; bleiben die Bilder aus,
   läuft die Bewegung sanft aus, statt davonzulaufen. 100 % (Standard) = die volle Bewegung, 0 = aus (das Bild steht
   bis zum nächsten). Mit einem Eingang (Kamera, Bild, Video) bewegt sich nur der Traum-Anteil weiter; bei Verwandlung
-  0 bewegt sich nichts. Das Ausgabefenster bewegt sich mit; Syphon bekommt die Bilder selbst (überblendet, ohne diese
+  0 bewegt sich nichts. Das Ausgabefenster bewegt sich mit; Syphon bekommt die Bilder selbst (ohne diese
   Bewegung).
+- **Formen wandern zwischen den Bildern** (Karte Traum, #205): Was die KI selbst von einem Bild zum nächsten verändert
+  – ein Tentakel, der gewachsen ist, ein Gesicht, das sich gedreht hat –, wurde bisher übergeblendet: Für einen Moment
+  war die Form doppelt da. Jetzt schätzt der Renderer zu jedem neuen Bild, wohin die Formen des vorigen gegangen sind
+  (ein grobes Flussfeld: optischer Fluss auf einem Graubild mit 128 Pixeln Breite, in einem eigenen Prozess neben dem
+  nächsten Bild, auf dem Mac oder auf der Cloud-GPU; es reist mit dem Bild als 48 × 27 kleine Vektoren, unter 3 kB).
+  Die Bühne zieht das alte Bild auf diesem Weg vorwärts und das neue zurück und mischt beide, die Formen wandern also
+  – innerhalb der einen durchgehenden Bewegung oben (das Feld zählt von dort, wo die Kamera die beiden Bilder zeigt:
+  es fügt hinzu, was die KI verändert hat, und nichts bewegt sich zurück), mit voller Bildrate. Wo das Feld nichts erklärt (das alte Bild passt dort,
+  verschoben, nicht zum neuen), schrumpfen seine Vektoren auf nichts, und dieser Teil blendet einfach über; ein Bild,
+  das zu wenig mit dem vorigen zu tun hat (neuer Seed, neue Szene, Drop, anderes Modell, Neustart), bekommt gar kein
+  Feld und blendet als Ganzes über. 100 % (Standard) = die Formen gehen den ganzen Weg, weniger = einen Teil davon,
+  0 = aus (es wird nichts geschätzt, die Bilder blenden über). Ausgabefenster und WLAN-Ausgabe morphen genauso; die
+  Syphon-Quelle morpht mit demselben Feld bei 30 Bildern pro Sekunde (ohne Bewegung und Effekte der Bühne, wie bisher).
+  Es braucht das Zeichnen auf der Grafikkarte (WebGL 2); das Canvas-2D-Zeichnen blendet über. Die Überblendung selbst
+  ist jetzt eine echte Mischung der beiden Bilder – sie wird in der Mitte nicht mehr dunkler. **📏 Messen** zeigt, was
+  ein Feld kostet und für wie viele Bilder es eines gab. Grenzen: Der Morph beginnt, wenn das nächste Bild da ist (die
+  Verzögerung von einem Bild bleibt); das Feld ist grob, feine Details blenden also weiter über, statt zu wandern;
+  Formen, die zwischen zwei Bildern weiter als ein Viertel des Bildes wandern, werden nicht verfolgt.
 - **Glätten – gegen Flackern** (Karte Traum, auch am Handy und als MIDI-Ziel): Die KI malt jedes Bild neu, feine
   Details springen deshalb von Bild zu Bild leicht – das wirkt wie Flackern. Glätten mischt jedes neue KI-Bild mit
   voller Bildrate weich in das Gezeigte (ein gleitender Mittelwert): kleine Sprünge verschwinden, große Änderungen
   kommen trotzdem, nur weicher. 0 = aus, 30 % (Standard) nimmt etwa die Hälfte des Flackerns, 60 % gut vier Fünftel,
   100 % fast alles (dann wird es träge). Beamer-Fenster und WLAN-Ausgabe glätten genauso, die Effekte setzen auf dem
-  geglätteten Bild auf; die KI selbst bekommt weiter die echten Bilder, Syphon das ungeglättete Bild.
+  geglätteten Bild auf; die KI selbst bekommt weiter die echten Bilder, Syphon das ungeglättete Bild. Beim Zeichnen
+  auf der Grafikkarte wird das geglättete Bild als Gleitkommazahlen gehalten (#205), auch die stärkste Glättung kommt
+  so beim neuen Bild an – vorher konnte ein schwacher Schatten des alten für immer stehen bleiben (bei 100 % bis zu 48
+  von 255 Helligkeitsstufen). Das Canvas-2D-Zeichnen mischt stattdessen in größeren, selteneren Schritten (höchstens 4
+  Stufen bleiben).
 - **Drift – Traum bleibt lebendig:** Ohne neuen Input (nur Prompt) friert die Bild-zu-Bild-Schleife sonst nach
   einer Weile ein. Drift lässt das Rauschen weich von Seed zu Seed wandern, bewegt das Bild leicht von selbst
   (Atmen, Pendeln, Wandern) und gibt einen Anstoß, wenn sich das Bild ein paar Sekunden kaum ändert. „Prompt sanft
@@ -376,13 +400,15 @@ dazu, wenn das Häkchen gesetzt ist.
   mit voller Bildrate (60 fps), egal wie schnell die KI rechnet (auf dem Mac mit Grafikchip gemessen: 60 fps mit
   drei Effekten), und erscheinen auch im Ausgabefenster (Beamer, WLAN-Ausgabe), nicht aber in Syphon.
 - **Auf der Grafikkarte gezeichnet (#204, #210):** Bühne und Ausgabefenster zeichnen das Bild als eine Kette in
-  WebGL 2 – die letzten zwei KI-Bilder mit ihrer Bewegung und Überblendung, die Glättung, die Effekte, die
+  WebGL 2 – die letzten zwei KI-Bilder mit ihrer Bewegung, ineinander gemorpht (#205) oder übergeblendet, die Glättung, die Effekte, die
   Berührungs-Ebenen (Lichtstriche, Rühren, Lichtkreis), Farbrotation, Helligkeit und Master. Auf einem Mac teilt sich
   diese Kette die Grafikkarte mit der KI, deshalb zeichnet sie sparsam: in der Auflösung, die das Bild wirklich hat
   (ein KI-Bild mit 512 px oder der Puffer der Effekte – nicht jeder Pixel eines Retina-Bildschirms; der Browser
   vergrößert es wie jedes Bild), nur wenn sich etwas bewegt (ein stehendes Bild wird nicht neu gezeichnet, die
   Glättung ruht, sobald sie das neueste Bild eingeholt hat), und die Vorschau neben dem Bedienfeld mit 30 statt 60
-  Bildern pro Sekunde, solange ein Ausgabefenster offen ist. Gemessen auf einem Mac mit M2 Max (sd-turbo, 512 px,
+  Bildern pro Sekunde, solange ein Ausgabefenster offen ist. Die Seite fragt den Browser nicht in jedem Frame nach
+  Größen und Stilen, und der Blick der Bewegungserkennung auf das gezeigte Bild (für „Projektion herausrechnen“)
+  lässt die Grafikkarte nicht warten (#205). Gemessen auf einem Mac mit M2 Max (sd-turbo, 512 px,
   1 Schritt, Verwandlung 0,5; die Bühne allein und das Bedienfeld mit Ausgabefenster, jeweils auch in
   Retina-Auflösung) malt die KI damit so viele Bilder wie mit Canvas 2D: Der Unterschied liegt in der Streuung der
   Messung (etwa 2 %); wie man sie wiederholt, steht unter „Tests“. Einzustellen ist nichts: Ohne WebGL 2, oder wenn
@@ -524,7 +550,8 @@ Gut zu wissen:
 
 Schalter „Syphon-Ausgabe „Dream“ für Resolume“ (Bühne oder Handy). Dann erscheint in Resolume unter
 **Sources → Syphon** die Quelle **„Python – Dream“**. Dream schickt sie mit 30 Bildern pro Sekunde und blendet
-weich zwischen den KI-Bildern über, damit es auch bei 2–5 KI-Bildern pro Sekunde flüssig wirkt. Die Bühne muss
+weich zwischen den KI-Bildern über – mit „Formen wandern zwischen den Bildern“ (#205) morpht es sie entlang des
+Flussfelds, wie die Bühne –, damit es auch bei 2–5 KI-Bildern pro Sekunde flüssig wirkt. Die Bühne muss
 dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
@@ -1273,8 +1300,10 @@ Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software g
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
 ein neues Bild übernimmt), dazu den Rückfall, wenn der Grafik-Kontext verloren geht,
-und dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, die Zeichenfläche nicht feiner als das
-Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt sie alle auf Linux
+dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, die Zeichenfläche nicht feiner als das
+Bild), und #205: dass der Morph entlang eines Flussfelds auf halbem Weg ein verschobenes Bild zeigt, wo die
+Überblendung es doppelt zeigt – auch innerhalb der Bewegung der Kamera –, und dass die stärkste Glättung beim neuen
+Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. GitHub lässt sie alle auf Linux
 und macOS bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein
 Pull-Request lässt sich erst mergen, wenn beide grün sind. Die echte KI auf einer Grafikkarte und die 📏-Messungen
 gehören nicht dazu – die laufen auf dem eigenen Mac, wie unten.
@@ -1291,7 +1320,7 @@ hat. `SECONDS`, `WARMUP`, `RUNS`, `SCENES`, `SCALES`, `FX` (Effekte an) und `HEA
 Lauf. Das Modell erst warmlaufen lassen: Die ersten Sekunden nach einem Start sind langsamer, egal was zeichnet.
 
 Wo der Code liegt, falls du etwas ändern willst: `server.py` ist das, was `./dream.sh` startet, und setzt nur die Teile
-zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`), die Rechte (`rights.py`: die Rollen und was jede
+zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`, `flow.py` für das Flussfeld zwischen zwei Bildern), die Rechte (`rights.py`: die Rollen und was jede
 darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihrem Bereich und ob ein Gast sie ändern
 darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
 (`inputs.py`), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
