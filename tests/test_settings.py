@@ -191,7 +191,7 @@ def test_zero_in_the_middle_follows_from_the_range():
 def test_reset_brings_home_what_shapes_the_picture_and_nothing_else():
     import settings
     weighted = {k for k, s in settings.SETTINGS.items() if s.weight}
-    assert weighted == {"strength", "mix", "zoom", "rot", "hue", "sens", "motion_sens", "pose_scale", "drift", "smooth",
+    assert weighted == {"flow", "strength", "mix", "zoom", "rot", "hue", "sens", "motion_sens", "pose_scale", "drift", "smooth",
                         "morph", "touch_amt", "edges_scale", "fx_amt"}
     # in one step, never gliding: effects, autopilot and the style (a style strength costs the AI a rebuild per change)
     assert settings.RESET == {**{k: settings.DEFAULT_STATE[k] for k in weighted}, "fx": "", "auto": False,
