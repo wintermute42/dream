@@ -16,7 +16,9 @@ import sys
 import urllib.error
 import urllib.request
 
-import i18n
+# dream-cloud runs this file with python3 -I (isolated: no script folder on sys.path), so add Dream's folder by hand
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import i18n  # noqa: E402
 
 API = os.environ.get("DREAM_RUNPOD_API", "https://api.runpod.io/v2")
 NAME = "dream-gpu"
