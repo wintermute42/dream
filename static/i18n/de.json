@@ -968,5 +968,14 @@
  "graphics card (WebGL 2)": "Grafikkarte (WebGL 2)",
  "Canvas 2D (no WebGL 2)": "Canvas 2D (kein WebGL 2)",
  "WebGL 2 and Canvas 2D": "WebGL 2 und Canvas 2D",
- "The graphics card’s drawing (WebGL 2) stopped – Dream draws with Canvas 2D now.": "Das Zeichnen auf der Grafikkarte (WebGL 2) ist ausgefallen – Dream zeichnet jetzt mit Canvas 2D."
+ "The graphics card’s drawing (WebGL 2) stopped – Dream draws with Canvas 2D now.": "Das Zeichnen auf der Grafikkarte (WebGL 2) ist ausgefallen – Dream zeichnet jetzt mit Canvas 2D.",
+ "↺ Reset": "↺ Zurücksetzen",
+ "Reset · ↶ Undo": "Zurückgesetzt · ↶ Rückgängig",
+ "Undo the reset: everything glides back to what it was": "Zurücksetzen rückgängig machen: alles gleitet auf die Werte von vorher zurück",
+ "Reset: zoom, rotation, colour and the other picture settings glide to their defaults, effects, style and autopilot go off – prompt, model, inputs and outputs stay": "Zurücksetzen: Zoom, Drehung, Farbe und die anderen Bildeinstellungen gleiten auf ihren Standard, Effekte, Stil und Autopilot gehen aus – Prompt, Modell, Eingänge und Ausgaben bleiben",
+ "Reset – the picture glides to its defaults.": "Zurückgesetzt – das Bild gleitet auf die Standardwerte.",
+ "Already at the defaults.": "Schon auf den Standardwerten.",
+ "{name}: set to 0": "{name}: auf 0 stellen",
+ "Set to 0": "Auf 0 stellen",
+ "strongly changed": "stark verändert"
 }

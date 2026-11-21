@@ -1,7 +1,8 @@
 """Dream's settings – one table (#189): every setting of the shared state with its default, its type, the range of a
 number or the choices of a text, whether a guest (Dream Remote) may change it, and whether a MIDI controller or a
-motion sensor can move it. A new setting is one entry here; the defaults, the ranges, the guests' keys and the MIDI
-targets are read from this table (`DEFAULT_STATE`, `RANGES`, `GUEST_KEYS`, `TARGETS`), never written down again.
+motion sensor can move it, and how strongly it shapes the picture (#216). A new setting is one entry here; the defaults,
+the ranges, the guests' keys, the MIDI targets, what "Reset" brings home and what the pages draw on a slider are read
+from this table (`DEFAULT_STATE`, `RANGES`, `GUEST_KEYS`, `TARGETS`, `RESET`, `page_schema`), never written down again.
 
 The type of a setting is the type of its default: a switch (bool), a number (int or float, always with a range) or a
 text. Nothing here loads PyTorch or reads the environment."""
@@ -22,6 +23,14 @@ class Setting:
     guest: object = False             # #148: may a guest change it – True, False, or the set of values a guest may set
     target: bool = False              # a MIDI controller or a motion sensor can move it (midi.TARGETS)
     clean: object = None              # a text's own rule: str -> str (old names, known effects, an id)
+    weight: float = 0.0               # #216: how strongly a number shapes the picture (0 = not at all … 1); "Reset"
+                                      # brings every number with a weight home, the pages colour its slider by it
+    needs: str | None = None          # #216: the setting it only acts with (a switch that is on, a choice not "off")
+
+    @property
+    def bipolar(self) -> bool:
+        """#216: a number with zero inside its range: its slider fills from the zero mark."""
+        return self.number and self.lo < 0 < self.hi
 
     @property
     def number(self) -> bool:
@@ -33,8 +42,8 @@ class Setting:
         return "bool" if isinstance(d, bool) else "int" if isinstance(d, int) else "float" if isinstance(d, float) else "text"
 
 
-def num(default, lo, hi, *, guest=False, target=False) -> Setting:
-    return Setting(default, lo=lo, hi=hi, guest=guest, target=target)
+def num(default, lo, hi, *, guest=False, target=False, weight=0.0, needs=None) -> Setting:
+    return Setting(default, lo=lo, hi=hi, guest=guest, target=target, weight=weight, needs=needs)
 
 
 def flag(default: bool, *, guest=False) -> Setting:
@@ -74,12 +83,12 @@ SETTINGS: dict[str, Setting] = {
     "backend": text("local", choices=("local", "cloud")),
     "model": text("sd-turbo", choices=models.MODELS),
     "running": flag(True),
-    "strength": num(0.5, 0.0, 0.95, guest=True, target=True),
-    "mix": num(0.35, 0.0, 0.9, guest=True, target=True),
-    "zoom": num(0.018, -0.04, 0.06, guest=True, target=True),
-    "rot": num(0.6, -3.0, 3.0, guest=True, target=True),
-    "hue": num(4.0, 0.0, 20.0, guest=True, target=True),
-    "sens": num(1.0, 0.0, 2.0, guest=True, target=True),
+    "strength": num(0.45, 0.0, 0.95, guest=True, target=True, weight=1.0),
+    "mix": num(0.35, 0.0, 0.9, guest=True, target=True, weight=0.6),
+    "zoom": num(0.008, -0.04, 0.06, guest=True, target=True, weight=1.0),
+    "rot": num(0.2, -3.0, 3.0, guest=True, target=True, weight=1.0),
+    "hue": num(2.0, 0.0, 20.0, guest=True, target=True, weight=0.8),
+    "sens": num(1.0, 0.0, 2.0, guest=True, target=True, weight=0.5, needs="music"),
     "quality": num(2, 1, 4),
     "size": num(512, 256, 1024),
     "seed": num(1, 0, 2**31 - 1, guest=True),
@@ -89,25 +98,25 @@ SETTINGS: dict[str, Setting] = {
     "interval": num(45, 5, 3600),
     "shuffle": flag(False),
     "motion": flag(True),                                       # flowtrack movement (OSC) steers the dream
-    "motion_sens": num(1.0, 0.0, 3.0, target=True),
+    "motion_sens": num(1.0, 0.0, 3.0, target=True, weight=0.4, needs="flowtrack"),
     "syphon": flag(False),                                      # publish the stage picture as Syphon source "Dream"
     "pose": flag(False),                                        # the dancer's skeleton (flowtrack) shapes the figure
-    "pose_scale": num(0.8, 0.2, 1.5, target=True),
+    "pose_scale": num(0.8, 0.2, 1.5, target=True, weight=0.5, needs="pose"),
     "flowtrack": text("off", choices=("off", "on", "hand")),    # movement detection on the stage: off | on (light) | hand (pose)
     "flow_kind": text("hand", choices=("on", "hand")),          # what the flowtrack switch turns on: on | hand
-    "drift": num(0.5, 0.0, 1.0, guest=True, target=True),       # keeps the dream alive without new input (0 = off)
+    "drift": num(0.5, 0.0, 1.0, guest=True, target=True, weight=0.6),       # keeps the dream alive without new input (0 = off)
     "drift_prompt": flag(True, guest=True),
     "music_patterns": flag(True),                               # music: changing patterns, drop → next scene
     "music_drop": flag(True),
     "beat_snap": text("bar", choices=("off", "beat", "bar", "phrase")),   # #195: changes snap to the beat
-    "smooth": num(0.3, 0.0, 1.0, guest=True, target=True),      # smoothing: moving average of the shown pictures (0 = off)
-    "morph": num(1.0, 0.0, 1.0),                                # #194: motion between two AI pictures (0 = off)
-    "flow": num(1.0, 0.0, 1.0),                                 # #205: shapes travel between two AI pictures (0 = off)
+    "smooth": num(0.3, 0.0, 1.0, guest=True, target=True, weight=0.5),      # smoothing: moving average of the shown pictures (0 = off)
+    "morph": num(1.0, 0.0, 1.0, weight=0.5),                                # #194: motion between two AI pictures (0 = off)
+    "flow": num(1.0, 0.0, 1.0, weight=0.4),                     # #205: shapes travel between two AI pictures (0 = off)
     # auto, or a fixed pattern (Pulse, Jolt, Jump, Flow; #133: old German names too)
     "music_pattern": text("auto", choices=("auto", *playlists.PATTERNS), guest=True,
                           clean=lambda v: playlists.OLD_PATTERNS.get(v, v)),
     "aspect": text("square", choices=("square", "wide")),       # picture format: square | wide (16:9)
-    "touch_amt": num(0.6, 0.0, 1.0),                            # direct touch: hands paint and stir the dream
+    "touch_amt": num(0.6, 0.0, 1.0, weight=0.5, needs="flowtrack"),                            # direct touch: hands paint and stir the dream
     "touch_paint": flag(True),
     "touch_warp": flag(True),
     "touch_mirror": flag(False),
@@ -128,7 +137,7 @@ SETTINGS: dict[str, Setting] = {
     "fast": flag(False),
     "fast_prev": text(""),
     "edges": flag(False),
-    "edges_scale": num(0.8, 0.2, 1.5),
+    "edges_scale": num(0.8, 0.2, 1.5, weight=0.5, needs="edges"),
     "flow_color": text(""),
     "flow_short": flag(True),
     "style": text("", guest=True, clean=_style),                # #123: a style model (SDXL-Turbo) and its strength (0–2)
@@ -136,7 +145,7 @@ SETTINGS: dict[str, Setting] = {
     "style_ref": text("", clean=_style_ref),                    # #123: a style reference picture (id) and its strength
     "style_ref_amt": num(0.8, 0.0, 1.0),
     "fx": text("", guest=True, clean=_fx),                      # effects by hand: "tunnel+waves", their strength, pulse on the beat
-    "fx_amt": num(0.7, 0.0, 1.0, guest=True, target=True),
+    "fx_amt": num(0.7, 0.0, 1.0, guest=True, target=True, weight=0.8, needs="fx"),
     "fx_beat": flag(True, guest=True),
 }
 
@@ -147,6 +156,24 @@ CHOICES = {k: s.choices for k, s in SETTINGS.items() if s.choices}
 GUEST_KEYS = {k for k, s in SETTINGS.items() if s.guest}
 GUEST_MODES = SETTINGS["mode"].guest
 TARGETS = {k: (s.lo, s.hi) for k, s in SETTINGS.items() if s.target}   # what a controller can move: key → (min, max)
+# #216: where "Reset" brings the dream: every number that shapes the picture glides to its default (the ones with a
+# weight); the effects, the autopilot, the music pattern (back to "auto") and the style (model, reference picture and
+# both strengths: no style) are set in one step – a glide of a style strength would make the AI rebuild its model about
+# once a second. Everything else stays – prompt, model, quality, size, format, cameras, playlist, output, cloud, master,
+# and every other switch.
+RESET_AT_ONCE = ("fx", "auto", "music_pattern", "style", "style_amt", "style_ref", "style_ref_amt")
+RESET = {k: s.default for k, s in SETTINGS.items() if s.weight or k in RESET_AT_ONCE}
+assert not any(SETTINGS[k].weight for k in RESET_AT_ONCE)
+assert all(s.number and 0 < s.weight <= 1 for s in SETTINGS.values() if s.weight)
+assert all(s.needs in SETTINGS for s in SETTINGS.values() if s.needs)
+
+
+def page_schema() -> dict:
+    """#216: what a page needs to draw a number's slider (static/sliders.js): default, range, whether zero lies inside
+    the range, the weight and the setting it only acts with."""
+    return {k: {"d": s.default, "lo": s.lo, "hi": s.hi, **({"zero": True} if s.bipolar else {}),
+                **({"w": s.weight} if s.weight else {}), **({"needs": s.needs} if s.needs else {})}
+            for k, s in SETTINGS.items() if s.number}
 
 
 def guest_changes(changes: dict) -> dict:

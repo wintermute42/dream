@@ -104,7 +104,7 @@ def test_poisoned_state_file_heals(tmp_path):
     (state / "state.json").write_text('{"strength": NaN, "zoom": Infinity, "hue": 1e999, "seed": 99999999999999, '
                                       '"quality": "3", "mix": 0.2, "unknown": 1}')
     got = import_server(home, DREAM_STATE_DIR=str(state))["state"]
-    assert (got["strength"], got["zoom"], got["hue"]) == (0.5, 0.018, 4.0)
+    assert (got["strength"], got["zoom"], got["hue"]) == (0.45, 0.008, 2.0)
     assert (got["seed"], got["quality"], got["mix"]) == (2 ** 31 - 1, 3, 0.2)
     assert "unknown" not in got
 

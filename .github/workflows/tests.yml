@@ -44,6 +44,8 @@ jobs:
         run: python3 scripts/i18n_check.py
       - name: Beat tracker
         run: node --test tests/js/beat.test.mjs
+      - name: Sliders (rules, and the drawing in a headless Chrome)
+        run: node --test tests/js/sliders.test.mjs
       - name: Motion between the pictures
         run: node --test tests/js/morph.test.mjs
       - name: Soft switches

@@ -64,7 +64,8 @@ async def ctl(sock: WebSocket):
         outbox.post(sock, json.dumps({"midi": {"map": inputs.midi_map}}))
         outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
         outbox.post(sock, json.dumps({"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
-                                         "cams": hub.live.get("cams", []), "lan": config.LAN, **hub.status_msg()}, ensure_ascii=False))
+                                         "cams": hub.live.get("cams", []), "lan": config.LAN,
+                                         "schema": settings.page_schema(), **hub.status_msg()}, ensure_ascii=False))
     await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
     try:
@@ -129,6 +130,8 @@ async def ctl(sock: WebSocket):
                     msg["set"] = settings.guest_changes(msg["set"])
                 if not is_name(msg.get("cmd")) or msg["cmd"] not in rights.GUEST_CMDS:
                     msg.pop("cmd", None)
+            if msg.get("reset") in (True, "undo") and rights.can(hub.roles.get(sock), "set:all"):   # #216: never a guest
+                await (hub.reset_undo() if msg["reset"] == "undo" else hub.reset())
             if "set" in msg and isinstance(msg["set"], dict):
                 await hub.apply(msg["set"], exclude=sock, by=None if msg.get("auto") else kind)
             if is_name(msg.get("cmd")):            # one-off actions, handled by the stage
