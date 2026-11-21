@@ -8,7 +8,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - `server.py` is the entry point (`uvicorn server:app`) and only puts the parts together (#189); role "app" (Mac: pages,
   voice, control state, cloud control, local rendering) or "worker" (cloud: rendering only – it loads `render.py`,
   `render_api.py` and nothing of the app). The parts, each one file: `render.py` (the image models and one picture; with
-  `styles.py`, the style models and the reference adapter, the only code that loads PyTorch), `render_api.py` (`/ws`,
+  `styles.py`, the style models and the reference adapter, the only code that loads PyTorch; `flow.py`, the flow field
+  between two pictures for the stage's morph, #205: numpy only, estimated in a process of its own), `render_api.py` (`/ws`,
   `/make`, `/health`, `/stats`), `rights.py` (keys, roles, the middleware), `settings.py` (the settings table),
   `hub.py` (shared state, who is connected, `apply`, `broadcast`), `ctl.py` (`/ctl`, the feeds a device lends),
   `scenes.py`, `inputs.py` (MIDI, sensors, movement rules), `output.py` (Syphon, `/out`, `/view`), `eyes.py`,
@@ -47,6 +48,9 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   required checks, a pull request merges only with them green), and the JavaScript tests in `tests/js/` (`node --test`;
   `window.test.mjs` runs several dream windows in a headless Chrome and is their Dream itself). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
   from `static/fx.js` as fallback); an effect is changed in both, `tests/js/gl-stage.test.mjs` compares their pictures.
+  The motion between the AI pictures (#194, #215) is one continuous camera: its numbers live in `static/morph.js` (the
+  phase of every picture, the camera's pace, the record a picture is shown with; `tests/js/morph.test.mjs`), and
+  whatever is drawn of a picture – its element, the smoothed picture, the effects – is placed by them, never restarted.
   The chain shares the graphics card with the AI (#210): it draws no finer than the picture and nothing while nothing
   moves; a change to it is measured with the real model (`scripts/measure_stage.cjs`, README "Tests"). `tests/test_rights.py` lists every route with the
   roles that may use it and every role with its capabilities: a new route or a change of rights changes those tables.
@@ -62,6 +66,9 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
 - Dream's own code is under the AGPL-3.0 (`LICENSE`). Model and dependency licences stay listed in the README (section
   "Licences", with what they allow commercially); a new model needs a licence that allows at least free private and
   non-commercial use, open licences (Apache 2.0, MIT) preferred.
+- Outside contributors sign the Contributor License Agreement (`CLA.md`, checked by `.github/workflows/cla.yml`;
+  signatures on the branch `cla-signatures`), so the owner can also license Dream under other terms. Never merge an
+  outside pull request without a signed CLA, and never change `CLA.md` without the owner.
 
 ## Workflow
 
