@@ -731,6 +731,7 @@
 <script src="/static/calib.js"></script>
 <script src="/static/motion.js"></script>
 <script src="/static/beat.js"></script>
+<script src="/static/soft.js"></script>
 <script>
   // #132: the page in the chosen language (the markup is English; I18N.apply translates it once, T() the rest)
   const T = I18N.t;
@@ -815,14 +816,21 @@
     return st;
   }
 
-  // ---------- scene changes: blend from the old prompt into the new one (journeys: slowly) ----------
-  const fade = { from: '', start: 0, dur: 0 };
+  // ---------- prompt changes: blend from the old prompt into the new one ----------
+  // A scene takes its playlist's time (journeys: slowly), a change by hand (typing, voice, Dream Control) about 3 s
+  // (#211); a change during a running fade goes on from where it stands (static/soft.js).
+  const fade = { from: '', start: 0, dur: 0, p0: 0 };
+  const promptNow = () => ui.prompt.value.trim() || 'psychedelic dream';
+  let promptWas = promptNow();
   function sceneFade() {
-    const t = fade.dur ? (performance.now() - fade.start) / (fade.dur * 1000) : 1;
-    if (t >= 1 || !fade.from) return {};
-    const to = ui.prompt.value.trim() || 'psychedelic dream';
-    return { prompt: fade.from, prompt2: to, pt: +(t * t * (3 - 2 * t)).toFixed(2) };
+    const pt = DreamSoft.promptShare(fade, performance.now());
+    return pt >= 1 ? {} : { prompt: fade.from, prompt2: promptNow(), pt: +pt.toFixed(2) };
   }
+  function softPrompt(secs, was = promptWas) {         // the prompt was `was` until now; secs: 3 unless a scene says so
+    promptWas = promptNow();
+    if (was && was !== promptWas) Object.assign(fade, DreamSoft.promptSwitch(fade, was, promptWas, performance.now(), secs));
+  }
+  ui.prompt.addEventListener('input', () => softPrompt());
 
   // ---------- drift: keeps the dream alive without new input ----------
   // With a fixed seed and prompt the image-to-image loop settles on one picture. Drift lets the start noise
@@ -1124,7 +1132,25 @@
     noticeUntil = performance.now() + 3000; chips();
     tick();
   }
+  // #211: a new input blends in – the last picture built from the old input lies over the new source and leaves in
+  // about 3 s. It is the picture the AI saw last, so a switch during a blend goes on from that mix without a jump.
+  const soft = { cv: document.createElement('canvas'), on: false, start: 0, built: false };
+  function softSwitch(hard) {                          // before the input changes; hard: a cut (the drop)
+    soft.on = !hard && soft.built; soft.start = 0;
+    if (!soft.on) return;
+    soft.cv.width = work.width; soft.cv.height = work.height;
+    soft.cv.getContext('2d').drawImage(work, 0, 0);
+  }
   function buildFrame() {
+    if (!buildSource()) return false;                  // the new source is not there yet: the blend waits for it
+    soft.built = true;
+    if (!soft.on) return true;
+    const now = performance.now(), share = DreamSoft.oldShare(now - (soft.start || (soft.start = now)));
+    if (share <= 0) { soft.on = false; return true; }
+    wctx.save(); wctx.globalAlpha = share; wctx.drawImage(soft.cv, 0, 0, work.width, work.height); wctx.restore();
+    return true;
+  }
+  function buildSource() {
     if (freshStart) { freshStart = false; last = null; }
     const { w, h } = dims();
     if (work.width !== w || work.height !== h) { work.width = w; work.height = h; }
@@ -1269,7 +1295,9 @@
     if (flowOn()) tracker.start($('flowtrack').value, camId(flowCam()));
   }
   const flowCam = () => $('flow_device').value || $('cam_device').value;
-  async function setMode(m, keep) {             // keep: back to the dream from the current picture (autopilot)
+  // keep: back to the dream from the current picture (autopilot); hard: a cut instead of the soft switch (the drop)
+  async function setMode(m, keep, hard) {
+    softSwitch(hard);
     mode = m;
     document.body.className = document.body.className.replace(/m-\w+/, 'm-' + m);
     markModeParts();
@@ -1293,24 +1321,24 @@
   $('imgfile').onchange = e => {
     srcFrom = 'file'; srcUrl = ''; srcBy = 'hand'; if (mode !== 'img') setMode('img');   // picking a file makes it the input
     const f = e.target.files[0]; if (!f) return;
-    const img = new Image(); img.onload = () => { srcImage = img; last = null; tick(); }; img.src = URL.createObjectURL(f);
+    const img = new Image(); img.onload = () => { softSwitch(); srcImage = img; last = null; tick(); }; img.src = URL.createObjectURL(f);
   };
   $('imgpick').onclick = () => $('imgfile').click();
   $('vidpick').onclick = () => $('vidfile').click();
   $('srcclear').onclick = () => (mode === 'vid' ? $('vidclear') : $('imgclear')).click();
   $('imgclear').onclick = () => {
     if (srcImage) URL.revokeObjectURL(srcImage.src);
-    srcImage = null; $('imgfile').value = ''; status(T('Picture removed – dreams on from the current picture.')); tick();
+    softSwitch(); srcImage = null; $('imgfile').value = ''; status(T('Picture removed – dreams on from the current picture.')); tick();
   };
   $('vidclear').onclick = () => {
     const v = $('vid'); v.pause();
     if (v.src) URL.revokeObjectURL(v.src);
-    v.removeAttribute('src'); v.load(); $('vidfile').value = ''; status(T('Video removed – dreams on from the current picture.')); tick();
+    softSwitch(); v.removeAttribute('src'); v.load(); $('vidfile').value = ''; status(T('Video removed – dreams on from the current picture.')); tick();
   };
   $('vidfile').onchange = e => {
     srcFrom = 'file'; srcUrl = ''; srcBy = 'hand'; if (mode !== 'vid') setMode('vid');
     const f = e.target.files[0]; if (!f) return;
-    const v = $('vid'); v.src = URL.createObjectURL(f); v.play(); last = null; tick();
+    const v = $('vid'); softSwitch(); v.src = URL.createObjectURL(f); v.play(); last = null; tick();
   };
 
   // ---------- the body as an OpenPose skeleton for the pose ControlNet (#85: from the stage's own detection) ----------
@@ -1385,7 +1413,7 @@
       const res = await fetch('/voice', { method: 'POST', body: fd });
       const r = (res.headers.get('content-type') || '').includes('json') ? await res.json() : {};
       if (r.text && voiceTarget === 'topic') { $('heard').textContent = T('“{t}”', { t: r.text }); $('pltopic').value = r.text.replace(/[.!?]+$/, ''); }
-      else if (r.text) { $('heard').textContent = T('“{t}”', { t: r.text }); ui.prompt.value = r.prompt || r.text; tick(); }
+      else if (r.text) { $('heard').textContent = T('“{t}”', { t: r.text }); ui.prompt.value = r.prompt || r.text; softPrompt(); tick(); }
       else if (r.error) $('heard').textContent = VOICE_ERRORS[r.error] || VOICE_ERRORS.failed;
       else if (!res.ok) $('heard').textContent = T('Speech recognition not reachable (error {s}).', { s: res.status });
       else $('heard').textContent = T('Nothing understood.');
@@ -1859,7 +1887,7 @@
   });
   // controls with their own handlers report too
   const origSetMode = setMode;
-  setMode = async (m, keep) => { await origSetMode(m, keep); if (!applying) sendCtl({ set: { mode: m } }); };
+  setMode = async (m, keep, hard) => { await origSetMode(m, keep, hard); if (!applying) sendCtl({ set: { mode: m } }); };
   document.querySelectorAll('#modes button').forEach(b => b.onclick = () => { apManual('mode'); srcBy = 'hand'; setMode(b.dataset.m); });
   document.querySelectorAll('#backends button').forEach(x => x.onclick = () => { switchBackend(x.dataset.b); sendCtl({ set: { backend: x.dataset.b } }); });
   $('music_pattern').addEventListener('change', applyFixedPattern);
@@ -2085,8 +2113,8 @@
   requestAnimationFrame(lightLoop);
 
   // ---------- #127: the final prompt – what the AI really gets and who added what ----------
-  // The same pieces as settings() uses, in its order: a scene change wins over the energy words, which win over the
-  // drift variants; the autopilot's words for the music come on top. Each addition has its own switch right here.
+  // The same pieces as settings() uses, in its order: a prompt change (a scene, by hand) wins over the energy words,
+  // which win over the drift variants; the autopilot's words for the music come on top. Each addition has its own switch right here.
   const MIX_OFF = { drift: 'drift_prompt', energy: 'touch_content', ap: 'ap_words' };
   const MIX_NAME = { drift: T('Vary the prompt gently'), energy: T('Content reacts to energy'), ap: T('Autopilot: words for the music') };
   let mixShown = '';
@@ -2094,7 +2122,7 @@
     const base = ui.prompt.value.trim() || 'psychedelic dream', parts = [], pc = v => Math.round(v * 100) + ' %';
     const sf = sceneFade(), en = energySettings(), dr = driftSettings();
     const tail = t => t && t.startsWith(base + ', ') ? t.slice(base.length + 2) : t;
-    if (sf.prompt) parts.push({ src: 'scene', text: T('Scene change: still {p} of the old prompt', { p: pc(1 - sf.pt) }) });
+    if (sf.prompt) parts.push({ src: 'scene', text: T('Blending over: still {p} of the old prompt', { p: pc(1 - sf.pt) }) });
     else if (en.prompt) parts.push({ src: 'energy', text: T('calm “{a}” ⇄ wild “{b}” · {p} wild', { a: tail(en.prompt), b: tail(en.prompt2), p: pc(en.pt) }) });
     else if (dr.prompt) parts.push({ src: 'drift', text: T('“{a}” → “{b}” · {p}', { a: tail(dr.prompt), b: tail(dr.prompt2), p: pc(dr.pt) }) });
     if (apStyle) parts.push({ src: 'ap', text: T('“{t}”', { t: apStyle }) });
@@ -2104,7 +2132,7 @@
   function showPromptMix() {
     const { base, parts } = promptMix();
     const html = esc(T('The AI gets:')) + ' <span class="base">' + esc(base) + '</span>' + (parts.length
-      ? ' ' + parts.map(p => `<span class="mix ${p.src}" title="${esc(MIX_NAME[p.src] || T('Scene change'))}">+ ${esc(p.text)}`
+      ? ' ' + parts.map(p => `<span class="mix ${p.src}" title="${esc(MIX_NAME[p.src] || T('Prompt change'))}">+ ${esc(p.text)}`
         + (MIX_OFF[p.src] ? `<button data-off="${MIX_OFF[p.src]}" aria-label="${esc(T('Switch off: {x}', { x: MIX_NAME[p.src] }))}" title="${esc(T('Switch off'))}">✕</button>` : '') + '</span>').join('')
       : ' <span>' + esc(T('– exactly the prompt above, nothing added.')) + '</span>');
     if (html !== mixShown && !$('promptmix').contains(document.activeElement)) { $('promptmix').innerHTML = html; mixShown = html; }
@@ -3243,7 +3271,7 @@
       if (apLevel() >= 0.6 && performance.now() - ap.invAt > 15000 && Math.random() < 0.5) { ap.inv = 0.85; ap.invAt = performance.now(); }
     }
     if (ap.busy || making) return;
-    if (mode !== 'dream' && apFree('mode')) { setMode('dream', true); apSay(T('drop – back into the dream')); return; }
+    if (mode !== 'dream' && apFree('mode')) { setMode('dream', true, true); apSay(T('drop – back into the dream')); return; }
     if (apFree('prompt') && apFree('playlist')) {
       onGrid(() => sendCtl({ cmd: 'next' }), 'next', $('beat_snap').value === 'off' ? 'off' : 'beat');
       ap.scenePhrase = ap.phrase; apSay(T('drop – break'));
@@ -3359,13 +3387,15 @@
       if (m.state) applyState(m.state);
       if (m.set && m.by) Object.keys(m.set).forEach(apManual);     // changed by hand on the phone, MIDI, …
       if (m.set) applyState(m.set);
+      if (m.set && m.by) softPrompt();                 // #211: a prompt changed by hand blends in
+      else if (m.set || m.state) promptWas = promptNow();
       if (m.cmd) onCmd(m.cmd, m.arg);
       if (m.rule) { wake = Math.max(wake, 0.6); status(T('Movement rule: {r}', { r: m.rule })); }
       if (m.midi) showMidi(m.midi);
       if (m.sensors) showSensors(m.sensors);
       if (m.scene) {
         const sc = m.scene;
-        if (sc.fade && sc.from && sc.from !== ui.prompt.value) Object.assign(fade, { from: sc.from, start: performance.now(), dur: sc.fade });
+        if (sc.from) softPrompt(sc.fade, sc.from);     // the playlist's own fade time
         if (sc.pattern && fixedPattern() < 0) { const i = MUSIC_PATTERNS.findIndex(p => p.name === sc.pattern); if (i >= 0) { mu.pattern = i; mu.nextSwitch = mu.beats + 64; } }
         $('plstate').textContent = (sc.count ? T('Scene {i}/{n}', { i: sc.index + 1, n: sc.count }) : T('Surprise')) + ` · ${I18N.name(sc.playlist)}` + (sc.journey ? T(' · journey') : '');
       }

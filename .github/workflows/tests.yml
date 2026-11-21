@@ -45,5 +45,7 @@ jobs:
         run: node --test tests/js/beat.test.mjs
       - name: Motion between the pictures
         run: node --test tests/js/morph.test.mjs
+      - name: Soft switches
+        run: node --test tests/js/soft.test.mjs
       - name: Picture chain (WebGL 2 against Canvas 2D)
         run: node --test tests/js/gl-stage.test.mjs
