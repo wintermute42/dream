@@ -42,7 +42,7 @@
   #dockcards details.sec > summary::after { content: none; }
   #dockcards .row { margin: 5px 0; }
   #stage img { position: absolute; width: min(100cqw, 100cqh); aspect-ratio: 1; height: auto; object-fit: cover;
-    image-rendering: auto; transition: opacity var(--fade, 300ms) linear; }
+    image-rendering: auto; }   /* the cross-fade of the two pictures is the picture chain's (gl-stage.js: show) */
   #panel { position: fixed; top: 0; left: 0; bottom: 0; width: var(--pw); overflow: hidden; padding: 14px 18px 14px;
     background: var(--panelsolid); border-right: 1px solid var(--line); display: flex; flex-direction: column;
     font-size: var(--pfs, var(--fs)); }
@@ -470,6 +470,8 @@
     <input type="range" id="smooth" min="0" max="1" step="0.05" value="0.3">
     <label for="morph" title="Between two AI pictures the picture goes on moving the way the dream moves (zoom, turn), so it neither stands still nor jumps">Motion between the pictures <span class="val" id="v-morph"></span></label>
     <input type="range" id="morph" min="0" max="1" step="0.05" value="1">
+    <label for="flow" title="What the AI changes from one picture to the next travels there instead of fading: Dream estimates where the shapes have gone and moves both pictures along that way while it blends them. Pictures that have too little in common (a new seed, a new scene) cross-fade as before">Shapes travel between the pictures <span class="val" id="v-flow"></span></label>
+    <input type="range" id="flow" min="0" max="1" step="0.05" value="1">
     <label style="display:flex;align-items:center;gap:6px;margin:4px 0 0"><input type="checkbox" id="drift_prompt" checked> Vary the prompt gently (light, colour, material)</label>
   </div>
   </details>
@@ -732,6 +734,8 @@
 <script src="/static/calib.js"></script>
 <script src="/static/motion.js"></script>
 <script src="/static/beat.js"></script>
+<script src="/static/soft.js"></script>
+<script src="/static/dreamface.js" data-detect defer></script><!-- #214: where the painted faces have their eyes and mouth, for the dream windows: found here once per face, in a worker, when Dream asks -->
 <script>
   // #132: the page in the chosen language (the markup is English; I18N.apply translates it once, T() the rest)
   const T = I18N.t;
@@ -788,9 +792,10 @@
     $('v-drift').textContent = +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off');
     $('v-smooth').textContent = +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off');
     $('v-morph').textContent = +$('morph').value ? Math.round($('morph').value * 100) + ' %' : T('off');
+    $('v-flow').textContent = +$('flow').value ? Math.round($('flow').value * 100) + ' %' : T('off');
     sliders.paint();
   };
-  Object.values(ui).forEach(el => el.addEventListener('input', show)); $('sens').addEventListener('input', show); $('motion_sens').addEventListener('input', show); $('pose_scale').addEventListener('input', show); $('edges_scale').addEventListener('input', show); $('edges').addEventListener('change', show); $('style').addEventListener('change', show); $('style_amt').addEventListener('input', show); $('style_ref_amt').addEventListener('input', show); $('drift').addEventListener('input', show); $('smooth').addEventListener('input', show); $('morph').addEventListener('input', show); show();
+  Object.values(ui).forEach(el => el.addEventListener('input', show)); $('sens').addEventListener('input', show); $('motion_sens').addEventListener('input', show); $('pose_scale').addEventListener('input', show); $('edges_scale').addEventListener('input', show); $('edges').addEventListener('change', show); $('style').addEventListener('change', show); $('style_amt').addEventListener('input', show); $('style_ref_amt').addEventListener('input', show); $('drift').addEventListener('input', show); $('smooth').addEventListener('input', show); $('morph').addEventListener('input', show); $('flow').addEventListener('input', show); show();
   // #108: to the cloud the line is the limit – WebP both ways (where the browser can write it), and live sources go
   // up at 5/8 of the size; the cloud scales them back before dreaming. A dream or picture that builds on its last
   // result keeps the full size, so it never gets softer from round to round. On this Mac nothing changes.
@@ -804,6 +809,7 @@
     // SD-Turbo denoises int(steps * strength) times: ask for enough steps to get the chosen number
     steps: Math.max(1, Math.ceil(+ui.quality.value / Math.max(0.15, mod.strength()))), seed: (+ui.seed.value || 1) + mu.seedOff,
     model: $('model').value, pose_scale: +$('pose_scale').value,
+    flow: flowAmt() > 0,                               // #205: the flow field to the picture before comes along
     // #113: the input's outlines lead the AI (live sources and pictures; a pure dream has no input of its own)
     edges: $('edges').checked && mode !== 'dream' ? +$('edges_scale').value : 0,
     // #123: the style model and the reference picture (SDXL-Turbo only; the prompt stays as it is)
@@ -817,14 +823,21 @@
     return st;
   }
 
-  // ---------- scene changes: blend from the old prompt into the new one (journeys: slowly) ----------
-  const fade = { from: '', start: 0, dur: 0 };
+  // ---------- prompt changes: blend from the old prompt into the new one ----------
+  // A scene takes its playlist's time (journeys: slowly), a change by hand (typing, voice, Dream Control) about 3 s
+  // (#211); a change during a running fade goes on from where it stands (static/soft.js).
+  const fade = { from: '', start: 0, dur: 0, p0: 0 };
+  const promptNow = () => ui.prompt.value.trim() || 'psychedelic dream';
+  let promptWas = promptNow();
   function sceneFade() {
-    const t = fade.dur ? (performance.now() - fade.start) / (fade.dur * 1000) : 1;
-    if (t >= 1 || !fade.from) return {};
-    const to = ui.prompt.value.trim() || 'psychedelic dream';
-    return { prompt: fade.from, prompt2: to, pt: +(t * t * (3 - 2 * t)).toFixed(2) };
+    const pt = DreamSoft.promptShare(fade, performance.now());
+    return pt >= 1 ? {} : { prompt: fade.from, prompt2: promptNow(), pt: +pt.toFixed(2) };
   }
+  function softPrompt(secs, was = promptWas) {         // the prompt was `was` until now; secs: 3 unless a scene says so
+    promptWas = promptNow();
+    if (was && was !== promptWas) Object.assign(fade, DreamSoft.promptSwitch(fade, was, promptWas, performance.now(), secs));
+  }
+  ui.prompt.addEventListener('input', () => softPrompt());
 
   // ---------- drift: keeps the dream alive without new input ----------
   // With a fixed seed and prompt the image-to-image loop settles on one picture. Drift lets the start noise
@@ -887,8 +900,8 @@
     const myBackend = backend;
     const sock = ws = new WebSocket(wsUrl());
     sock._backend = myBackend;
-    ws.binaryType = 'blob';
-    ws.onopen = () => { sentKey = ''; inflight = 0; sentAt = []; sentPhase = []; answers = 0; answerAt = performance.now(); status(T('Connected.')); refSent = ''; refSend(); tick(); };
+    ws.binaryType = 'arraybuffer';
+    ws.onopen = () => { sentKey = ''; nextFlow = null; lastFromAi = false; inflight = 0; sentAt = []; sentPhase = []; answers = 0; answerAt = performance.now(); status(T('Connected.')); refSent = ''; refSend(); tick(); };
     ws.onclose = () => {
       busy = false; inflight = 0; sentAt = []; sentPhase = [];
       if (sock._switching || sock !== ws) return;           // a deliberate switch reconnects itself
@@ -905,16 +918,20 @@
           return;
         }
         if ('ms' in m) lastMs = m.ms;
+        if ('flow_ms' in m) flowSeen.ms += +m.flow_ms || 0;
         if ('server_ms' in m) serverMs = m.server_ms;
         if ('loading' in m) { modelLoading = m.loading; modelError = m.error; modelUsed = m.model; }
         if ('style_loading' in m) lookSync(m);
         if (m.switch) { slowFade = true; switchShownUntil = performance.now() + 4000; status(T('Model switched: {m}', { m: MODEL_NAMES[m.switch] })); }
         return;
       }
+      // #205: the flow field from the picture before to the one that follows this message
+      if (ev.data.byteLength >= 8 && new Uint32Array(ev.data, 0, 1)[0] === FLOW_MAGIC) { nextFlow = flowField(ev.data); return; }
+      const field = nextFlow; nextFlow = null;
       const t0 = sentAt.shift();                       // the way there and back, without the server's own time
       if (t0) wayMs = wayMs * 0.8 + Math.max(0, performance.now() - t0 - serverMs) * 0.2;
       answers++;
-      showFrame(ev.data, () => { inflight = Math.max(0, inflight - 1); tick(); }, sentPhase.shift());
+      showFrame(new Blob([ev.data]), () => { inflight = Math.max(0, inflight - 1); tick(); }, sentPhase.shift(), field);
     };
   }
   // #177: a watchman – frames out but no answer for a while: the line hangs; open it anew (the first picture of a
@@ -931,18 +948,37 @@
   // dream share, swirl, colour drift, painting, stirring, light circle, smoothing or music pulse on the stage; only
   // the effects chosen in the Effekte card stay. (A pure dream has no input to show, it dreams on as before.)
   const pure = () => passThrough() && mode !== 'dream';
-  function showFrame(blob, after, phase = null) {
+  // #205: the flow field as the renderer sends it (flow.py: "DRMF", columns, rows, confidence, a spare byte, then dx
+  // and dy per vector as signed bytes); null for anything else
+  const FLOW_MAGIC = new Uint32Array(new Uint8Array([68, 82, 77, 70]).buffer)[0];
+  let nextFlow = null, shownN = 0, lastFromAi = false;   // lastFromAi: the picture now shown is the AI's (not the input passed through)
+  const flowSeen = { pictures: 0, fields: 0, ms: 0 };  // for a measurement run: how many pictures came with a field
+  const flowAmt = () => passThrough() ? 0 : +($('flow') ? $('flow').value : 1);
+  function flowField(buf) {
+    const head = new Uint8Array(buf, 0, 8), cols = head[4], rows = head[5];
+    return cols >= 2 && rows >= 2 && buf.byteLength === 8 + cols * rows * 2 ? { cols, rows, data: new Int8Array(buf, 8) } : null;
+  }
+  // field: the flow field from the picture before (null: none came; undefined: the picture is not the AI's)
+  function showFrame(blob, after, phase = null, field) {
     {
       const url = URL.createObjectURL(blob), img = new Image();
       img.onload = () => {
-        back.src = url; back.style.opacity = 1; front.style.opacity = 0;
+        back.src = url;
         const old = front; front = back; back = old;
         // #194, #215: the picture joins the one continuous motion where its phase puts it, and goes on moving until the next one comes
         camera = DreamMorph.arrive(camera, phase, performance.now(), 1000 / Math.max(0.3, fps));
         img.phase = camera.phase;
         const mv = morphNow(camera);
         DreamFx.morph.show(front, back, mv, performance.now());
-        if (outWs && outWs.readyState === 1) outWs.send(JSON.stringify({ morph: mv }));
+        // #205: with a flow field the two pictures morph into each other – not into the first picture of a new model
+        // or a fresh start (those blend in slowly), not from a picture that was not the AI's, and not with the setting off
+        const flow = field && lastFromAi && !slowFade && flowAmt() > 0 ? { ...field, k: flowAmt() } : null;
+        lastFromAi = field !== undefined;
+        if (!passThrough()) { flowSeen.pictures++; if (flow) flowSeen.fields++; }
+        // the outputs get the motion and the field ahead of the picture, numbered: a field counts only for the picture
+        // that follows the one before it (a window that missed a picture cross-fades)
+        if (outWs && outWs.readyState === 1) outWs.send(JSON.stringify({ morph: mv, n: ++shownN,
+          ...(flow ? { flow: { cols: flow.cols, rows: flow.rows, k: flow.k, data: btoa(String.fromCharCode(...new Uint8Array(flow.data.buffer, flow.data.byteOffset, flow.data.length))) } } : {}) }));
         setTimeout(() => { if (back.src.startsWith('blob:')) URL.revokeObjectURL(back.src); }, 1000);
         last = img;
         const t = performance.now(), dt = t - lastT; fps = fps * 0.8 + (1000 / dt) * 0.2; lastT = t;
@@ -954,7 +990,7 @@
         slowFade = false;
         if ($('syphon').checked || outViewers || outPreviews) sendOut(blob);
         driftWatch(img, dt);
-        document.documentElement.style.setProperty('--fade', (passThrough() ? Math.min(fade, 60) : fade) + 'ms');
+        view.show(front, { fade: passThrough() ? Math.min(fade, 60) : fade, flow });
         if (passThrough()) status(T('AI off – picture direct · {fps} pictures/s', { fps: fps.toFixed(0) }));
         else if (performance.now() > switchShownUntil || fade < 2500)   // #179: the switch notice stays a moment (any language)
           status(T('{fps} pictures/s · GPU {gpu} ms · way {way} ms', { fps: fps.toFixed(1), gpu: lastMs, way: Math.round(wayMs) }) + (inflight > 1 || depth() > 1 ? T(' · overlapping') : '') +
@@ -1103,7 +1139,25 @@
     noticeUntil = performance.now() + 3000; chips();
     tick();
   }
+  // #211: a new input blends in – the last picture built from the old input lies over the new source and leaves in
+  // about 3 s. It is the picture the AI saw last, so a switch during a blend goes on from that mix without a jump.
+  const soft = { cv: document.createElement('canvas'), on: false, start: 0, built: false };
+  function softSwitch(hard) {                          // before the input changes; hard: a cut (the drop)
+    soft.on = !hard && soft.built; soft.start = 0;
+    if (!soft.on) return;
+    soft.cv.width = work.width; soft.cv.height = work.height;
+    soft.cv.getContext('2d').drawImage(work, 0, 0);
+  }
   function buildFrame() {
+    if (!buildSource()) return false;                  // the new source is not there yet: the blend waits for it
+    soft.built = true;
+    if (!soft.on) return true;
+    const now = performance.now(), share = DreamSoft.oldShare(now - (soft.start || (soft.start = now)));
+    if (share <= 0) { soft.on = false; return true; }
+    wctx.save(); wctx.globalAlpha = share; wctx.drawImage(soft.cv, 0, 0, work.width, work.height); wctx.restore();
+    return true;
+  }
+  function buildSource() {
     if (freshStart) { freshStart = false; last = null; }
     const { w, h } = dims();
     if (work.width !== w || work.height !== h) { work.width = w; work.height = h; }
@@ -1248,7 +1302,9 @@
     if (flowOn()) tracker.start($('flowtrack').value, camId(flowCam()));
   }
   const flowCam = () => $('flow_device').value || $('cam_device').value;
-  async function setMode(m, keep) {             // keep: back to the dream from the current picture (autopilot)
+  // keep: back to the dream from the current picture (autopilot); hard: a cut instead of the soft switch (the drop)
+  async function setMode(m, keep, hard) {
+    softSwitch(hard);
     mode = m;
     document.body.className = document.body.className.replace(/m-\w+/, 'm-' + m);
     markModeParts();
@@ -1272,24 +1328,24 @@
   $('imgfile').onchange = e => {
     srcFrom = 'file'; srcUrl = ''; srcBy = 'hand'; if (mode !== 'img') setMode('img');   // picking a file makes it the input
     const f = e.target.files[0]; if (!f) return;
-    const img = new Image(); img.onload = () => { srcImage = img; last = null; tick(); }; img.src = URL.createObjectURL(f);
+    const img = new Image(); img.onload = () => { softSwitch(); srcImage = img; last = null; tick(); }; img.src = URL.createObjectURL(f);
   };
   $('imgpick').onclick = () => $('imgfile').click();
   $('vidpick').onclick = () => $('vidfile').click();
   $('srcclear').onclick = () => (mode === 'vid' ? $('vidclear') : $('imgclear')).click();
   $('imgclear').onclick = () => {
     if (srcImage) URL.revokeObjectURL(srcImage.src);
-    srcImage = null; $('imgfile').value = ''; status(T('Picture removed – dreams on from the current picture.')); tick();
+    softSwitch(); srcImage = null; $('imgfile').value = ''; status(T('Picture removed – dreams on from the current picture.')); tick();
   };
   $('vidclear').onclick = () => {
     const v = $('vid'); v.pause();
     if (v.src) URL.revokeObjectURL(v.src);
-    v.removeAttribute('src'); v.load(); $('vidfile').value = ''; status(T('Video removed – dreams on from the current picture.')); tick();
+    softSwitch(); v.removeAttribute('src'); v.load(); $('vidfile').value = ''; status(T('Video removed – dreams on from the current picture.')); tick();
   };
   $('vidfile').onchange = e => {
     srcFrom = 'file'; srcUrl = ''; srcBy = 'hand'; if (mode !== 'vid') setMode('vid');
     const f = e.target.files[0]; if (!f) return;
-    const v = $('vid'); v.src = URL.createObjectURL(f); v.play(); last = null; tick();
+    const v = $('vid'); softSwitch(); v.src = URL.createObjectURL(f); v.play(); last = null; tick();
   };
 
   // ---------- the body as an OpenPose skeleton for the pose ControlNet (#85: from the stage's own detection) ----------
@@ -1364,7 +1420,7 @@
       const res = await fetch('/voice', { method: 'POST', body: fd });
       const r = (res.headers.get('content-type') || '').includes('json') ? await res.json() : {};
       if (r.text && voiceTarget === 'topic') { $('heard').textContent = T('“{t}”', { t: r.text }); $('pltopic').value = r.text.replace(/[.!?]+$/, ''); }
-      else if (r.text) { $('heard').textContent = T('“{t}”', { t: r.text }); ui.prompt.value = r.prompt || r.text; tick(); }
+      else if (r.text) { $('heard').textContent = T('“{t}”', { t: r.text }); ui.prompt.value = r.prompt || r.text; softPrompt(); tick(); }
       else if (r.error) $('heard').textContent = VOICE_ERRORS[r.error] || VOICE_ERRORS.failed;
       else if (!res.ok) $('heard').textContent = T('Speech recognition not reachable (error {s}).', { s: res.status });
       else $('heard').textContent = T('Nothing understood.');
@@ -1818,11 +1874,11 @@
   if (params.get('stage') === '1') document.body.classList.add('hide', 'stage-only');
   const BIND = { prompt: 'prompt', strength: 'strength', mix: 'mix', zoom: 'zoom', rot: 'rot', hue: 'hue', sens: 'sens',
     quality: 'quality', size: 'size', seed: 'seed', model: 'model', rewrite: 'rewrite', playlist: 'playlist',
-    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
+    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
     fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
-  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
+  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
   let ctl = null, applying = false;
   const sendCtl = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };
   const readEl = (k, el) => el.type === 'checkbox' ? el.checked : (NUM.has(k) ? +el.value : el.value);
@@ -1838,7 +1894,7 @@
   });
   // controls with their own handlers report too
   const origSetMode = setMode;
-  setMode = async (m, keep) => { await origSetMode(m, keep); if (!applying) sendCtl({ set: { mode: m } }); };
+  setMode = async (m, keep, hard) => { await origSetMode(m, keep, hard); if (!applying) sendCtl({ set: { mode: m } }); };
   document.querySelectorAll('#modes button').forEach(b => b.onclick = () => { apManual('mode'); srcBy = 'hand'; setMode(b.dataset.m); });
   document.querySelectorAll('#backends button').forEach(x => x.onclick = () => { switchBackend(x.dataset.b); sendCtl({ set: { backend: x.dataset.b } }); });
   $('music_pattern').addEventListener('change', applyFixedPattern);
@@ -2064,8 +2120,8 @@
   requestAnimationFrame(lightLoop);
 
   // ---------- #127: the final prompt – what the AI really gets and who added what ----------
-  // The same pieces as settings() uses, in its order: a scene change wins over the energy words, which win over the
-  // drift variants; the autopilot's words for the music come on top. Each addition has its own switch right here.
+  // The same pieces as settings() uses, in its order: a prompt change (a scene, by hand) wins over the energy words,
+  // which win over the drift variants; the autopilot's words for the music come on top. Each addition has its own switch right here.
   const MIX_OFF = { drift: 'drift_prompt', energy: 'touch_content', ap: 'ap_words' };
   const MIX_NAME = { drift: T('Vary the prompt gently'), energy: T('Content reacts to energy'), ap: T('Autopilot: words for the music') };
   let mixShown = '';
@@ -2073,7 +2129,7 @@
     const base = ui.prompt.value.trim() || 'psychedelic dream', parts = [], pc = v => Math.round(v * 100) + ' %';
     const sf = sceneFade(), en = energySettings(), dr = driftSettings();
     const tail = t => t && t.startsWith(base + ', ') ? t.slice(base.length + 2) : t;
-    if (sf.prompt) parts.push({ src: 'scene', text: T('Scene change: still {p} of the old prompt', { p: pc(1 - sf.pt) }) });
+    if (sf.prompt) parts.push({ src: 'scene', text: T('Blending over: still {p} of the old prompt', { p: pc(1 - sf.pt) }) });
     else if (en.prompt) parts.push({ src: 'energy', text: T('calm “{a}” ⇄ wild “{b}” · {p} wild', { a: tail(en.prompt), b: tail(en.prompt2), p: pc(en.pt) }) });
     else if (dr.prompt) parts.push({ src: 'drift', text: T('“{a}” → “{b}” · {p}', { a: tail(dr.prompt), b: tail(dr.prompt2), p: pc(dr.pt) }) });
     if (apStyle) parts.push({ src: 'ap', text: T('“{t}”', { t: apStyle }) });
@@ -2083,7 +2139,7 @@
   function showPromptMix() {
     const { base, parts } = promptMix();
     const html = esc(T('The AI gets:')) + ' <span class="base">' + esc(base) + '</span>' + (parts.length
-      ? ' ' + parts.map(p => `<span class="mix ${p.src}" title="${esc(MIX_NAME[p.src] || T('Scene change'))}">+ ${esc(p.text)}`
+      ? ' ' + parts.map(p => `<span class="mix ${p.src}" title="${esc(MIX_NAME[p.src] || T('Prompt change'))}">+ ${esc(p.text)}`
         + (MIX_OFF[p.src] ? `<button data-off="${MIX_OFF[p.src]}" aria-label="${esc(T('Switch off: {x}', { x: MIX_NAME[p.src] }))}" title="${esc(T('Switch off'))}">✕</button>` : '') + '</span>').join('')
       : ' <span>' + esc(T('– exactly the prompt above, nothing added.')) + '</span>');
     if (html !== mixShown && !$('promptmix').contains(document.activeElement)) { $('promptmix').innerHTML = html; mixShown = html; }
@@ -2422,10 +2478,13 @@
   setInterval(showStats, 1000);
 
   // ---------- #180: a measurement run – where the time of a picture goes, and how smoothly the pages draw ----------
-  const measureMe = DreamMeasure('stage', m => sendCtl(m), () => view.renderer);
+  // #205: with its frames the stage tells how many of the AI's pictures came with a flow field and what one cost
+  const measureMe = DreamMeasure('stage', m => sendCtl(m), () => view.renderer, {
+    start() { Object.assign(flowSeen, { pictures: 0, fields: 0, ms: 0 }); },
+    report: () => flowSeen.pictures ? { flow_pct: Math.round(flowSeen.fields / flowSeen.pictures * 100), flow_ms: +(flowSeen.ms / flowSeen.pictures).toFixed(1) } : {} });
   const STEP_LABELS = () => ({ queue: T('waiting before rendering'), decode_in: T('decoding the incoming picture'), wait_gpu: T('waiting for the GPU'),
     prompt: T('prompt encoding'), unet: T('UNet (diffusion)'), controlnet: 'ControlNet', decode: T('decoder (latents → picture)'),
-    render: T('picture in all'), encode_out: T('JPEG/WebP encoding'), send: T('sending'), server: T('server time per picture') });
+    render: T('picture in all'), encode_out: T('JPEG/WebP encoding'), flow: T('flow field (beside the next picture)'), send: T('sending'), server: T('server time per picture') });
   const RENDERERS = { webgl2: T('graphics card (WebGL 2)'), canvas: T('Canvas 2D (no WebGL 2)'), mixed: T('WebGL 2 and Canvas 2D') };   // #204
   function measureShow(r, runningMs) {
     const out = $('measureout'), esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -2434,7 +2493,7 @@
     $('measure').disabled = false;
     const L = STEP_LABELS(), rows = Object.keys(L).filter(k => r.steps[k] && r.steps[k].n)
       .map(k => `<tr><td>${esc(L[k])}</td><td>${r.steps[k].mean}</td><td>${r.steps[k].p50}</td><td>${r.steps[k].p95}</td></tr>`).join('');
-    const dev = Object.entries(r.devices || {}).map(([k, d]) => `<tr><td>${esc(k)} ×${d.n}</td><td colspan="3">${d.render ? esc(RENDERERS[d.render] || d.render) + ' · ' : ''}${T('{fps} fps · frame {ms} ms (p95 {p95}) · slow {slow} %', { fps: d.fps, ms: d.ms_avg, p95: d.ms_p95, slow: d.slow_pct })}</td></tr>`).join('');
+    const dev = Object.entries(r.devices || {}).map(([k, d]) => `<tr><td>${esc(k)} ×${d.n}</td><td colspan="3">${d.render ? esc(RENDERERS[d.render] || d.render) + ' · ' : ''}${T('{fps} fps · frame {ms} ms (p95 {p95}) · slow {slow} %', { fps: d.fps, ms: d.ms_avg, p95: d.ms_p95, slow: d.slow_pct })}${d.flow_pct == null ? '' : ' · ' + T('flow field for {p} % of the pictures ({ms} ms each)', { p: d.flow_pct, ms: d.flow_ms })}</td></tr>`).join('');
     out.innerHTML = `<b>${esc(T('{fps} AI pictures/s', { fps: r.fps }))}</b> · ${esc(r.model)} ${esc(r.size)} · ${esc(T('{n} steps', { n: r.ai_steps }))}`
       + `<table><tr><th>${T('part')}</th><th>${T('mean')}</th><th>p50</th><th>p95 (ms)</th></tr>${rows}${dev}</table>`
       + `<div class="muted">${esc(T('Also in the terminal and saved in ~/.local/state/dream/measure/.'))}</div>`;
@@ -3221,7 +3280,7 @@
       if (apLevel() >= 0.6 && performance.now() - ap.invAt > 15000 && Math.random() < 0.5) { ap.inv = 0.85; ap.invAt = performance.now(); }
     }
     if (ap.busy || making) return;
-    if (mode !== 'dream' && apFree('mode')) { setMode('dream', true); apSay(T('drop – back into the dream')); return; }
+    if (mode !== 'dream' && apFree('mode')) { setMode('dream', true, true); apSay(T('drop – back into the dream')); return; }
     if (apFree('prompt') && apFree('playlist')) {
       onGrid(() => sendCtl({ cmd: 'next' }), 'next', $('beat_snap').value === 'off' ? 'off' : 'beat');
       ap.scenePhrase = ap.phrase; apSay(T('drop – break'));
@@ -3341,13 +3400,15 @@
       if (m.state) applyState(m.state);
       if (m.set && m.by) Object.keys(m.set).forEach(apManual);     // changed by hand on the phone, MIDI, …
       if (m.set) applyState(m.set);
+      if (m.set && m.by) softPrompt();                 // #211: a prompt changed by hand blends in
+      else if (m.set || m.state) promptWas = promptNow();
       if (m.cmd) onCmd(m.cmd, m.arg);
       if (m.rule) { wake = Math.max(wake, 0.6); status(T('Movement rule: {r}', { r: m.rule })); }
       if (m.midi) showMidi(m.midi);
       if (m.sensors) showSensors(m.sensors);
       if (m.scene) {
         const sc = m.scene;
-        if (sc.fade && sc.from && sc.from !== ui.prompt.value) Object.assign(fade, { from: sc.from, start: performance.now(), dur: sc.fade });
+        if (sc.from) softPrompt(sc.fade, sc.from);     // the playlist's own fade time
         if (sc.pattern && fixedPattern() < 0) { const i = MUSIC_PATTERNS.findIndex(p => p.name === sc.pattern); if (i >= 0) { mu.pattern = i; mu.nextSwitch = mu.beats + 64; } }
         $('plstate').textContent = (sc.count ? T('Scene {i}/{n}', { i: sc.index + 1, n: sc.count }) : T('Surprise')) + ` · ${I18N.name(sc.playlist)}` + (sc.journey ? T(' · journey') : '');
       }

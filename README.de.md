@@ -187,10 +187,12 @@ http://127.0.0.1:7860/stats.
 
 **📏 Messen** (unter der Auslastung, #180) läuft 60 s mit festen Einstellungen (fester Prompt und Seed, 512 px, 2 Schritte,
 ohne Effekte, Umrisse, Pose oder Stil; danach ist alles wie vorher) und zeigt, wohin die Zeit eines Bildes geht: Warten,
-Eingangsbild dekodieren, Warten auf die GPU, Prompt kodieren, UNet, Decoder, Kodieren und Senden – Mittel, Median und die
+Eingangsbild dekodieren, Warten auf die GPU, Prompt kodieren, UNet, Decoder, Kodieren, das Flussfeld (#205: es wird neben
+dem nächsten Bild geschätzt, seine Zeit gehört also nicht zur Zeit des Bildes) und Senden – Mittel, Median und die
 langsamsten 5 % in Millisekunden –, dazu, wie flüssig jede offene Seite währenddessen gezeichnet hat (Bühne, Dream Remote,
 Dreamy Eyes: Bilder pro Sekunde, Frame-Zeit, Anteil langsamer Frames; für die Bühne auch, was das Bild zeichnet, #204:
-die Grafikkarte mit WebGL 2 oder ohne sie Canvas 2D). Die Tabelle steht auch im Terminal und als JSON in
+die Grafikkarte mit WebGL 2 oder ohne sie Canvas 2D, und #205: für wie viele KI-Bilder ein Flussfeld kam und was eines
+gekostet hat – diese Zeile sagt es auch für die Cloud-GPU, deren eigene Teile die Tabelle nicht zeigt). Die Tabelle steht auch im Terminal und als JSON in
 `~/.local/state/dream/measure/`, um eine Änderung vorher und nachher zu vergleichen. Beim Messen werden die Teile zusammen
 mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Starten können ihn nur Dream Control und der Mac.
 - Die Schrift im Bedienfeld passt sich selbst an (#125: Show-Ansicht, A−/A+ und Nachtmodus gibt es dort nicht mehr).
@@ -221,10 +223,20 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   dann träumt es aus dem aktuellen Bild weiter. **Kamera:** welche Kamera des Macs Dream nimmt
   (z. B. eine 60-fps-Webcam oder ein Handy per Continuity, Iriun oder DroidCam), auch am Handy wählbar. Darunter **„Prompt – was malt die KI daraus?“**: das eine Textfeld
   für den Traum (Verwandlung 0: „KI aus“, der Prompt ruht).
+- **Weiche Wechsel (#211):** Ein neuer Eingang und ein neuer Prompt blenden in etwa 3 s über, statt zu springen;
+  einzustellen ist nichts. **Eingang** (von Hand, Autopilot, Szene, MIDI oder Dream Control; auch ein anderes Bild
+  oder Video): Das letzte Bild, das die KI aus dem alten Eingang bekam, liegt über dem neuen und geht in 3 s, gezählt
+  ab dem ersten Bild der neuen Quelle. **Prompt** (Tippen, Sprache, Dream Control): Die KI bekommt den alten und den
+  neuen Prompt gemischt, die Mischung wandert zum neuen; beim Tippen bleibt der alte, bis du innehältst.
+  Playlist-Szenen behalten ihre eigene Überblendzeit, der Sprung des Autopiloten zurück in den Traum bei einem Drop
+  bleibt ein harter Schnitt. Ein Wechsel während einer laufenden Überblendung geht vom Zwischenstand aus weiter: beim
+  Eingang genau, beim Prompt behält der stärkere der beiden seinen Anteil und der schwächere macht dem neuen Prompt
+  Platz (die KI mischt zwei Prompts, nicht drei). Es kostet die KI keine Zeit: Die Bilder mischt der Browser, die
+  Prompts wie bei einem Szenenwechsel.
 - **Die KI bekommt (#127):** Direkt unter dem Prompt steht, was die KI wirklich bekommt: dein Text, dahinter jeder
   Zusatz als farbiger Chip – lila **Prompt sanft variieren** (die zwei Varianten und wie weit es gerade von der einen
   zur anderen ist), grün **Inhalt reagiert auf Energie** (ruhig ⇄ wild, wie wild gerade), blau **Autopilot: Wörter zur
-  Musik**, grau ein laufender **Szenenwechsel**. Ein ✕ im Chip schaltet den Zusatz sofort ab (dasselbe wie der Haken
+  Musik**, grau ein laufender **Prompt-Wechsel** (eine Szene oder ein Wechsel von Hand). Ein ✕ im Chip schaltet den Zusatz sofort ab (dasselbe wie der Haken
   an seinem Platz; für die Musik-Wörter neu in der Karte Autopilot: „Wörter zur Musik an den Prompt hängen“). Steht
   dort „genau den Prompt oben, nichts dazu“, mischt niemand etwas hinein. Stil-Modell und Referenzbild (#123)
   ändern den Prompt nie; „in Englisch umformulieren“ wirkt nur beim Sprechen – das Ergebnis steht dann schon im Textfeld.
@@ -334,14 +346,36 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   bewegt sich zurück, bei jeder Zahl von Bildern pro Sekunde, lokal wie mit der Cloud-GPU; bleiben die Bilder aus,
   läuft die Bewegung sanft aus, statt davonzulaufen. 100 % (Standard) = die volle Bewegung, 0 = aus (das Bild steht
   bis zum nächsten). Mit einem Eingang (Kamera, Bild, Video) bewegt sich nur der Traum-Anteil weiter; bei Verwandlung
-  0 bewegt sich nichts. Das Ausgabefenster bewegt sich mit; Syphon bekommt die Bilder selbst (überblendet, ohne diese
+  0 bewegt sich nichts. Das Ausgabefenster bewegt sich mit; Syphon bekommt die Bilder selbst (ohne diese
   Bewegung).
+- **Formen wandern zwischen den Bildern** (Karte Traum, #205): Was die KI selbst von einem Bild zum nächsten verändert
+  – ein Tentakel, der gewachsen ist, ein Gesicht, das sich gedreht hat –, wurde bisher übergeblendet: Für einen Moment
+  war die Form doppelt da. Jetzt schätzt der Renderer zu jedem neuen Bild, wohin die Formen des vorigen gegangen sind
+  (ein grobes Flussfeld: optischer Fluss auf einem Graubild mit 128 Pixeln Breite, in einem eigenen Prozess neben dem
+  nächsten Bild, auf dem Mac oder auf der Cloud-GPU; es reist mit dem Bild als 48 × 27 kleine Vektoren, unter 3 kB).
+  Die Bühne zieht das alte Bild auf diesem Weg vorwärts und das neue zurück und mischt beide, die Formen wandern also
+  – innerhalb der einen durchgehenden Bewegung oben (das Feld zählt von dort, wo die Kamera die beiden Bilder zeigt:
+  es fügt hinzu, was die KI verändert hat, und nichts bewegt sich zurück), mit voller Bildrate. Wo das Feld nichts erklärt (das alte Bild passt dort,
+  verschoben, nicht zum neuen), schrumpfen seine Vektoren auf nichts, und dieser Teil blendet einfach über; ein Bild,
+  das zu wenig mit dem vorigen zu tun hat (neuer Seed, neue Szene, Drop, anderes Modell, Neustart), bekommt gar kein
+  Feld und blendet als Ganzes über. 100 % (Standard) = die Formen gehen den ganzen Weg, weniger = einen Teil davon,
+  0 = aus (es wird nichts geschätzt, die Bilder blenden über). Ausgabefenster und WLAN-Ausgabe morphen genauso; die
+  Syphon-Quelle morpht mit demselben Feld bei 30 Bildern pro Sekunde (ohne Bewegung und Effekte der Bühne, wie bisher).
+  Es braucht das Zeichnen auf der Grafikkarte (WebGL 2); das Canvas-2D-Zeichnen blendet über. Die Überblendung selbst
+  ist jetzt eine echte Mischung der beiden Bilder – sie wird in der Mitte nicht mehr dunkler. **📏 Messen** zeigt, was
+  ein Feld kostet und für wie viele Bilder es eines gab. Grenzen: Der Morph beginnt, wenn das nächste Bild da ist (die
+  Verzögerung von einem Bild bleibt); das Feld ist grob, feine Details blenden also weiter über, statt zu wandern;
+  Formen, die zwischen zwei Bildern weiter als ein Viertel des Bildes wandern, werden nicht verfolgt.
 - **Glätten – gegen Flackern** (Karte Traum, auch am Handy und als MIDI-Ziel): Die KI malt jedes Bild neu, feine
   Details springen deshalb von Bild zu Bild leicht – das wirkt wie Flackern. Glätten mischt jedes neue KI-Bild mit
   voller Bildrate weich in das Gezeigte (ein gleitender Mittelwert): kleine Sprünge verschwinden, große Änderungen
   kommen trotzdem, nur weicher. 0 = aus, 30 % (Standard) nimmt etwa die Hälfte des Flackerns, 60 % gut vier Fünftel,
   100 % fast alles (dann wird es träge). Beamer-Fenster und WLAN-Ausgabe glätten genauso, die Effekte setzen auf dem
-  geglätteten Bild auf; die KI selbst bekommt weiter die echten Bilder, Syphon das ungeglättete Bild.
+  geglätteten Bild auf; die KI selbst bekommt weiter die echten Bilder, Syphon das ungeglättete Bild. Beim Zeichnen
+  auf der Grafikkarte wird das geglättete Bild als Gleitkommazahlen gehalten (#205), auch die stärkste Glättung kommt
+  so beim neuen Bild an – vorher konnte ein schwacher Schatten des alten für immer stehen bleiben (bei 100 % bis zu 48
+  von 255 Helligkeitsstufen). Das Canvas-2D-Zeichnen mischt stattdessen in größeren, selteneren Schritten (höchstens 4
+  Stufen bleiben).
 - **Drift – Traum bleibt lebendig:** Ohne neuen Input (nur Prompt) friert die Bild-zu-Bild-Schleife sonst nach
   einer Weile ein. Drift lässt das Rauschen weich von Seed zu Seed wandern, bewegt das Bild leicht von selbst
   (Atmen, Pendeln, Wandern) und gibt einen Anstoß, wenn sich das Bild ein paar Sekunden kaum ändert. „Prompt sanft
@@ -399,13 +433,15 @@ dazu, wenn das Häkchen gesetzt ist.
   mit voller Bildrate (60 fps), egal wie schnell die KI rechnet (auf dem Mac mit Grafikchip gemessen: 60 fps mit
   drei Effekten), und erscheinen auch im Ausgabefenster (Beamer, WLAN-Ausgabe), nicht aber in Syphon.
 - **Auf der Grafikkarte gezeichnet (#204, #210):** Bühne und Ausgabefenster zeichnen das Bild als eine Kette in
-  WebGL 2 – die letzten zwei KI-Bilder mit ihrer Bewegung und Überblendung, die Glättung, die Effekte, die
+  WebGL 2 – die letzten zwei KI-Bilder mit ihrer Bewegung, ineinander gemorpht (#205) oder übergeblendet, die Glättung, die Effekte, die
   Berührungs-Ebenen (Lichtstriche, Rühren, Lichtkreis), Farbrotation, Helligkeit und Master. Auf einem Mac teilt sich
   diese Kette die Grafikkarte mit der KI, deshalb zeichnet sie sparsam: in der Auflösung, die das Bild wirklich hat
   (ein KI-Bild mit 512 px oder der Puffer der Effekte – nicht jeder Pixel eines Retina-Bildschirms; der Browser
   vergrößert es wie jedes Bild), nur wenn sich etwas bewegt (ein stehendes Bild wird nicht neu gezeichnet, die
   Glättung ruht, sobald sie das neueste Bild eingeholt hat), und die Vorschau neben dem Bedienfeld mit 30 statt 60
-  Bildern pro Sekunde, solange ein Ausgabefenster offen ist. Gemessen auf einem Mac mit M2 Max (sd-turbo, 512 px,
+  Bildern pro Sekunde, solange ein Ausgabefenster offen ist. Die Seite fragt den Browser nicht in jedem Frame nach
+  Größen und Stilen, und der Blick der Bewegungserkennung auf das gezeigte Bild (für „Projektion herausrechnen“)
+  lässt die Grafikkarte nicht warten (#205). Gemessen auf einem Mac mit M2 Max (sd-turbo, 512 px,
   1 Schritt, Verwandlung 0,5; die Bühne allein und das Bedienfeld mit Ausgabefenster, jeweils auch in
   Retina-Auflösung) malt die KI damit so viele Bilder wie mit Canvas 2D: Der Unterschied liegt in der Streuung der
   Messung (etwa 2 %); wie man sie wiederholt, steht unter „Tests“. Einzustellen ist nichts: Ohne WebGL 2, oder wenn
@@ -547,7 +583,8 @@ Gut zu wissen:
 
 Schalter „Syphon-Ausgabe „Dream“ für Resolume“ (Bühne oder Handy). Dann erscheint in Resolume unter
 **Sources → Syphon** die Quelle **„Python – Dream“**. Dream schickt sie mit 30 Bildern pro Sekunde und blendet
-weich zwischen den KI-Bildern über, damit es auch bei 2–5 KI-Bildern pro Sekunde flüssig wirkt. Die Bühne muss
+weich zwischen den KI-Bildern über – mit „Formen wandern zwischen den Bildern“ (#205) morpht es sie entlang des
+Flussfelds, wie die Bühne –, damit es auch bei 2–5 KI-Bildern pro Sekunde flüssig wirkt. Die Bühne muss
 dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
@@ -843,32 +880,59 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 
 ## Traum-Fenster – alte Handys und Tablets als Fenster zum Traum
 
-<p align="center"><img src="docs/images/windows.webp" alt="Fünf Traum-Fenster: Augen und ein Mondreigen, ein Kaleidoskop, Lichtblumen, ein Mandala und das dritte Auge in Trance" width="840"></p>
+<p align="center"><img src="docs/images/windows.webp" alt="Sechs Traum-Fenster, durch jedes wabert der Traum als Wolken: ein großes Auge, ein gemaltes Gesicht, ein Penrose-Dreieck, die endlose Treppe, das dritte Auge in seinem Dreieck und ein Mandala" width="840"></p>
 
-Beliebig viele alte Handys und Tablets im Raum werden zu Fenstern in den Traum. Nichts zuzuordnen, keine Rollen, keine
-festen Motive: Ein Organismus lebt in allen zugleich.
+Beliebig viele alte Handys und Tablets im Raum werden zu Fenstern in den Traum. Nichts zuzuordnen, keine Rollen: Jedes
+Fenster zeigt **ein großes, lebendiges Motiv**, der Traum umwabert es als Wolken, und ab und zu wandert ein Motiv von
+einem Gerät zum anderen.
 
-- **Was hindurchwabert:** In jedem Fenster liegt der Traum als weicher, langsam treibender Grund. Darauf tauchen immer
-  wieder die Wesen des Traums auf, wabern und vergehen: Augen, deren Iris der Traum ist (allein oder als Paar, das
-  gemeinsam blinzelt), Mandalas, Kaleidoskope aus dem Traum, schwebende Stücke anderer Stellen des Traums, Symbole
-  (Spirale, Blume des Lebens, Stern, Mond, drittes Auge, Sonne), Wolken, aufblühende Lichtspiralen, Fraktalbäume,
-  Lichtmotten, Seifenblasen, Nordlicht, kleine Monde und ab und zu ein von der KI gemaltes Gesicht – alles in den
-  Farben des Traums und so gezeichnet wie um die Dreamy Eyes.
-- **Ein Organismus:** Wesen wandern von Fenster zu Fenster – was ein Fenster verlässt, kommt im nächsten von der anderen
-  Seite herein. Alle Fenster atmen gemeinsam, pulsieren im Takt, und ab und zu läuft eine Lichtwelle der Reihe nach
-  durch sie. Gehen die Dreamy Eyes in Trance, öffnet sich auch in jedem Fenster das dritte Auge; werden die Augen
-  gestreichelt, läuft ein rosa Schimmer durch die Fenster. Mit dem Master-Regler der Bühne werden sie dunkler.
-- **Leicht für den Mac:** Dream verteilt nur Keime (welches Wesen, wo es herein- und hinausgeht, eine Zufallszahl –
-  ein paar Bytes alle paar Sekunden); jedes Fenster zeichnet selbst.
-- **Alte Geräte:** Kommt ein Fenster nicht mit, zeigt es weniger Wesen gleichzeitig und zeichnet mit weniger Pixeln, und
-  geht wieder hoch, sobald es geht. Es braucht kein Zertifikat (einfaches http im WLAN zu Hause) und hält den
-  Bildschirm an.
+- **Ein großes Motiv pro Fenster:**
+  - ein **großes Auge** – genau das Auge der Dreamy Eyes: Iris-Fasern, Lider, Wimpern, eine Braue, wenn es etwas
+    fühlt. Es schaut umher, blinzelt, seine Pupille weitet sich im dunklen Traum und mit dem Takt, und seine Iris ist
+    der Traum – pur, zum Kaleidoskop gefaltet, als Tunnel oder als Galaxie;
+  - ein **Augenpaar über zwei Geräte**: je ein Auge, die gemeinsam schauen und blinzeln;
+  - ein **Traumgesicht**: ein von der KI gemaltes Gesicht, lebendig (siehe unten);
+  - **Impossible Shapes**: das Penrose-Dreieck, die endlose Treppe (ein Licht steigt sie hinauf und kommt nie an), die
+    Teufelsgabel und der unmögliche Würfel – langsam drehend, jede Fläche mit einem anderen Stück des Traums gefüllt;
+  - das **dritte Auge** in seinem Dreieck aus Licht und ein **Mandala**: der Traum zwölffach gefaltet unter sich
+    drehenden Blütenblättern.
+- **Der Traum als Wolke:** Der Traum ist kein Bild im Rahmen. Er scheint durch weiche Wolkenfelder, die treiben, sich
+  drehen und aufreißen, mit Dunkel dazwischen – kein Rechteck, kein harter Rand. Die Wolken schwellen mit einem Atem,
+  den alle Fenster teilen, und leuchten im Takt auf. Kleine Lichtwesen (Motten, Seifenblasen, Nordlicht, Wölkchen)
+  treiben hindurch und weiter ins nächste Fenster.
+- **Wandern:** Alle ein bis drei Minuten löst sich ein Motiv in Wolken auf und erscheint ein paar Sekunden später auf
+  einem anderen Gerät; das Gerät, das es verlassen hat, bekommt ein neues. Dream verteilt die Motive von selbst, und
+  nie zeigen zwei Fenster gleichzeitig dasselbe – außer dem Augenpaar, das sich ab und zu in zwei benachbarten
+  Fenstern öffnet (in der Reihenfolge, in der sie sich verbunden haben) und später weiterzieht oder sich schließt.
+  Nur bei mehr Fenstern als Motiven (ab neun) ist eines doppelt zu sehen. Ein einzelnes Fenster wechselt sein Motiv
+  genauso. `DREAM_WANDER_EVERY=…` in `~/.config/dream/dream.env` setzt die kürzeste Pause in Sekunden (Standard 60;
+  die längste ist das Dreifache) – z. B. 10, um beim Aufbauen zuzuschauen.
+- **Lebendige Gesichter:** Wo ein gemaltes Gesicht Augen, Brauen, Mund und Umriss hat, wird **einmal pro gemaltem
+  Gesicht auf dem Mac** bestimmt – von der Bühne, in einem Hintergrund-Worker, mit dem Gesichtsmodell, das Dream
+  ohnehin hat (deutlich unter einer Sekunde pro Gesicht; das Zeichnen der Bühne wartet nie darauf) – nie von einem
+  Fenster und nicht noch einmal für ein weiteres Fenster. Die 82 Punkte reisen mit dem Gesicht (unter 1 kB). Jedes
+  Fenster bewegt sie selbst über ein Dreiecksnetz: Es blinzelt, lässt den Blick wandern, lächelt, hebt eine Braue,
+  atmet und neigt und dreht den Kopf ein wenig – dezent, wie ein Gemälde, das lebt. Ein Bild, in dem kein Gesicht
+  gefunden wird (eine Katze, eine Maske), oder eines, das gemalt wurde, während keine Bühne offen war, bleibt still
+  sichtbar.
+- **Ein Organismus:** Alle Fenster atmen gemeinsam und pulsieren im Takt, und ab und zu läuft eine Lichtwelle der
+  Reihe nach durch sie. Gehen die Dreamy Eyes in Trance, öffnet sich auch in jedem Fenster das dritte Auge (und die
+  gemalten Gesichter schließen die Augen); werden die Augen gestreichelt, läuft ein rosa Schimmer durch die Fenster
+  und die Gesichter lächeln. Mit dem Master-Regler der Bühne werden sie dunkler.
+- **Leicht für den Mac:** Dream sagt nur, welches Motiv ein Fenster zeigt (seine Art und eine Zufallszahl, etwa
+  hundert Bytes pro Wechsel); jedes Fenster zeichnet selbst. Die Arbeit des Macs wächst nicht mit der Zahl der
+  Fenster: Die Punkte eines Gesichts werden einmal bestimmt, egal wie viele zuschauen.
+- **Alte Geräte:** Kommt ein Fenster nicht mit, zeichnet es mit weniger Pixeln (in vier Stufen, bis etwa ein Drittel),
+  mit gröberen Wolken (kleineres Feld, keine feinen Schlieren, jedes zweite Bild), bewegt ein Gesicht seltener und
+  faltet das Mandala achtfach – und geht wieder hoch, sobald es geht. Alles ist mit der einfachen 2D-Zeichenfläche
+  gezeichnet; es braucht kein WebGL und kein Zertifikat (einfaches http im WLAN zu Hause) und hält den Bildschirm an.
 - **Einrichten:** Bedienfeld → „Ausgabe“ → **🪟 Traum-Fenster** (oder Dream Control → Karte **„🪟 Traum-Fenster“**) →
   den Code mit jedem Gerät scannen und für Vollbild auf den Bildschirm tippen. Die Ausgabe-Zeile im Bedienfeld zählt
   die verbundenen Fenster.
 - **Sie schauen nur zu:** Der Schlüssel der Fenster (`~/.local/state/dream/window-token`, ein eigenes Cookie) öffnet
   die Fensterseite, die Bilder des Traums und die gemalten Gesichter – keine Einstellungen, keine Befehle, keine
-  Kamera, nichts, was Geld kostet.
+  Kamera, nichts, was Geld kostet. Wo ein Gesicht seine Augen hat, darf nur die Bühne auf dem Mac sagen, nie ein
+  Fenster.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -1262,7 +1326,8 @@ von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorscha
 
 **Hängt es weiter, oder ein Fehler?** Ein Issue auf GitHub öffnen (das Formular fragt, was hilft; Schlüssel, QR-Codes
 und eigene Pfade bitte weglassen). Eine Sicherheitslücke bitte privat melden – siehe `SECURITY.md`. Pull Requests sind
-willkommen, siehe `CONTRIBUTING.md`.
+willkommen, siehe `CONTRIBUTING.md`; wer einen schickt, unterschreibt einmal die Contributor License Agreement
+(`CLA.md`) mit einem Kommentar, um den der CLA-Bot bittet.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -1285,7 +1350,8 @@ Lizenzen: SD-Turbo und SDXL-Turbo stehen unter der Stability AI Community Licens
 Ersatz für torch und einen temporären Home-Ordner, deine Einstellungen, Schlüssel und Bilder bleiben unberührt). Sie
 prüfen, wer was darf (jede Route des Servers für diesen Mac, Dream Control, Gäste, Dreamy Eyes und Geräte ohne
 Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung, die Ordner, die Zertifikate fürs Heimnetz, die
-MIDI-, Sensor- und Playlist-Helfer, die Übersetzungen und was Dream flüssig hält (der Prompt wird einmal je Prompt
+MIDI-, Sensor- und Playlist-Helfer, die Traum-Fenster (jedes Fenster sein eigenes Motiv, das Wandern, die Punkte eines
+gemalten Gesichts nur einmal erfragt), die Übersetzungen und was Dream flüssig hält (der Prompt wird einmal je Prompt
 kodiert, niemand wartet auf ein ladendes Modell oder ein langsames Gerät, der Zustand wird erst geschrieben, wenn die
 Hände ruhen, die kleine Vorschau). `node --test tests/js/morph.test.mjs` (#215) spielt die Bewegung zwischen den Bildern als reine
 Zahlen durch (`static/morph.js`) – 1 bis 8 Bilder pro Sekunde, ungleichmäßige und verspätete, mehrere Anfragen
@@ -1293,14 +1359,21 @@ gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zur�
 `node --test tests/js/beat.test.mjs` prüft die Takterkennung
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
-`node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
+`node --test tests/js/soft.test.mjs` (#211) prüft die Anteile der weichen Wechsel (altes Eingangsbild, alter und
+neuer Prompt, ein Wechsel während einer laufenden Überblendung). `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
 ein neues Bild übernimmt), dazu den Rückfall, wenn der Grafik-Kontext verloren geht,
-und dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, die Zeichenfläche nicht feiner als das
-Bild); mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander.
-`node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+dass die Kette sparsam zeichnet (#210: nichts, solange sich nichts bewegt, die Zeichenfläche nicht feiner als das
+Bild), und #205: dass der Morph entlang eines Flussfelds auf halbem Weg ein verschobenes Bild zeigt, wo die
+Überblendung es doppelt zeigt – auch innerhalb der Bewegung der Kamera –, und dass die stärkste Glättung beim neuen
+Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebeneinander. `node --test tests/js/window.test.mjs` (#214)
+öffnet vier Traum-Fenster verschiedener Größe im selben Browser und ist selbst ihr Dream (es spricht ihren Bilderstrom):
+je ein großes Motiv, der Traum als Wolken mit Dunkel dazwischen, das Augenpaar, das gemeinsam schaut, ein gemaltes
+Gesicht, das sich über seine Punkte bewegt, und eines ohne Punkte, das still bleibt, ein Motiv, das von einem Fenster ins
+andere wandert, Welle, Streicheln und Trance, und ein schwaches Gerät, das weniger Pixel zeichnet; mit `KEEP=1` bleiben
+die Fenster offen. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). GitHub lässt sie alle auf Linux
 und macOS bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein
@@ -1319,7 +1392,7 @@ hat. `SECONDS`, `WARMUP`, `RUNS`, `SCENES`, `SCALES`, `FX` (Effekte an) und `HEA
 Lauf. Das Modell erst warmlaufen lassen: Die ersten Sekunden nach einem Start sind langsamer, egal was zeichnet.
 
 Wo der Code liegt, falls du etwas ändern willst: `server.py` ist das, was `./dream.sh` startet, und setzt nur die Teile
-zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`), die Rechte (`rights.py`: die Rollen und was jede
+zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`, `flow.py` für das Flussfeld zwischen zwei Bildern), die Rechte (`rights.py`: die Rollen und was jede
 darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihrem Bereich und ob ein Gast sie ändern
 darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
 (`inputs.py`), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
