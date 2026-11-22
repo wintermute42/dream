@@ -55,7 +55,8 @@
   // page knows of it: open and blink (0–1), grin and squint (0–1), col (the dream's colour) and energy, look (one of
   // LOOKS or between two), brow ({ inner, peak, outer } as in EMO) with browAl, gx and gy (where it looks, -1–1), pupil
   // (its radius in iris radii) with pupilMix (0: round, 1: the shape pupilShape(ix, iy, pr, R) draws), fib (fibres())
-  // and iris(ix, iy, R): draws what is in the iris – clipped to it already. Returns where the iris is: [x, y].
+  // and iris(ix, iy, R): draws what is in the iris – clipped to it already; reflect(ix, iy, R), if given, what is mirrored
+  // on the eye (#219: over iris and pupil). Returns where the iris is: [x, y].
   function draw(g, cx, cy, a, b, mirror, p) {
     const up = Math.max(0.02, p.open * (1 - p.blink) * (1 - 0.18 * p.grin) * (1 - 0.25 * p.squint)), lo = (0.82 + 0.1 * p.open) * (1 - 0.38 * p.grin) * (1 - 0.35 * p.squint);   // #157: they smile along; #162: squint
     const [r, gg, bl] = p.col;
@@ -128,6 +129,7 @@
     }
     if (p.pupilMix > 0.01) { g.globalAlpha = p.pupilMix; p.pupilShape(ix, iy, pr, R); }
     g.globalAlpha = 1;
+    if (p.reflect) p.reflect(ix, iy, R);               // #219: what is mirrored on the eye – over iris and pupil, under the highlights
     // highlights: a soft window and a small spark
     g.globalCompositeOperation = 'screen';
     const hx = ix - R * 0.36, hy = iy - R * 0.38;

@@ -773,16 +773,24 @@ eyes** that invite people to step up and play:
   or so (upright a little calmer), the dream behind them slowly
   zooms and wanders, a little brighter than on the stage. Every minute or two a **dream window** opens for 6–10
   seconds: the night opens wide and the dream shows clearly behind the eyes, then it softly withdraws behind the masks. Right behind the eyes it stays darker, so they stay clear.
-- **You in the dream:** whoever stands in front is mirrored in the iris – clearly, and every minute or two for a few
-  seconds very clearly, as in real eyes. Now and then the person appears behind the eyes, cut out from the background
-  (on the phone), in the dream's colours and patterns, rippling like a reflection on water, and fades again. And about
-  every three minutes the Mac paints a **dream portrait** of the person from the eyes' camera picture (a quick
-  picture-to-picture step, about 0.3–0.6 s) that comes through the pupils like the other painted faces, but stays only
-  a moment (about 2.5–4 s) – only while someone is there. The camera picture is kept in memory for seconds only, the
-  portrait for two minutes at the most; nothing goes into the gallery, only the eyes (and Dream Control) may fetch it.
-  `DREAM_YOU_EVERY=…` changes the interval (seconds). **Someone who just comes** (after a while with nobody) is
-  greeted at once – very clearly in the iris or as the water moment, in turn – and their dream portrait follows within
-  seconds (at most one every two minutes).
+- **You in the dream:** whoever stands in front is mirrored in the iris – faintly all the time, and every minute or
+  two for a few seconds very clearly, as in real eyes: then it is the person alone, cut out from the room (on the
+  phone), the face exactly as the camera sees it, and behind them the iris keeps dreaming. Now and then (every minute
+  or two, only while someone is there) the person appears as a **moment**: first in the two pupils, as if seen through
+  them, then the windows open and for about 2–3 seconds they stand in a soft cloud in the middle of the screen –
+  **the real camera picture, the face unchanged and recognisable**, a little smaller and lighter than a painted face.
+  Only around them is the dream: the dream's picture instead of the room, a softly glowing outline, fireflies, a
+  shimmer in the dream's colour at their edge, and sometimes a wreath of blossoms, a mandala behind the head or veils
+  of mist. Nothing is ever drawn over the face. Then the picture does not simply fade: within a second or two it
+  **comes apart into the dream** – its pieces drift off, the outermost first, the face last, the fireflies fly away –
+  while the eyes return (about 7 seconds in all). **Someone who just comes** (after a while with nobody) is greeted
+  at once – very clearly in the iris or with this moment, in turn.
+  **What happens with the camera picture:** all of this is drawn on the phone itself, from the live camera and a mask
+  of the person found there (selfie segmentation, about 250 KB); no picture and no word about who stands there is sent
+  for it, and nothing is kept. The AI does **not** repaint people: the dream portrait the Mac used to paint from the
+  eyes' camera picture is gone (and `DREAM_YOU_EVERY` with it) – the Mac paints only the fantasy faces below, from
+  words. The one thing that leaves the phone is what Dreamy Eyes are for: the front camera you lend to the dream
+  (below, “One camera at a time”), passed on to the stage as it is and kept nowhere; tests guard both.
 - **Now and then they mirror you:** for a few seconds, every minute or two while someone stands in front, the eyes
   copy their expression – a blink or wink (the matching eye), a squint, eyes opened wide, raised or lowered brows – then
   they go their own way again.
@@ -1307,7 +1315,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the

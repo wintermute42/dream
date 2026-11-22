@@ -41,6 +41,7 @@
 <script src="/static/i18n.js"></script>
 <script src="/static/measure.js"></script>
 <script src="/static/dreamlife.js"></script>
+<script src="/static/dreamyou.js"></script>
 <script src="/static/dreameye.js"></script>
 <script>
   const T = I18N.t;
@@ -139,7 +140,8 @@
       if (!lm) return;
       let x0 = 1, x1 = 0, y0 = 1, y1 = 0;
       for (const q of lm) { if (q.x < x0) x0 = q.x; if (q.x > x1) x1 = q.x; if (q.y < y0) y0 = q.y; if (q.y > y1) y1 = q.y; }
-      face.x = (x0 + x1) / 2; face.y = (y0 + y1) / 2; face.size = x1 - x0; face.seen = t;
+      face.x = (x0 + x1) / 2; face.y = (y0 + y1) / 2; face.size = x1 - x0; face.h = y1 - y0; face.seen = t;
+      face.eyes = lm.length > 473 ? [lm[468], lm[473]] : null;   // #219: the two iris centres, to set "you in the dream" on our pupils
       const cats = r.faceBlendshapes && r.faceBlendshapes[0] ? r.faceBlendshapes[0].categories : [];
       const sc = n => (cats.find(c => c.categoryName === n) || {}).score || 0;
       face.smile = (sc('mouthSmileLeft') + sc('mouthSmileRight')) / 2;
@@ -316,11 +318,19 @@
         g.globalAlpha = 1;
         const v = $('cam');                            // whoever stands in front: faintly mirrored in the iris
         if (v.videoWidth) {
-          // #166: whoever stands in front is mirrored in the iris – clearly, and now and then very clearly
-          g.save(); g.globalAlpha = 0.22 + 0.5 * you.iris; g.globalCompositeOperation = 'screen';
+          // #166, #219: a faint reflection always; in the clear moment it makes way for the person alone (see reflect)
+          g.save(); g.globalAlpha = 0.22 + (you.clear ? -0.14 : 0.5) * you.iris; g.globalCompositeOperation = 'screen';
           g.translate(ix, iy); g.scale(-1, 1); const h = R * (1.9 + 0.3 * you.iris), w = h * v.videoWidth / v.videoHeight;
           g.drawImage(v, -w / 2, -h / 2, w, h); g.restore();
         }
+      },
+      // #219: now and then the reflection is very clear – the person as the camera sees them, cut out on the phone, the
+      // face unchanged; behind them the iris keeps dreaming
+      reflect: (ix, iy, R) => {
+        if (!you.clear || you.iris < 0.02) return;
+        const c = you.d.cut, gd = you.d.guard, h = R * 2.5, k = h / c.width;
+        g.save(); g.globalAlpha = Math.min(1, you.iris * 1.1);
+        g.drawImage(c, ix - gd.x * k, iy - gd.y * k, h, h); g.restore();   // their face in the middle of the iris
       },
     });
   }
@@ -509,9 +519,9 @@
     } catch (e) { seg.sg = null; }
     seg.loading = false;
   }
-  function segTick(t) {                                // about eight silhouettes a second, as a soft white mask
+  function segTick(t, every = 125) {                   // about eight silhouettes a second, as a soft white mask
     const v = $('cam');
-    if (!seg.sg || !v.videoWidth || t - seg.at < 125) return;
+    if (!seg.sg || !v.videoWidth || t - seg.at < every) return;
     seg.at = t;
     try {
       seg.sg.segmentForVideo(v, t, r => {
@@ -520,7 +530,8 @@
         const w = m.width, h = m.height, f = m.getAsFloat32Array();
         if (seg.cv.width !== w || seg.cv.height !== h) { seg.cv.width = w; seg.cv.height = h; seg.img = seg.cv.getContext('2d').createImageData(w, h); }
         const d = seg.img.data;
-        for (let i = 0; i < f.length; i++) { d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = f[i] * 255; }
+        // #219: sure of the person → fully there, sure of the room → gone: no veil of the room around a cut-out
+        for (let i = 0; i < f.length; i++) { d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = (f[i] - 0.25) * 510; }
         seg.cv.getContext('2d').putImageData(seg.img, 0, 0); seg.have = t;
       });
     } catch (e) { /* a frame it could not read */ }
@@ -717,62 +728,53 @@
   // windows grow, turn a little and merge until the face fills the screen – and later it shrinks back into the pupils
   const portal = { phase: 'off', t0: 0, kind: null, next: performance.now() + 60000, cv: document.createElement('canvas'), mk: document.createElement('canvas'), cl: document.createElement('canvas') };
   const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-  // ---------- #166: the person in front – mirrored in the iris, and now and then cut out behind the eyes like on water ----------
-  const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 30000, moment: 0, momentUntil: 0, momentNext: performance.now() + 45000,
-    cut: document.createElement('canvas'), ripple: document.createElement('canvas') };
+  // ---------- #166, #219: "you in the dream" – the person in front as the camera sees them, cut out on this phone, the
+  // face unchanged; the dream only around them (static/dreamyou.js). Mirrored clearly in the iris now and then, and now
+  // and then as a moment: through the pupils, large, and gone again. Nothing of it is sent – no picture, no word. ----------
+  const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 30000, moment: 0, momentNext: performance.now() + 45000,
+    want: 0, clear: false, frame: null, cutAt: 0, d: DreamYou.create() };
+  const youSrc = n => { const v = $('cam'); return { src: v, sw: v.videoWidth, sh: v.videoHeight, mask: seg.cv, face, n }; };
+  const youSize = () => (perf > 45 ? 448 : perf > 30 ? 352 : 256) * (dpr > 1 ? 1 : 0.8) | 0;   // #188: fewer pixels when the phone runs short
   function youTick(t, present) {
+    const calm = portal.phase === 'off' && !fire.on && !trance.on && fx.sleep < 0.3;
     if (present && t > you.irisNext) { you.irisUntil = t + 4000 + Math.random() * 2000; you.irisNext = t + (50000 + Math.random() * 50000) * pace(t); }
-    if (present && t > you.momentNext && portal.phase === 'off' && !fire.on) {
-      you.momentUntil = t + 6000 + Math.random() * 2000; you.momentNext = t + (70000 + Math.random() * 60000) * pace(t);
-      if (!seg.sg && !seg.loading) segLoad();
+    if (present && t > you.momentNext && calm && !you.want) you.want = t;   // the moment is due: first the mask of the person
+    const irisOn = present && t < you.irisUntil;
+    if ((you.want || irisOn) && !seg.sg && !seg.loading) {
+      if (seg.tried) { you.want = 0; you.momentNext = t + 120000; } else { seg.tried = true; segLoad(); }   // no segmentation on this phone: no moment
     }
-    const k = 1 / 60;
-    you.iris = lerp(you.iris, present && t < you.irisUntil ? 1 : 0, 1 - Math.exp(-k * 2.5 * 2));
-    you.moment = lerp(you.moment, present && t < you.momentUntil ? 1 : 0, 1 - Math.exp(-k * 1.6 * 2));
-    if (you.moment > 0.01 && perf > 25) segTick(t);
+    if (you.want || irisOn || you.iris > 0.02 || portal.kind === 'you') segTick(t, perf > 30 ? 125 : 250);
+    const fresh = seg.have > 0 && t - seg.have < 1500 && $('cam').videoWidth > 0;
+    if (you.want && (!present || !calm || t - you.want > 8000)) { you.want = 0; you.momentNext = t + 20000; }
+    else if (you.want && fresh) {                      // it comes through the pupils like a painted face – and stays a little longer
+      you.want = 0; you.momentNext = t + (70000 + Math.random() * 60000) * pace(t);
+      you.frame = Math.random() < 0.4 ? DreamYou.FRAMES[Math.random() * DreamYou.FRAMES.length | 0] : null;   // now and then a frame
+      you.d.crop = null;
+      portal.kind = 'you'; portal.phase = 'in'; portal.t0 = t; portal.hold = 2200 + Math.random() * 1000;   // a glimpse, not a portrait
+    }
+    if (portal.kind === 'you' && (portal.phase === 'in' || portal.phase === 'hold') && (!present || !fresh)) { portal.phase = 'out'; portal.t0 = t; }   // gone: it leaves with them
+    you.clear = fresh && portal.kind !== 'you';
+    you.iris = lerp(you.iris, irisOn ? 1 : 0, 1 - Math.exp(-1 / 60 * 2.5 * 2));
+    if (you.clear && you.iris > 0.02) DreamYou.cutout(you.d, youSrc(160));   // for the reflection: small, once for both eyes
   }
-  function drawYou(t) {                                // the person cut out, in the dream's colours, rippling like on water
-    const v = $('cam');
-    if (you.moment < 0.01 || !seg.have || !v.videoWidth) return;
-    const q = 0.5, w = Math.round(W * q), h = Math.round(H * q);
-    if (you.cut.width !== w || you.cut.height !== h) { you.cut.width = w; you.cut.height = h; }
-    const c = you.cut.getContext('2d');
-    const s = Math.max(w / v.videoWidth, h / v.videoHeight) * 1.05, dw = v.videoWidth * s, dh = v.videoHeight * s;
-    c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, w, h);
-    c.save(); c.translate(w / 2, h / 2); c.scale(-1, 1); c.drawImage(v, -dw / 2, -dh / 2, dw, dh); c.restore();
-    c.globalCompositeOperation = 'destination-in';     // only the person
-    c.save(); c.filter = 'blur(3px)'; c.translate(w / 2, h / 2); c.scale(-1, 1); c.drawImage(seg.cv, -dw / 2, -dh / 2, dw, dh); c.restore(); c.filter = 'none';
-    c.globalCompositeOperation = 'color';              // in the dream's colours
-    c.fillStyle = `hsl(${hueOf(dream.col)},75%,55%)`; c.fillRect(0, 0, w, h);   // the dream's hue, clearly
-    if (dream.cur) {                                   // the dream itself as a texture on the person
-      c.globalCompositeOperation = 'overlay'; c.globalAlpha = 0.75; c.drawImage(dream.cur, 0, 0, w, h); c.globalAlpha = 1;
-    }
-    c.globalCompositeOperation = 'destination-in';
-    c.save(); c.filter = 'blur(3px)'; c.translate(w / 2, h / 2); c.scale(-1, 1); c.drawImage(seg.cv, -dw / 2, -dh / 2, dw, dh); c.restore(); c.filter = 'none';
-    if (you.ripple.width !== w || you.ripple.height !== h) { you.ripple.width = w; you.ripple.height = h; }
-    const rc = you.ripple.getContext('2d'); rc.clearRect(0, 0, w, h);
-    const strip = 3;
-    for (let y = 0; y < h; y += strip) {               // a slow ripple, like a reflection on water – put together first, opaque
-      const dx = Math.sin(y * 0.06 + t / 450) * 2.5 * (1 + 0.5 * Math.sin(t / 1300));
-      rc.drawImage(you.cut, 0, y, w, Math.min(strip, h - y), dx, y, w, Math.min(strip, h - y));
-    }
-    g.save(); g.globalAlpha = 0.6 * you.moment; g.drawImage(you.ripple, 0, 0, W, H); g.restore();   // then shown once: no seams
-  }
-  const IN = 2600, OUT = 2400;
+  const IN = 2600, OUT = 2400, OUT_YOU = 1700;        // "you in the dream" leaves faster: it dissolves into the dream
   function portalTick(t) {
-    const fresh = aiFaces.you && !aiFaces.you.shown && face.seen && t - face.seen < 1500;   // #166: the person, painted
-    const kinds = Object.keys(aiFaces).filter(k => k !== 'you');
-    if (fresh && portal.phase === 'off' && portal.next > t + 4000) portal.next = t + 4000;   // it comes soon after it is painted
+    const kinds = Object.keys(aiFaces);
     const flame = fire.on && aiFaces.flame && !fire.flameShown && t - fire.since > 5000 && aiFaces.flame.at > fire.since - 60000;   // #162: the fire spirit, burning
     if (flame && portal.phase === 'off' && !trance.on) { portal.kind = 'flame'; portal.phase = 'in'; portal.t0 = t; portal.hold = 3000 + Math.random() * 2000; fire.flameShown = true; }
-    if (portal.phase === 'off' && (fresh || kinds.length) && t > portal.next && fx.sleep < 0.3 && !fire.on && you.moment < 0.05 && !trance.on) {
-      portal.kind = fresh ? 'you' : kinds[Math.random() * kinds.length | 0]; portal.phase = 'in'; portal.t0 = t; portal.hold = fresh ? 2500 + Math.random() * 1500 : 3000 + Math.random() * 2000;   // the person's portrait only briefly
-      if (fresh) aiFaces.you.shown = true;
+    if (portal.phase === 'off' && kinds.length && t > portal.next && fx.sleep < 0.3 && !fire.on && !you.want && !trance.on) {
+      portal.kind = kinds[Math.random() * kinds.length | 0]; portal.phase = 'in'; portal.t0 = t; portal.hold = 3000 + Math.random() * 2000;
     }
     if (portal.phase === 'in' && t - portal.t0 > IN) { portal.phase = 'hold'; portal.t0 = t; }
     if (portal.phase === 'hold' && t - portal.t0 > portal.hold) { portal.phase = 'out'; portal.t0 = t; }
-    if (portal.phase === 'out' && t - portal.t0 > OUT) { portal.phase = 'off'; portal.next = t + (120000 + Math.random() * 120000) * pace(t); }
-    return portal.phase === 'off' ? 0 : portal.phase === 'hold' ? 1 : portal.phase === 'in' ? ease((t - portal.t0) / IN) : 1 - ease((t - portal.t0) / OUT);
+    const out = portal.kind === 'you' ? OUT_YOU : OUT;
+    if (portal.phase === 'out' && t - portal.t0 > out) {
+      portal.phase = 'off';
+      if (portal.kind === 'you') { portal.kind = null; portal.next = Math.max(portal.next, t + 30000); }   // a painted face not right after
+      else portal.next = t + (120000 + Math.random() * 120000) * pace(t);
+    }
+    you.moment = portal.kind === 'you' && portal.phase !== 'off' ? 1 : 0;
+    return portal.phase === 'off' ? 0 : portal.phase === 'hold' ? 1 : portal.phase === 'in' ? ease((t - portal.t0) / IN) : 1 - ease((t - portal.t0) / out);
   }
   // the painted face inside a dream cloud: soft blobs that drift, breathe and change shape – never a hard edge
   function cloudMask(c, cx, cy, size, t, al) {
@@ -799,23 +801,32 @@
     return c;
   }
   function drawPortal(t, p, pupils) {
-    const f = aiFaces[portal.kind];
-    if (!f || p <= 0) return;
-    if (!f.soft) f.soft = feather(f.img);
-    const img = f.soft, e = f.eyes;
+    const mine = portal.kind === 'you';                // #219: the person themselves, drawn right now on this phone
+    const f = mine ? null : aiFaces[portal.kind];
+    if ((!f && !mine) || p <= 0) return;
+    if (mine) {
+      if (!seg.have || !$('cam').videoWidth) return;
+      // it does not shrink back into the pupils: it stays where it is and comes apart into the dream, while the eyes return
+      const leave = portal.phase === 'out' ? Math.min(1, (t - portal.t0) / OUT_YOU) : 0;
+      if (leave) p = 1;
+      DreamYou.compose(you.d, { ...youSrc(youSize()), dream: dream.cur, hue: hueOf(dream.col), t, frame: you.frame, level: Math.min(1, p * 1.6), leave, sparks: perf > 45 ? 24 : perf > 30 ? 14 : 8 });
+    } else if (!f.soft) f.soft = feather(f.img);
+    const img = mine ? you.d.pic : f.soft, e = mine ? you.d.eyes : f.eyes;
     if (portal.cv.width !== W || portal.cv.height !== H) { portal.cv.width = portal.mk.width = portal.cl.width = W; portal.cv.height = portal.mk.height = portal.cl.height = H; }
     const pc = portal.cv.getContext('2d'), mk = portal.mk.getContext('2d'), cl = portal.cl.getContext('2d');
     // where the face sits: from "its eyes on ours" to a framed face in a cloud – not the whole screen (it stays sharp)
     const [x0, y0] = pupils[0], [x1] = pupils[1];
     const S0 = (x1 - x0) / Math.max(0.08, e.x1 - e.x0), X0 = (x0 + x1) / 2 - S0 * (e.x0 + e.x1) / 2, Y0 = y0 - S0 * e.y;
-    const size = Math.min(W * 0.9, H * 0.9);           // the cloud's size
+    const size = Math.min(W * 0.9, H * 0.9) * (mine ? 0.86 : 1);   // the cloud's size – the person a little smaller, subtle
     const zoom = 1 + 0.05 * Math.sin(t / 3100), S1 = size * 1.05 * zoom;
     const ccx = W / 2 + Math.sin(t / 2300) * size * 0.025, ccy = H * 0.5 + Math.cos(t / 2900) * size * 0.02;   // it drifts a little
     const X1 = ccx - S1 / 2, Y1 = ccy - S1 * 0.5 - S1 * (e.y - 0.45) * 0.5;
     const k = Math.min(1, p * 1.15), S = S0 + (S1 - S0) * k, X = X0 + (X1 - X0) * k, Y = Y0 + (Y1 - Y0) * k;
     pc.globalCompositeOperation = 'source-over'; pc.clearRect(0, 0, W, H);
-    pc.save(); pc.translate(ccx, ccy); pc.rotate((1 - p) * 0.25 + 0.03 * Math.sin(t / 2700)); pc.translate(-ccx, -ccy);   // it sways
-    pc.filter = `saturate(${1.15 + 0.3 * (1 - p)}) contrast(1.06)`; pc.drawImage(img, X, Y, S, S); pc.filter = 'none'; pc.restore();
+    const rot = (1 - p) * 0.25 + 0.03 * Math.sin(t / 2700);
+    pc.save(); pc.translate(ccx, ccy); pc.rotate(rot); pc.translate(-ccx, -ccy);   // it sways
+    if (!mine) pc.filter = `saturate(${1.15 + 0.3 * (1 - p)}) contrast(1.06)`;   // a painted face glows a little; the person's picture stays as it is
+    pc.drawImage(img, X, Y, S, S); pc.filter = 'none'; pc.restore();
     // the windows: soft circles around our pupils, growing – and shaped by the cloud as they open
     const R = (Math.hypot(W, H) * 0.75) * p + 4;
     mk.globalCompositeOperation = 'source-over'; mk.clearRect(0, 0, W, H); mk.globalCompositeOperation = 'lighter';
@@ -826,6 +837,14 @@
     }
     cl.clearRect(0, 0, W, H); cloudMask(cl, ccx, ccy, size, t, 1);
     mk.globalCompositeOperation = 'destination-in'; mk.drawImage(portal.cl, 0, 0);
+    if (mine && p > 0.6) {                             // #219: the cloud never thins the person's face – it stays whole
+      const gd = you.d.guard, q = S / you.d.pic.width;
+      mk.save(); mk.globalCompositeOperation = 'source-over'; mk.globalAlpha = Math.min(1, (p - 0.6) / 0.3);
+      mk.translate(ccx, ccy); mk.rotate(rot); mk.translate(X + gd.x * q - ccx, Y + gd.y * q - ccy); mk.scale(gd.rx * q, gd.ry * q);
+      const fg = mk.createRadialGradient(0, 0, 0.76, 0, 0, 1);
+      fg.addColorStop(0, 'rgba(255,255,255,1)'); fg.addColorStop(1, 'rgba(255,255,255,0)');
+      mk.fillStyle = fg; mk.fillRect(-1, -1, 2, 2); mk.restore();
+    }
     // a glow in the dream's colour around the cloud
     const hue = hueOf(dream.col);
     g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35 * p;
@@ -833,15 +852,19 @@
     halo.addColorStop(0, `hsla(${hue},85%,65%,.5)`); halo.addColorStop(1, `hsla(${hue + 40},85%,60%,0)`);
     g.fillStyle = halo; g.fillRect(ccx - size, ccy - size, size * 2, size * 2); g.restore();
     pc.globalCompositeOperation = 'destination-in'; pc.drawImage(portal.mk, 0, 0);
-    g.drawImage(portal.cv, 0, 0, W, H);
-    if (p < 0.98) {                                    // a glowing ring at each window's edge, in the dream's colours
+    const rings = () => {                              // a glowing ring at each window's edge, in the dream's colours
+      if (p >= 0.98) return;
       g.save(); g.globalCompositeOperation = 'lighter';
       for (const [px, py] of pupils) {
         g.strokeStyle = `hsla(${hue + t * 0.05},90%,70%,${0.6 * (1 - p)})`; g.lineWidth = 2 + 6 * (1 - p);
         g.beginPath(); g.arc(px, py, Math.min(R * 0.8, size * 0.5), 0, Math.PI * 2); g.stroke();
       }
       g.restore();
-    }
+    };
+    if (mine) rings();                                 // behind the person: nothing is drawn over their face
+    if (mine) g.globalAlpha = 0.9;                     // a little of the night shows through: a vision, not a photograph
+    g.drawImage(portal.cv, 0, 0, W, H); g.globalAlpha = 1;
+    if (!mine) rings();
   }
   // ---------- #172: the trance – rarely, when much is intense at once, a third eye opens ----------
   const tenv = (x, a0, a1, b0, b1) => x < a0 ? 0 : x < a1 ? ease((x - a0) / (a1 - a0)) : x < b0 ? 1 : x < b1 ? 1 - ease((x - b0) / (b1 - b0)) : 0;
@@ -1029,23 +1052,19 @@
     faceTick(t);
     fireTick(t);
     const present = face.seen && t - face.seen < 1500;
-    // #166: someone just came (after a while with nobody): greet them – in the iris or behind the eyes – and ask for a portrait
+    // #166, #219: someone just came (after a while with nobody): greet them – very clearly in the iris, or as "you in the
+    // dream", in turn. The Mac learns nothing of it.
     const arrived = present && !you.wasPresent && t - (you.goneAt || -1e9) > 8000;
     if (present) you.wasPresent = true; else if (you.wasPresent) { you.wasPresent = false; you.goneAt = t; }
     if (arrived) {
       if ((you.greet = !you.greet)) { you.irisUntil = t + 4500; you.irisNext = t + (50000 + Math.random() * 50000) * pace(t); }
-      else if (portal.phase === 'off' && !fire.on) {
-        you.momentUntil = t + 1500 + 6500; you.momentNext = t + (70000 + Math.random() * 60000) * pace(t);
-        if (!seg.sg && !seg.loading) segLoad();
-      }
-      you.seenSent = t; send({ seen: true, arrived: true });
+      else you.momentNext = t + 1500;
     }
-    if (present && t - (you.seenSent || 0) > 2000) { you.seenSent = t; send({ seen: true }); }   // #166: for a dream portrait
     youTick(t, present);
     const tt = tranceTick(t, dt, present);              // #172
     if (tt >= 0) {                                     // in trance: calm, half closed – then closed while the third eye is open
       st.wake = 0;
-      grin.until = 0; you.momentUntil = 0; you.irisUntil = 0; decorNext = Math.max(decorNext, t + 2000);
+      grin.until = 0; you.want = 0; you.irisUntil = 0; decorNext = Math.max(decorNext, t + 2000);
     }
     if (present) {
       // the raw front camera sees the viewer's left on its right: the eyes look the other way round, towards them
@@ -1104,7 +1123,6 @@
     bg.addColorStop(0, `rgba(${r | 0},${gg | 0},${b | 0},${0.1 + 0.08 * breath})`); bg.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = bg; g.fillRect(0, 0, W, H);
     drawBack(t);
-    drawYou(t);
     // a soft darkness right behind the eyes, so they stay the clearest thing on the screen
     const vg = g.createRadialGradient(W / 2, H * 0.47, 0, W / 2, H * 0.47, Math.max(W, H) * 0.5);
     const vd = 1 - 0.55 * bs.reveal;                   // while the dream window is open, less darkness behind the eyes
@@ -1278,7 +1296,7 @@
     }
   };
   cv.addEventListener('pointerup', lift); cv.addEventListener('pointercancel', lift);
-  if (new URLSearchParams(location.search).has('debug')) window.dreamyEyes = { st, face, grin, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, you, trance, tranceStart, eyesAt: () => eyesAt, res, dpr: () => dpr };   // for the tests only
+  if (new URLSearchParams(location.search).has('debug')) window.dreamyEyes = { st, face, grin, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, you, trance, tranceStart, dream, dreamIn: bm => { dream.prev = dream.cur; dream.cur = bm; dream.at = performance.now(); analyse(bm); glowIn(bm); }, eyesAt: () => eyesAt, res, dpr: () => dpr };   // for the tests only
   view(); connect();
 })();
 </script>

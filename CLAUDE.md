@@ -25,7 +25,10 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
-  asked over `/facemarks` – and moved by each window itself; a window never runs a model). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
+  asked over `/facemarks` – and moved by each window itself; a window never runs a model). `static/dreamyou.js` draws "you in the dream" for
+  Dreamy Eyes (#219): the person as the camera sees them, cut out on the phone, the face unchanged, the dream only around
+  – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
+  `tests/js/you.test.mjs`). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
