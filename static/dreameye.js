@@ -178,24 +178,39 @@
     }
     return [ix, iy];
   }
-  // What is in an iris: the dream itself ('dream'), folded ('kaleido'), a tunnel ('vortex'), a 'galaxy', or 'fire'.
-  // o: rot (how far it has turned), hue (the dream's), stars (stars()), and pic(x, y, size, al), which draws the
-  // dream's picture as a square around (x, y)
+  // What is in an iris: the dream itself ('dream'), folded ('kaleido'), a tunnel ('vortex'), a 'galaxy', 'fire' or its
+  // 'embers'. o: rot (how far it has turned), hue (the dream's), stars (stars()), heat (how high the flames stand,
+  // 0–1; 1 if not given), and pic(x, y, size, al), which draws the dream's picture as a square around (x, y)
   function irisWorld(g, style, ix, iy, R, mirror, al, o) {
     const dir = mirror ? -1 : 1;
     g.save(); g.translate(ix, iy);
     if (style === 'fire') {                            // #162: flames dancing in the iris, the dream glowing warm behind them
       g.globalAlpha = al; g.fillStyle = '#2a0a02'; g.fillRect(-R, -R, R * 2, R * 2);
       g.filter = 'sepia(0.6) saturate(2.2) hue-rotate(-15deg)'; o.pic(0, 0, R * 2.3, al * 0.55); g.filter = 'none';
-      const now = performance.now();
+      const now = performance.now(), heat = o.heat === undefined ? 1 : o.heat;
       g.globalCompositeOperation = 'lighter';
       for (let k = 0; k < 9; k++) {
-        const fx0 = (k / 8 - 0.5) * R * 1.6, h = R * (0.7 + 0.5 * Math.sin(now / (130 + k * 17) + k * 2)), wv = Math.sin(now / 160 + k) * R * 0.12;
+        const fx0 = (k / 8 - 0.5) * R * 1.6, h = R * (0.7 + 0.5 * Math.sin(now / (130 + k * 17) + k * 2)) * heat, wv = Math.sin(now / 160 + k) * R * 0.12;
         const gr = g.createLinearGradient(0, R, 0, R - h);
         gr.addColorStop(0, `rgba(255,${120 + k * 8},20,${0.7 * al})`); gr.addColorStop(0.6, `rgba(255,200,60,${0.45 * al})`); gr.addColorStop(1, 'rgba(255,240,180,0)');
         g.fillStyle = gr; g.beginPath(); g.moveTo(fx0 - R * 0.18, R);
         g.quadraticCurveTo(fx0 - R * 0.2 + wv, R - h * 0.5, fx0 + wv * 1.6, R - h); g.quadraticCurveTo(fx0 + R * 0.2 + wv, R - h * 0.5, fx0 + R * 0.18, R); g.fill();
       }
+      g.globalCompositeOperation = 'source-over';
+    } else if (style === 'embers') {                   // #218: embers drifting up in the iris – a fire they dream of, or are used to
+      g.globalAlpha = al; g.fillStyle = '#1c0703'; g.fillRect(-R, -R, R * 2, R * 2);
+      o.pic(0, 0, R * 2.3, al * 0.22);
+      g.globalAlpha = al * 0.4; g.fillStyle = '#7a1e00'; g.fillRect(-R, -R, R * 2, R * 2);   // the dream, warmed (no filter: cheap)
+      const now = performance.now();
+      g.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 14; k++) {
+        const u = (now / (2600 + k * 310) + k * 0.37) % 1, tw = 0.6 + 0.4 * Math.sin(now / 170 + k * 1.9);
+        g.globalAlpha = al * Math.sin(Math.PI * u) * tw; g.fillStyle = `hsl(${18 + k * 2.5},100%,${55 + 12 * tw}%)`;
+        g.beginPath(); g.arc(Math.sin(k * 2.4 + now / 900 + u * 3) * R * 0.75, R * (0.95 - 1.9 * u), R * (0.035 + 0.03 * ((k * 7) % 5) / 4), 0, Math.PI * 2); g.fill();
+      }
+      const bed = g.createLinearGradient(0, R, 0, R * 0.2);     // the bed of embers below
+      bed.addColorStop(0, `rgba(255,110,25,${0.6 * al})`); bed.addColorStop(1, 'rgba(255,80,10,0)');
+      g.globalAlpha = 1; g.fillStyle = bed; g.fillRect(-R, R * 0.2, R * 2, R * 0.8);
       g.globalCompositeOperation = 'source-over';
     } else if (style === 'kaleido') {                         // the dream folded eightfold, turning
       for (let k = 0; k < 8; k++) {

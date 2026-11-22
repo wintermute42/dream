@@ -114,6 +114,13 @@
       g.fillStyle = `hsla(${d.hue},100%,60%,${(1 - q) * 0.9})`; g.beginPath();
       g.moveTo(hx, hy + s2 * 0.9); g.bezierCurveTo(hx - s2 * 1.2, hy + s2 * 0.1, hx - s2 * 0.65, hy - s2 * 0.8, hx, hy - s2 * 0.25);
       g.bezierCurveTo(hx + s2 * 0.65, hy - s2 * 0.8, hx + s2 * 1.2, hy + s2 * 0.1, hx, hy + s2 * 0.9); g.fill();
+    } else if (d.kind === 'sparks') {                // #218: a shower of sparks flying in from where a fire flared up (d.dir)
+      const q = age / d.life, out = 1 - (1 - q) * (1 - q);
+      for (const [an, sp, ph] of d.puffs) {
+        const far = d.size * sp * out, sx = d.x + Math.cos(d.dir + an) * far, sy = d.y + Math.sin(d.dir + an) * far + d.size * 0.3 * q * q;
+        g.fillStyle = `hsla(${d.hue + ph * 30},100%,${62 + 25 * (1 - q)}%,${(1 - q) * (0.55 + 0.45 * Math.sin(age / 55 + ph * 40))})`;
+        g.beginPath(); g.arc(sx, sy, d.size * 0.009 * (0.5 + ph) * (1.2 - q), 0, Math.PI * 2); g.fill();
+      }
     } else if (d.kind === 'zzz') {                   // sleepy: little z's drift up and away
       const q = age / d.life;
       g.font = `700 ${d.size * (0.7 + q)}px system-ui, sans-serif`; g.fillStyle = `hsla(${d.hue + 40},70%,80%,${0.8 * (1 - q)})`;
