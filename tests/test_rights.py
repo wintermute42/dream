@@ -78,10 +78,11 @@ WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW,
       "/facemarks": {"local"}}                         # #214: only the stage on this Mac says where a painted face has its eyes
 # what each role may do (rights.ROLES), written down by hand too: the pages are told it with their role
 CAN = {
-    "local": ["control", "ctl", "eyes", "faces", "feed", "render", "set:all", "stage", "state", "view"],
-    "control": ["control", "ctl", "eyes", "faces", "feed", "pair_eyes", "render", "set:all", "state", "take_over", "view"],
+    "local": ["beat", "control", "ctl", "eyes", "faces", "feed", "render", "set:all", "stage", "state", "view"],
+    "control": ["beat", "control", "ctl", "eyes", "faces", "feed", "pair_eyes", "render", "set:all", "state", "take_over",
+                "view"],
     "guest": ["ctl", "set:guest", "state", "view"],
-    "eyes": ["ctl", "eyes", "eyes_only", "faces", "feed", "view"],
+    "eyes": ["beat", "ctl", "eyes", "eyes_only", "faces", "feed", "view"],
     "window": ["faces", "view"],
 }
 
@@ -315,6 +316,7 @@ def no_ghost_sockets(server):
     server.eyes.eyes_pages.clear()
     server.hub.viewers.clear()
     server.hub.previews.clear()
+    server.hub.beats.clear()
 
 
 @pytest.fixture
@@ -690,3 +692,75 @@ def test_eyes_have_no_way_to_a_portrait_in_the_code(server):
         assert word not in page, f"eyes.html: {word}"
     assert page.count(".send(") == 1 and "ctl.send(JSON.stringify(m))" in page     # words over /ctl; pictures only by the lent feed
     assert '<script src="/static/dreamyou.js"></script>' in page and "DreamYou.compose(" in page
+
+
+# ---------- #218: Dreamy Eyes hear the music's beat – one number, and nothing else the stage tells its windows ----------
+STAGE_SAYS = [                                         # what the stage tells its output windows over /out
+    json.dumps({"fx": {"k": 0.8, "amts": {"kaleido": 0.7}, "pulse": 0.5, "bass": 0.4, "spin": 0.3, "t": 12.5, "seed": 7,
+                       "dir": 1, "cx": 0.5, "cy": 0.5, "loc": 0, "ang": 0}}),
+    json.dumps({"pulse": 0.25}),
+    json.dumps({"fade": 1.5, "prompt": "a quiet lake at dawn"}),
+    json.dumps({"smooth": 0.2}),
+    json.dumps({"calib": {"x": 0.4, "y": 0.6}}),
+    json.dumps({"morph": [1, 2], "n": 3, "pulse": "not a number"}),
+    '{"pulse": 0.9',                                   # cut off: not JSON
+]
+
+
+def test_the_beat_is_one_number(server):
+    beat_of = server.output.beat_of
+    assert beat_of(STAGE_SAYS[0]) == pytest.approx(0.5 * 0.8 + 0.4 * 0.3)     # as a dream window makes it of the effects
+    assert beat_of(STAGE_SAYS[1]) == 0.25
+    assert [beat_of(t) for t in STAGE_SAYS[2:]] == [None] * 5
+    assert beat_of(json.dumps({"pulse": 7})) == 1.0 and beat_of(json.dumps({"pulse": -3})) == 0.0
+    assert beat_of(json.dumps(["pulse"])) is None and beat_of('"pulse"') is None
+    assert server.rights.roles_with("beat") == {"local", "control", "eyes"}
+
+
+def test_eyes_hear_only_the_beat(server, monkeypatch):
+    """The eyes' key gets a pulse number beside its preview – never the stage's own messages (effects, fades with a
+    prompt, flow fields). A guest's preview gets nothing of it, even asking as the eyes; output and dream windows get
+    everything, as before."""
+    told = []                                          # (role of the socket, text) for every text the server queues
+    post = server.output.outbox.post
+    monkeypatch.setattr(server.output.outbox, "post", lambda sock, data: (
+        told.append((server.hub.key_roles.get(sock), data)) if isinstance(data, str) else None, post(sock, data))[1])
+    monkeypatch.setitem(server.output.beat, "at", 0.0)
+    monkeypatch.setitem(server.output.beat, "peak", 0.0)
+    monkeypatch.setattr(server.output, "BEAT_EVERY", 0.0)                  # every beat, for the test
+    k = server.rights.keys
+    at = "ws://192.168.1.20:7860/view"
+    with client(server, "eyes").websocket_connect(f"{at}?preview=1&as=eyes&k={k['eyes']}") as eyes, \
+            client(server, "guest").websocket_connect(f"{at}?preview=1&as=eyes&k={k['guest']}"), \
+            client(server, "guest").websocket_connect(f"{at}?preview=1&k={k['guest']}"), \
+            client(server, "guest").websocket_connect(f"{at}?k={k['guest']}"), \
+            client(server, "window").websocket_connect(f"{at}?as=window&k={k['window']}"), \
+            client(server, "local").websocket_connect("ws://127.0.0.1:7860/out") as out:
+        wait_until(lambda: len(server.hub.previews) == 3 and len(server.hub.viewers) == 2)
+        assert [server.hub.key_roles[s] for s in server.hub.beats] == ["eyes"]     # the guest asking as the eyes: no
+        assert server.hub.status_msg()["live"]["beats"] == 1                       # the stage learns somebody listens
+        told.clear()
+        for text in STAGE_SAYS:
+            out.send_text(text)
+        wait_until(lambda: sum(1 for r, _ in told if r == "window") >= len(STAGE_SAYS))
+        heard = []                                     # the eyes' socket itself: its greeting, then all it was told
+        while len(heard) < sum(1 for r, t in told if r == "eyes" and '"master"' not in t):
+            text = eyes.receive_text()
+            if '"master"' not in text:
+                heard.append(text)
+        assert heard == ['{"pulse": 0.52}', '{"pulse": 0.25}']
+    by = {r: [t for who, t in told if who == r and '"master"' not in t and '"motif"' not in t and '"window"' not in t
+              and '"aimasks"' not in t] for r in ("eyes", "guest", "window")}      # late greetings aside
+    assert by["eyes"] == ['{"pulse": 0.52}', '{"pulse": 0.25}']                   # two numbers, nothing else
+    assert by["window"] == STAGE_SAYS                                              # the dream window: everything, as before
+    assert by["guest"] == STAGE_SAYS                                               # the guest's output window too – once:
+    assert not any("lake" in t or "amts" in t or "morph" in t for t in by["eyes"])  # its two previews got nothing
+
+
+def test_no_painted_faces_when_switched_off(server, monkeypatch):
+    """DREAM_AIMASK=0 (#218): the face painter ends at once – Dreamy Eyes never make this Mac load a model."""
+    import asyncio
+    monkeypatch.setattr(server.eyes, "AIMASK", False)
+    monkeypatch.setattr(server.render, "make_picture", lambda *a, **kw: pytest.fail("a face was painted"))
+    monkeypatch.setattr(asyncio, "sleep", lambda *a: pytest.fail("the painter waits for its next face"))
+    asyncio.run(server.real_loops["aimask_loop"]())

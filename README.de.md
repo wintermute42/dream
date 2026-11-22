@@ -832,13 +832,33 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   oder gesenkte Brauen –, dann gehen sie wieder ihre eigenen Wege.
 - **Deine Silhouette als Maske:** Ab und zu, nur wenn jemand da ist, scheint der Traum durch die Umrisse der Person
   davor (Selfie-Segmentierung auf dem Handy, etwa 250 KB, nichts wird gesendet oder gespeichert).
-- **Dreamy liebt Feuer ❤️‍🔥:** Sieht die Kamera Flammen (sehr helles, sattes Rot-Orange-Gelb, das flackert – erkannt auf
-  dem Handy; ein Gesicht oder eine ruhige orange Lampe ist kein Feuer), sind die Augen verzaubert: weit offen, sie können
-  nicht wegschauen, glühende Herz-Pupillen schlagen, in der Iris tanzen Flammen, die Wangen erröten, Glutfunken und kleine
-  brennende Herzen steigen auf, die Brauen strahlen. Vom unteren Bildrand züngeln Flammen hoch, die Nacht glüht warm.
-  Der Mac malt den Feuergeist schnell neu, und nach einigen Sekunden kommt sie brennend durch die Pupillen (einmal je
-  Feuer); solange das Feuer da ist, malt er jedes Gesicht umgeben von Flammen und Glut. Ist das Feuer weg (1,5 s lang
-  keines), ein Moment der Sehnsucht – dann geht es weiter wie zuvor.
+- **Dreamy liebt Feuer ❤️‍🔥 (#162, #218):** Sieht die Kamera Flammen – warmes, helles Licht, das **flackert**, erkannt
+  auf dem Handy etwa 15-mal pro Sekunde –, sind die Augen verzaubert. Auch kleine und ferne Flammen zählen (Poi, Fackel,
+  Kerzen: eine Flamme von etwa drei Hundertstel Prozent des Bildes genügt, dunkler und blasser als bisher); das Flackern
+  bleibt Pflicht: Eine ruhige orange Lampe, eine Lampe, während das Handy berührt oder getragen wird, ein Gesicht oder
+  eine Hand in warmem Licht sind kein Feuer (in einem Gesicht, das das Handy gefunden hat, zählt nur sehr feuriges
+  Licht), und eine Kerze in ganz ruhiger Luft ist nicht mehr als eine Lampe, bis sie flackert.
+  - **Sie folgen dem Feuer sofort.** Der Blick geht dorthin, wo die Flamme im Bild ist (innerhalb von etwa einer
+    Zehntelsekunde), und bleibt an ihr, wenn sie sich bewegt. Alles folgt stufenlos seiner **Stärke**: wie weit sie sich
+    öffnen, wie hoch die Flammen am unteren Bildrand stehen (am höchsten auf der Seite der Flamme), wie viel Glut
+    aufsteigt, wie tief sie erröten. **Flammt es auf** (oder fängt es Feuer), weiten sich die Pupillen, ein Funkenregen
+    fliegt aus der Richtung der Flamme herein und die Nacht glüht kurz auf. **Flaut es ab**, werden sie ruhig: Die Lider
+    sinken, Flammen und Glut werden weniger; ist es weg (1,5 s lang keines), ein Moment der Sehnsucht – dann geht es
+    weiter wie zuvor.
+  - **Ihre Stimmung wechselt alle 10–20 s**, nie zweimal dieselbe hintereinander: **gebannt** (weit offen, eine
+    hypnotische Pupille – siehe unten), **verspielt** (Sternpupillen, ein Zwinkern mal mit dem einen, mal mit dem
+    anderen Auge, von dem Funken fliegen), **träumerisch** (halb geschlossen, Glut treibt in der Iris, der Blick gleitet
+    der Flamme nach), **verliebt** (glühende Herz-Pupillen, die schlagen, kleine brennende Herzen, das tiefste Erröten)
+    und ab und zu der **Feuergeist**: Solange das Feuer da ist, malt der Mac sie neu (höchstens einmal pro Minute, wie
+    bisher), und sie kommt brennend durch die Pupillen; jedes andere gemalte Gesicht ist so lange von Flammen und Glut
+    umgeben.
+  - **Sie gewöhnen sich daran.** Ein Feuer, das nur weiterbrennt, wird nach etwa 30 s zum Hintergrund (über die letzten
+    8 s ausklingend): niedrige Flammen, etwas Glut, Glut in der Iris – und die Augen schauen wieder umher, zu Menschen,
+    haben ihre Launen und ihren Besuch. Aufflammen oder eine Flamme, die wandert (Poi), macht alles sofort wieder neu,
+    mit der nächsten Stimmung, für 6 s, bevor es wieder ausklingt; ein Feuer, das sich immer bewegt, wird nie zum
+    Hintergrund. Neben einem Feuer schläft niemand ein.
+  - Nichts davon verlangt mehr vom Mac: Das Handy findet das Feuer selbst in einer 96 × 72 großen Probe seiner Kamera
+    (etwa eine Millisekunde je Blick bei vierfach gebremstem Prozessor), und gezeichnet werden nur ein paar Punkte mehr.
 - **Selten eine Trance – das dritte Auge 👁 (#172):** Wenn vieles zugleich intensiv ist – der Traum viel bewegter als
   sonst und jemand schaut die Augen eine Weile an oder war kürzlich zu sehen (oder Feuer, Spiegeln, das Traumfenster,
   Streicheln) – oder der Traum bleibt einfach etwa 8 s so bewegt (im Dunkeln sieht die Kamera vielleicht niemanden) – und höchstens etwa alle 12
@@ -873,9 +893,13 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   Traum –, bleibt dort drei bis fünf Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
   und die Augen sind wieder da. Die Bilder bleiben nur im Speicher und kommen nie in die Galerie; nur die Augen
   (und Dream Control) dürfen sie abholen. `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` ändert, wie oft eines
-  gemalt wird (Sekunden). Mit der Cloud-GPU gibt es keine gemalten Gesichter.
+  gemalt wird (Sekunden); `DREAM_AIMASK=0` schaltet die gemalten Gesichter ganz ab (auch kein Feuergeist:
+  die Dreamy Eyes lassen den Mac dann nie ein Modell laden). Mit der Cloud-GPU gibt es keine gemalten Gesichter.
 - **Die Pupillen verwandeln sich:** ein Katzenschlitz, solange das Grinsen da ist, Herzen, wenn jemand weiter lächelt,
-  Sterne, wenn sie staunen, eine drehende Spirale, wenn sie hypnotisieren.
+  Sterne, wenn sie staunen – und wenn sie hypnotisieren (oder von einem Feuer gebannt sind) reihum eine von fünf, nie
+  zweimal dieselbe hintereinander (#218): eine drehende Spirale, ein Mandala, das sich dreht und atmet, ein Regen
+  kleiner Sterne, ein Tunnel aus Ringen, die in die Tiefe ziehen, oder ein Strudel; in den Farben des Traums (am Feuer
+  wie Glut), bewegt im Takt der Musik (ohne Musik: lebhafter mit dem Traum).
 - **Die Iris ist eine Welt, die wechselt**, etwa jede halbe Minute: der Traum selbst, der Traum als Kaleidoskop gefaltet,
   ein Wirbel aus dem Traum mit gegeneinander drehenden Ringen oder eine Spiralgalaxie in den Farben des Traums.
 - **Launen ab und zu:** Sie zwinkern, schielen, rollen die Augen, hypnotisieren, weinen eine Träne aus Licht, die zu
@@ -895,7 +919,9 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   dort bleibt: Android „Bildschirmfixierung“ (Einstellungen → Sicherheit → App anpinnen, dann den Browser über die
   App-Übersicht anpinnen), das Handy am Strom, in einer Halterung auf Augenhöhe.
 - **Sein Code darf nur die Frontkamera leihen** und den Traum sehen – keine Einstellungen, keine Befehle, nichts, was Geld
-  kostet; es erfährt nicht einmal den Prompt. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
+  kostet; es erfährt nicht einmal den Prompt. Neben dem kleinen Bild des Traums bekommt es zwei Zahlen gesagt: die
+  Master-Helligkeit und (#218) den Takt der Musik, einen Puls zwischen 0 und 1 – nie das, was die Bühne ihren
+  Ausgabefenstern sagt (Effekte, Überblendungen, Prompts); die Vorschau eines Gasts hört keinen Takt. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
   eigenem Cookie – die Augen auf dem eigenen Handy auszuprobieren, ersetzt also nie Dream Control.
 - **Immer nur eine Kamera:** Die Bühne zeigt „👀 Live-Kamera: Dreamy Eyes“. In Dream Control sagt die Karte „Dieses Gerät“,
   wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp), und die eigene
@@ -916,7 +942,9 @@ einem Gerät zum anderen.
 - **Ein großes Motiv pro Fenster:**
   - ein **großes Auge** – genau das Auge der Dreamy Eyes: Iris-Fasern, Lider, Wimpern, eine Braue, wenn es etwas
     fühlt. Es schaut umher, blinzelt, seine Pupille weitet sich im dunklen Traum und mit dem Takt, und seine Iris ist
-    der Traum – pur, zum Kaleidoskop gefaltet, als Tunnel oder als Galaxie;
+    der Traum – pur, zum Kaleidoskop gefaltet, als Tunnel oder als Galaxie; ab und zu hypnotisiert seine Pupille für
+    ein paar Sekunden (#218: Spirale, Mandala, Sternenregen, Tunnel, Strudel reihum, im Takt bewegt – in beiden
+    Fenstern eines Paars dieselbe);
   - ein **Augenpaar über zwei Geräte**: je ein Auge, die gemeinsam schauen und blinzeln;
   - ein **Traumgesicht**: ein von der KI gemaltes Gesicht, lebendig (siehe unten);
   - **Impossible Shapes**: das Penrose-Dreieck, die endlose Treppe (ein Licht steigt sie hinauf und kommt nie an), die
@@ -1404,7 +1432,17 @@ die Fenster offen. `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im 
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und
-`tests/js/signs.html` im Browser (Zeichen neben den Namen, Pause im Verborgenen, die Form). GitHub lässt sie alle auf Linux
+`tests/js/signs.html` im Browser (Zeichen neben den Namen, Pause im Verborgenen, die Form). `node --test tests/js/fire.test.mjs`
+(#218) prüft, wie die Dreamy Eyes Feuer finden (`static/dreamfire.js`), an gemalten Kamerabildern
+(`tests/js/fire-frames.mjs`; keine echten Bilder): Flammen vom Lagerfeuer bis zum fernen Poi zählen, Lampen (ruhig, klein
+in einer rauschenden Kamera, eine Lichterkette, gedimmt, bei berührtem oder getragenem Handy), eine orange Jacke und
+Haut von hell bis dunkel in warmem Licht nicht; dazu die Stärke, Aufflammen, Abflauen, der Blick, der binnen zwei
+Proben folgt, der Wechsel der Stimmungen und die Gewöhnung an ein ruhiges Feuer. `node --test tests/js/eye.test.mjs`
+prüft, dass die hypnotischen Pupillen sich abwechseln. Die Augen mit Feuer sehen, ohne eines anzuzünden:
+`node scripts/fire_video.mjs fire.y4m` schreibt einen 70-s-Film desselben gemalten Feuers (etwa 90 MB), und ein Chrome
+oder Chromium, gestartet mit `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
+--use-file-for-fake-video-capture=fire.y4m`, zeigt ihn den Dreamy Eyes als Kamera (ein nur dafür gestartetes Dream:
+mit `DREAM_AIMASK=0`, sonst lassen die Augen es für ihre gemalten Gesichter das Bildmodell laden). GitHub lässt die Tests alle auf Linux
 und macOS bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein
 Pull-Request lässt sich erst mergen, wenn beide grün sind. Die echte KI auf einer Grafikkarte und die 📏-Messungen
 gehören nicht dazu – die laufen auf dem eigenen Mac, wie unten.

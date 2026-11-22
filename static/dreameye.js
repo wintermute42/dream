@@ -180,24 +180,39 @@
     }
     return [ix, iy];
   }
-  // What is in an iris: the dream itself ('dream'), folded ('kaleido'), a tunnel ('vortex'), a 'galaxy', or 'fire'.
-  // o: rot (how far it has turned), hue (the dream's), stars (stars()), and pic(x, y, size, al), which draws the
-  // dream's picture as a square around (x, y)
+  // What is in an iris: the dream itself ('dream'), folded ('kaleido'), a tunnel ('vortex'), a 'galaxy', 'fire' or its
+  // 'embers'. o: rot (how far it has turned), hue (the dream's), stars (stars()), heat (how high the flames stand,
+  // 0–1; 1 if not given), and pic(x, y, size, al), which draws the dream's picture as a square around (x, y)
   function irisWorld(g, style, ix, iy, R, mirror, al, o) {
     const dir = mirror ? -1 : 1;
     g.save(); g.translate(ix, iy);
     if (style === 'fire') {                            // #162: flames dancing in the iris, the dream glowing warm behind them
       g.globalAlpha = al; g.fillStyle = '#2a0a02'; g.fillRect(-R, -R, R * 2, R * 2);
       g.filter = 'sepia(0.6) saturate(2.2) hue-rotate(-15deg)'; o.pic(0, 0, R * 2.3, al * 0.55); g.filter = 'none';
-      const now = performance.now();
+      const now = performance.now(), heat = o.heat === undefined ? 1 : o.heat;
       g.globalCompositeOperation = 'lighter';
       for (let k = 0; k < 9; k++) {
-        const fx0 = (k / 8 - 0.5) * R * 1.6, h = R * (0.7 + 0.5 * Math.sin(now / (130 + k * 17) + k * 2)), wv = Math.sin(now / 160 + k) * R * 0.12;
+        const fx0 = (k / 8 - 0.5) * R * 1.6, h = R * (0.7 + 0.5 * Math.sin(now / (130 + k * 17) + k * 2)) * heat, wv = Math.sin(now / 160 + k) * R * 0.12;
         const gr = g.createLinearGradient(0, R, 0, R - h);
         gr.addColorStop(0, `rgba(255,${120 + k * 8},20,${0.7 * al})`); gr.addColorStop(0.6, `rgba(255,200,60,${0.45 * al})`); gr.addColorStop(1, 'rgba(255,240,180,0)');
         g.fillStyle = gr; g.beginPath(); g.moveTo(fx0 - R * 0.18, R);
         g.quadraticCurveTo(fx0 - R * 0.2 + wv, R - h * 0.5, fx0 + wv * 1.6, R - h); g.quadraticCurveTo(fx0 + R * 0.2 + wv, R - h * 0.5, fx0 + R * 0.18, R); g.fill();
       }
+      g.globalCompositeOperation = 'source-over';
+    } else if (style === 'embers') {                   // #218: embers drifting up in the iris – a fire they dream of, or are used to
+      g.globalAlpha = al; g.fillStyle = '#1c0703'; g.fillRect(-R, -R, R * 2, R * 2);
+      o.pic(0, 0, R * 2.3, al * 0.22);
+      g.globalAlpha = al * 0.4; g.fillStyle = '#7a1e00'; g.fillRect(-R, -R, R * 2, R * 2);   // the dream, warmed (no filter: cheap)
+      const now = performance.now();
+      g.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 14; k++) {
+        const u = (now / (2600 + k * 310) + k * 0.37) % 1, tw = 0.6 + 0.4 * Math.sin(now / 170 + k * 1.9);
+        g.globalAlpha = al * Math.sin(Math.PI * u) * tw; g.fillStyle = `hsl(${18 + k * 2.5},100%,${55 + 12 * tw}%)`;
+        g.beginPath(); g.arc(Math.sin(k * 2.4 + now / 900 + u * 3) * R * 0.75, R * (0.95 - 1.9 * u), R * (0.035 + 0.03 * ((k * 7) % 5) / 4), 0, Math.PI * 2); g.fill();
+      }
+      const bed = g.createLinearGradient(0, R, 0, R * 0.2);     // the bed of embers below
+      bed.addColorStop(0, `rgba(255,110,25,${0.6 * al})`); bed.addColorStop(1, 'rgba(255,80,10,0)');
+      g.globalAlpha = 1; g.fillStyle = bed; g.fillRect(-R, R * 0.2, R * 2, R * 0.8);
       g.globalCompositeOperation = 'source-over';
     } else if (style === 'kaleido') {                         // the dream folded eightfold, turning
       for (let k = 0; k < 8; k++) {
@@ -231,7 +246,14 @@
     }
     g.restore();
   }
-  // A pupil that is not round: a cat's 'slit', a 'heart', a 'star', a 'spiral'. o: hue (the dream's), fire (it burns)
+  // #218: what a hypnotic pupil shows – one of these each time, never the same twice in a row
+  const HYPNO = ['spiral', 'mandala', 'sparkle', 'tunnel', 'swirl'];
+  const nextHypno = (last, rnd) => { const o = HYPNO.filter(k => k !== last); return o[Math.min(o.length - 1, rnd() * o.length | 0)]; };
+  // … and where there is no memory (the dream windows: every window works it out from Dream's clock): the n-th one
+  const hypnoAt = (n, seed) => HYPNO[(((3 * n + seed) % HYPNO.length) + HYPNO.length) % HYPNO.length];
+  // A pupil that is not round: a cat's 'slit', a 'heart', a 'star', or one of HYPNO – a 'spiral', a 'mandala' (turning,
+  // breathing), a 'sparkle' (a shower of little stars), a 'tunnel' (rings pulling into the depth), a 'swirl'.
+  // o: hue (the dream's), fire (it burns), beat (0–1: the music's pulse, they move with it), now (a clock, if not the page's)
   function pupilShape(g, shape, x, y, pr, R, mirror, o) {
     g.fillStyle = '#05030a';
     g.beginPath();
@@ -250,9 +272,46 @@
       g.arc(x, y, pr * 1.02, 0, Math.PI * 2);
     }
     g.fill();
+    const now = o.now === undefined ? performance.now() : o.now, beat = o.beat || 0, dir = mirror ? -1 : 1, hue = o.hue + 180;
+    if (shape === 'mandala') {                         // two rings of petals turning against each other, breathing
+      const br = 0.82 + 0.12 * Math.sin(now / 650) + 0.18 * beat;
+      g.lineWidth = Math.max(1, pr * 0.045);
+      for (const [n, rr, sp, hh] of [[8, 0.58, 1, 0], [8, 0.3, -1.6, 50]]) {
+        g.strokeStyle = `hsl(${hue + hh + now * 0.02},90%,${68 + 14 * beat}%)`; g.beginPath();
+        for (let k = 0; k < n; k++) {
+          const an = now / 1900 * sp * dir + k * Math.PI * 2 / n, px = x + Math.cos(an) * pr * rr * br, py = y + Math.sin(an) * pr * rr * br;
+          g.moveTo(px + Math.cos(an) * pr * 0.3 * br, py + Math.sin(an) * pr * 0.3 * br); g.ellipse(px, py, pr * 0.3 * br, pr * 0.13 * br, an, 0, Math.PI * 2);
+        }
+        g.stroke();
+      }
+      g.fillStyle = `hsl(${hue + 100},95%,80%)`; g.beginPath(); g.arc(x, y, pr * (0.07 + 0.05 * beat), 0, Math.PI * 2); g.fill();
+    } else if (shape === 'sparkle') {                  // a shower of little stars falling through the pupil
+      for (let k = 0; k < 13; k++) {
+        const u = (now / (1500 + k * 97) + k * 0.618) % 1, yy = (u * 2 - 1) * 0.9, wide = Math.sqrt(1 - yy * yy) * 0.88;
+        const sx = x + (((k * 0.381) % 1) * 2 - 1) * wide * pr + Math.sin(now / 500 + k) * pr * 0.04, sy = y + yy * pr;
+        const tw = 0.5 + 0.5 * Math.sin(now / 130 + k * 2.3), sz = pr * (0.09 + 0.07 * ((k * 5) % 4) / 3) * (0.7 + 0.5 * tw + 0.6 * beat);
+        g.fillStyle = `hsla(${hue + k * 14},95%,${72 + 18 * tw}%,${Math.sin(Math.PI * u) * (0.55 + 0.45 * tw)})`; g.beginPath();
+        for (let q = 0; q < 8; q++) { const rr = q % 2 ? sz * 0.32 : sz * 1.3, an = q * Math.PI / 4 + now / 700 * dir; g.lineTo(sx + Math.cos(an) * rr, sy + Math.sin(an) * rr); }
+        g.closePath(); g.fill();
+      }
+    } else if (shape === 'tunnel') {                   // rings pulling into the depth, one after the other
+      for (let k = 0; k < 5; k++) {
+        const u = ((k + now / 520) % 5) / 5, rr = pr * 0.96 * Math.pow(1 - u, 1.7);   // each ring shrinks towards the middle
+        g.strokeStyle = `hsla(${hue + u * 90},90%,${70 + 15 * beat}%,${(1 - u) * (0.35 + 0.65 * Math.min(1, u * 5))})`; g.lineWidth = Math.max(1, pr * (0.03 + 0.07 * (1 - u)) * (1 + 0.5 * beat));
+        g.beginPath(); g.arc(x + Math.sin(now / 900) * pr * 0.06 * u, y + Math.cos(now / 1100) * pr * 0.06 * u, Math.max(0.5, rr), 0, Math.PI * 2); g.stroke();
+      }
+    } else if (shape === 'swirl') {                    // three arms of light turning like a whirlpool
+      const turn = -now / 420 * dir;
+      g.lineCap = 'round';
+      for (let arm = 0; arm < 3; arm++) {
+        g.strokeStyle = `hsl(${hue + arm * 35},90%,${66 + 16 * beat}%)`; g.lineWidth = Math.max(1.5, pr * (0.12 + 0.06 * beat)); g.beginPath();
+        for (let k = 0; k <= 24; k++) { const u = k / 24, an = turn + arm * Math.PI * 2 / 3 + u * 2.6, rr = (0.12 + 0.8 * u) * pr; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(an) * rr, y + Math.sin(an) * rr); }
+        g.stroke();
+      }
+    }
     if (shape === 'spiral') {                          // hypnosis: a turning spiral in the pupil
-      const turn = performance.now() / 260 * (mirror ? -1 : 1);
-      g.strokeStyle = `hsl(${o.hue + 180},90%,72%)`; g.lineWidth = Math.max(1.5, pr * 0.1); g.beginPath();
+      const turn = now / 260 * (mirror ? -1 : 1);
+      g.strokeStyle = `hsl(${o.hue + 180},90%,72%)`; g.lineWidth = Math.max(1.5, pr * (0.1 + 0.05 * beat)); g.beginPath();
       for (let k = 0; k <= 80; k++) { const u = k / 80, an = turn + u * Math.PI * 7, rr = u * pr * 0.95; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(an) * rr, y + Math.sin(an) * rr); }
       g.stroke();
     }
@@ -264,5 +323,5 @@
     }
   }
 
-  root.DreamEye = { LOOKS, EMO, fibres, stars, draw, irisWorld, pupilShape };
+  root.DreamEye = { LOOKS, EMO, HYPNO, nextHypno, hypnoAt, fibres, stars, draw, irisWorld, pupilShape };
 })(typeof window !== 'undefined' ? window : globalThis);

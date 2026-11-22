@@ -1017,7 +1017,7 @@
   }
   // Syphon: every shown frame also goes to the server, which publishes it for Resolume
   let outWs = null;
-  let outViewers = 0, outPreviews = 0;  // open output windows (/output) and remote previews (#141) – they show what the stage shows
+  let outViewers = 0, outPreviews = 0, outBeats = 0;  // open output windows (/output) and remote previews (#141) – they show what the stage shows
   $('openout').onclick = () => window.open('/output', 'dream-output', 'popup,width=960,height=540');
   // #206: the QR codes of the panel open in the lightbox (qrbox.js): loaded on opening, gone on closing – so is their key
   // output on a second device in the WLAN: address with the key as link and QR code (only with dream.sh --lan)
@@ -3182,8 +3182,8 @@
         t: +ap.t.toFixed(3), seed: ap.fxSeed, dir: p.dir, hue: Math.round(p.hue), inv: +ap.inv.toFixed(2), sc: +fxOut.sc.toFixed(4), br: +fxOut.br.toFixed(3),
         cx: +p.cx.toFixed(3), cy: +p.cy.toFixed(3), loc: +p.loc.toFixed(2), ang: +p.ang.toFixed(2) } }));
       fxOut.sentAt = now; fxOut.sentOff = k <= 0.005;
-    } else if (outViewers && outWs && outWs.readyState === 1 && now - fxOut.sentAt > 50 && Math.abs(mu.beatEnv - (fxOut.beat || 0)) > 0.04) {
-      outWs.send(JSON.stringify({ pulse: +mu.beatEnv.toFixed(3) }));   // #201: the beat for the dream windows, also without effects
+    } else if ((outViewers || outBeats) && outWs && outWs.readyState === 1 && now - fxOut.sentAt > 50 && Math.abs(mu.beatEnv - (fxOut.beat || 0)) > 0.04) {
+      outWs.send(JSON.stringify({ pulse: +mu.beatEnv.toFixed(3) }));   // #201: the beat for the dream windows, also without effects; #218: and for Dreamy Eyes
       fxOut.sentAt = now; fxOut.beat = mu.beatEnv;
     }
     requestAnimationFrame(apFxLoop);
@@ -3424,7 +3424,7 @@
         if (QrBox.showing === 'output') QrBox.refresh();
         status(T('New guest code: the guests scan the QR code again.'));
       }
-      if (m.live && 'viewers' in m.live) { outViewers = m.live.viewers || 0; outPreviews = m.live.previews || 0; showOutCount(outViewers, m.live.windows || 0); }
+      if (m.live && 'viewers' in m.live) { outViewers = m.live.viewers || 0; outPreviews = m.live.previews || 0; outBeats = m.live.beats || 0; showOutCount(outViewers, m.live.windows || 0); }
     };
     ctl.onclose = () => setTimeout(ctlConnect, 1500);
   }
