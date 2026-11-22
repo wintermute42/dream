@@ -311,7 +311,7 @@
       look: look.cur, brow: brow.cur[side], browAl: brow.al, fib,
       gx: Math.max(-1, Math.min(1, st.gx + fx.cross * (mirror ? -0.55 : 0.55))), gy: st.gy,   // #157: now and then they cross
       pupil: Math.min(0.92, (st.pupil + 0.08 * fire.awe * fire.level + 0.3 * fire.flash) * touch.pupilK), pupilMix: fx.pupilMix,   // #162: two fingers widen or narrow them; #218: a fire flaring up widens them
-      pupilShape: (ix, iy, pr, R) => DreamEye.pupilShape(g, fx.pupil, ix, iy, pr, R, mirror, { hue: fire.on ? 205 : hueOf(dream.col), fire: fire.on }),   // #218: the spiral glows like embers
+      pupilShape: (ix, iy, pr, R) => DreamEye.pupilShape(g, fx.pupil, ix, iy, pr, R, mirror, { hue: fire.on ? 205 : hueOf(dream.col), fire: fire.on, beat: st.energy }),   // #218: what hypnotises glows like embers by a fire; livelier with the dream
       iris: (ix, iy, R) => {
         // #157: the iris is a world of its own that changes now and then – the dream, a kaleidoscope, a vortex, a galaxy
         const o = { rot: st.rot, hue: hueOf(dream.col), stars, pic: dreamPic, heat: 0.45 + 0.55 * fire.level };
@@ -411,7 +411,7 @@
   const eyesAt = [[0, 0, 1], [0, 0, 1]], irisAt = [[0, 0], [0, 0]];
   const fx = { squint: 0, iris: 'dream', irisPrev: 'dream', irisMix: 1, irisNext: performance.now() + 25000,
     pupil: 'round', pupilMix: 0, pupilWant: 'round', wink: [0, 0], cross: 0, mood: null, moodAt: 0, nextMood: performance.now() + 9000,
-    sleep: 0, alone: performance.now(), smileSince: 0 };
+    sleep: 0, alone: performance.now(), smileSince: 0, hypno: 'spiral' };
   const IRIS = ['dream', 'kaleido', 'vortex', 'galaxy'];
   const stars = DreamEye.stars();
   function dreamPic(cx, cy, size, al) {                // the dream's picture (crossfaded between two frames)
@@ -432,6 +432,7 @@
   };
   function moodStart(name, t) {
     fx.mood = name; fx.moodAt = t; fx.wink = [0, 0]; fx.moodSide = Math.random() < 0.5 ? 0 : 1;
+    if (name === 'hypno') fx.hypno = DreamEye.nextHypno(fx.hypno, Math.random);   // #218: a spiral, a mandala, a shower of stars, a tunnel, a swirl
     if (name === 'tear') { const [x, y, a] = eyesAt[fx.moodSide]; decor.push({ kind: 'tear', x: x + (fx.moodSide ? -1 : 1) * a * 0.35, y: y + a * 0.42, born: t, life: 3600, size: a * 0.1, hue: hueOf(dream.col), spin: 1, puffs: [] }); }
     if (name === 'sparkle') for (const [x, y, a] of eyesAt) decor.push({ kind: 'stars', x, y, born: t, life: 1800, size: a * 1.1, hue: hueOf(dream.col) + 40, spin: 1, puffs: Array.from({ length: 14 }, () => [Math.random() * Math.PI * 2, 0.6 + Math.random() * 0.5, Math.random()]) });
   }
@@ -457,7 +458,8 @@
     const smiling = present && face.smile > 0.45;
     fx.smileSince = smiling ? fx.smileSince || t : 0;
     const fm = fire.on ? fire.mind.mood : null, held = enchanted();   // #218: the fire's mood shows in the pupils
-    fx.pupilWant = held ? ({ spell: 'spiral', play: 'star', love: 'heart', spirit: 'heart' }[fm] || 'round') : fx.mood === 'hypno' ? 'spiral' : fx.surprise > t ? 'star' : (smiling && t - fx.smileSince > 2500) || touch.loveUntil > t ? 'heart' : grin.a > 0.5 ? 'slit' : 'round';
+    if (fm === 'spell' && fx.spellFor !== fire.mind.changes) { fx.spellFor = fire.mind.changes; fx.hypno = DreamEye.nextHypno(fx.hypno, Math.random); }   // spellbound: the next of the hypnotic pupils
+    fx.pupilWant = held ? ({ spell: fx.hypno, play: 'star', love: 'heart', spirit: 'heart' }[fm] || 'round') : fx.mood === 'hypno' ? fx.hypno : fx.surprise > t ? 'star' : (smiling && t - fx.smileSince > 2500) || touch.loveUntil > t ? 'heart' : grin.a > 0.5 ? 'slit' : 'round';
     if (fx.pupil !== fx.pupilWant) { fx.pupilMix = Math.max(0, fx.pupilMix - dt * 4); if (fx.pupilMix === 0) fx.pupil = fx.pupilWant; }
     else fx.pupilMix = Math.min(fx.pupil === 'round' ? 0 : 1, fx.pupilMix + dt * 3);
     // the iris changes its world now and then (livelier dream: more often)
