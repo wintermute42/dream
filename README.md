@@ -768,7 +768,7 @@ eyes** that invite people to step up and play:
 - **Behind the eyes the dream shines through the night** – through drifting clouds, a huge breathing spiral of soft
   lights, a kaleidoscopic flower of rings, or a face only hinted in light around the eyes – a goddess with a diadem and
   flowing hair, a cat with ears and twitching whiskers, Medusa with writhing snakes, a mermaid with hair drifting like
-  seaweed and a crown of shells, a fairy with pointed ears, beating butterfly wings and antennae, a moon priestess with a
+  seaweed and a crown of shells, a forest spirit with a crown of leaves, vines framing the eyes, a leaf on the brow and glowing spores drifting up (no mouth), a moon priestess with a
   crescent on her brow, a swaying veil and long earrings; the masks change every half minute
   or so (upright a little calmer), the dream behind them slowly
   zooms and wanders, a little brighter than on the stage. Every minute or two a **dream window** opens for 6–10

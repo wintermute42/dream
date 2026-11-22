@@ -800,8 +800,8 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 - **Hinter den Augen scheint der Traum durch die Nacht** – durch treibende Wolken, eine riesige atmende Spirale aus
   weichen Lichtern, eine kaleidoskopische Blume aus Ringen oder ein nur angedeutetes Gesicht aus Licht um die Augen – eine
   Göttin mit Diadem und wallendem Haar, eine Katze mit Ohren und zuckenden Schnurrhaaren, Medusa mit sich windenden
-  Schlangen, eine Meerjungfrau mit Haar, das wie Seetang treibt, und einer Krone aus Muscheln, eine Fee mit spitzen Ohren,
-  schlagenden Schmetterlingsflügeln und Fühlern, eine Mondpriesterin mit Sichel auf der Stirn, wehendem Schleier und langen
+  Schlangen, eine Meerjungfrau mit Haar, das wie Seetang treibt, und einer Krone aus Muscheln, ein Waldgeist mit einer Krone aus Blättern,
+  Ranken um die Augen, einem Blatt auf der Stirn und aufsteigenden leuchtenden Sporen (ohne Mund), eine Mondpriesterin mit Sichel auf der Stirn, wehendem Schleier und langen
   Ohrringen; die Masken wechseln etwa jede halbe Minute (hochkant etwas ruhiger), der Traum
   dahinter zoomt und wandert langsam, etwas heller als auf der Bühne. Alle ein, zwei Minuten öffnet sich für 6–10
   Sekunden ein **Traumfenster**: Die Nacht geht weit auf und der Traum ist deutlich hinter den Augen zu sehen, dann zieht er
