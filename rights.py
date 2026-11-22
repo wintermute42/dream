@@ -45,6 +45,8 @@ CAPABILITIES = {
     "eyes": "may be a Dreamy Eyes page: the painted faces, how often the trance comes",
     "eyes_only": "is nothing but Dreamy Eyes: learns nothing of the shared state, says nothing but lending its front camera",
     "faces": "the faces painted for Dreamy Eyes (/eyes/mask)",
+    "beat": "as a Dreamy Eyes page, hears the music's beat beside its small preview of the dream (/view): one number "
+            "between 0 and 1, now and then – nothing else of what the stage tells its output windows (#218)",
     "pair_eyes": "gets the links and QR codes that pair Dreamy Eyes and dream windows",
     "take_over": "may take Dream Control over from another device (one at a time)",
 }
@@ -73,11 +75,12 @@ def _get(paths_: re.Pattern) -> re.Pattern:
 
 
 ROLES: dict[str, Role] = {
-    "local": Role(frozenset({"stage", "control", "render", "ctl", "view", "state", "set:all", "feed", "eyes", "faces"})),
-    "control": Role(frozenset({"control", "render", "ctl", "view", "state", "set:all", "feed", "eyes", "faces",
+    "local": Role(frozenset({"stage", "control", "render", "ctl", "view", "state", "set:all", "feed", "eyes", "faces",
+                             "beat"})),
+    "control": Role(frozenset({"control", "render", "ctl", "view", "state", "set:all", "feed", "eyes", "faces", "beat",
                                "pair_eyes", "take_over"}), key="control-token"),
     "guest": Role(frozenset({"ctl", "view", "state", "set:guest"}), key="remote-token", http=GUEST_HTTP),
-    "eyes": Role(frozenset({"ctl", "view", "feed", "eyes", "eyes_only", "faces"}), key="eyes-token",
+    "eyes": Role(frozenset({"ctl", "view", "feed", "eyes", "eyes_only", "faces", "beat"}), key="eyes-token",
                  http=_get(EYES_PATHS), cookie="dream_e", pairs=True),
     "window": Role(frozenset({"view", "faces"}), key="window-token", http=_get(WINDOW_PATHS), cookie="dream_w", pairs=True),
 }

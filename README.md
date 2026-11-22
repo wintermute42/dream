@@ -844,12 +844,13 @@ eyes** that invite people to step up and play:
   drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays three to five seconds,
   breathing, swaying and drifting a little; then it shrinks back into the pupils, and the eyes are there again.
   The pictures stay in memory only and never go into the gallery; only the eyes (and Dream Control) may fetch them.
-  `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds). With the cloud GPU
+  `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds); `DREAM_AIMASK=0`
+  switches the painted faces off altogether (no fire spirit, no dream portrait: Dreamy Eyes never make the Mac load a model). With the cloud GPU
   there are no painted faces.
 - **The pupils change shape:** a cat's slit while the grin is there, hearts when someone keeps smiling, stars when they
   are surprised – and when they hypnotise (or are spellbound by a fire) one of five in turn, never the same twice in a
   row (#218): a turning spiral, a mandala that turns and breathes, a shower of little stars, a tunnel of rings pulling
-  into the depth, or a swirl; in the dream's colours (like embers by a fire), livelier with the dream.
+  into the depth, or a swirl; in the dream's colours (like embers by a fire), moving with the music's beat (without music: livelier with the dream).
 - **The iris is a world that changes** every half minute or so: the dream itself, the dream folded into a kaleidoscope,
   a vortex of the dream with rings turning against each other, or a spiral galaxy in the dream's colours.
 - **Moods now and then:** they wink, cross their eyes, roll them, hypnotise, shed a tear of light that bursts into
@@ -869,7 +870,9 @@ eyes** that invite people to step up and play:
   Android “App pinning” (Settings → Security → App pinning, then pin the browser via the app overview), the phone on
   power, in a holder at eye height.
 - **Its code may only lend the front camera** and see the dream – no settings, no commands, nothing that costs money; it
-  does not even learn the prompt. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
+  does not even learn the prompt. Beside the small picture of the dream it is told two numbers: the master brightness
+  and (#218) the music's beat, a pulse between 0 and 1 – never what the stage tells its output windows (effects, fades,
+  prompts); a guest's preview hears no beat. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
   trying the eyes on your own phone never replaces Dream Control.
 - **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
   who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
@@ -1339,7 +1342,8 @@ strength, flaring up, dying down, the gaze following within two samples, the moo
 steady fire. `node --test tests/js/eye.test.mjs` tests that the hypnotic pupils take turns. To see the eyes with a fire
 without lighting one: `node scripts/fire_video.mjs fire.y4m` writes a 70 s film of the same painted fire (about 90 MB),
 and a Chrome or Chromium started with `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
---use-file-for-fake-video-capture=fire.y4m` shows it to Dreamy Eyes as its camera. GitHub runs all of the tests on
+--use-file-for-fake-video-capture=fire.y4m` shows it to Dreamy Eyes as its camera (a Dream started only for that:
+with `DREAM_AIMASK=0`, or the eyes make it load the image model for their painted faces). GitHub runs all of the tests on
 Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull request
 can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of it –
 they run on your own Mac, as below.

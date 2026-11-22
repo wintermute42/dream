@@ -883,12 +883,13 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   Traum –, bleibt dort drei bis fünf Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
   und die Augen sind wieder da. Die Bilder bleiben nur im Speicher und kommen nie in die Galerie; nur die Augen
   (und Dream Control) dürfen sie abholen. `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` ändert, wie oft eines
-  gemalt wird (Sekunden). Mit der Cloud-GPU gibt es keine gemalten Gesichter.
+  gemalt wird (Sekunden); `DREAM_AIMASK=0` schaltet die gemalten Gesichter ganz ab (kein Feuergeist, kein Traumporträt:
+  die Dreamy Eyes lassen den Mac dann nie ein Modell laden). Mit der Cloud-GPU gibt es keine gemalten Gesichter.
 - **Die Pupillen verwandeln sich:** ein Katzenschlitz, solange das Grinsen da ist, Herzen, wenn jemand weiter lächelt,
   Sterne, wenn sie staunen – und wenn sie hypnotisieren (oder von einem Feuer gebannt sind) reihum eine von fünf, nie
   zweimal dieselbe hintereinander (#218): eine drehende Spirale, ein Mandala, das sich dreht und atmet, ein Regen
   kleiner Sterne, ein Tunnel aus Ringen, die in die Tiefe ziehen, oder ein Strudel; in den Farben des Traums (am Feuer
-  wie Glut), lebhafter mit dem Traum.
+  wie Glut), bewegt im Takt der Musik (ohne Musik: lebhafter mit dem Traum).
 - **Die Iris ist eine Welt, die wechselt**, etwa jede halbe Minute: der Traum selbst, der Traum als Kaleidoskop gefaltet,
   ein Wirbel aus dem Traum mit gegeneinander drehenden Ringen oder eine Spiralgalaxie in den Farben des Traums.
 - **Launen ab und zu:** Sie zwinkern, schielen, rollen die Augen, hypnotisieren, weinen eine Träne aus Licht, die zu
@@ -908,7 +909,9 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   dort bleibt: Android „Bildschirmfixierung“ (Einstellungen → Sicherheit → App anpinnen, dann den Browser über die
   App-Übersicht anpinnen), das Handy am Strom, in einer Halterung auf Augenhöhe.
 - **Sein Code darf nur die Frontkamera leihen** und den Traum sehen – keine Einstellungen, keine Befehle, nichts, was Geld
-  kostet; es erfährt nicht einmal den Prompt. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
+  kostet; es erfährt nicht einmal den Prompt. Neben dem kleinen Bild des Traums bekommt es zwei Zahlen gesagt: die
+  Master-Helligkeit und (#218) den Takt der Musik, einen Puls zwischen 0 und 1 – nie das, was die Bühne ihren
+  Ausgabefenstern sagt (Effekte, Überblendungen, Prompts); die Vorschau eines Gasts hört keinen Takt. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
   eigenem Cookie – die Augen auf dem eigenen Handy auszuprobieren, ersetzt also nie Dream Control.
 - **Immer nur eine Kamera:** Die Bühne zeigt „👀 Live-Kamera: Dreamy Eyes“. In Dream Control sagt die Karte „Dieses Gerät“,
   wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp), und die eigene
@@ -1428,7 +1431,8 @@ Proben folgt, der Wechsel der Stimmungen und die Gewöhnung an ein ruhiges Feuer
 prüft, dass die hypnotischen Pupillen sich abwechseln. Die Augen mit Feuer sehen, ohne eines anzuzünden:
 `node scripts/fire_video.mjs fire.y4m` schreibt einen 70-s-Film desselben gemalten Feuers (etwa 90 MB), und ein Chrome
 oder Chromium, gestartet mit `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
---use-file-for-fake-video-capture=fire.y4m`, zeigt ihn den Dreamy Eyes als Kamera. GitHub lässt die Tests alle auf Linux
+--use-file-for-fake-video-capture=fire.y4m`, zeigt ihn den Dreamy Eyes als Kamera (ein nur dafür gestartetes Dream:
+mit `DREAM_AIMASK=0`, sonst lassen die Augen es für ihre gemalten Gesichter das Bildmodell laden). GitHub lässt die Tests alle auf Linux
 und macOS bei jedem Pull-Request auf `main` und nach jedem Merge laufen (`.github/workflows/tests.yml`); ein
 Pull-Request lässt sich erst mergen, wenn beide grün sind. Die echte KI auf einer Grafikkarte und die 📏-Messungen
 gehören nicht dazu – die laufen auf dem eigenen Mac, wie unten.

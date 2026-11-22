@@ -58,7 +58,7 @@
   const say = (t, ms = 5000) => { $('note').textContent = t; $('note').classList.add('on'); clearTimeout(noteT); if (ms) noteT = setTimeout(() => $('note').classList.remove('on'), ms); };
 
   // ---------- the dream, as the stage shows it (the small live preview, about 4 pictures a second) ----------
-  const dream = { cur: null, prev: null, at: 0, lum: 0.4, col: [120, 90, 170], dyn: 0, sample: null };
+  const dream = { cur: null, prev: null, at: 0, lum: 0.4, col: [120, 90, 170], dyn: 0, sample: null, pulse: 0, beatAt: -1e9 };
   const probe = document.createElement('canvas'); probe.width = probe.height = 16;
   const pg = probe.getContext('2d', { willReadFrequently: true });
   function analyse(bm) {                               // brightness, colour and how much moved since the last picture
@@ -89,7 +89,10 @@
     const s = new WebSocket(`${proto}://${location.host}/view?preview=1&as=eyes`);
     s.binaryType = 'blob';
     s.onmessage = async ev => {
-      if (typeof ev.data === 'string') return;
+      if (typeof ev.data === 'string') {                // #218: the music's beat – a number, all the eyes are told
+        try { const p = JSON.parse(ev.data).pulse; if (typeof p === 'number' && p >= 0) { dream.pulse = Math.max(dream.pulse, Math.min(1, p)); dream.beatAt = performance.now(); } } catch (e) { /* not for the eyes */ }
+        return;
+      }
       try {
         const bm = await createImageBitmap(ev.data);
         if (dream.prev) dream.prev.close();
@@ -311,7 +314,7 @@
       look: look.cur, brow: brow.cur[side], browAl: brow.al, fib,
       gx: Math.max(-1, Math.min(1, st.gx + fx.cross * (mirror ? -0.55 : 0.55))), gy: st.gy,   // #157: now and then they cross
       pupil: Math.min(0.92, (st.pupil + 0.08 * fire.awe * fire.level + 0.3 * fire.flash) * touch.pupilK), pupilMix: fx.pupilMix,   // #162: two fingers widen or narrow them; #218: a fire flaring up widens them
-      pupilShape: (ix, iy, pr, R) => DreamEye.pupilShape(g, fx.pupil, ix, iy, pr, R, mirror, { hue: fire.on ? 205 : hueOf(dream.col), fire: fire.on, beat: st.energy }),   // #218: what hypnotises glows like embers by a fire; livelier with the dream
+      pupilShape: (ix, iy, pr, R) => DreamEye.pupilShape(g, fx.pupil, ix, iy, pr, R, mirror, { hue: fire.on ? 205 : hueOf(dream.col), fire: fire.on, beat: performance.now() - dream.beatAt < 4000 ? dream.pulse : st.energy }),   // #218: what hypnotises glows like embers by a fire and moves with the music's beat (no beat heard: with the dream)
       iris: (ix, iy, R) => {
         // #157: the iris is a world of its own that changes now and then – the dream, a kaleidoscope, a vortex, a galaxy
         const o = { rot: st.rot, hue: hueOf(dream.col), stars, pic: dreamPic, heat: 0.45 + 0.55 * fire.level };
@@ -1036,6 +1039,7 @@
     const dt = Math.min(0.1, (t - last) / 1000); last = t;
     // the mood: dark dream → wide pupils; much movement → wide awake; calm → dreamily half closed
     st.energy = lerp(st.energy, dream.dyn, 1 - Math.exp(-dt * 1.5));
+    dream.pulse *= Math.pow(0.04, dt);                 // #218: the beat fades within a beat
     st.wake = Math.max(0, st.wake - dt * 0.4);
     st.openT = Math.min(1, 0.55 + 0.5 * st.energy + st.wake) * (1 - 0.85 * fx.sleep);   // #157: falling asleep
     if (touch.loveUntil > t) st.openT = Math.min(st.openT, 0.4);   // #162: petted – half closed, content
@@ -1321,7 +1325,7 @@
     }
   };
   cv.addEventListener('pointerup', lift); cv.addEventListener('pointercancel', lift);
-  if (new URLSearchParams(location.search).has('debug')) window.dreamyEyes = { st, face, grin, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, enchanted, you, trance, tranceStart, eyesAt: () => eyesAt, res, dpr: () => dpr };   // for the tests only
+  if (new URLSearchParams(location.search).has('debug')) window.dreamyEyes = { st, dream, face, grin, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, enchanted, you, trance, tranceStart, eyesAt: () => eyesAt, res, dpr: () => dpr };   // for the tests only
   view(); connect();
 })();
 </script>

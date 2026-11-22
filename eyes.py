@@ -55,6 +55,8 @@ AIMASK_PROMPTS = {
 }
 AIMASK_STYLE = ", face in front view, symmetrical, eyes looking at the viewer, dreamlike, dark background"
 AIMASK_EVERY = float(os.environ.get("DREAM_AIMASK_EVERY", "50"))   # seconds between two faces
+# #218: DREAM_AIMASK=0 – no painted faces at all (no fire spirit, no portrait): Dreamy Eyes never make this Mac load a model
+AIMASK = os.environ.get("DREAM_AIMASK", "1") != "0"
 aimasks: dict = {}          # kind -> (id, JPEG): only in memory, never in the gallery
 aimask_state = {"last": 0.0, "i": 0, "you_at": 0.0}
 # #166: the person in front of the eyes, painted into the dream – from the eyes' latest camera picture
@@ -104,6 +106,8 @@ def aimask_msg() -> dict:
 
 async def aimask_loop():
     """While Dreamy Eyes look on and this Mac paints, a face now and then – one quick step, in the dream's mood."""
+    if not AIMASK:
+        return
     loop = asyncio.get_running_loop()
     while True:
         await asyncio.sleep(5)

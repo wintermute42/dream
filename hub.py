@@ -34,6 +34,7 @@ clients: dict = {}          # WebSocket -> "stage" | "remote"
 roles: dict = {}            # #148: control socket -> what it may do now: "local" | "control" | "guest"
 key_roles: dict = {}        # #148: socket (control, output, preview) -> the role its key gives
 viewers: set = set()        # output windows (/output): they only show what the stage shows
+beats: set = set()          # #218: Dreamy Eyes pages that hear the beat beside their preview (rights: "beat")
 previews: dict = {}         # #141: small live previews on remotes and Dreamy Eyes – socket → "small" | "full" (#187)
 windows: dict = {}          # #201: dream windows (what each one shows: windows.motifs); in the order they came
 midi_ports: list = []       # the MIDI controllers plugged in right now, by name
@@ -102,7 +103,7 @@ def status_msg() -> dict:
     live["remotes"] = sum(1 for k in clients.values() if k == "remote")
     flow = round(live.get("flow_rate", 0)) if state["flowtrack"] != "off" else 0
     return {"live": {**{k: live[k] for k in ("fps", "stages", "remotes")}, "flowtrack": flow,
-                     "viewers": len(viewers), "previews": len(previews), "windows": len(windows),
+                     "viewers": len(viewers), "previews": len(previews), "windows": len(windows), "beats": len(beats),
                      "midi": midi_ports}}
 
 
