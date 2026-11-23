@@ -927,8 +927,9 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   Gesicht in weichen Bällchen, die treiben und ihre Form ändern, ringsum ein Schimmer in der Traumfarbe, dahinter weiter der
   Traum –, bleibt dort einige Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
   und die Augen sind wieder da. **Das Gesicht lebt** (wie in den Traum-Fenstern, siehe „Lebendige Gesichter“ unten):
-  Es blinzelt, zwinkert ab und zu, schaut umher, hebt die Brauen, lächelt mit dem Mund und dreht den Kopf ein wenig –
-  und lächelt mit, solange die Augen gestreichelt werden. Dafür findet die Bühne auf dem Mac (Dream oder Dream Control
+  Es blinzelt, zwinkert ab und zu, schaut deutlich zur Seite (die Lider gehen mit), hebt oder runzelt die Brauen,
+  lächelt breit mit Mund und Wangen, dreht den Kopf und nickt – alle paar Sekunden ein neuer Ausdruck – und lächelt
+  mit, solange die Augen gestreichelt werden. Dafür findet die Bühne auf dem Mac (Dream oder Dream Control
   dort offen) einmal pro gemaltem Gesicht, wo Augen, Brauen, Mund und Umriss sind, und Dream gibt diese Punkte an die
   Dreamy Eyes weiter; das Handy bewegt sie nur – es lädt dafür kein Modell, und der Mac malt nichts zusätzlich. Mit
   den Punkten liegen die Augen des gemalten Gesichts beim Aufgehen genau auf den Pupillen (in den Pupillen schaut es
@@ -1010,8 +1011,9 @@ einem Gerät zum anderen.
   Gesicht auf dem Mac** bestimmt – von der Bühne, in einem Hintergrund-Worker, mit dem Gesichtsmodell, das Dream
   ohnehin hat (deutlich unter einer Sekunde pro Gesicht; das Zeichnen der Bühne wartet nie darauf) – nie von einem
   Fenster und nicht noch einmal für ein weiteres Fenster. Die 82 Punkte reisen mit dem Gesicht (unter 1 kB). Jedes
-  Fenster bewegt sie selbst über ein Dreiecksnetz: Es blinzelt, lässt den Blick wandern, lächelt, hebt eine Braue,
-  atmet und neigt und dreht den Kopf ein wenig – dezent, wie ein Gemälde, das lebt. Ein Bild, in dem kein Gesicht
+  Fenster bewegt sie selbst über ein Dreiecksnetz: Es blinzelt, lässt den Blick wandern, lächelt, hebt oder runzelt die
+  Brauen, atmet und neigt und dreht den Kopf – gut zu sehen, aber natürlich, wie ein Gemälde, das lebt (dieselben
+  Ausdrücke wie in den Dreamy Eyes, #230). Ein Bild, in dem kein Gesicht
   gefunden wird (eine Katze, eine Maske), oder eines, das gemalt wurde, während keine Bühne offen war, bleibt still
   sichtbar.
 - **Ein Organismus:** Alle Fenster atmen gemeinsam und pulsieren im Takt, und ab und zu läuft eine Lichtwelle der
