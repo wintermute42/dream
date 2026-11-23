@@ -1,18 +1,18 @@
 /* Dream – "you in the dream" (#219): whoever stands in front of Dreamy Eyes, as the camera sees them – cut out on the
    phone, the face unchanged, and only around them the dream: the dream's picture as the background, a soft glowing
-   outline, fireflies, a shimmer in the dream's colour at their edge, now and then a frame of blossoms, a mandala or mist.
+   outline, fireflies, a shimmer in the dream's colour at their edge, now and then a frame around them.
    Everything here is drawn on this device from the camera's picture and a mask of the person (selfie segmentation in
    eyes.html); nothing is sent, kept or read back by anyone – this file never talks to the network (tests/test_rights.py).
    The rule of the drawing: the person's own pixels are put down once, as they are, and nothing is ever drawn over the
-   face (tests/js/you.test.mjs). No DOM besides canvases; needs dreamlife.js; a global `DreamYou`. */
+   face (tests/js/you.test.mjs). #222: what the frames, the fireflies and the outline's colours look like is the style
+   world's (the part `you`, static/dreamstyle.js); the rule above is kept here, whatever a world draws.
+   No DOM besides canvases; needs dreambrush.js and dreamstyle.js with its worlds; a global `DreamYou`. */
 (function (root) {
   'use strict';
-  const { softLight, stamp, tinted } = root.DreamBrush;
-  const FRAMES = ['blossom', 'mandala', 'mist'];
+  const { softLight, stamp } = root.DreamBrush;
   const TINY = 64, GLOW = 28;                           // the mask, small: scaled up again it is the soft outline
   const FACE = 0.3;                                     // how much of the picture's width the face takes
   const PATCH = softLight([[0, 'rgba(255,255,255,1)'], [0.62, 'rgba(255,255,255,1)'], [1, 'rgba(255,255,255,0)']], 64);   // a piece of the picture
-  const WHITE = softLight([[0, 'rgba(255,255,255,1)'], [0.35, 'rgba(255,255,255,.55)'], [1, 'rgba(255,255,255,0)']], 64);
   const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
   const canvas = () => document.createElement('canvas');
   const fit = (c, n) => { if (c.width !== n || c.height !== n) { c.width = c.height = n; return true; } return false; };
@@ -95,45 +95,11 @@
     return y.cut;
   }
 
-  function blossoms(c, n, t, hue, al) {                 // a wreath of blossoms that open and turn slowly
-    const count = 14;
-    for (let k = 0; k < count; k++) {
-      const an = k / count * Math.PI * 2 + t / 26000, rr = n * (0.335 + 0.01 * Math.sin(t / 2100 + k * 1.7));
-      const x = n / 2 + Math.cos(an) * rr, yy = n / 2 + Math.sin(an) * rr, s = n * (0.032 + 0.012 * ((k * 7) % 3) / 2) * (0.85 + 0.15 * Math.sin(t / 1500 + k));
-      c.save(); c.translate(x, yy); c.rotate(t / 5200 * (k % 2 ? 1 : -1) + k);
-      c.globalAlpha = 0.9 * al; c.fillStyle = `hsl(${hue + (k % 3) * 28 - 20},82%,${74 + (k % 2) * 8}%)`;
-      for (let p = 0; p < 5; p++) { c.rotate(Math.PI * 2 / 5); c.beginPath(); c.ellipse(0, -s * 0.62, s * 0.36, s * 0.62, 0, 0, Math.PI * 2); c.fill(); }
-      c.fillStyle = `hsl(${hue + 50},95%,88%)`; c.beginPath(); c.arc(0, 0, s * 0.24, 0, Math.PI * 2); c.fill();
-      c.restore();
-    }
-    c.globalAlpha = 1;
-  }
-  function mandala(c, n, t, hue, al) {                  // rings of petals drawn in light behind the person, turning both ways
-    c.save(); c.translate(n / 2, n / 2); c.globalCompositeOperation = 'lighter'; c.lineJoin = 'round';
-    for (let ring = 0; ring < 3; ring++) {
-      const petals = 12 + ring * 6, base = n * (0.27 + ring * 0.05), rot = t / 9000 * (ring % 2 ? 1 : -1);
-      c.beginPath();
-      for (let k = 0; k <= 180; k++) {
-        const an = k / 180 * Math.PI * 2, rr = base * (1 + 0.045 * Math.sin(an * petals + t / 1300 * (ring % 2 ? -1 : 1)));
-        c[k ? 'lineTo' : 'moveTo'](Math.cos(an + rot) * rr, Math.sin(an + rot) * rr);
-      }
-      c.closePath(); c.lineWidth = n * (0.012 - ring * 0.002); c.globalAlpha = (0.85 - ring * 0.15) * al;
-      c.strokeStyle = `hsl(${hue + ring * 35},90%,${72 - ring * 4}%)`; c.stroke();
-    }
-    c.restore(); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-  }
-  function mist(c, n, t, hue, al) {                     // veils of mist drifting around, thicker below
-    c.globalCompositeOperation = 'lighter';
-    for (let k = 0; k < 16; k++) {
-      const an = k / 16 * Math.PI * 2 + Math.sin(t / 6000 + k) * 0.25 + t / 40000, low = 0.5 + 0.5 * Math.sin(an);
-      const rr = n * (0.33 + 0.03 * Math.sin(t / 2700 + k * 2.1));
-      stamp(c, tinted(hue + 20 + (k % 4) * 12), n / 2 + Math.cos(an) * rr * 1.05, n / 2 + Math.sin(an) * rr, n * (0.1 + 0.07 * low), (0.2 + 0.3 * low) * al);
-    }
-    c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-  }
-  const BEHIND = { mandala }, FRONT = { blossom: blossoms, mist };   // an aureole behind the head; a wreath, veils before the shoulders
-
-  function sparks(c, y, n, t, hue, al, count, front, away = 0) {  // fireflies around the person, never where the face is
+  // #222: what is drawn around the person is the style world's (the part `you`, static/dreamstyle.js): its frames
+  // (behind the head, before the shoulders), its fireflies (`spark`), the colours of the outline (`tints`). Where the
+  // fireflies fly stays here – around the person, never where the face is.
+  const style = o => (o && o.style) || root.DreamStyle.part('you');
+  function sparks(S, c, y, n, t, hue, al, count, front, away = 0) {
     const gd = y.guard;
     c.globalCompositeOperation = 'lighter';
     for (let k = front ? 1 : 0; k < Math.min(count, y.sparks.length); k += 2) {
@@ -141,9 +107,8 @@
       const x = gd.x + Math.cos(an) * rr, yy = gd.y + n * 0.08 + Math.sin(an) * rr * 1.1 + Math.sin(t / 900 + s.ph) * n * 0.012 - away * n * 0.06;
       const dx = (x - gd.x) / gd.rx, dy = (yy - gd.y) / gd.ry;
       if (dx * dx + dy * dy < 1.3) continue;
-      const tw = 0.55 + 0.45 * Math.sin(t / 380 + s.ph * 3), r = n * s.s * (0.7 + 0.5 * tw);
-      stamp(c, tinted(hue + s.hue), x, yy, r * 2.2, 0.75 * tw * al);
-      stamp(c, WHITE, x, yy, r * 0.8, 0.95 * tw * al);
+      const tw = 0.55 + 0.45 * Math.sin(t / 380 + s.ph * 3);
+      S.spark(c, x, yy, n * s.s * (0.7 + 0.5 * tw), hue + s.hue, tw, al, k);
     }
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
   }
@@ -169,7 +134,7 @@
   // dream's colour), t (ms), frame (null or one of FRAMES), level (0–1: how far the moment has come), sparks (how many),
   // leave (0–1: how far it has dissolved into the dream again).
   function compose(y, o) {
-    const n = o.n, t = o.t, hue = o.hue, al = o.level === undefined ? 1 : clamp(o.level, 0, 1);
+    const n = o.n, t = o.t, hue = o.hue, al = o.level === undefined ? 1 : clamp(o.level, 0, 1), S = style(o), tints = S.tints(hue, t);
     cutout(y, o);
     const gd = y.guard, pulse = 0.5 + 0.5 * Math.sin(t / 1100);
     fit(y.pic, n);
@@ -194,16 +159,16 @@
       x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, size, size); x.drawImage(from, 0, 0, size, size);
       x.globalCompositeOperation = 'source-in'; x.fillStyle = col; x.fillRect(0, 0, size, size);
     };
-    tint(y.glow, GLOW, y.tiny, `hsl(${hue},90%,66%)`);
-    tint(y.halo, TINY, y.tiny, `hsl(${hue + 35},95%,80%)`);
+    tint(y.glow, GLOW, y.tiny, tints.glow);
+    tint(y.halo, TINY, y.tiny, tints.halo);
     const cx = gd.x, cy = n * 0.62;                     // the glow grows out from the person's middle
     p.globalCompositeOperation = 'lighter';
     for (const [cv, k, a] of [[y.glow, 1.16 + 0.03 * pulse, 0.55 + 0.25 * pulse], [y.glow, 1.07, 0.6], [y.halo, 1.03, 0.75]]) {
       p.globalAlpha = a * al; p.drawImage(cv, cx - cx * k, cy - cy * k, n * k, n * k);
     }
     p.globalAlpha = 1; p.globalCompositeOperation = 'source-over';
-    if (BEHIND[o.frame]) BEHIND[o.frame](p, n, t, hue, al);
-    sparks(p, y, n, t, hue, al, o.sparks === undefined ? 24 : o.sparks, false);   // these fly behind the person
+    if (S.behind[o.frame]) S.behind[o.frame](p, n, t, hue, al);
+    sparks(S, p, y, n, t, hue, al, o.sparks === undefined ? 24 : o.sparks, false);   // these fly behind the person
     // the person, once and as the camera sees them
     p.drawImage(y.cut, 0, 0);
     // what lies in front: the frame, a shimmer exactly at the person's edge, fireflies – and the face's oval taken out
@@ -211,24 +176,24 @@
     fit(y.over, n);
     const v = y.over.getContext('2d');
     v.globalCompositeOperation = 'source-over'; v.globalAlpha = 1; v.clearRect(0, 0, n, n);
-    if (FRONT[o.frame]) FRONT[o.frame](v, n, t, hue, al);
+    if (S.front[o.frame]) S.front[o.frame](v, n, t, hue, al);
     const img = tc.getImageData(0, 0, TINY, TINY), d = img.data;
     for (let i = 3; i < d.length; i += 4) { const a = d[i] / 255; d[i] = 1020 * a * (1 - a); d[i - 1] = d[i - 2] = d[i - 3] = 255; }   // only the edge
     y.rim.getContext('2d').putImageData(img, 0, 0);
-    tint(y.halo, TINY, y.rim, `hsl(${hue + 20 + 40 * Math.sin(t / 2300)},95%,75%)`);
+    tint(y.halo, TINY, y.rim, tints.rim);
     v.globalCompositeOperation = 'lighter'; v.globalAlpha = (0.45 + 0.25 * pulse) * al; v.drawImage(y.halo, 0, 0, n, n);
     v.globalAlpha = 1; v.globalCompositeOperation = 'source-over';
-    sparks(v, y, n, t, hue, al, o.sparks === undefined ? 24 : o.sparks, true);
+    sparks(S, v, y, n, t, hue, al, o.sparks === undefined ? 24 : o.sparks, true);
     v.globalCompositeOperation = 'destination-out'; oval(v, gd, 1, 0.8, '0,0,0'); v.globalCompositeOperation = 'source-over';
     p.drawImage(y.over, 0, 0);
     const leave = clamp(o.leave || 0, 0, 1);
     if (leave > 0) {                                    // it comes apart, and its fireflies fly off into the dream
       p.globalCompositeOperation = 'destination-in'; p.drawImage(dissolve(y, n, leave), 0, 0); p.globalCompositeOperation = 'source-over';
       const glowing = Math.sin(Math.min(1, leave * 1.15) * Math.PI);
-      for (const front of [false, true]) sparks(p, y, n, t, hue, glowing, y.sparks.length, front, leave);
+      for (const front of [false, true]) sparks(S, p, y, n, t, hue, glowing, y.sparks.length, front, leave);
     }
     return y.pic;
   }
 
-  root.DreamYou = { FRAMES, FACE, create, cropOf, cutout, compose, dissolve };
+  root.DreamYou = { get FRAMES() { return style().FRAMES; }, FACE, create, cropOf, cutout, compose, dissolve };
 })(typeof window !== 'undefined' ? window : globalThis);
