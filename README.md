@@ -805,7 +805,9 @@ eyes** that invite people to step up and play:
   warm walls and a dim warm room in a noisy camera, the camera hunting for its exposure, warm LEDs beating with the
   camera's shutter (they go up and down evenly and keep their shape), a screen with warm moving pictures, a face or a
   hand in warm light, even when it moves or waves (its light goes up and down evenly), a warm light pulsing with music
-  and a lamp that flickers a little in a phone held in the hand (both keep their outline). A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
+  and a lamp that flickers a little in a phone held in the hand (both keep their outline), and a wall in warm room light
+  with a person moving in front of it (the head tears its light apart and joins it again, and a wall is larger than any
+  flame: warm light over more than a quarter of the picture is a wall). A candle held in front of such a wall is found. A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
   does not flicker at all, is no more than a lamp.
   **To see what the eyes take for fire in your room:** open Dreamy Eyes with `?debug` at the end of its address (after
   an existing `?…`: `&debug`). A corner then shows the camera sample in grey, warm light in yellow (its bright core

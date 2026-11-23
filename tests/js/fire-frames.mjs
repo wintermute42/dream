@@ -105,6 +105,32 @@ function screen({ x0 = 28, y0 = 20, w = 44, h = 26, seed = 3 }) {
 export const SKIN = { pale: [255, 224, 189], light: [241, 194, 125], tan: [224, 172, 105], brown: [198, 134, 66], dark: [141, 85, 36], rosy: [234, 160, 130] };
 const LAMP = [255, 165, 55], ROOM = [58, 52, 48];
 const shake = (seed, amp) => { const r = rng(seed), p = []; return i => { while (p.length <= i) p.push([(r() - 0.5) * 2 * amp, (r() - 0.5) * 2 * amp]); return p[i]; }; };
+// #233, second round: a large wall lit by warm room light – the upper part of the picture and its right side (above `top`,
+// right of `side`), a soft gradient from `base` red to `base + hot` (the camera's red at its end there), with a texture
+// (`tex`, how strong; `grain`, how fine) – and in front of it, dark things that move: they tear the wall's warm light
+// apart and join it again. A camera that hunts a little for its exposure (`drift`).
+function warmWall({ base, hot, tex, grain, top, side, g = 0.65, b = 0.43 }) {
+  return { prep() {}, at(x, y) {
+    const a = Math.max(ramp(top - y, -2, 2), ramp(x - side, -2, 2));
+    if (!a) return null;
+    const r = base + hot * ramp(x * 0.6 - y * 0.8, -40, 50) + tex * Math.sin(x / grain + y / 7.1) * Math.sin(y / (grain * 0.8) - x / 9.7);
+    return [r, r * g, r * b, a];
+  } };
+}
+const SHELF = { prep() {}, at: (x, y) => x < 10 && y < 50 ? [32, 26, 22, 1] : null };   // a dark shelf at the left
+// a person in front of the camera: dark hair (at x(t), y(t), its width w(t) as the head turns) over grey shoulders (at sx(t))
+function person({ x, y, w = () => 1, sx = x }) {
+  let hx = 0, hy = 0, rx = 11, bx = 0;
+  return { prep(i) { const t = sec(i); hx = x(t); hy = y(t); rx = 11 * w(t); bx = sx(t); },
+    at(px, py) {
+      const q = Math.hypot((px - hx) / rx, (py - hy) / 14);
+      if (q < 1) return [38, 30, 26, ramp(1 - q, 0, 0.2)];
+      const q2 = Math.hypot((px - bx) / 28, (py - hy - 36) / 22);
+      return q2 < 1 ? [104, 104, 110, ramp(1 - q2, 0, 0.08)] : null;
+    } };
+}
+const drift = (seed, amp) => { const r = rng(seed), a = []; let k = 1; return i => { while (a.length <= i) { k = 0.95 * k + 0.05 * (1 + amp * (r() - 0.5) * 2); a.push(k); } return a[i]; }; };
+const wallScene = ({ seed, noise, amp = 0.05, wall, things }) => scene({ seed, back: [70, 58, 50], noise, gain: drift(seed + 1, amp), things: [warmWall(wall), SHELF, ...things] });
 
 // every scene with what the eyes should make of it: fire (yes or no), and where the flame is (0–1) if it stands still
 export const SCENES = {
@@ -164,6 +190,24 @@ export const SCENES = {
   'LED pulsing with music': { fire: false, make: () => { const r = rng(46), beat = []; const p = shake(47, 0.6);
     const at = i => { while (beat.length <= i) beat.push(r() < 0.35 ? 1 : 0); let k = 0; for (let j = Math.max(0, i - 4); j <= i; j++) k = Math.max(k, beat[j] * Math.pow(0.6, i - j)); return k; };
     return scene({ seed: 84, things: [glowing(blob({ rx: 7, rgb: [240, 150, 50], edge: 3, path: i => [50 + p(i)[0], 32 + p(i)[1]], grow: i => 1 + 0.15 * at(i) }), (x, y, i) => 0.8 + 0.35 * at(i))] }); } },
+  // #233, second round (the owner's room): a warm-lit wall over most of the picture, its red at the camera's end in places,
+  // and a person in front of it who moves their head – the wall's light is torn apart and joined again, its size and
+  // outline change with the head. And a hand waving in front of such a wall, a person walking past it.
+  ...Object.fromEntries([
+    ['turning their head', 905, 4.75, 0.02, { base: 190, hot: 68, tex: 10.5, grain: 10.4, top: 49, side: 69, g: 0.62 }, 1.82, 9, 11.4],
+    ['nodding slowly', 59, 7.1, 0.09, { base: 210, hot: 46, tex: 3.9, grain: 4.7, top: 38, side: 61, g: 0.64, b: 0.44 }, 0.7, 6.4, 15.2],
+    ['leaning', 72, 6.8, 0.04, { base: 209, hot: 48, tex: 11.8, grain: 5.3, top: 36, side: 55, g: 0.7, b: 0.47 }, 1.43, 11.4, 10.1],
+    ['restless', 289, 6.4, 0.1, { base: 201, hot: 69, tex: 10.8, grain: 8.7, top: 43, side: 66 }, 2.03, 3.7, 11.3],
+  ].map(([how, seed, noise, amp, wall, sp, way, hy]) => [`person before a warm wall, ${how}`, { fire: false, make: () => wallScene({ seed, noise, amp, wall, things: [person({
+    x: t => 46 + way * Math.sin(TAU * 0.3 * sp * t) + 2 * Math.sin(TAU * 1.1 * sp * t), y: t => hy + 0.4 * way * Math.sin(TAU * 0.45 * sp * t) + 1.5 * Math.sin(TAU * 1.7 * sp * t),
+    w: t => 1 + 0.2 * Math.sin(TAU * 0.6 * sp * t), sx: t => 46 + 0.4 * way * Math.sin(TAU * 0.3 * sp * t - 0.4) })] }) }])),
+  'person walking past a warm wall': { fire: false, make: () => { const x = t => -30 + (t * 12.8) % 160;
+    return wallScene({ seed: 69, noise: 6.3, wall: { base: 207, hot: 55, tex: 11.7, grain: 10.6, top: 46, side: 56 }, things: [person({ x, y: t => 14 + 1.5 * Math.sin(TAU * 1.8 * t) })] }); } },
+  'candle held before a warm wall': { fire: true, at: [0.5, 0.79], make: () => wallScene({ seed: 92, noise: 5, wall: { base: 205, hot: 55, tex: 9, grain: 7, top: 44, side: 64 }, things: [
+    person({ x: t => 44 + 4 * Math.sin(TAU * 0.4 * t), y: t => 14 + 2 * Math.sin(TAU * 0.9 * t) }), flame({ cx: 48, cy: 62, wd: 3.4, ht: 9, lively: 0.8, seed: 15 })] }) },
+  'hand waving before a warm wall': { fire: false, make: () => wallScene({ seed: 91, noise: 5, wall: { base: 205, hot: 55, tex: 9, grain: 7, top: 44, side: 56 }, things: [
+    person({ x: t => 40 + 2 * Math.sin(TAU * 0.2 * t), y: () => 16 }),
+    blob({ rx: 8, ry: 11, rgb: [120, 88, 70], edge: 1.5, path: i => [64 + 14 * Math.sin(TAU * 1.6 * sec(i)), 30 + 4 * Math.cos(TAU * 0.7 * sec(i))] })] }) },
   'nothing warm': { fire: false, make: () => scene({ seed: 63, back: [70, 80, 110], noise: 6, things: [blob({ rx: 14, rgb: [230, 235, 255], edge: 4 })] }) },
 };
 

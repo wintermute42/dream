@@ -843,7 +843,9 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   gleichmäßig heller und dunkler und behalten ihre Form), ein Bildschirm mit warmen bewegten Bildern, ein Gesicht oder
   eine Hand in warmem Licht, auch wenn sie sich bewegt oder winkt (ihr Licht geht gleichmäßig auf und ab), ein warmes
   Licht, das mit der Musik pulsiert, und eine Lampe, die in einem Handy in der Hand leicht flackert (beide behalten ihren
-  Umriss). Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
+  Umriss), und eine Wand in warmem Zimmerlicht, vor der sich jemand bewegt (der Kopf reißt ihr Licht auseinander und fügt
+  es wieder zusammen, und eine Wand ist größer als jede Flamme: warmes Licht über mehr als ein Viertel des Bildes ist eine
+  Wand). Eine Kerze, die vor so einer Wand gehalten wird, wird erkannt. Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
   weg steht, oder eine Flamme, die gar nicht flackert, ist nicht mehr als eine Lampe.
   **Sehen, was die Augen im eigenen Raum für Feuer halten:** Dreamy Eyes mit `?debug` am Ende der Adresse öffnen (nach
   einem vorhandenen `?…`: `&debug`). Eine Ecke zeigt dann die Kamera-Probe in Grau, warmes Licht in Gelb (sein heller
