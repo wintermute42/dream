@@ -798,7 +798,7 @@
   // drawn as in a dream (#229: wavering, running out into mist, the face clear for a moment; static/dreamyou.js).
   // Mirrored clearly in the iris now and then, and now
   // and then as a moment: through the pupils, large, and gone again. Nothing of it is sent – no picture, no word. ----------
-  const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 60000, moment: 0, momentNext: performance.now() + 90000,
+  const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 60000, moment: 0, momentNext: performance.now() + 150000, momentAt: -1e9,
     want: 0, clear: false, frame: null, cutAt: 0, d: DreamYou.create() };
   const youSrc = n => { const v = $('cam'); return { src: v, sw: v.videoWidth, sh: v.videoHeight, mask: seg.cv, stamp: seg.have, face, n }; };
   const youSize = () => (perf > 45 ? 448 : perf > 30 ? 352 : 256) * (dpr > 1 ? 1 : 0.8) | 0;   // #188: fewer pixels when the phone runs short
@@ -814,7 +814,7 @@
     const fresh = seg.have > 0 && t - seg.have < 1500 && $('cam').videoWidth > 0;
     if (you.want && (!present || !calm || t - you.want > 8000)) { you.want = 0; you.momentNext = t + 20000; }
     else if (you.want && fresh) {                      // it comes through the pupils like a painted face – and stays a little longer
-      you.want = 0; you.momentNext = t + (140000 + Math.random() * 120000) * pace(t);
+      you.want = 0; you.momentAt = t; you.momentNext = t + (240000 + Math.random() * 240000) * pace(t);   // rare: every 4–8 min
       you.frame = Math.random() < 0.4 ? DreamYou.FRAMES[Math.random() * DreamYou.FRAMES.length | 0] : null;   // now and then a frame
       you.d.crop = null;
       portal.kind = 'you'; portal.phase = 'in'; portal.t0 = t; portal.hold = 3000 + Math.random() * 1200;   // a glimpse, not a portrait: dreamy, clear for a moment, dreamy again (#229)
@@ -1154,7 +1154,7 @@
     if (present) you.wasPresent = true; else if (you.wasPresent) { you.wasPresent = false; you.goneAt = t; }
     if (arrived) {
       if ((you.greet = !you.greet)) { you.irisUntil = t + 4500; you.irisNext = t + (100000 + Math.random() * 100000) * pace(t); }
-      else you.momentNext = t + 1500;
+      else if (t - you.momentAt > 180000) you.momentNext = Math.min(you.momentNext, t + 1500);   // a greeting, but not right after the last one
     }
     youTick(t, present);
     const tt = tranceTick(t, dt, present);              // #172
