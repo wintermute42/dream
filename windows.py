@@ -40,6 +40,8 @@ clock = {"wander": 0.0, "life": 0.0, "wave": 0.0}
 # #214: the painted faces come alive in the windows. Where a face has its eyes, brows, mouth and outline is found once
 # per painted face, by the stage on this Mac (static/dreamface.js, with the face model Dream has anyway) – never by a
 # window, and not again for another window. Dream keeps the points with the face and hands them on: a few hundred bytes.
+# #230: Dreamy Eyes move the painted face in their pupils the same way – the points go to them too (`lookers`), and
+# nothing else of the windows does.
 FACE_POINTS = 82                                   # the points of a face – as many as DreamFace.PICK names (a test compares)
 MARKS_TRIES = 2
 marks: dict = {}                                   # face id -> [x0, y0, x1, y1, …] in thousandths of the picture; None: no face found
@@ -143,11 +145,21 @@ def window_add(sock) -> None:
     motifs[sock] = motif_make(motif_pick(_taken({})))
 
 
+def lookers() -> list:
+    """Who shows the painted faces and moves them: the dream windows and the Dreamy Eyes pages (#230)."""
+    return list(hub.windows) + eyes.eyes_socks()
+
+
+def marks_greet(sock) -> None:
+    """The points of the painted faces for a window or a Dreamy Eyes page that just came (after the faces themselves)."""
+    if any(marks.values()):
+        outbox.post(sock, json.dumps(marks_msg()))
+
+
 def window_greet(sock) -> None:
     """What a window that just came needs: the painted faces, their points, its motif."""
     outbox.post(sock, json.dumps(eyes.aimask_msg()))
-    if any(marks.values()):
-        outbox.post(sock, json.dumps(marks_msg()))
+    marks_greet(sock)
     motif_send(sock)
 
 
@@ -182,12 +194,13 @@ async def windows_mood(kind: str):
 
 
 def marks_tick(now: float) -> None:
-    """Asks the stage for the points of every painted face that has none yet – once per face, however many windows."""
+    """Asks the stage for the points of every painted face that has none yet – once per face, however many windows
+    and Dreamy Eyes look on (#230)."""
     ids = {v[0] for v in eyes.aimasks.values()}
     for old in [k for k in list(marks) + list(asked) if k not in ids]:
         marks.pop(old, None)
         asked.pop(old, None)
-    if not hub.windows or not markers:
+    if not markers or not lookers():
         return
     for face in ids:
         when, tries = asked.get(face, (0.0, 0))
@@ -253,6 +266,7 @@ async def windows_loop():
         if not hub.windows:
             wanderers.clear()
             clock.update(wander=0.0, wave=0.0)
+            marks_tick(time.time())                # #230: Dreamy Eyes alone want the points of their faces too
             continue
         await windows_tick(time.time())
 
@@ -276,7 +290,7 @@ async def facemarks(sock: WebSocket):
             except ValueError:
                 continue
             if face:
-                for c in list(hub.windows):
+                for c in lookers():
                     outbox.post(c, json.dumps(marks_msg(face)))
     except (WebSocketDisconnect, RuntimeError):
         pass

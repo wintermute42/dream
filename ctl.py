@@ -56,6 +56,8 @@ async def ctl(sock: WebSocket):
     outbox.post(sock, json.dumps(feeds_msg(sock) if not rights.can(role, "eyes_only") else {"feeds_mine": [], **eyes.aimask_msg()}))
     if sock in eyes.eyes_pages and not rights.can(role, "eyes_only"):   # #166: a Dreamy Eyes page on a Control device gets the faces too
         outbox.post(sock, json.dumps(eyes.aimask_msg()))
+    if sock in eyes.eyes_pages or rights.can(role, "eyes_only"):   # #230: where the painted faces have their eyes, brows, mouth
+        windows.marks_greet(sock)
     if sock in eyes.eyes_pages or rights.can(role, "eyes"):   # #172: how often the trance may come
         outbox.post(sock, json.dumps({"eyes_cfg": eyes.eyes_cfg}))
     if rights.can(role, "control") and cloud.cloud_cache["st"]:   # #176: the cloud's latest status

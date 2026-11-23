@@ -25,7 +25,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
-  asked over `/facemarks` – and moved by each window itself; a window never runs a model). `static/dreamyou.js` draws "you in the dream" for
+  asked over `/facemarks` – and moved by each window itself, and by Dreamy Eyes for the face that opens out of their pupils (#230:
+  `windows.lookers` get the points, `DreamFace.life` is what a face does next); neither ever runs a model for it). `static/dreamyou.js` draws "you in the dream" for
   Dreamy Eyes (#219): the person as the camera sees them, cut out on the phone, the face unchanged, the dream only around
   – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
   `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of

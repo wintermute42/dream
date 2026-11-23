@@ -857,8 +857,17 @@ eyes** that invite people to step up and play:
   current prompt (a single quick AI step, about 0.4 s, the first one a few seconds; the stage barely notices). Every
   four to eight minutes one of them comes through the pupils: it appears inside them as if seen through mist – soft, pale, veiled, with no edge –,
   the two windows grow with glowing rims, turn a little and open into a **dream cloud** – the face inside soft puffs that
-  drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays three to five seconds,
+  drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays a few seconds,
   breathing, swaying and drifting a little; then it shrinks back into the pupils, and the eyes are there again.
+  **The face is alive** (as in the dream windows, see "Living faces" below): it blinks, now and then winks, looks
+  around, lifts its brows, smiles with its mouth and turns its head a little – and smiles along while the eyes are
+  petted. For that the stage on the Mac (Dream or Dream Control open there) finds once per painted face where its
+  eyes, brows, mouth and outline are, and Dream hands these points to Dreamy Eyes; the phone only moves them – it
+  loads no model for it and the Mac paints nothing extra. With the points, the painted face's own eyes lie exactly on
+  the pupils as it comes (in the pupils it looks straight out of them), and it stays five to seven seconds instead of
+  three to five. Without points – no stage open on the Mac, or a picture in which no face is found (a cat, a mask) –
+  the face is the still picture it used to be. A phone that runs short moves a smaller picture of the face less often,
+  and the weakest ones leave the head still.
   The pictures stay in memory only and never go into the gallery; only the eyes (and Dream Control) may fetch them.
   `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds); `DREAM_AIMASK=0`
   switches the painted faces off altogether (no fire spirit either: Dreamy Eyes never make the Mac load a model). With the cloud GPU
@@ -889,7 +898,8 @@ eyes** that invite people to step up and play:
 - **Its code may only lend the front camera** and see the dream – no settings, no commands, nothing that costs money; it
   does not even learn the prompt. Beside the small picture of the dream it is told two numbers: the master brightness
   and (#218) the music's beat, a pulse between 0 and 1 – never what the stage tells its output windows (effects, fades,
-  prompts); a guest's preview hears no beat. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
+  prompts); a guest's preview hears no beat. Of the painted faces it gets the pictures and (#230) where each has its
+  eyes, brows, mouth and outline – nothing else. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
   trying the eyes on your own phone never replaces Dream Control.
 - **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
   who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
@@ -1347,7 +1357,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/eyes-face.test.mjs` (#230) opens Dreamy Eyes in the same browser and is their Dream too: a painted face with its points comes through the pupils and moves (blink, smile, brows, a slight turn), its own eyes are what lies on the pupils, a phone that runs short gets a smaller net and no turn of the head, and a face without points stays still. `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the
