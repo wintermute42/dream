@@ -9,8 +9,8 @@
 
    What today's look shows as signs has its own form here: a bud instead of a heart, a seed head and its drifting seeds
    instead of stars, a poppy head nodding instead of letters, the eye in a glory of engraved rays instead of the
-   triangle. Of a face there is what the face rule lets through (static/dreamvis.js) – and between the eyes and the
-   mouth the plate stays bare.
+   triangle. Of a face there is what the face rule lets through (static/dreamvis.js) – the nose, in the rare moment,
+   as one side cut with a swelling line and hatched in its shade, the other only stippled.
 
    A line is never finer than FINE (hairlines vanish on coarse outputs). Everything is a few paths of many lines each
    and lights stamped from sprites – no blur, no shadow, no filter: old phones. Registers itself with the style layer
@@ -464,18 +464,18 @@
 
   // ---------- the faces of light ----------
   // Three beings of the plate whose eyes these may be. v is the face rule's word: the sign on the forehead comes with
-  // the hints; hair, the halo, the jaw and the hatched, closed lips only in the rare moment, and faintly; nothing is
-  // drawn between the eyes and the mouth. The brow is the eye's own. Drawn twice by the page: without `ink` into the
+  // the hints; hair, the halo, the jaw, the nose and the hatched, closed lips only in the rare moment, clearly then.
+  // The brow is the eye's own. Drawn twice by the page: without `ink` into the
   // mask the dream shines through (so: without colours), with it as the plate's own drawing over that.
   const FACES = ['lily', 'fern', 'moth'];
   function face(c, mode, t, geo, v, ink, inkAl = 1) {
     const mono = ink === undefined, K = mono ? 0.5 : Math.min(0.9, inkAl * 4), q = mono ? MONO : PAL;
-    const mark = DreamVis.of(v, 'mark') * K, hairAl = DreamVis.of(v, 'hair') * 1.4 * K, outline = DreamVis.of(v, 'outline') * 1.2 * K, mouth = DreamVis.of(v, 'mouth') * 1.5 * K;
-    if (mark + hairAl + outline + mouth <= 0.004) return;
-    const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half, geo.h), a = F.u * 1.3, S = skeleton(geo.cx, geo.ey, geo.half, t, geo.h);
+    const mark = DreamVis.of(v, 'mark') * K, hairAl = DreamVis.of(v, 'hair') * 1.1 * K, outline = DreamVis.of(v, 'outline') * K, mouth = DreamVis.of(v, 'mouth') * 1.15 * K, nose = DreamVis.of(v, 'nose') * 1.1 * K;
+    if (mark + hairAl + outline + mouth + nose <= 0.004) return;
+    const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u * 1.3, S = skeleton(geo.cx, geo.ey, geo.half, t);
     const strands = S.filter(k => k.name === 'strand').map(k => k.pts), jaws = S.filter(k => k.name === 'jaw').map(k => k.pts), lip = n => S.find(k => k.name === n).pts;
     const pr = (s, e) => smooth(seg(v.fullForm, s, e)), pH = (s, e) => smooth(seg(v.hintForm, s, e)), mk = F(0, -2.6);
-    // a ring behind the head, in the face's own measure (so it stays on the screen), open below
+    // a ring behind the head, in the face's own measure, open below
     const A0 = PI * 0.76, A1 = PI * 2.24, AM = (A0 + A1) / 2, arc = (r, a0, a1, n = 44) => Array.from({ length: n + 1 }, (_, k) => { const an = lerp(a0, a1, k / n); return F(Math.cos(an) * r, 0.2 + Math.sin(an) * r); });
     const beside = (P, off, n) => P.map((p, i) => { const p0 = P[Math.max(0, i - 1)], p1 = P[Math.min(P.length - 1, i + 1)], l = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) || 1, f = Math.sin(PI * Math.min(1, i / n)); return [p[0] - (p1[1] - p0[1]) / l * off * f, p[1] + (p1[0] - p0[0]) / l * off * f]; });
     c.save();
@@ -562,7 +562,17 @@
         if (!mono) light(c, mk[0], mk[1], a * 0.75, 0.3 * mark * jk * (0.7 + 0.3 * Math.sin(T * 1.7)));
       }
     }
-    const lk = pr(0.55, 0.9);                          // the mouth: closed lips, hatched, a tint of old rose – a breath
+    const nk = pr(0.45, 0.85);                         // the nose: one side cut with a swelling line and hatched in its shade, the other only stippled
+    if (nk > 0 && nose > 0.004) {
+      const sides = S.filter(k => k.name === 'nose side').map(k => k.pts), nh = [], nd = [];
+      line(c, sides[0], u => a * 0.016 * Math.pow(Math.sin(PI * Math.pow(u, 0.7)), 0.8), 0.9 * nose, q.ink, nk);
+      line(c, lip('nose base'), a * 0.011, 0.8 * nose, q.ink, nk);
+      for (let i = 2; i < sides[0].length - 1; i += 2) { const p = sides[0][i]; nh.push([[p[0] - a * 0.03, p[1]], [p[0] - a * 0.2, p[1] + a * 0.09]]); }
+      hair(c, nh, 0, 0.5 * nose * nk, q.ink);
+      for (let i = 1; i < sides[1].length; i += 2) nd.push([sides[1][i][0], sides[1][i][1], a * 0.014 + 0.5]);
+      dots(c, nd, 0.8 * nose * nk, q.ink);
+    }
+    const lk = pr(0.55, 0.9);                          // the mouth: closed lips, hatched, a tint of old rose
     if (lk > 0 && mouth > 0.004) {
       const up = lip('upper lip'), mid = lip('lips'), lw = lip('lower lip'), lh = [];
       c.fillStyle = q.rose; c.globalAlpha = 0.22 * mouth * lk; c.beginPath(); up.forEach((p, i) => c[i ? 'lineTo' : 'moveTo'](p[0], p[1])); for (let i = lw.length - 1; i >= 0; i--) c.lineTo(lw[i][0], lw[i][1]); c.fill(); c.globalAlpha = 1;
