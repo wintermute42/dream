@@ -10,7 +10,7 @@ import time
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from test_rights import client
+from test_rights import client, ws_url
 
 STATIC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
 FACE = "0123456789ab"
@@ -358,9 +358,9 @@ def drifting(server, win, monkeypatch):
     for k, v in {"world": "classic", "world_to": "classic", "world_mix": 0.0, "world_auto": 100}.items():
         monkeypatch.setitem(server.hub.state, k, v)
     monkeypatch.setattr(server.eyes.outbox, "post", lambda sock, text: sock.got.append(json.loads(text)) or True)
-    server.eyes.drift.update(left=None, stay_from=None, wait_until=0.0, at=None)
+    server.eyes.drift.update(left=None, stay_from=None, wait_until=0.0, at=None, hand=False, told=None)
     yield server.eyes
-    server.eyes.drift.update(left=None, stay_from=None, wait_until=0.0, at=None)
+    server.eyes.drift.update(left=None, stay_from=None, wait_until=0.0, at=None, hand=False, told=None)
 
 
 def drift_for(server, t0: float, secs: float) -> list:
@@ -398,13 +398,63 @@ def test_the_crossfade_is_three_entries_in_the_table_and_the_drift_is_on_by_defa
     for page in ("index.html", "remote.html"):
         with open(os.path.join(here, "static", page), encoding="utf-8") as f:
             src = f.read()
-        for el in ('<select id="world_to"', '<input type="range" id="world_mix"', '<select id="world_auto"'):
-            assert el in src, (page, el)
+        # the band of worlds (static/worldband.js, tests/js/worldband.test.mjs) shows and sets them; the crossfade
+        # stays a MIDI knob's
+        assert '<div id="worldband"></div>' in src and "WorldBand.mount(" in src, page
         assert '<option value="world_mix">Style worlds: crossfade</option>' in src, page
-        # the worlds are listed once in a page: the second world offers what the first offers
-        assert re.search(r'<select id="world_to"[^>]*></select>', src) and "DreamCommon.worldControls(" in src, page
-        paces = re.findall(r'<option value="(\d+)"', re.search(r'<select id="world_auto"[^>]*>(.*?)</select>', src).group(1))
-        assert "0" in paces and str(s["world_auto"].default) in paces, page
+    with open(os.path.join(here, "static", "worldband.js"), encoding="utf-8") as f:
+        band = f.read()
+    paces = [int(n) for n in re.findall(r"\[(\d+), \(\) => T\('", band)]
+    assert s["world_auto"].default in paces and f"const PACE = {s['world_auto'].default};" in band
+
+
+def test_the_greeting_names_the_worlds_and_where_the_drift_is(server):
+    """What the band of worlds needs when a page comes: Dream's list of worlds and the drift's state."""
+    with client(server, "control").websocket_connect(ws_url(server, "/ctl", "control")) as ws:
+        first = ws.receive_json()
+        while "state" not in first:
+            first = ws.receive_json()
+    assert first["worlds"] == list(server.settings.WORLDS)
+    assert set(first["world_drift"]) == {"wait", "next", "idle"} and first["world_drift"]["idle"] is True   # no eyes, no window
+
+
+def test_the_pages_are_told_the_worlds_and_where_the_drift_is(server, drifting):
+    """The band of worlds in the panel and in Dream Control: Dream's list of worlds comes with the greeting, and a word
+    on the drift – how long it still waits after a hand, when the next world begins to come, whether it rests because
+    nobody looks – with the greeting and whenever that changes (the pages count down by themselves)."""
+    e = drifting
+    told = []
+
+    class Page:
+        got = told
+    server.hub.clients[Page] = "remote"
+    server.hub.roles[Page] = "guest"                   # (whoever hears the settings change hears this too – it sets nothing)
+    try:
+        drift_for(server, 0, 1)
+        assert told == [{"world_drift": {"wait": 0, "next": None, "idle": True}}]   # nobody looks: it rests
+        come(server, 1)
+        told.clear()
+        drift_for(server, 1, 10)
+        assert told == [{"world_drift": {"wait": 0, "next": 40, "idle": False}}]    # one word, then the page counts
+        assert e.drift_msg(21.25)["world_drift"]["next"] == 20
+        told.clear()
+        drift_for(server, 11, 40)                      # the next world comes: no more countdown
+        assert [m for m in told if "world_drift" in m] == [{"world_drift": {"wait": 0, "next": None, "idle": False}}]
+        told.clear()
+        # a tap on the very world that shows changes nothing – and still is a hand: the drift waits
+        s = server.hub.state
+        asyncio.run(server.hub.apply({"world": s["world"], "world_to": s["world_to"], "world_mix": s["world_mix"]}, persist=False, by="remote"))
+        held = drift_for(server, 51, 30)
+        assert len(set(held)) == 1
+        assert [m["world_drift"] for m in told if "world_drift" in m] == [{"wait": round(e.WORLD_HAND), "next": None, "idle": False}]
+        assert e.drift_msg(51.25 + 20)["world_drift"]["wait"] == round(e.WORLD_HAND) - 20
+        told.clear()
+        asyncio.run(server.hub.apply({"world_auto": 0}, persist=False, by="remote"))   # off: nothing waits, nothing counts
+        drift_for(server, 81, 1)
+        assert [m["world_drift"] for m in told if "world_drift" in m] == [{"wait": 0, "next": None, "idle": False}]
+    finally:
+        server.hub.clients.pop(Page, None)
+        server.hub.roles.pop(Page, None)
 
 
 def test_the_drift_wanders_through_all_worlds_softly_and_tells_the_windows(server, drifting):
