@@ -199,7 +199,7 @@ test('two pictures handing over by one number: the old one is gone at the middle
 test('the eyes show their faces one at a time', () => {
   const eyes = read('eyes.html').replace(/\/\/.*$/gm, '');
   assert.ok(/DreamVis\.step\(vis\.face, [^;]+, dt, [^;]+\);\s*vis\.shown = DreamVis\.damp\(vis\.cur, vis\.face\.al\)/.test(eyes), 'the face shown is the one whose turn it is, as far as it is there');
-  const draws = eyes.match(/faceMask\(vis\.mode[^;]*;/g) || [];
+  const draws = eyes.match(/DreamStyle\.face\(\)\.draw\(bk, vis\.mode[^;]*;/g) || [];
   assert.ok(draws.length >= 2 && draws.every(d => /vis\.shown/.test(d) && !/vis\.cur/.test(d)), 'every face of light is drawn by its turn');
   assert.ok(!/vis\.mode = /.test(eyes), 'nothing sets the face shown past its turn');
   assert.ok(/'silhouette' \? DreamVis\.handover\(bs\.mix\)/.test(eyes), "the person's outline never lies over another mask");
@@ -232,12 +232,13 @@ test('a level held from the address: ?face=0|1|2', () => {
 });
 
 test('the pages draw nothing of a face past the rule', () => {
-  const eyes = read('eyes.html'), win = read('window.html'), eye = read('dreameye.js');
-  for (const [name, src] of [['eyes.html', eyes], ['window.html', win], ['dreameye.js', eye], ['dreamlife.js', read('dreamlife.js')]]) {
+  const eyes = read('eyes.html'), win = read('window.html'), eye = read('dreameye.js'), classic = read('world-classic.js');
+  for (const [name, src] of [['eyes.html', eyes], ['window.html', win], ['dreameye.js', eye], ['dreamlife.js', read('dreamlife.js')], ['world-classic.js', classic], ['dreambrush.js', read('dreambrush.js')]]) {
     assert.ok(!/grin/i.test(src), `${name}: the grin is gone`);
     const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');   // without its comments
-    // a nose only in the faces drawn in light, and there only as far as the rule lets it show (below)
-    if (name !== 'eyes.html') assert.ok(!/nose|nostril/i.test(code), `${name}: no nose is drawn`);
+    // a nose only in the faces drawn in light (and in the skeleton the worlds share), and there only as far as the
+    // rule lets it show (below, and tests/js/brush.test.mjs)
+    if (!['world-classic.js', 'dreambrush.js'].includes(name)) assert.ok(!/nose|nostril/i.test(code), `${name}: no nose is drawn`);
   }
   for (const [name, src] of [['eyes.html', eyes], ['window.html', win]]) {
     assert.ok(src.includes('<script src="/static/dreamvis.js"></script>'), `${name} loads the rule`);
@@ -245,14 +246,14 @@ test('the pages draw nothing of a face past the rule', () => {
     assert.ok(!/DreamVis[^;\n]*(aiFaces|DreamFace)|faceEdge\([^)]*vis/.test(src), `${name}: a face painted by the AI stays whole`);
   }
   // the faces drawn in light: every line and every dot carries the visibility of its part
-  const body = eyes.slice(eyes.indexOf('function faceMask('), eyes.indexOf('// #160: faces painted by the AI'));
+  const body = classic.slice(classic.indexOf('function face('), classic.indexOf('const FACES = '));   // #221: today's look, the first style world
   const calls = body.split('\n').filter(l => !/const (line|leaf|dot) = /.test(l) && (/\b(line|leaf|dot)\(.*\);/.test(l) || /^\s*\}, wd.*\);/.test(l)));
   assert.ok(calls.length > 25, `${calls.length} drawing calls found`);
   for (const l of calls) assert.ok(/\* (mark|hair|outline|mouth|nose|part)\)|, w, al\)/.test(l), `a line without its part: ${l.trim().slice(0, 120)}`);
   const noses = body.split('\n').filter(l => /nose/i.test(l.replace(/\/\/.*$/, '')) && !/const mark = /.test(l));
   assert.ok(noses.length >= 2, 'the goddess and the cat have a nose');
   for (const l of noses) assert.ok(/\* nose\);/.test(l), `a nose past the rule: ${l.trim().slice(0, 120)}`);
-  assert.equal(eyes.slice(0, eyes.indexOf('function faceMask(')).replace(/\/\/.*$/gm, '').match(/nose/gi), null, 'no nose anywhere else in the page');
+  assert.equal(classic.replace(body, '').replace(/\/\/.*$/gm, '').match(/nose/gi), null, 'no nose anywhere else in today\'s look');
   // a face has one size, the eyes': nothing of it is fitted to the screen's height
   assert.ok(!/\bH\b|\bh\b|\bfit\(/.test(body.replace(/\/\/.*$/gm, '')), 'a face of light is never pressed into the screen');
   assert.ok(!/LINEFACES\.has|BACKS = \[[^\]]*LINEFACES/.test(eyes), 'no face is a background that stays for a minute');

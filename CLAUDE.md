@@ -22,7 +22,14 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   is there). The sliders of the panel and of Dream Control are drawn by `static/sliders.js` and `sliders.css` (#216)
   from the settings table (`settings.page_schema()`, sent over `/ctl`): zero mark, influence colour, "Reset". The moving signs beside the sliders and the shape of the picture's character by `static/signs.js` and `signs.css` (#217),
   hung into the sliders' drawing (`painted`) – only transform and opacity move, paused while not on screen.
-  Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
+  Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) decide the scene (what, when, where);
+  how it is drawn is a style world (#221): the pages ask `static/dreamstyle.js` for the eye, the living things, the
+  faces of light and the window motifs of the world in use, a world is one file `static/world-<name>.js` that
+  registers the parts it draws (the rest, and everything for an unknown name, comes from the first world,
+  `world-classic.js`: today's look, kept as it is – `tests/js/style.test.mjs` compares pictures), and what all worlds
+  share is `static/dreambrush.js` (seeded random, noise, lines and bands, soft lights stamped, the dream's brightness,
+  the lids, the skeleton of a face; no page or world keeps its own copy of a helper that is there). The setting
+  `world` (`settings.WORLDS`) names the world; Dream tells it to the eyes and the windows, which never set it. They draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
   asked over `/facemarks` – and moved by each window itself; a window never runs a model). How much of a face shows
