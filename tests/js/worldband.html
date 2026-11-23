@@ -24,8 +24,8 @@
   try {
     const $ = id => document.getElementById(id), wait = ms => new Promise(r => setTimeout(r, ms));
     const WORLDS = ['classic', 'deepsea', 'ink', 'etching', 'aurora'];
-    const sent = [];
-    const band = WorldBand.mount($('band'), { send: set => sent.push(set) });
+    const sent = [], stamps = [];
+    const band = WorldBand.mount($('band'), { send: set => { sent.push(set); stamps.push(performance.now()); } });
     const el = $('band'), chips = () => [...el.querySelectorAll('.wb-chip')], paces = () => [...el.querySelectorAll('.wb-pace button')];
     const sw = el.querySelector('.wb-switch'), flow = el.querySelector('.wb-flow'), line = () => el.querySelector('.wb-status').textContent;
     const key = (target, k) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
@@ -38,9 +38,51 @@
     report.group = { role: el.querySelector('.wb-strip').getAttribute('role'), label: $(el.querySelector('.wb-strip').getAttribute('aria-labelledby')).textContent };
     report.mixing = { status: line(), now: flow.getAttribute('aria-valuenow'), text: flow.getAttribute('aria-valuetext'), role: flow.getAttribute('role'), label: flow.getAttribute('aria-label'),
       from: el.querySelector('.wb-from').textContent, to: el.querySelector('.wb-to').textContent, fill: el.querySelector('.wb-fill').style.transform, live: el.querySelector('.wb-live').textContent,
-      slider: !!el.querySelector('input') };
+      slider: !!el.querySelector('input'), tab: flow.tabIndex, min: flow.getAttribute('aria-valuemin'), max: flow.getAttribute('aria-valuemax'), knob: el.querySelector('.wb-knob').style.transform };
     band.set({ world_mix: 0.7 });
     report.past = chips().map(b => [b.getAttribute('aria-checked'), b.classList.contains('wb-next')]);
+    // a hand drags the crossfade: 40 moves in about 400 ms from a quarter to three quarters of the bar
+    const bar = el.querySelector('.wb-bar').getBoundingClientRect();
+    const ptr = (type, k, dy = 0) => flow.dispatchEvent(new PointerEvent(type, { pointerId: 7, pointerType: 'touch', isPrimary: true, button: 0, bubbles: true, cancelable: true, clientX: bar.left + bar.width * k, clientY: bar.top + 2 + dy }));
+    const fresh = () => { sent.length = 0; stamps.length = 0; };
+    band.set({ world: 'classic', world_to: 'deepsea', world_mix: 0.3 }); fresh();
+    const t0 = performance.now();
+    ptr('pointerdown', 0.25);
+    for (let i = 1; i <= 40; i++) {
+      ptr('pointermove', 0.25 + 0.5 * i / 40);
+      if (i === 20) report.drag = { mid: { dragging: flow.classList.contains('wb-drag'), now: flow.getAttribute('aria-valuenow'), fill: el.querySelector('.wb-fill').style.transform, text: flow.getAttribute('aria-valuetext') } };
+      await wait(10);
+    }
+    ptr('pointerup', 0.75);
+    band.set({ world_mix: 0.4 });                      // Dream's echo of an earlier word arrives late
+    report.drag.echo = flow.getAttribute('aria-valuenow');
+    await wait(150);
+    report.drag.ms = Math.round(performance.now() - t0);
+    report.drag.sent = sent.slice(); report.drag.gaps = stamps.slice(1).map((t, i) => Math.round(t - stamps[i]));
+    report.drag.end = { dragging: flow.classList.contains('wb-drag'), now: flow.getAttribute('aria-valuenow'), checked: chips().slice(0, 2).map(b => b.getAttribute('aria-checked')) };
+    await wait(700);
+    report.drag.settled = flow.getAttribute('aria-valuenow');
+    fresh(); ptr('pointerdown', 0.25); ptr('pointerup', 0.25); await wait(120);
+    report.barTap = sent.slice();
+    await wait(700); fresh(); ptr('pointerdown', 0.6); ptr('pointermove', 0.605, 30); ptr('pointercancel', 0.605, 60); await wait(120);
+    report.scrolled = sent.slice();
+    band.set({ world_mix: 0.25 }); band.drift({ wait: 180, next: null, idle: false }); report.held = line();
+    band.drift({ wait: 0, next: null, idle: false });
+    // the keyboard on the slider: arrows, Page Up, Home, End
+    band.set({ world_mix: 0.4 }); await wait(700); fresh(); flow.focus();
+    report.sliderRing = getComputedStyle(flow).outlineStyle;
+    const now = () => flow.getAttribute('aria-valuenow');
+    report.sliderKeys = {};
+    key(flow, 'ArrowRight'); report.sliderKeys.right = now(); key(flow, 'ArrowLeft'); report.sliderKeys.left = now();
+    await wait(120); report.sliderKeys.sent = sent.at(-1).world_mix;
+    key(flow, 'PageUp'); report.sliderKeys.pageUp = now(); key(flow, 'Home'); report.sliderKeys.home = now(); key(flow, 'End'); report.sliderKeys.end = now();
+    await wait(120); report.sliderKeys.last = sent.at(-1); fresh();
+    key(flow, 'a'); key(flow, 'Tab'); await wait(100); report.sliderKeys.other = sent.length;
+    await wait(700);
+    band.set({ world: 'classic', world_to: 'classic', world_mix: 0.5 }); fresh();
+    ptr('pointerdown', 0.2); ptr('pointermove', 0.8); ptr('pointerup', 0.8); key(flow, 'ArrowRight'); await wait(120);
+    report.one = { disabled: flow.getAttribute('aria-disabled'), text: flow.getAttribute('aria-valuetext'), sent: sent.length };
+    chips()[0].focus();
     // a tap fades over to that world
     band.set({ world: 'classic', world_to: 'deepsea', world_mix: 0 });
     chips()[3].click(); chips()[4].click(); chips()[0].click();

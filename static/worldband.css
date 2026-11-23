@@ -24,12 +24,23 @@
 .wb-pic.wb-drawn { background: #000; }
 .wb-name { display: block; margin-top: 3px; font-size: .68em; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; }
 /* where the crossfade stands: from the world on the left to the one on the right */
-.wb-flow { margin-top: 10px; }
 .wb-labs { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; color: var(--muted); font-size: .74em; line-height: 1.25; }
 .wb-from, .wb-to { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; } .wb-to { text-align: right; }
 .wb-arrow { flex: none; opacity: .7; }
 .wb-labs.wb-one .wb-arrow, .wb-labs.wb-one .wb-to { opacity: 0; }
-.wb-bar { position: relative; height: 5px; margin-top: 4px; border-radius: 99px; background: var(--idle); overflow: hidden; }
+/* … a slider: the whole row takes the finger (a page scrolling up or down passes), the knob stands where the mix is */
+.wb-flow { margin-top: 10px; cursor: ew-resize; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; border-radius: 8px; }
+.wb-flow[aria-disabled="true"] { cursor: default; }
+.wb-flow:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+/* (the track clips what the knob's moving layer reaches past the bar's end – with room for the knob itself) */
+.wb-track { position: relative; margin: 0 -9px; padding: 9px 9px 11px; overflow: hidden; }
+.wb-bar { position: relative; height: 5px; border-radius: 99px; background: var(--idle); overflow: hidden; }
+.wb-knob { position: absolute; left: 9px; right: 9px; top: 9px; height: 5px; pointer-events: none; transform: translateX(0); transition: transform .3s linear, opacity .18s ease-out; }
+.wb-knob::before { content: ''; position: absolute; left: -9px; top: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,.5); transition: transform .12s ease-out; }
+.wb-flow.wb-drag .wb-knob::before { transform: scale(1.25); }
+.wb-flow.wb-drag .wb-fill, .wb-flow.wb-drag .wb-knob { transition: none; }
+.wb-flow[aria-disabled="true"] .wb-knob { opacity: 0; }
 .wb-fill { position: absolute; inset: 0; border-radius: 99px; background: var(--accent); transform: scaleX(0); transform-origin: 0 50%;
   transition: transform .3s linear; }
 /* the drift: a switch, and its pace */
@@ -51,4 +62,4 @@
 .wb-pace.wb-off button { cursor: default; }
 .wb-status { margin-top: 8px; min-height: 1.35em; color: var(--muted); font-size: .8em; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .wb-live { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (prefers-reduced-motion: reduce) { .wb-chip::before, .wb-chip::after, .wb-pic, .wb-fill, .wb-switch::before, .wb-switch::after, .wb-pace { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .wb-chip::before, .wb-chip::after, .wb-pic, .wb-fill, .wb-knob, .wb-knob::before, .wb-switch::before, .wb-switch::after, .wb-pace { transition: none; } }
