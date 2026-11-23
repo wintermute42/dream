@@ -859,9 +859,9 @@ eyes** that invite people to step up and play:
   the two windows grow with glowing rims, turn a little and open into a **dream cloud** – the face inside soft puffs that
   drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays a few seconds,
   breathing, swaying and drifting a little; then it shrinks back into the pupils, and the eyes are there again.
-  **The face is alive** (as in the dream windows, see "Living faces" below): it blinks, now and then winks, looks
-  around, lifts its brows, smiles with its mouth and turns its head a little – and smiles along while the eyes are
-  petted. For that the stage on the Mac (Dream or Dream Control open there) finds once per painted face where its
+  **The face is alive** (as in the dream windows, see "Living faces" below): it blinks, now and then winks, glances
+  clearly to the side (the lids go along), lifts or knits its brows, smiles broadly with mouth and cheeks and turns and
+  nods its head – a new expression every few seconds – and smiles along while the eyes are petted. For that the stage on the Mac (Dream or Dream Control open there) finds once per painted face where its
   eyes, brows, mouth and outline are, and Dream hands these points to Dreamy Eyes; the phone only moves them – it
   loads no model for it and the Mac paints nothing extra. With the points, the painted face's own eyes lie exactly on
   the pupils as it comes (in the pupils it looks straight out of them), and it stays five to seven seconds instead of
@@ -941,8 +941,8 @@ one device to another.
   the Mac** – by the stage, in a background worker, with the face model Dream has anyway (well under a second per
   face; the stage's own drawing never waits for it) – never by a window and not again for another window. The 82
   points travel with the face (under 1 kB). Every window moves them itself over a net of triangles: it blinks, lets
-  its gaze wander, smiles, lifts a brow, breathes and tilts and turns its head a little – subtle, like a painting
-  that is alive. A picture in which no face is found (a cat, a mask), or one painted while no stage is open, is shown
+  its gaze wander, smiles, lifts or knits its brows, breathes and tilts and turns its head – clearly to see, but
+  natural, like a painting that is alive (the same expressions as in Dreamy Eyes, #230). A picture in which no face is found (a cat, a mask), or one painted while no stage is open, is shown
   still.
 - **One organism:** all windows breathe together and pulse to the beat, and now and then a wave of light runs
   through them in turn. When Dreamy Eyes go into trance, the third eye opens in every window too (and the painted

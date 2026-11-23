@@ -97,8 +97,8 @@
   // a face's state at time t (milliseconds); soon: it is seen for a few seconds only – it smiles and lifts its brows early
   function alive(t, soon) {
     const k = soon ? 0.3 : 1;
-    return { blink: 0, blinkAt: t + 1500 * k, wink: -1, look: [0, 0], want: [0, 0], lookAt: 0, smile: 0, smileUntil: 0, smileNext: t + (4000 + Math.random() * 6000) * k,
-      brow: [0, 0], browWant: [0, 0], kind: 0, kindWant: 0, browUntil: 0, browNext: t + (7000 + Math.random() * 6000) * k, ph: Math.random() * 6 };
+    return { blink: 0, blinkAt: t + 1500 * k, wink: -1, look: [0, 0], want: [0, 0], lookAt: 0, smile: 0, smileUntil: 0, smileNext: t + (3000 + Math.random() * 4000) * k,
+      brow: [0, 0], browWant: [0, 0], kind: 0, kindWant: 0, browUntil: 0, browNext: t + (4500 + Math.random() * 4500) * k, ph: Math.random() * 6 };
   }
   // f: what `alive` made; dt in seconds; w: petted (it smiles along), pulse (the beat, 0–1: the brows lift a little),
   // closed (its eyes stay shut). Returns the expression for `pose`.
@@ -109,22 +109,25 @@
       f.blink = flick(p);
       if (p >= 1) { f.blink = 0; f.blinkAt = t + (Math.random() < 0.15 ? 280 : 2200 + Math.random() * 4500); f.wink = Math.random() < 0.07 ? (Math.random() < 0.5 ? 0 : 1) : -1; }
     }
-    if (t > f.lookAt) { f.want = Math.random() < 0.35 ? [0, 0] : [Math.random() * 2 - 1, (Math.random() * 2 - 1) * 0.7]; f.lookAt = t + 900 + Math.random() * 2800; }
+    if (t > f.lookAt) {                                // a glance somewhere, mostly well to one side – or straight out
+      const x = Math.random() < 0.25 ? 0 : (0.45 + 0.55 * Math.random()) * (Math.random() < 0.5 ? -1 : 1);
+      f.want = [x, x ? (Math.random() * 2 - 1) * 0.8 : 0]; f.lookAt = t + 700 + Math.random() * 2300;
+    }
     const kl = 1 - Math.exp(-dt * 8);
     f.look = [lerp(f.look[0], f.want[0], kl), lerp(f.look[1], f.want[1], kl)];
-    if (t > f.smileNext) { f.smileUntil = t + 3500 + Math.random() * 3500; f.smileNext = f.smileUntil + 8000 + Math.random() * 14000; }
-    f.smile = lerp(f.smile, w.petted ? 1 : t < f.smileUntil ? 0.75 : 0.06, 1 - Math.exp(-dt * 1.8));
+    if (t > f.smileNext) { f.smileUntil = t + 3000 + Math.random() * 3000; f.smileNext = f.smileUntil + 5000 + Math.random() * 8000; }
+    f.smile = lerp(f.smile, w.petted ? 1 : t < f.smileUntil ? 0.9 : 0.08, 1 - Math.exp(-dt * 2.2));
     if (t > f.browNext) {
-      const pick = Math.random() * 4 | 0;              // both up, one up, kind (the inner ends up), a little frown
-      f.browWant = pick === 0 ? [1, 1] : pick === 1 ? (Math.random() < 0.5 ? [1, 0] : [0, 1]) : pick === 2 ? [0.2, 0.2] : [-0.6, -0.6];
-      f.kindWant = pick === 2 ? 1 : 0; f.browUntil = t + 1600 + Math.random() * 2200; f.browNext = f.browUntil + 6000 + Math.random() * 12000;
+      const pick = Math.random() * 4 | 0;              // both up, one up, kind (the inner ends up), a frown
+      f.browWant = pick === 0 ? [1, 1] : pick === 1 ? (Math.random() < 0.5 ? [1, 0.15] : [0.15, 1]) : pick === 2 ? [0.2, 0.2] : [-0.85, -0.85];
+      f.kindWant = pick === 2 ? 1 : 0; f.browUntil = t + 1800 + Math.random() * 2200; f.browNext = f.browUntil + 3500 + Math.random() * 6500;
     }
     const on = t < f.browUntil, kb = 1 - Math.exp(-dt * 6);
     for (const k of [0, 1]) f.brow[k] = lerp(f.brow[k], on ? f.browWant[k] : 0.5 * (w.pulse || 0), kb);   // and they lift a little with the beat
     f.kind = lerp(f.kind, on ? f.kindWant : 0, kb);
     const closed = w.closed ? 1 : 0;
     return { blink: [Math.max(closed, f.wink === 1 ? 0 : f.blink), Math.max(closed, f.wink === 0 ? 0 : f.blink)], look: f.look, smile: f.smile, brow: f.brow, kind: f.kind,
-      turn: 0.7 * Math.sin(t / 4700 + f.ph) + 0.25 * Math.sin(t / 1900), nod: 0.6 * Math.sin(t / 6100 + f.ph * 2) };
+      turn: 0.72 * Math.sin(t / 3900 + f.ph) + 0.26 * Math.sin(t / 1700), nod: 0.65 * Math.sin(t / 4900 + f.ph * 2) + 0.2 * Math.sin(t / 2300) };
   }
 
   // ---------- an expression: where the points are now ----------
@@ -135,29 +138,43 @@
     q.set(B);
     const move = (i, dx, dy) => { q[2 * i] += dx; q[2 * i + 1] += dy; };
     const smile = clamp(e.smile || 0, 0, 1);
-    if (e.turn || e.nod) for (let i = 0; i < PICK.length; i++) move(i, (e.turn || 0) * m.depth[i] * m.r * 0.07, (e.nod || 0) * m.depth[i] * m.r * 0.05);
+    if (e.turn || e.nod) for (let i = 0; i < PICK.length; i++) move(i, (e.turn || 0) * m.depth[i] * m.r * 0.1, (e.nod || 0) * m.depth[i] * m.r * 0.075);
     for (const [k, ring] of [[0, AT.eyeA], [1, AT.eyeB]]) {
-      const b = clamp((e.blink ? e.blink[k] : 0) + 0.14 * smile, 0, 1), gap = m.lidGap[k];   // smiling eyes narrow a little
+      const b = clamp((e.blink ? e.blink[k] : 0) + 0.2 * smile, 0, 1), gap = m.lidGap[k];    // smiling eyes narrow a little
       let mx = 0, my = 0;
       for (let j = 0; j < 3; j++) {                    // the upper lid comes down to the lower one, which rises a little
         const u = ring[1 + j], l = ring[7 - j], dx = B[2 * l] - B[2 * u], dy = B[2 * l + 1] - B[2 * u + 1];
         move(u, dx * 0.95 * b, dy * 0.95 * b); move(l, -dx * 0.05 * b, -dy * 0.05 * b);
         mx += dx / 3; my += dy / 3;
       }
-      // the iris, all of it: it goes where the eye looks, and down to the lower lid as the eye closes
+      // the iris, all of it: it goes where the eye looks, and down to the lower lid as the eye closes. The lids go along a
+      // little (the upper one up when it looks up, the lower one down when it looks down), as lids do – and the net, whose
+      // iris reaches to the lids, does not fold over there
       const look = e.look || [0, 0], d = Math.hypot(mx, my) || 1, ux = mx / d, uy = my / d, lx = B[2 * ring[6]], ly = B[2 * ring[6] + 1];
+      const gx = look[0] * m.eye * 0.15 * (1 - b), gy = look[1] * gap * 0.22 * (1 - b);
       for (let j = 0; j < 5; j++) {
         const i = AT.iris[5 * k + j], above = (lx - B[2 * i]) * ux + (ly - B[2 * i + 1]) * uy;
-        move(i, look[0] * m.eye * 0.11 * (1 - b) + ux * above * 0.95 * b, look[1] * gap * 0.2 * (1 - b) + uy * above * 0.95 * b);
+        move(i, gx + ux * above * 0.95 * b, gy + uy * above * 0.95 * b);
       }
-      const up = (e.brow ? e.brow[k] : 0), brow = k ? AT.browB : AT.browA;
-      for (let j = 0; j < 5; j++) move(brow[j], 0, -gap * (0.55 * up * (0.6 + 0.1 * j) + 0.5 * (e.kind || 0) * (j / 4) ** 2));
+      for (let j = 0; j < 3; j++) {
+        const w = j === 1 ? 1 : 0.4;            // the middle of each lid touches the iris
+        move(ring[1 + j], gx * w, Math.min(0, gy) * 0.6 * w); move(ring[7 - j], gx * w, (gy > 0 ? gy : 0.3 * gy) * w);
+      }
+      // the brows: up, the outer ends a little less; down (a frown), the inner ends most and towards each other – not so far
+      // that they reach the folds above the eyes; kind, the inner ends up
+      const up = clamp(e.brow ? e.brow[k] : 0, -1, 1), brow = k ? AT.browB : AT.browA, inward = Math.sign(m.mid[0] * m.size - B[2 * brow[4]]);
+      for (let j = 0; j < 5; j++) {
+        const inner = j / 4, down = Math.max(0, -up);
+        move(brow[j], inward * gap * 0.25 * down * inner, up > 0 ? -gap * 0.8 * up * (0.6 + 0.1 * j) : gap * down * (0.15 + 0.25 * inner));
+        move(brow[j], 0, -gap * 0.7 * (e.kind || 0) * inner * inner);
+      }
+      if (up < 0) move(AT.brow0[1], 0, gap * 0.06 * -up);   // between the brows: it follows them a little (half from each)
     }
     if (smile) {                                       // the corners of the mouth go out and up, lips and cheeks follow
       const w = m.mouth, L = AT.lips;
-      for (const [i, sx, k] of [[L[0], -1, 1], [L[4], 1, 1], [L[1], -1, 0.35], [L[3], 1, 0.35], [L[7], -1, 0.4], [L[5], 1, 0.4]]) move(i, sx * w * 0.075 * k * smile, -w * 0.09 * k * smile);
-      move(AT.lips[6], 0, -w * 0.02 * smile);
-      for (const [i, k] of [[AT.cheek[2], 1], [AT.cheek[3], 1], [AT.cheek[0], 0.5], [AT.cheek[1], 0.5]]) move(i, 0, -w * 0.05 * k * smile);
+      for (const [i, sx, k] of [[L[0], -1, 1], [L[4], 1, 1], [L[1], -1, 0.35], [L[3], 1, 0.35], [L[7], -1, 0.45], [L[5], 1, 0.45]]) move(i, sx * w * 0.1 * k * smile, -w * 0.15 * k * smile);
+      move(AT.lips[6], 0, -w * 0.035 * smile);
+      for (const [i, k] of [[AT.cheek[2], 1], [AT.cheek[3], 1], [AT.cheek[0], 0.55], [AT.cheek[1], 0.55]]) move(i, 0, -w * 0.09 * k * smile);
     }
     return q;
   }
