@@ -24,6 +24,7 @@
     let de = null;
     await until('the eyes with their two faces', () => (de = frame.contentWindow.dreamyEyes) && de.aiFaces.goddess && de.aiFaces.cat && de.dream.cur);
     frame.contentWindow.addEventListener('error', e => { report.error += ` page error: ${e.message}`; });
+    const clock = () => frame.contentWindow.performance.now();   // the page's own clock: it started later than this one
     const AT = frame.contentWindow.DreamFace.AT, live = de.faceLive, cv = frame.contentWindow.document.getElementById('eyes');
     const small = document.createElement('canvas'), sg = small.getContext('2d', { willReadFrequently: true });
     const lit = () => {                                // how much of the middle of the screen is not dark
@@ -36,7 +37,7 @@
     // the page measures its own pace and takes the face's tier from it: the test holds the pace where it wants it, so
     // that the speed of the test's browser decides nothing
     let pace = 0, early = false;                       // early: the face is kept in the pupils, at the start of its way
-    const come = (kind, perf, hold) => { clearInterval(pace); de.perf = perf; pace = setInterval(() => { de.perf = perf; if (early) de.portal.t0 = performance.now() - 400; }, 4); Object.assign(de.portal, { kind, phase: 'in', t0: performance.now(), hold }); };
+    const come = (kind, perf, hold) => { clearInterval(pace); de.perf = perf; pace = setInterval(() => { de.perf = perf; if (early) de.portal.t0 = clock() - 400; }, 4); Object.assign(de.portal, { kind, phase: 'in', t0: clock(), hold }); };
     const gone = async () => { Object.assign(de.portal, { phase: 'off', next: 1e12 }); await sleep(1300); };   // the next one is a new visit
     const moved = (i, axis) => live.net.out[2 * i + axis] - live.net.base[2 * i + axis];
     report.marks = Object.keys(de.faceMarks);
@@ -56,18 +57,18 @@
       const at = live.drawn;
       await until('the next picture of the face', () => live.drawn !== at, 10);
       if (de.portal.phase !== 'in') break;
-      inPupils.p = Math.max(inPupils.p, (performance.now() - de.portal.t0) / 2600); inPupils.frames++;
+      inPupils.p = Math.max(inPupils.p, (clock() - de.portal.t0) / 2600); inPupils.frames++;
       for (const i of [AT.iris[0], AT.iris[5]]) inPupils.off = Math.max(inPupils.off, Math.hypot(moved(i, 0), moved(i, 1)));
     }
     report.inPupils = inPupils; report.eyes = live.net.eyes; early = false;
     await until('the living face to be there', () => de.portal.phase === 'hold');
-    const calm = shot(), t = performance.now();
+    const calm = shot();
     Object.assign(live.life, { smileUntil: 1e12, browUntil: 1e12, browWant: [1, 1] });   // it smiles, lifts its brows – and blinks, below
     const a = { size: n, moved: 0, mouthUp: 0, browUp: 0, lidDown: 0, turned: 0, changed: 0 };
     let now = calm;
     for (let k = 0; k < 50; k++) {
       await sleep(50);
-      live.life.blinkAt = k > 10 && k < 22 ? performance.now() - 90 : 1e12;   // its lids stay down for a moment: no slow browser misses the blink
+      live.life.blinkAt = k > 10 && k < 22 ? clock() - 90 : 1e12;   // its lids stay down for a moment: no slow browser misses the blink
       a.moved = Math.max(a.moved, live.net.drawn); a.mouthUp = Math.max(a.mouthUp, -moved(AT.lips[0], 1), -moved(AT.lips[4], 1));
       a.browUp = Math.max(a.browUp, -moved(AT.browA[2], 1)); a.lidDown = Math.max(a.lidDown, moved(AT.eyeA[2], 1));
       a.turned = Math.max(a.turned, Math.hypot(moved(AT.nose[2], 0), moved(AT.nose[2], 1)));
