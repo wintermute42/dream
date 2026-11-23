@@ -2,7 +2,7 @@
 <!-- #224: the crossfade between two style worlds in the real pages – Dreamy Eyes and a dream window, each in a frame
      with a clock that the test steps (tests/js/still.js) and an invented dream. What Dream says reaches the style
      layer; a mix is the two worlds' pictures added up; every pair of worlds draws, with fire, trance and a face; a
-     weak device shows one picture at any time. tests/js/blend.test.mjs reads the report. -->
+     weak device shows one picture at any time; a face of light held in view changes one at a time. tests/js/blend.test.mjs reads the report. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -103,6 +103,17 @@
       const held = worlds(win); S.blend('deepsea', 'etching', 0.8);
       const n = win.frames(50, 60);
       report.fade = { held, pairs: n.filter(x => x === 2).length, dt: 0.05, end: worlds(win) }; win.frameElement.remove(); }
+    // one face at a time: a level held shows a face of light all the time – another one every 20 s, and another
+    // world's when the world changes. Frame by frame: which face, and how much of it is to be seen
+    { const win = await eyes('mix'), S = win.DreamStyle, v = win.dreamyEyes.vis;
+      S.blend('classic', 'classic', 0, true); win.frames(16, 150);
+      const seen = () => { const m = S.mixing, w = m.b ? (v.world === m.a ? 1 - m.k : v.world === m.b ? m.k : 0) : v.world === m.a ? 1 - m.dim : 0;
+        return { face: `${v.world}/${v.mode}`, al: +(v.shown.hint * w).toFixed(4) }; };
+      const watch = n => { const out = []; for (let i = 0; i < n; i++) { win.frames(16); out.push(seen()); } return out; };
+      const now = win.performance.now(); win.frames(Math.ceil(now / 20000) * 20000 - 400 - now);
+      const held = watch(200);
+      S.blend('classic', 'aurora', 1);
+      report.turn = { held, world: watch(260) }; win.frameElement.remove(); }
   } catch (err) { report.error += ' ' + (err && err.stack || err); }
   await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
 })();

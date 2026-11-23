@@ -167,6 +167,54 @@ test('how a device mixes is decided by how it keeps up: mixing, then the short f
   run(BACK_SECS * 12, strong, 0.05); S.use('classic');
 });
 
+// ---------- one face at a time, across two worlds ----------
+// A face of light (static/dreamvis.js) is held in full view while the worlds change: frame by frame, what is to be
+// seen of each world's face – the page's own reckoning (eyes.html, visTick), with the plan's weights.
+function faces(hold, asks) {
+  const V = require('../../static/dreamvis.js'), turn = V.turn(), frames = [];
+  let lead = null;
+  for (const [a, b, k, secs] of asks) {
+    S.blend(a, b, k);
+    for (let i = 0; i < secs / DT; i++) {
+      const plan = S.plan(DT, { hold }), weight = key => (plan.find(p => p[0] === key.split(' ')[0]) || [0, 0])[1];
+      lead = S.lead(plan, lead);
+      V.step(turn, lead + ' 3', DT, weight);
+      frames.push({ key: turn.key, al: turn.al * weight(turn.key), plan });
+    }
+  }
+  return frames;
+}
+
+test('a face of light is drawn by one world at a time: it fades out completely before the other world\'s fades in', () => {
+  const V = require('../../static/dreamvis.js');
+  const bound = Math.max(1.6 * DT / Math.min(V.TURN.out, V.TURN.in), DT / SWEEP, DT / DIP) + 0.02;   // an eased fade, or the plan's own pace
+  for (const hold of ['mix', 'fade', 'dip']) {
+    S.use('one');
+    const frames = faces(hold, [['one', 'one', 0, 2], ['one', 'two', 0.3, 3], ['one', 'two', 0.5, 3], ['one', 'two', 0.56, 2], ['one', 'two', 0.44, 2], ['one', 'two', 0.9, 4],
+      ['one', 'two', 1, 3], ['two', 'three', 0, 1], ['three', 'three', 0, 5], ['one', 'classic', 0.7, 6], ['one', 'classic', 0.1, 6]]);
+    let last = { key: null, al: 0 }, changes = [];
+    for (const [i, f] of frames.entries()) {
+      if (f.key === last.key) assert.ok(Math.abs(f.al - last.al) <= bound, `${hold}, frame ${i}: the face of ${f.key} jumps ${last.al.toFixed(3)} → ${f.al.toFixed(3)}`);
+      else {
+        assert.ok(last.al <= 0.006, `${hold}, frame ${i}: the face of ${last.key} was still to be seen (${last.al.toFixed(3)}) when ${f.key} took over`);
+        assert.ok(f.al <= bound, `${hold}, frame ${i}: the face of ${f.key} is there at once (${f.al.toFixed(3)})`);
+        changes.push(f.key.split(' ')[0]);
+      }
+      assert.ok(f.plan.some(p => p[0] === f.key.split(' ')[0]) || f.al === 0, 'a face is only ever drawn by a world of the frame');
+      last = f;
+    }
+    assert.deepEqual(changes.filter((w, i) => w !== changes[i - 1]), ['one', 'two', 'three', 'classic', 'one'], `${hold}: the face goes with the world that shows most`);
+    assert.ok(changes.length <= 6, `${hold}: no see-saw around the middle (${changes})`);
+    assert.ok(Math.abs(last.al - (hold === 'mix' ? 0.9 : 1)) < 0.01, `${hold}: in the end the face is there as far as its world is (${last.al})`);
+  }
+  // the world that carries it: the one that did while it still shows clearly, else the one that shows most
+  assert.equal(S.lead([['one', 0.45], ['two', 0.55]], 'one'), 'one');
+  assert.equal(S.lead([['one', 0.5 - FLIP - 0.01], ['two', 0.5 + FLIP + 0.01]], 'one'), 'two');
+  assert.equal(S.lead([['one', 0.3], ['two', 0.7]], null), 'two');
+  assert.equal(S.lead([['two', 1]], 'one'), 'two');
+  S.use('classic');
+});
+
 test('the pages draw a frame once per planned world and add the pictures up; they only hear of the worlds', () => {
   for (const page of ['eyes.html', 'window.html']) {
     const src = read(`static/${page}`);
@@ -206,4 +254,20 @@ test('the pages, drawn in a browser', { skip: chrome ? false : 'no Chrome or Chr
   // the short fade: two pictures only while it lasts
   assert.ok(r.fade.pairs > 0 && r.fade.pairs * r.fade.dt <= SWITCH + 0.1, `fade: ${JSON.stringify(r.fade)}`);
   assert.deepEqual([r.fade.held, r.fade.end], [['deepsea'], ['etching']]);
+  // one face at a time, in the real page: no frame with a jump, and a face only ever follows one that is gone
+  for (const [what, frames] of Object.entries(r.turn)) {
+    let last = frames[0];
+    const order = [last.face];
+    assert.ok(last.al > 0.9, `${what}: the face is there to begin with (${JSON.stringify(last)})`);
+    for (const [i, f] of frames.entries()) {
+      if (f.face === last.face) assert.ok(Math.abs(f.al - last.al) < 0.07, `${what}, frame ${i}: ${f.face} jumps ${last.al} → ${f.al}`);
+      else { assert.ok(last.al < 0.01 && f.al < 0.07, `${what}, frame ${i}: ${last.face} at ${last.al} gives way to ${f.face} at ${f.al}`); order.push(f.face); }
+      last = f;
+    }
+    assert.equal(order.length, 2, `${what}: one change of face (${order})`);
+    assert.ok(frames.some(f => f.al < 0.005), `${what}: for a moment there is no face at all`);
+    assert.ok(last.al > 0.9, `${what}: the next face is there in the end (${JSON.stringify(last)})`);
+    if (what === 'held') assert.ok(order.every(f => f.startsWith('classic/')) && order[0] !== order[1], `another face of the same world (${order})`);
+    else assert.ok(order[0].startsWith('classic/') && order[1].startsWith('aurora/'), `the other world's face (${order})`);
+  }
 });

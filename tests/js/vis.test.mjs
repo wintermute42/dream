@@ -98,11 +98,113 @@ test('the nose shows only at the rare level, with the mouth – and what the rul
 
 test('the parts and their levels', () => {
   const lv = n => Object.keys(V.PARTS).filter(k => V.PARTS[k] === n).sort();
-  assert.deepEqual(lv(1), ['brows', 'crease', 'mark']);
-  assert.deepEqual(lv(2), ['hair', 'mouth', 'nose', 'outline']);
-  assert.deepEqual([0, 1, 2].map(n => ['eyes', 'brows', 'mark', 'mouth', 'nose', 'outline'].map(p => V.of(V.held(n), p))),
-    [[1, 0, 0, 0, 0, 0], [1, 1, 1, 0, 0, 0], [1, 1, 1, V.RARE_MAX, V.RARE_MAX, V.RARE_MAX]]);
+  assert.deepEqual(lv(1), ['brows', 'crease', 'mark', 'outline']);
+  assert.deepEqual(lv(2), ['hair', 'mouth', 'nose']);
+  assert.deepEqual([0, 1, 2].map(n => ['eyes', 'brows', 'mark', 'mouth', 'nose', 'hair', 'outline'].map(p => V.of(V.held(n), p))),
+    [[1, 0, 0, 0, 0, 0, 0], [1, 1, 1, 0, 0, 0, V.OUTLINE_HINT], [1, 1, 1, V.RARE_MAX, V.RARE_MAX, V.RARE_MAX, V.RARE_MAX]]);
   assert.equal(V.held(2).level, 2);
+});
+
+test('the outline of a face comes with the hints, moderately, and grows fuller at the rare level – without a jump', () => {
+  assert.ok(V.OUTLINE_HINT >= 0.35 && V.OUTLINE_HINT <= 0.6, 'moderate with the hints');
+  for (const seed of SEEDS) {
+    let last = 0, hints = 0, withOutline = 0, top = 0;
+    for (let t = 0; t < HOUR; t += 16) {
+      const v = V.at(t, seed), o = V.of(v, 'outline');
+      assert.ok(Math.abs(o - last) < 0.02, `the outline jumps at ${t} ms`);
+      assert.ok(o <= V.RARE_MAX && o >= V.of(v, 'mouth') && o <= Math.max(V.OUTLINE_HINT * V.of(v, 'brows'), v.full) + 1e-9);
+      if (v.full <= 0) assert.ok(Math.abs(o - V.OUTLINE_HINT * v.hint) < 1e-9, 'with the hints: as they come and go, at its own strength');
+      if (v.hint > 0.9) { hints++; if (o >= V.OUTLINE_HINT * 0.9) withOutline++; }
+      top = Math.max(top, o); last = o;
+    }
+    assert.equal(withOutline, hints, 'whenever the hints are there, so is the outline');
+    assert.ok(top > 0.7, 'fuller in the rare moment');
+  }
+});
+
+// ---------- one face at a time ----------
+// a place where faces follow each other, stepped frame by frame: what is to be seen of each face
+function watch(wants, { fps = 60, shows = () => 1 } = {}) {
+  const s = V.turn(), frames = [];
+  let f = 0;
+  for (const [want, secs] of wants) for (let i = 0; i < secs * fps; i++, f++) {
+    const sh = shows(f / fps);
+    V.step(s, want, 1 / fps, sh);
+    frames.push({ key: s.key, al: s.al * sh });
+  }
+  return frames;
+}
+// no frame in which a face jumps, and never two faces: a face only ever follows one that is gone
+function oneAtATime(frames, bound) {
+  let last = { key: null, al: 0 }, changes = 0;
+  for (const [i, f] of frames.entries()) {
+    assert.ok(f.al >= 0 && f.al <= 1);
+    if (f.key === last.key) assert.ok(Math.abs(f.al - last.al) <= bound, `frame ${i}: ${last.al.toFixed(3)} → ${f.al.toFixed(3)} is a jump`);
+    else {
+      changes++;
+      assert.ok(last.al <= 0.005, `frame ${i}: the face before was still to be seen (${last.al.toFixed(3)})`);
+      assert.ok(f.al <= bound, `frame ${i}: the next face is there at once (${f.al.toFixed(3)})`);
+    }
+    last = f;
+  }
+  return changes;
+}
+
+test('one face at a time: the one shown fades out completely, only then the next fades in – no cut, never two', () => {
+  for (const fps of [60, 30, 12]) {
+    const bound = 1.6 / (Math.min(V.TURN.out, V.TURN.in) * fps);   // the steepest an eased fade gets in one frame
+    const frames = watch([['goddess', 3], ['cat', 4], ['medusa', 0.4], ['forest', 0.3], ['cat', 5], [null, 3], ['mermaid', 3]], { fps });
+    assert.equal(oneAtATime(frames, bound), 4, 'the goddess, the cat (medusa and forest never got their turn), then none, then the mermaid');
+    assert.ok(!frames.some(f => f.key === 'medusa' && f.al > 0.01), 'a face asked for only a moment never flashes up');
+    const at = secs => frames[Math.round(secs * fps) - 1];
+    assert.deepEqual([at(3).key, at(3).al], ['goddess', 1]);
+    assert.deepEqual([at(7).key, at(7).al], ['cat', 1], 'the cat is there in full well within four seconds');
+    assert.equal(at(3 + V.TURN.out * 0.5).key, 'goddess', 'half way out it is still the goddess, alone');
+    assert.ok(at(3 + V.TURN.out + 0.1).key === 'cat' && at(3 + V.TURN.out + 0.1).al < 0.1, 'then the cat begins from nothing');
+  }
+  assert.ok(V.TURN.out >= 0.8 && V.TURN.out <= 1.5 && V.TURN.in >= 0.8 && V.TURN.in <= 1.5, 'each way takes about a second');
+});
+
+test('one face at a time: between two moments nothing shows, so the next face simply comes with the rule', () => {
+  // the rule's hint as a moment: in over 3 s, there 4 s, out over 3.5 s, then nothing
+  const hint = s => { const p = s % 20; return p < 3 ? p / 3 : p < 7 ? 1 : p < 10.5 ? 1 - (p - 7) / 3.5 : 0; };
+  const s = V.turn();
+  V.step(s, 'goddess', 1 / 60, 0);
+  assert.deepEqual([s.key, s.al], ['goddess', 1], 'nothing to be seen: it is simply the face of the next moment');
+  V.step(s, 'cat', 1 / 60, 0.003);
+  assert.deepEqual([s.key, s.al], ['cat', 1]);
+  V.step(s, 'medusa', 1 / 60, 0.5);
+  assert.equal(s.key, 'cat', 'in full view the one shown goes first');
+  // a face that is not to be seen makes way at once – for one that is to be seen and so comes from nothing
+  const far = V.turn();
+  V.step(far, 'a', 1 / 60, 0); V.step(far, 'b', 1 / 60, key => (key === 'a' ? 0 : 1));
+  assert.deepEqual([far.key, far.p < 0.05], ['b', true]);
+  const frames = watch([['goddess', 20], ['cat', 20], ['forest', 20]], { shows: hint });
+  oneAtATime(frames, 0.03);
+  assert.deepEqual([...new Set(frames.filter(f => f.al > 0.99).map(f => f.key))], ['goddess', 'cat', 'forest'], 'each moment its face, in full');
+  assert.ok(frames.every((f, i) => f.al === hint(i / 60)), 'and nothing but the rule fades it');
+});
+
+test('two pictures handing over by one number: the old one is gone at the middle, the new one only comes from there', () => {
+  let last = [1, 0];
+  for (let k = 0; k <= 1.0001; k += 1 / 180) {
+    const [was, is] = V.handover(k);
+    assert.ok(Math.min(was, is) === 0, `both to be seen at ${k.toFixed(3)}`);
+    assert.ok(Math.abs(was - last[0]) < 0.02 && Math.abs(is - last[1]) < 0.02, `a jump at ${k.toFixed(3)}`);
+    last = [was, is];
+  }
+  assert.deepEqual([V.handover(0), V.handover(0.5), V.handover(1), V.handover(-3), V.handover(7)], [[1, 0], [0, 0], [0, 1], [1, 0], [0, 1]]);
+});
+
+test('the eyes show their faces one at a time', () => {
+  const eyes = read('eyes.html').replace(/\/\/.*$/gm, '');
+  assert.ok(/DreamVis\.step\(vis\.face, [^;]+, dt, [^;]+\);\s*vis\.shown = DreamVis\.damp\(vis\.cur, vis\.face\.al\)/.test(eyes), 'the face shown is the one whose turn it is, as far as it is there');
+  const draws = eyes.match(/DreamStyle\.face\(\)\.draw\(bk, vis\.mode[^;]*;/g) || [];
+  assert.ok(draws.length >= 2 && draws.every(d => /vis\.shown/.test(d) && !/vis\.cur/.test(d)), 'every face of light is drawn by its turn');
+  assert.ok(!/vis\.mode = (?!null;|M\[pick % M\.length\];)/.test(eyes) && /const \[world, pick\] = vis\.face\.key\.split/.test(eyes), 'nothing sets the face shown past its turn');
+  assert.ok(/const facing = vis\.shown\.level > 0 && vis\.mode && DreamStyle\.name === vis\.world;/.test(eyes), 'of two worlds drawn at once only one draws the face of light');
+  assert.ok(/'silhouette' \? DreamVis\.handover\(bs\.mix\)/.test(eyes), "the person's outline never lies over another mask");
+  assert.equal((eyes.match(/portal\.phase = 'out'; portal\.t0 = t; \}/g) || []).length, 2, 'a painted face leaves from as far as it had come (only its own time and the person leaving set it going otherwise)');
 });
 
 test('from the clock and the seed alone: the same in both windows of a pair, another rhythm for another seed', () => {
