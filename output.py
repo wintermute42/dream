@@ -164,6 +164,44 @@ async def preview_send(data: bytes):
         preview["busy"] = False
 
 
+beat: dict = {"at": 0.0, "peak": 0.0}
+BEAT_EVERY = 0.04                                  # seconds: at most 25 beats a second for Dreamy Eyes
+
+
+def _unit(v) -> float:
+    return min(1.0, max(0.0, float(v or 0)))
+
+
+def beat_of(text: str) -> float | None:
+    """#218: the beat in what the stage tells its output windows – one number, 0–1 – or None. The same number a dream
+    window makes of it; nothing else of the message is read."""
+    if '"pulse"' not in text:
+        return None
+    try:
+        msg = json.loads(text)
+        if isinstance(msg.get("fx"), dict):
+            fx = msg["fx"]
+            return min(1.0, _unit(fx.get("pulse")) * _unit(fx.get("k")) + _unit(fx.get("bass")) * 0.3)
+        return _unit(msg["pulse"]) if "pulse" in msg else None
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
+def beat_tell(text: str) -> None:
+    """#218: Dreamy Eyes hear the beat – only the number, never the stage's message itself."""
+    b = beat_of(text)
+    if b is None:
+        return
+    beat["peak"] = max(beat["peak"], b)
+    now = time.time()
+    if now - beat["at"] < BEAT_EVERY:
+        return
+    told = json.dumps({"pulse": round(beat["peak"], 3)})
+    beat.update(at=now, peak=0.0)
+    for v in list(hub.beats):
+        outbox.post(v, told)
+
+
 @app.websocket("/out")
 async def out(sock: WebSocket):
     """The stage sends every frame it shows (JPEG) for Syphon and the output windows; only from this Mac."""
@@ -184,6 +222,8 @@ async def out(sock: WebSocket):
                     announce(text)
                 for v in list(hub.viewers):
                     outbox.post(v, text)
+                if hub.beats:
+                    beat_tell(text)
                 continue
             data = msg.get("bytes")
             if not data:
@@ -229,6 +269,8 @@ async def view(sock: WebSocket):
     small = sock.query_params.get("preview") == "1"   # #141: the remote's small live preview
     if small:
         hub.previews[sock] = "small"
+        if sock.query_params.get("as") == "eyes" and rights.ws_can(sock, "beat"):   # #218: Dreamy Eyes hear the beat
+            hub.beats.add(sock)
     else:
         hub.viewers.add(sock)
     if sock.query_params.get("as") == "window":    # #201: a dream window – it gets seeds of the organism
@@ -259,6 +301,7 @@ async def view(sock: WebSocket):
     finally:
         hub.viewers.discard(sock)
         hub.previews.pop(sock, None)
+        hub.beats.discard(sock)
         hub.key_roles.pop(sock, None)
         outbox.drop(sock)
         if sock in hub.windows:

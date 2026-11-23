@@ -4,7 +4,7 @@
    No DOM besides canvases; a global `DreamEye`; needs dreamlife.js (the hue of a colour). */
 (function (root) {
   'use strict';
-  const { hueOf } = root.DreamLife;
+  const { hueOf, softLight, stamp, tinted } = root.DreamLife;
   const lerp = (a, b, k) => a + (b - a) * k;
   // the iris' fibres, drawn once: fine radial strands, light and dark
   function fibres() {
@@ -178,24 +178,39 @@
     }
     return [ix, iy];
   }
-  // What is in an iris: the dream itself ('dream'), folded ('kaleido'), a tunnel ('vortex'), a 'galaxy', or 'fire'.
-  // o: rot (how far it has turned), hue (the dream's), stars (stars()), and pic(x, y, size, al), which draws the
-  // dream's picture as a square around (x, y)
+  // What is in an iris: the dream itself ('dream'), folded ('kaleido'), a tunnel ('vortex'), a 'galaxy', 'fire' or its
+  // 'embers'. o: rot (how far it has turned), hue (the dream's), stars (stars()), heat (how high the flames stand,
+  // 0–1; 1 if not given), and pic(x, y, size, al), which draws the dream's picture as a square around (x, y)
   function irisWorld(g, style, ix, iy, R, mirror, al, o) {
     const dir = mirror ? -1 : 1;
     g.save(); g.translate(ix, iy);
     if (style === 'fire') {                            // #162: flames dancing in the iris, the dream glowing warm behind them
       g.globalAlpha = al; g.fillStyle = '#2a0a02'; g.fillRect(-R, -R, R * 2, R * 2);
       g.filter = 'sepia(0.6) saturate(2.2) hue-rotate(-15deg)'; o.pic(0, 0, R * 2.3, al * 0.55); g.filter = 'none';
-      const now = performance.now();
+      const now = performance.now(), heat = o.heat === undefined ? 1 : o.heat;
       g.globalCompositeOperation = 'lighter';
       for (let k = 0; k < 9; k++) {
-        const fx0 = (k / 8 - 0.5) * R * 1.6, h = R * (0.7 + 0.5 * Math.sin(now / (130 + k * 17) + k * 2)), wv = Math.sin(now / 160 + k) * R * 0.12;
+        const fx0 = (k / 8 - 0.5) * R * 1.6, h = R * (0.7 + 0.5 * Math.sin(now / (130 + k * 17) + k * 2)) * heat, wv = Math.sin(now / 160 + k) * R * 0.12;
         const gr = g.createLinearGradient(0, R, 0, R - h);
         gr.addColorStop(0, `rgba(255,${120 + k * 8},20,${0.7 * al})`); gr.addColorStop(0.6, `rgba(255,200,60,${0.45 * al})`); gr.addColorStop(1, 'rgba(255,240,180,0)');
         g.fillStyle = gr; g.beginPath(); g.moveTo(fx0 - R * 0.18, R);
         g.quadraticCurveTo(fx0 - R * 0.2 + wv, R - h * 0.5, fx0 + wv * 1.6, R - h); g.quadraticCurveTo(fx0 + R * 0.2 + wv, R - h * 0.5, fx0 + R * 0.18, R); g.fill();
       }
+      g.globalCompositeOperation = 'source-over';
+    } else if (style === 'embers') {                   // #218: embers drifting up in the iris – a fire they dream of, or are used to
+      g.globalAlpha = al; g.fillStyle = '#1c0703'; g.fillRect(-R, -R, R * 2, R * 2);
+      o.pic(0, 0, R * 2.3, al * 0.22);
+      g.globalAlpha = al * 0.4; g.fillStyle = '#7a1e00'; g.fillRect(-R, -R, R * 2, R * 2);   // the dream, warmed (no filter: cheap)
+      const now = performance.now();
+      g.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 14; k++) {
+        const u = (now / (2600 + k * 310) + k * 0.37) % 1, tw = 0.6 + 0.4 * Math.sin(now / 170 + k * 1.9);
+        g.globalAlpha = al * Math.sin(Math.PI * u) * tw; g.fillStyle = `hsl(${18 + k * 2.5},100%,${55 + 12 * tw}%)`;
+        g.beginPath(); g.arc(Math.sin(k * 2.4 + now / 900 + u * 3) * R * 0.75, R * (0.95 - 1.9 * u), R * (0.035 + 0.03 * ((k * 7) % 5) / 4), 0, Math.PI * 2); g.fill();
+      }
+      const bed = g.createLinearGradient(0, R, 0, R * 0.2);     // the bed of embers below
+      bed.addColorStop(0, `rgba(255,110,25,${0.6 * al})`); bed.addColorStop(1, 'rgba(255,80,10,0)');
+      g.globalAlpha = 1; g.fillStyle = bed; g.fillRect(-R, R * 0.2, R * 2, R * 0.8);
       g.globalCompositeOperation = 'source-over';
     } else if (style === 'kaleido') {                         // the dream folded eightfold, turning
       for (let k = 0; k < 8; k++) {
@@ -229,7 +244,27 @@
     }
     g.restore();
   }
-  // A pupil that is not round: a cat's 'slit', a 'heart', a 'star', a 'spiral'. o: hue (the dream's), fire (it burns)
+  // #218: what a hypnotic pupil shows – nearly always the spiral, one time in four another shimmer, and of those
+  // never the same twice in a row
+  const HYPNO = ['spiral', 'mandala', 'sparkle', 'tunnel', 'swirl'];
+  const OTHER_SHARE = 0.25;
+  // the next one: lastOther is the last shape shown that was not the spiral (or null)
+  const nextHypno = (lastOther, rnd) => {
+    if (rnd() >= OTHER_SHARE) return 'spiral';
+    const o = HYPNO.filter(k => k !== 'spiral' && k !== lastOther);
+    return o[Math.min(o.length - 1, rnd() * o.length | 0)];
+  };
+  // … and where there is no memory (the dream windows: every window works it out from Dream's clock): the n-th one
+  const hypnoAt = (n, seed) => HYPNO[(((3 * n + seed) % HYPNO.length) + HYPNO.length) % HYPNO.length];
+  const rings = new Map();                             // a soft ring of light, one per 10° of hue (drawn once, then stamped)
+  const ring = hue => {
+    const k = ((Math.round(hue / 10) % 36) + 36) % 36;
+    if (!rings.has(k)) rings.set(k, softLight([[0.5, `hsla(${k * 10},70%,70%,0)`], [0.76, `hsla(${k * 10},70%,72%,1)`], [1, `hsla(${k * 10 + 30},70%,60%,0)`]], 128));
+    return rings.get(k);
+  };
+  // A pupil that is not round: a cat's 'slit', a 'heart', a 'star', or one of HYPNO – a 'spiral', or a soft shimmer:
+  // a 'mandala' (lights turning, breathing), a 'sparkle' (lights sinking like snow), a 'tunnel' (rings into the depth), a 'swirl'.
+  // o: hue (the dream's), fire (it burns), beat (0–1: the music's pulse, they move with it), now (a clock, if not the page's)
   function pupilShape(g, shape, x, y, pr, R, mirror, o) {
     g.fillStyle = '#05030a';
     g.beginPath();
@@ -248,9 +283,39 @@
       g.arc(x, y, pr * 1.02, 0, Math.PI * 2);
     }
     g.fill();
+    const now = o.now === undefined ? performance.now() : o.now, beat = o.beat || 0, dir = mirror ? -1 : 1, hue = o.hue + 180;
+    // the shimmers: soft lights (stamped, no filter), half transparent, gently breathing – more a glow in the pupil than a sign
+    if (shape === 'mandala' || shape === 'sparkle' || shape === 'tunnel' || shape === 'swirl') {
+      const al = g.globalAlpha, br = 0.9 + 0.1 * Math.sin(now / 1300) + 0.12 * beat, soft = (0.42 + 0.14 * beat) * al;
+      g.save(); g.globalCompositeOperation = 'screen';
+      g.beginPath(); g.arc(x, y, pr * 1.02, 0, Math.PI * 2); g.clip();
+      if (shape === 'mandala') {                       // two rings of lights turning against each other
+        for (const [n, rr, sp, hh, sz] of [[6, 0.56, 1, 0, 0.42], [6, 0.26, -1.5, 50, 0.3]]) for (let k = 0; k < n; k++) {
+          const an = now / 3200 * sp * dir + k * Math.PI * 2 / n;
+          stamp(g, tinted(hue + hh + now * 0.01), x + Math.cos(an) * pr * rr * br, y + Math.sin(an) * pr * rr * br, pr * sz * br, soft);
+        }
+      } else if (shape === 'sparkle') {                // soft lights sinking through the pupil like slow snow
+        for (let k = 0; k < 9; k++) {
+          const u = (now / (3200 + k * 230) + k * 0.618) % 1, yy = (u * 2 - 1) * 0.95, tw = 0.6 + 0.4 * Math.sin(now / 420 + k * 2.3);
+          stamp(g, tinted(hue + k * 12), x + (((k * 0.381) % 1) * 2 - 1) * 0.8 * pr + Math.sin(now / 900 + k) * pr * 0.06, y + yy * pr, pr * (0.24 + 0.12 * ((k * 5) % 4) / 3) * br, soft * Math.sin(Math.PI * u) * tw);
+        }
+      } else if (shape === 'tunnel') {                 // soft rings sinking into the depth, one after the other
+        for (let k = 0; k < 4; k++) {
+          const u = ((k + now / 1100) % 4) / 4, rr = pr * 1.05 * Math.pow(1 - u, 1.5) * br;
+          stamp(g, ring(hue + u * 60), x, y, Math.max(1, rr), soft * 1.2 * (1 - u) * Math.min(1, u * 5));
+        }
+      } else {                                         // three arms of light turning like a slow whirlpool
+        const turn = -now / 1100 * dir;
+        for (let arm = 0; arm < 3; arm++) for (let k = 0; k < 5; k++) {
+          const u = k / 4, an = turn + arm * Math.PI * 2 / 3 + u * 2.2, rr = (0.14 + 0.66 * u) * pr * br;
+          stamp(g, tinted(hue + arm * 30), x + Math.cos(an) * rr, y + Math.sin(an) * rr, pr * (0.2 + 0.2 * u), soft * (0.5 + 0.5 * u));
+        }
+      }
+      g.restore(); g.globalAlpha = al;
+    }
     if (shape === 'spiral') {                          // hypnosis: a turning spiral in the pupil
-      const turn = performance.now() / 260 * (mirror ? -1 : 1);
-      g.strokeStyle = `hsl(${o.hue + 180},90%,72%)`; g.lineWidth = Math.max(1.5, pr * 0.1); g.beginPath();
+      const turn = now / 260 * (mirror ? -1 : 1);
+      g.strokeStyle = `hsl(${o.hue + 180},90%,72%)`; g.lineWidth = Math.max(1.5, pr * (0.1 + 0.05 * beat)); g.beginPath();
       for (let k = 0; k <= 80; k++) { const u = k / 80, an = turn + u * Math.PI * 7, rr = u * pr * 0.95; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(an) * rr, y + Math.sin(an) * rr); }
       g.stroke();
     }
@@ -262,5 +327,5 @@
     }
   }
 
-  root.DreamEye = { LOOKS, EMO, fibres, stars, draw, irisWorld, pupilShape };
+  root.DreamEye = { LOOKS, EMO, HYPNO, nextHypno, hypnoAt, fibres, stars, draw, irisWorld, pupilShape };
 })(typeof window !== 'undefined' ? window : globalThis);

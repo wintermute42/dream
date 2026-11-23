@@ -788,13 +788,38 @@ eyes** that invite people to step up and play:
   they go their own way again.
 - **Your silhouette as a mask:** now and then, only while someone is there, the dream shines through the outline of
   the person in front (selfie segmentation on the phone, about 250 KB, nothing is sent or kept).
-- **Dreamy loves fire ❤️‍🔥:** when the camera sees flames (very bright, saturated red-orange-yellow that flickers –
-  found on the phone; a face or a still orange lamp is no fire), the eyes are enchanted: wide open, they cannot look
-  away, glowing heart pupils beat, flames dance in the iris, the cheeks blush, embers and little burning hearts rise,
-  the brows are joyful. Flames rise from the bottom of the screen and the night glows warm. The Mac quickly paints the
-  fire spirit anew, and after a few seconds she comes burning through the pupils (once per fire); while the fire lasts,
-  every painted face is surrounded by flames and embers. When the fire is gone (after 1.5 s without), a moment of
-  longing – then they go on as before.
+- **Dreamy loves fire ❤️‍🔥 (#162, #218):** when the camera sees flames, the eyes are enchanted. What counts as a flame is
+  strict, so that a warm room is no fire: very bright, saturated orange-to-yellow light (close to the rule of #162) with
+  a core as bright as the camera can show, that **flickers the way a flame does** – its size and its shape both keep
+  changing, irregularly – for most of a second (about 0.8 s) before the eyes believe it. Found on the phone, about 15
+  times a second. No fire are: a still orange lamp, a lamp while the phone is touched or carried, a lamp being dimmed,
+  warm walls and a dim warm room in a noisy camera, the camera hunting for its exposure, warm LEDs beating with the
+  camera's shutter (they go up and down evenly and keep their shape), a screen with warm moving pictures, a face or a
+  hand in warm light. A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
+  does not flicker at all, is no more than a lamp.
+  **To see what the eyes take for fire in your room:** open Dreamy Eyes with `?debug` at the end of its address (after
+  an existing `?…`: `&debug`). A corner then shows the camera sample in grey, warm light in yellow (its bright core
+  white) and what counts as fire in red, with the numbers beside it: how sure they are (fire from 0.70), the strength,
+  and for the liveliest patch its size, the share of its core and its jumps (fire above 4).
+  - **They follow the fire at once.** Their gaze goes where the flame is in the picture (within about a tenth of a
+    second) and stays on it while it moves. Everything follows its **strength** without steps: how wide they open, how
+    high the flames stand at the bottom of the screen (highest on the flame's side), how many embers rise, how deep the
+    blush is. When it **flares up** (or catches) the pupils widen, a shower of sparks flies in from where the flame is
+    and the night glows for a moment. When it **dies down** they grow calm: the lids sink, flames and embers thin out;
+    once it is gone (1.5 s without) a moment of longing – then they go on as before.
+  - **Their mood changes every 10–20 s** with much fire or a flame that dances – a lone candle is taken more gently (up to
+    20–40 s a mood, a few sparks only) –, never the same twice in a row: **spellbound** (wide open, a hypnotic pupil –
+    see below), **playful** (star pupils, a wink now with one eye, now with the other, sparks flying from it),
+    **dreamy** (half closed, embers drifting in the iris, the gaze drifting after the flame), **in love** (glowing heart
+    pupils that beat, little burning hearts, the deepest blush) and now and then the **fire spirit**: while the fire
+    lasts the Mac paints her anew (at most once a minute, as before) and she comes burning through the pupils; every
+    other painted face is surrounded by flames and embers meanwhile.
+  - **They get used to it.** A fire that only burns on becomes the background after about 30 s (fading over the last
+    8 s): low flames, a few embers, embers in the iris – and the eyes look around, at people, have their moods and
+    visitors again. Flaring up or a flame that wanders (poi) makes it all new at once, with the next mood, for 6 s
+    before it fades again; a fire that keeps moving never becomes the background. Nobody falls asleep beside a fire.
+  - Nothing of this asks the Mac for more: the phone finds the fire itself in a 96 × 72 sample of its camera (about a
+    millisecond per look with the processor slowed down four times), and all it draws are a few more dots.
 - **Rarely a trance – the third eye 👁 (#172):** when much is intense at once – the dream much livelier than usual
   and someone looking at the eyes for a while or seen lately (or fire, mirroring, the dream window, petting) – or the
   dream simply stays that lively for about 8 s (in a dark room the camera may see nobody) – and at most about every 12
@@ -827,10 +852,14 @@ eyes** that invite people to step up and play:
   drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays three to five seconds,
   breathing, swaying and drifting a little; then it shrinks back into the pupils, and the eyes are there again.
   The pictures stay in memory only and never go into the gallery; only the eyes (and Dream Control) may fetch them.
-  `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds). With the cloud GPU
+  `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds); `DREAM_AIMASK=0`
+  switches the painted faces off altogether (no fire spirit, no dream portrait: Dreamy Eyes never make the Mac load a model). With the cloud GPU
   there are no painted faces.
 - **The pupils change shape:** a cat's slit while the grin is there, hearts when someone keeps smiling, stars when they
-  are surprised, a turning spiral when they hypnotise.
+  are surprised, a turning spiral when they hypnotise (or are spellbound by a fire). About one time in four (#218) it is
+  a soft shimmer instead of the spiral, never the same one twice in a row: lights turning like a mandala, lights sinking
+  like snow, rings sinking into the depth, or a slow swirl – half transparent, in the dream's colours (like embers by a
+  fire), breathing with the music's beat (without music: with the dream).
 - **The iris is a world that changes** every half minute or so: the dream itself, the dream folded into a kaleidoscope,
   a vortex of the dream with rings turning against each other, or a spiral galaxy in the dream's colours.
 - **Moods now and then:** they wink, cross their eyes, roll them, hypnotise, shed a tear of light that bursts into
@@ -850,7 +879,9 @@ eyes** that invite people to step up and play:
   Android “App pinning” (Settings → Security → App pinning, then pin the browser via the app overview), the phone on
   power, in a holder at eye height.
 - **Its code may only lend the front camera** and see the dream – no settings, no commands, nothing that costs money; it
-  does not even learn the prompt. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
+  does not even learn the prompt. Beside the small picture of the dream it is told two numbers: the master brightness
+  and (#218) the music's beat, a pulse between 0 and 1 – never what the stage tells its output windows (effects, fades,
+  prompts); a guest's preview hears no beat. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
   trying the eyes on your own phone never replaces Dream Control.
 - **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
   who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
@@ -871,7 +902,8 @@ one device to another.
 - **One large motif per window:**
   - a **large eye** – the very eye of Dreamy Eyes: iris fibres, lids, lashes, a brow when it feels something. It looks
     around, blinks, its pupil widens in a dark dream and with the beat, and its iris is the dream – plain, folded into
-    a kaleidoscope, a tunnel or a galaxy;
+    a kaleidoscope, a tunnel or a galaxy; rarely (about one time in ten, every 47 s) its pupil hypnotises for a few seconds (#218: the
+    spiral or one of the soft shimmers in turn, breathing with the beat – the same in both windows of a pair);
   - a **pair of eyes across two devices**: one eye each, looking and blinking together;
   - a **dream face**: a face painted by the AI, alive (see below);
   - **impossible shapes**: the Penrose triangle, the endless staircase (a light climbs it and never arrives), the
@@ -1311,7 +1343,18 @@ motif wandering from one window to another, wave, blush and trance, and a weak d
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the
-browser (the signs beside the names, pausing while hidden, the shape). GitHub runs all of them on
+browser (the signs beside the names, pausing while hidden, the shape). `node --test tests/js/fire.test.mjs` (#218) tests
+how Dreamy Eyes find fire (`static/dreamfire.js`) on painted camera pictures (`tests/js/fire-frames.mjs`; no real
+pictures): flames from a campfire to a lighter and a swung poi count; silent for a minute each stay lamps (still, small
+in a noisy camera, a string of them, dimmed, with the phone touched or carried), a dim warm room and warm walls in a
+noisy camera, the camera's exposure pumping, warm LEDs beating (slowly, fast, with bands running through, a string of
+them), a screen with warm moving pictures, an orange jacket and skin from pale to dark in warm light; the strength,
+flaring up, dying down, the gaze following within two samples, the moods taking turns and getting used to a steady
+fire. `node --test tests/js/eye.test.mjs` tests how often which hypnotic pupil comes. To see the eyes with a fire
+without lighting one: `node scripts/fire_video.mjs fire.y4m` writes a 70 s film of the same painted fire (about 90 MB),
+and a Chrome or Chromium started with `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
+--use-file-for-fake-video-capture=fire.y4m` shows it to Dreamy Eyes as its camera (a Dream started only for that:
+with `DREAM_AIMASK=0`, or the eyes make it load the image model for their painted faces). GitHub runs all of the tests on
 Linux and macOS for every pull request to `main` and after every merge (`.github/workflows/tests.yml`); a pull request
 can only be merged when both are green. The real AI on a graphics card and the 📏 measurements are not part of it –
 they run on your own Mac, as below.

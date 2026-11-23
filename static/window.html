@@ -279,6 +279,8 @@
     e.rot = (clk % 1e8) / 14000;
     const w = Math.floor(clk / 28000);                 // the iris is a world of its own that changes now and then
     e.iris = IRIS[hash(s, w + 41000) * 4 | 0]; e.irisPrev = IRIS[hash(s, w + 40999) * 4 | 0]; e.irisMix = Math.min(1, (clk - w * 28000) / 2500);
+    const h = Math.floor(clk / 47000), hp = (clk - h * 47000) / 5000;   // #218: rarely (one slot in ten) the pupil hypnotises for a moment
+    e.hyp = DreamEye.hypnoAt(h, s); e.hypMix = hash(s, h + 61000) < 0.1 && hp < 1 ? clamp(Math.min(hp, 1 - hp) * 9, 0, 1) : 0; e.clk = clk;
     const f = Math.floor(clk / 19000), feels = hash(s, f + 51000) < 0.5 && clk - f * 19000 < 3600;   // a feeling: the brow comes
     const want = feels ? FEEL[hash(s, f + 52000) * FEEL.length | 0][m.mirror ? 1 : 0] : null;
     e.browAl = lerp(e.browAl, feels ? 1 : 0, 1 - Math.exp(-dt * (feels ? 7 : 2.5)));
@@ -288,7 +290,8 @@
   function eyeDraw(c, m, e, cx, cy, a, look) {
     const o = { rot: e.rot, hue: hueOf(dream.col), stars: irisStars, pic: (x, y, n, al) => { c.globalAlpha = al; c.drawImage(pic, x - n / 2, y - n / 2, n, n); } };
     DreamEye.draw(c, cx, cy, a, a * 0.56, m.mirror, { open: e.open, blink: e.blink, grin: 0, squint: 0, col: dream.col, energy: 0.3 + 0.5 * st.pulse,
-      look, brow: e.brow, browAl: e.browAl, fib, gx: e.gx, gy: e.gy, pupil: e.pupil, pupilMix: 0,
+      look, brow: e.brow, browAl: e.browAl, fib, gx: e.gx, gy: e.gy, pupil: e.pupil, pupilMix: e.hypMix,
+      pupilShape: (ix, iy, pr, R) => DreamEye.pupilShape(c, e.hyp, ix, iy, pr, R, m.mirror, { hue: o.hue, beat: st.pulse, now: e.clk }),
       iris: (ix, iy, R) => {
         for (const [style, al] of [[e.irisPrev, 1 - e.irisMix], [e.iris, e.irisMix]]) if (al > 0.01) DreamEye.irisWorld(c, style, ix, iy, R, m.mirror, al, o);
         c.globalAlpha = 1;

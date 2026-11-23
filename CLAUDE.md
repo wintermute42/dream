@@ -25,7 +25,7 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
-  asked over `/facemarks` – and moved by each window itself; a window never runs a model). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
+  asked over `/facemarks` – and moved by each window itself; a window never runs a model). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
@@ -44,7 +44,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   and the key of Dream's home-network certificate authority (#145, `tls.py`) in `~/.local/state/dream`).
 - The app binds to 127.0.0.1 unless started with `--lan`; then every non-local request needs a key (#148): the guests'
   key (Dream Remote) may only change `settings.GUEST_KEYS` and send `rights.GUEST_CMDS`; the Dream Control key has full
-  rights; the Dreamy Eyes key (#156) may only GET its page and lend its front camera (`EYES_PATHS`, the `/ctl` filter).
+  rights; the Dreamy Eyes key (#156) may only GET its page and lend its front camera (`EYES_PATHS`, the `/ctl` filter); of what
+  the stage tells its output windows it hears only the beat, as one number (#218: the capability `beat`, `output.beat_of`).
   Rights are checked in the server (`rights.py`: the roles table, the middleware with `CONTROL_ONLY`/`LOCAL_ONLY`; the
   `/ctl` filter in `ctl.py`), never only in the page: a
   new route or setting that costs money, changes the owner's files or uses the Mac's camera stays Control-only.
