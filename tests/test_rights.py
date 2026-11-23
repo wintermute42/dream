@@ -764,3 +764,26 @@ def test_no_painted_faces_when_switched_off(server, monkeypatch):
     monkeypatch.setattr(server.render, "make_picture", lambda *a, **kw: pytest.fail("a face was painted"))
     monkeypatch.setattr(asyncio, "sleep", lambda *a: pytest.fail("the painter waits for its next face"))
     asyncio.run(server.real_loops["aimask_loop"]())
+
+
+def test_eyes_are_told_the_style_world_and_cannot_set_it(server, monkeypatch, saved_state):
+    """#221: the style world is the one setting Dreamy Eyes hear of – as one word, when they come and when it changes.
+    Their key changes nothing of it, nor does a guest's; and a guest is told through the shared state as always."""
+    monkeypatch.setattr(server.settings, "WORLDS", ("classic", "other"))   # (a second world, for the test)
+    monkeypatch.setitem(server.settings.SETTINGS, "world", server.settings.text("classic", choices=("classic", "other")))
+    server.hub.state["world"] = "classic"
+    with client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes") + "&as=eyes") as eyes:
+        greeting = [eyes.receive_json() for _ in range(3)]
+        assert greeting[0]["role"] == "eyes"
+        assert [m["world"] for m in greeting if "world" in m] == ["classic"]
+        assert not any("state" in m or "set" in m for m in greeting)       # nothing else of the shared state
+        eyes.send_text(json.dumps({"set": {"world": "other"}}))
+        ctl_session(server, "guest", [{"set": {"world": "other", "prompt": "a guest was here"}}],
+                    done=lambda: server.hub.state["prompt"] == "a guest was here")
+        assert server.hub.state["world"] == "classic"                      # neither the eyes nor a guest
+        ctl_session(server, "control", [{"set": {"world": "other"}}], done=lambda: server.hub.state["world"] == "other")
+        told = eyes.receive_json()
+        while "world" not in told:                                         # (who is connected, in between)
+            assert set(told) <= {"live", "feeds_mine", "aimasks", "eyes_cfg"}, told
+            told = eyes.receive_json()
+        assert told == {"world": "other"}

@@ -58,6 +58,10 @@ jobs:
         run: node --test tests/js/eye.test.mjs
       - name: How much of a face shows (mostly only the eyes, never a nose)
         run: node --test tests/js/vis.test.mjs
+      - name: Brushes of the style worlds
+        run: node --test tests/js/brush.test.mjs
+      - name: Style layer (today's look stays today's look; in the runner's Chrome)
+        run: node --test tests/js/style.test.mjs
       - name: Picture chain (WebGL 2 against Canvas 2D)
         run: node --test tests/js/gl-stage.test.mjs
       - name: You in the dream (the face stays the camera's picture; in the runner's Chrome)

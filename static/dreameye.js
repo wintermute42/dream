@@ -1,11 +1,13 @@
 /* Dream – the dreaming eye, drawn the same way by Dreamy Eyes (eyes.html) and the dream windows (window.html).
    #214: moved here from eyes.html, so that a window's large eye is the very eye of Dreamy Eyes. The pages keep what
    their eyes feel (where they look, when they blink, their mood) and hand it over with every eye they draw.
-   No DOM besides canvases; a global `DreamEye`; needs dreamlife.js (the hue of a colour). */
+   #221: `draw`, `irisWorld` and `pupilShape` are how today's look – the first style world (world-classic.js) – draws
+   the eye; the pages ask the style layer (dreamstyle.js). What an eye is in every world stays here for all of them:
+   its looks and feelings, which pupil hypnotises next; the lids' curves are in dreambrush.js.
+   No DOM besides canvases; a global `DreamEye`; needs dreambrush.js. */
 (function (root) {
   'use strict';
-  const { hueOf, softLight, stamp, tinted } = root.DreamLife;
-  const lerp = (a, b, k) => a + (b - a) * k;
+  const { hueOf, softLight, stamp, tinted, lerp, lids } = root.DreamBrush;
   // the iris' fibres, drawn once: fine radial strands, light and dark
   function fibres() {
     const fib = document.createElement('canvas'); fib.width = fib.height = 512;
@@ -43,14 +45,6 @@
     frown:    [{ inner: 0.6, peak: 0.15, outer: -0.3 }, { inner: 0.6, peak: 0.15, outer: -0.3 }],
     curious:  [{ inner: -0.3, peak: -0.35, outer: -0.15 }, { inner: -0.15, peak: -0.25, outer: -0.2 }],
   };
-  function almond(g, cx, cy, a, b, up, lo, yL, yR) {   // the eye's opening: upper and lower lid as two curves
-    g.beginPath();
-    g.moveTo(cx - a, yL);
-    g.bezierCurveTo(cx - a * 0.45, cy - b * 1.32 * up, cx + a * 0.45, cy - b * 1.32 * up, cx + a, yR);
-    g.bezierCurveTo(cx + a * 0.45, cy + b * 1.05 * lo, cx - a * 0.45, cy + b * 1.05 * lo, cx - a, yL);
-    g.closePath();
-  }
-  const bez = (p0, p1, p2, p3, u) => { const m = 1 - u; return m * m * m * p0 + 3 * m * m * u * p1 + 3 * m * u * u * p2 + u * u * u * p3; };
   // One eye into g at (cx, cy), half as wide as a and half as high as b; mirror: the right one of a pair. p is what the
   // page knows of it: open and blink (0–1), squint (0–1), col (the dream's colour) and energy, look (one of
   // LOOKS or between two), brow ({ inner, peak, outer } as in EMO) with browAl, gx and gy (where it looks, -1–1), pupil
@@ -61,11 +55,8 @@
     const up = Math.max(0.02, p.open * (1 - p.blink) * (1 - 0.25 * p.squint)), lo = (0.82 + 0.1 * p.open) * (1 - 0.35 * p.squint);   // #162: squint
     const [r, gg, bl] = p.col;
     // feminine: the outer corner a little lifted (almond, a touch of cat-eye), the inner one soft and low
-    const o = mirror ? 1 : -1, lift = b * 0.17;
-    const yL = o < 0 ? cy - lift : cy + lift * 0.2, yR = o > 0 ? cy - lift : cy + lift * 0.2, yOut = cy - lift;
+    const lid = lids(cx, cy, a, b, mirror, up, lo), { o, yL, yR, yOut, upX, upY, loY } = lid;   // the same opening in every world
     const hueE = hueOf(p.col);
-    const upY = u => bez(yL, cy - b * 1.32 * up, cy - b * 1.32 * up, yR, u), upX = u => bez(cx - a, cx - a * 0.45, cx + a * 0.45, cx + a, u);
-    const loY = u => bez(yL, cy + b * 1.05 * lo, cy + b * 1.05 * lo, yR, u);
     // eyeshadow: a soft veil of colour on the lid, rose and the dream's hue, with a little shimmer
     g.save();
     g.beginPath(); g.moveTo(cx - a * 1.02, yL); g.bezierCurveTo(cx - a * 0.45, cy - b * (1.6 + 0.15 * up), cx + a * 0.55, cy - b * (1.65 + 0.15 * up), cx + a * 1.02 + o * a * 0.06, yR - b * 0.1);
@@ -96,7 +87,7 @@
     halo.addColorStop(0, `rgba(${r | 0},${gg | 0},${bl | 0},${0.18 + 0.2 * p.energy})`); halo.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = halo; g.fillRect(cx - a * 1.6, cy - a * 1.6, a * 3.2, a * 3.2);
     g.save();
-    almond(g, cx, cy, a, b, up, lo, yL, yR); g.clip();
+    lid.path(g); g.clip();
     // the white, a little tinted by the dream, shaded where the lid sits
     const sc = g.createRadialGradient(cx, cy + b * 0.2, b * 0.2, cx, cy, a * 1.05);
     sc.addColorStop(0, '#fbf8ff'); sc.addColorStop(0.7, `rgb(${lerp(226, r, 0.15) | 0},${lerp(218, gg, 0.15) | 0},${lerp(236, bl, 0.15) | 0})`); sc.addColorStop(1, '#8f84a6');

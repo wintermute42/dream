@@ -1,0 +1,108 @@
+<!doctype html>
+<!-- #221: today's look, drawn through the style layer (static/dreamstyle.js) in a real browser, with a seeded random and
+     a clock that stands still: eyes, everything that lives around them, the faces of light and the motifs of a dream
+     window. tests/js/style.test.mjs compares the pictures with the ones kept in tests/js/style-ref.json. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Style worlds</title>
+<style>body { background: #141220; color: #f2eefb; font: 14px system-ui, sans-serif; } canvas { margin: 4px; max-width: 46vw; }</style>
+</head>
+<body>
+<script>
+// the same random numbers and the same moment every time, whatever the modules ask for
+(() => { let a = 20261123; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; performance.now = () => 54321; })();
+</script>
+<script src="/static/dreambrush.js"></script>
+<script src="/static/dreamvis.js"></script>
+<script src="/static/dreamlife.js"></script>
+<script src="/static/dreameye.js"></script>
+<script src="/static/dreamstyle.js"></script>
+<script src="/static/world-classic.js"></script>
+<script>
+(async () => {
+  const report = { error: '', worlds: DreamStyle.names(), motifs: DreamStyle.motifs(), scenes: {} };
+  try {
+    const W = 960, H = 540, SW = 96, SH = 54, T0 = 54321;
+    const { canvas, hueOf, night, softLight } = DreamBrush;
+    // an invented dream: bands of colour with a sun in them
+    const pic = canvas(256), pg = pic.getContext('2d'), bands = pg.createLinearGradient(0, 0, 256, 256);
+    [[0, '#14306e'], [0.3, '#1fa0a8'], [0.55, '#f0c060'], [0.8, '#e05a78'], [1, '#5a2a96']].forEach(([at, col]) => bands.addColorStop(at, col));
+    pg.fillStyle = bands; pg.fillRect(0, 0, 256, 256);
+    pg.fillStyle = '#fff2c0'; pg.beginPath(); pg.arc(170, 90, 34, 0, Math.PI * 2); pg.fill();
+    const look = DreamBrush.brightness(pg.getImageData(0, 0, 256, 256).data, 256, 256), col = look.col, hue = hueOf(col);
+    const fib = DreamEye.fibres(), stars = DreamEye.stars();
+    const scene = (name, paint) => {                   // a scene on black; what the test compares is a small copy of it
+      const c = canvas(W, H), g = c.getContext('2d');
+      g.fillStyle = '#07060b'; g.fillRect(0, 0, W, H);
+      paint(g);
+      const s = canvas(SW, SH), sg = s.getContext('2d', { willReadFrequently: true });
+      sg.drawImage(c, 0, 0, SW, SH);
+      const d = sg.getImageData(0, 0, SW, SH).data, rgb = new Uint8Array(SW * SH * 3);
+      for (let i = 0; i < SW * SH; i++) { rgb[i * 3] = d[i * 4]; rgb[i * 3 + 1] = d[i * 4 + 1]; rgb[i * 3 + 2] = d[i * 4 + 2]; }
+      report.scenes[name] = btoa(String.fromCharCode(...rgb));
+      document.body.append(c);
+    };
+    const eye = (g, cx, cy, a, mirror, o = {}) => {    // one eye of the world in use, as a page would ask for it
+      const style = DreamStyle.eye(), io = { rot: 0.7, hue, stars, pic: (x, y, n, al) => { g.globalAlpha = al; g.drawImage(pic, x - n / 2, y - n / 2, n, n); }, heat: 0.7 };
+      return style.draw(g, cx, cy, a, a * 0.56, mirror, { open: o.open ?? 0.9, blink: o.blink || 0, squint: o.squint || 0, col, energy: 0.4,
+        look: DreamEye.LOOKS[o.look || 'rose'], brow: DreamEye.EMO[o.emo || 'curious'][mirror ? 1 : 0], browAl: o.browAl || 0, fib, gx: o.gx || 0, gy: o.gy || 0,
+        pupil: 0.45, pupilMix: o.shape ? 1 : 0, pupilShape: (ix, iy, pr, R) => style.pupilShape(g, o.shape, ix, iy, pr, R, mirror, { hue, beat: 0.5, now: T0 }),
+        iris: (ix, iy, R) => { style.irisWorld(g, o.iris || 'dream', ix, iy, R, mirror, 1, io); g.globalAlpha = 1; } });
+    };
+    // 1, 2: eyes – every look, every world of the iris, every shape of the pupil, with and without brows
+    const LOOKS = Object.keys(DreamEye.LOOKS), EMO = Object.keys(DreamEye.EMO);
+    scene('eyes', g => {
+      LOOKS.forEach((lk, i) => { const y = 60 + i * 105;
+        eye(g, 250, y, 92, false, { look: lk, emo: EMO[i], browAl: i % 2, iris: ['dream', 'kaleido', 'vortex', 'galaxy', 'fire'][i], gx: 0.4 - i * 0.2, open: 1 - i * 0.12 });
+        eye(g, 700, y, 92, true, { look: lk, emo: EMO[i], browAl: i % 2, iris: ['dream', 'kaleido', 'vortex', 'galaxy', 'embers'][i], gx: 0.4 - i * 0.2, open: 1 - i * 0.12, squint: i * 0.2 }); });
+    });
+    scene('pupils', g => {
+      ['slit', 'heart', 'star', ...DreamEye.HYPNO].forEach((shape, i) => eye(g, 130 + (i % 4) * 235, 140 + (i / 4 | 0) * 260, 105, i % 2 === 1, { shape, look: LOOKS[i % 5], blink: i === 7 ? 0.5 : 0 }));
+    });
+    // 3: everything that lives around the eyes and drifts through the windows
+    scene('life', g => {
+      const KINDS = ['cloud', 'bloom', 'mandala', 'tree', 'moth', 'bubbles', 'aurora', 'orbit', 'tear', 'stars', 'ember', 'fireheart', 'sparks', 'zzz'];
+      const life = DreamStyle.life();
+      g.globalCompositeOperation = 'lighter';
+      KINDS.forEach((kind, i) => {
+        const x = 90 + (i % 7) * 130, y = 150 + (i / 7 | 0) * 250, size = 60;
+        const d = { kind, x, y, size, hue: hue + i * 40, spin: i % 2 ? 1 : -1, side: 0, life: 9000, dir: 0.4, wob: 1, puffs: Array.from({ length: 10 }, (_, k) => [k * 0.63 - 0.5, 0.6 + 0.05 * k - 0.5, 0.4 + (k * 0.37) % 0.4]) };
+        life.draw(g, d, 2600, 0.9, size * (DreamLife.SCALE[kind] || 1), y - 12, { H, anchor: [x, y, 40] });
+      });
+    });
+    // 4, 5: the faces of light, with the hints and in the rare moment – drawn around a pair of eyes
+    const geo = { cx: W / 4, ey: H / 2, A: 48, half: 58, h: H, q: 1 };
+    for (const [name, level] of [['faces-hints', 1], ['faces-rare', 2]]) scene(name, g => {
+      DreamStyle.face().MODES.forEach((mode, i) => {
+        g.save(); g.translate((i % 3) * (W / 3) - W / 12, (i / 3 | 0) * (H / 2) - H / 4 + 40); g.scale(0.62, 0.62);
+        DreamStyle.face().draw(g, mode, T0, { ...geo, cx: geo.cx * 1.6, ey: geo.ey * 1.2 }, DreamVis.held(level));
+        g.restore();
+      });
+    });
+    // 6: the large motifs of a dream window, with what a window hands over
+    scene('motifs', g => {
+      const soft = canvas(256), sg = soft.getContext('2d'), EDGE = softLight([[0, 'rgba(0,0,0,1)'], [0.7, 'rgba(0,0,0,1)'], [1, 'rgba(0,0,0,0)']], 256);
+      DreamStyle.motifs().forEach((kind, i) => {
+        const w = W / 3, h = H / 2;
+        g.save(); g.translate((i % 3) * w, (i / 3 | 0) * h); g.beginPath(); g.rect(0, 0, w, h); g.clip();
+        const kit = { W: w, H: h, mid: [w / 2, h / 2], pulse: 0.3, hue, pic, tier: 2,
+          softPiece: (c, t, paint, x, y, r, al) => { sg.globalCompositeOperation = 'source-over'; sg.globalAlpha = 1; sg.clearRect(0, 0, 256, 256); paint(sg, 256); sg.globalCompositeOperation = 'destination-in'; sg.drawImage(EDGE, 0, 0); c.globalAlpha = al; c.drawImage(soft, x - r, y - r, r * 2, r * 2); c.globalAlpha = 1; },
+          eye: (c, m, dt, x, y, a, lk) => { night(c, x, y, a * 1.2, 0.5); eye(c, x, y, a, false, { look: Object.keys(DreamEye.LOOKS).find(k => DreamEye.LOOKS[k] === lk) }); } };
+        DreamStyle.motif(kind)(g, { kind, seed: 1234567 }, T0, 0.016, kit);
+        g.restore(); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+      });
+    });
+    // a world nobody registered is today's look; a world that draws only a part gets the rest from the first
+    report.unknown = DreamStyle.use('no-such-world');
+    DreamStyle.register('test-partial', { life: { draw() { report.partialLife = true; } }, motif: { mandala() { report.partialMotif = true; } } });
+    report.used = DreamStyle.use('test-partial');
+    DreamStyle.life().draw(); DreamStyle.motif('mandala')();
+    report.fallback = DreamStyle.eye().draw === DreamEye.draw && DreamStyle.motif('third') !== undefined && DreamStyle.face().MODES.length === 6;
+    DreamStyle.use('classic');
+  } catch (e) { report.error += ' ' + (e && e.stack || e); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>

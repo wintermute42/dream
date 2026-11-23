@@ -126,8 +126,8 @@ test('a level held from the address: ?face=0|1|2', () => {
 });
 
 test('the pages draw nothing of a face past the rule', () => {
-  const eyes = read('eyes.html'), win = read('window.html'), eye = read('dreameye.js');
-  for (const [name, src] of [['eyes.html', eyes], ['window.html', win], ['dreameye.js', eye], ['dreamlife.js', read('dreamlife.js')]]) {
+  const eyes = read('eyes.html'), win = read('window.html'), eye = read('dreameye.js'), classic = read('world-classic.js');
+  for (const [name, src] of [['eyes.html', eyes], ['window.html', win], ['dreameye.js', eye], ['dreamlife.js', read('dreamlife.js')], ['world-classic.js', classic], ['dreambrush.js', read('dreambrush.js')]]) {
     assert.ok(!/grin/i.test(src), `${name}: the grin is gone`);
     const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');   // without its comments
     assert.ok(!/nose|nostril/i.test(code), `${name}: no nose is drawn`);
@@ -138,7 +138,7 @@ test('the pages draw nothing of a face past the rule', () => {
     assert.ok(!/DreamVis[^;\n]*(aiFaces|DreamFace)|faceEdge\([^)]*vis/.test(src), `${name}: a face painted by the AI stays whole`);
   }
   // the faces drawn in light: every line and every dot carries the visibility of its part
-  const body = eyes.slice(eyes.indexOf('function faceMask('), eyes.indexOf('// #160: faces painted by the AI'));
+  const body = classic.slice(classic.indexOf('function face('), classic.indexOf('const FACES = '));   // #221: today's look, the first style world
   const calls = body.split('\n').filter(l => !/const (line|leaf|dot) = /.test(l) && (/\b(line|leaf|dot)\(.*\);/.test(l) || /^\s*\}, wd.*\);/.test(l)));
   assert.ok(calls.length > 25, `${calls.length} drawing calls found`);
   for (const l of calls) assert.ok(/\* (mark|hair|outline|mouth|part)\)|, w, al\)/.test(l), `a line without its part: ${l.trim().slice(0, 120)}`);

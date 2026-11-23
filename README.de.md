@@ -795,6 +795,15 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   Nase ist nie zu sehen**, und es gibt kein Grinsen. Zum Anschauen einer Stufe `?face=0`, `?face=1` oder `?face=2` an
   die Adresse der Dreamy Eyes oder eines Traum-Fensters hängen: Sie wird gehalten (0: nur die Augen, 1: mit
   Andeutungen, 2: mit Mund und Umriss).
+- **Stilwelten (#221):** Wie das alles gezeichnet wird, ist eine *Stilwelt*. Die Dreamy Eyes und die Traum-Fenster
+  bestimmen die Szene – was erscheint, wann und wo; eine Welt bestimmt das Material: das Auge, alles, was um die Augen
+  lebt und durch die Fenster treibt, die Gesichter aus Licht, die großen Motive der Fenster. Die erste Welt,
+  **Klassisch**, ist der bisherige Look von Dream (leuchtende Linien, weiches Licht), unverändert. Die Welt wählst du
+  im Bedienfeld (neben „Trance: …“: **Stilwelt**) oder in Dream Control (Karte „👀 Dreamy Eyes“); eine MIDI-Taste kann
+  zur nächsten weiterschalten („Taste: nächste Stilwelt“). Dream sagt es sofort jeder Dreamy-Eyes-Seite und jedem
+  Traum-Fenster – sie hören es nur, mit ihren Codes lässt es sich nicht setzen. Feuer, Trance und „Du im Traum“ laufen
+  in jeder Welt. Vorerst ist Klassisch die einzige Welt; weitere folgen, jede als eine Datei (wie eine Welt eingebaut
+  wird, steht unter „Tests“).
 - **Weibliche Augen:** eine Mandelform mit leicht angehobenem äußerem Augenwinkel, ein zarter rosé-violetter Lidschatten
   mit etwas Schimmer, ein Lidstrich mit kleinem Flügel, volle Wimpern, die zum äußeren Winkel hin länger und geschwungener
   werden (unten ein paar feine). **Die Brauen kommen nur mit den Andeutungen** (siehe oben) und zeigen dann ein Gefühl: Staunen (jemand ganz
@@ -1194,7 +1203,7 @@ ein Preset wählen und dabei bleiben.
 - **Regler-Ziele:** Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion, Bewegung,
   Pose-Stärke, **Master-Helligkeit** (0 = schwarz; wirkt auf Bühne, Ausgabefenster und Syphon) und Effekt-Stärke.
 - **Tasten-Ziele:** Pause/Start, nächste Szene, Neu, neuer Seed, **Blackout an/aus** (Master auf 0 und zurück),
-  Tap-Tempo, Muster weiter, jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus.
+  Tap-Tempo, Muster weiter, nächste Stilwelt (#221), jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus.
 - Regler gleiten weich zum neuen Wert (keine Sprünge) und bewegen sich im Bedienfeld und am Handy mit.
   Endlos-Drehregler (die nur „mehr/weniger“ senden) erkennt Dream nach wenigen Rasten selbst.
 - Vorschlag für 8 Fader + Master: Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion,
@@ -1444,7 +1453,7 @@ Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebenei
 je ein großes Motiv, der Traum als Wolken mit Dunkel dazwischen, das Augenpaar, das gemeinsam schaut, ein gemaltes
 Gesicht, das sich über seine Punkte bewegt, und eines ohne Punkte, das still bleibt, ein Motiv, das von einem Fenster ins
 andere wandert, Welle, Streicheln und Trance, und ein schwaches Gerät, das weniger Pixel zeichnet; mit `KEEP=1` bleiben
-die Fenster offen. `node --test tests/js/vis.test.mjs` (#220) prüft die Regel selbst als reine Zahlen (`static/dreamvis.js`): mehr als vier Fünftel der Zeit nur die Augen, Andeutungen im Abstand von 60–120 s, Mund und Umriss im Abstand von 4–11 min und nie mehr als ein Hauch, kein Sprung von einem Bild zum nächsten, dasselbe für beide Fenster eines Paars, auf keiner Stufe eine Nase – und dass die Seiten jede Linie eines Gesichts durch die Regel zeichnen (kein Grinsen, keine Nase in ihrem Code). `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Das Gesicht muss mit jedem Rahmen und in jedem Moment genau das Kamerabild sein, der Raum ist nie zu sehen, und das Bild geht, indem es sich auflöst, das Gesicht zuletzt. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+die Fenster offen. `node --test tests/js/vis.test.mjs` (#220) prüft die Regel selbst als reine Zahlen (`static/dreamvis.js`): mehr als vier Fünftel der Zeit nur die Augen, Andeutungen im Abstand von 60–120 s, Mund und Umriss im Abstand von 4–11 min und nie mehr als ein Hauch, kein Sprung von einem Bild zum nächsten, dasselbe für beide Fenster eines Paars, auf keiner Stufe eine Nase – und dass die Seiten jede Linie eines Gesichts durch die Regel zeichnen (kein Grinsen, keine Nase in ihrem Code). `node --test tests/js/style.test.mjs` (#221) prüft die Stil-Schicht: die Registrierung in Node (eine Welt über ihren Namen, der heutige Look bei unbekanntem Namen, ein Teil, den eine Welt nicht selbst zeichnet, kommt aus der ersten Welt; jede Welt aus `settings.WORLDS` ist eine Datei `static/world-<name>.js`, die sich selbst anmeldet, und Bedienfeld und Dream Control bieten sie an), und im selben Browser ohne Fenster zeichnet `tests/js/style.html` den heutigen Look durch die Schicht, mit festem Zufall und stehender Uhr – Augen mit jedem Look, jeder Iris-Welt und Pupille, alles Lebendige, die sechs Gesichter aus Licht mit Andeutungen und im seltenen Moment, die sechs Fenster-Motive – und vergleicht kleine Kopien mit den Bildern in `tests/js/style-ref.json` (`STYLE_REF=write` behält die jetzt gezeichneten, nur wenn sich der Look ändern soll). `node --test tests/js/brush.test.mjs` prüft die gemeinsamen Pinsel als Zahlen (`static/dreambrush.js`: Zufall und Rauschen aus einem Startwert, eine Rausch-Kachel, die sich wiederholt, glatte Linien und anschwellende Bänder, die Helligkeit des Traums, die Lider, das Skelett eines Gesichts – in dem nichts dort liegt, wo eine Nase wäre). **Eine neue Stilwelt** ist eine Datei `static/world-<name>.js`, die `DreamStyle.register('<name>', { eye, life, face, motif })` mit den Teilen aufruft, die sie zeichnet (der Rest kommt aus Klassisch), ein Name in `settings.WORLDS`, ein Script-Tag in `eyes.html` und `window.html`, eine Option in den beiden Auswahllisten und ihr deutscher Name. `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Das Gesicht muss mit jedem Rahmen und in jedem Moment genau das Kamerabild sein, der Raum ist nie zu sehen, und das Bild geht, indem es sich auflöst, das Gesicht zuletzt. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und

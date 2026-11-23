@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import { rng } from './fire-frames.mjs';
 
 const require = createRequire(import.meta.url);
-require('../../static/dreamlife.js'); require('../../static/dreameye.js');   // browser scripts: they hang themselves on the global object
+require('../../static/dreambrush.js'); require('../../static/dreamlife.js'); require('../../static/dreameye.js');   // browser scripts: they hang themselves on the global object
 const { HYPNO, nextHypno, hypnoAt } = globalThis.DreamEye;
 
 test('five hypnotic pupils, the spiral among them', () => {

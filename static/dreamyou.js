@@ -7,7 +7,7 @@
    face (tests/js/you.test.mjs). No DOM besides canvases; needs dreamlife.js; a global `DreamYou`. */
 (function (root) {
   'use strict';
-  const { softLight, stamp, tinted } = root.DreamLife;
+  const { softLight, stamp, tinted } = root.DreamBrush;
   const FRAMES = ['blossom', 'mandala', 'mist'];
   const TINY = 64, GLOW = 28;                           // the mask, small: scaled up again it is the soft outline
   const FACE = 0.3;                                     // how much of the picture's width the face takes

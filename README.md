@@ -763,6 +763,14 @@ eyes** that invite people to step up and play:
   than about a third – and leave again before the hints do. **A nose never shows**, and there is no grin. To look at a
   level, add `?face=0`, `?face=1` or `?face=2` to the address of Dreamy Eyes or of a dream window: it is held (0: only
   the eyes, 1: with hints, 2: with mouth and outline).
+- **Style worlds (#221):** how all of this is drawn is a *style world*. Dreamy Eyes and the dream windows decide the
+  scene – what appears, when and where; a world decides the material: the eye, everything that lives around the eyes
+  and drifts through the windows, the faces of light, the large motifs of the windows. The first world, **Classic**,
+  is the look Dream has had so far (glowing lines, soft light), unchanged. Choose the world in the panel (next to
+  “Trance: …”: **Style world**) or in Dream Control (card “👀 Dreamy Eyes”); a MIDI button can step to the next one
+  (“Button: next style world”). Dream tells every Dreamy Eyes page and every dream window at once – they only hear
+  it, their codes cannot set it. Fire, trance and “you in the dream” run in every world. For now Classic is the only
+  world; more follow, each as one file (see “Tests” for how a world is built in).
 - **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
   come only with the hints** (see above) and show a feeling then: surprise (someone very close, waking up, a dream turning
@@ -1136,7 +1144,7 @@ numbers the controller sends depends on its preset – just choose a preset and 
   movement, pose strength, **master brightness** (0 = black; acts on stage, output window and Syphon) and effect
   strength.
 - **Button targets:** pause/start, next scene, new, new seed, **blackout on/off** (master to 0 and back), tap tempo,
-  next pattern, each of the twelve effects on/off, roll effects anew, effects off.
+  next pattern, next style world (#221), each of the twelve effects on/off, roll effects anew, effects off.
 - Sliders glide softly to the new value (no jumps) and move along in the panel and on the phone. Endless knobs (that
   only send “more/less”) are recognised by Dream after a few clicks.
 - Suggestion for 8 faders + master: transformation, dream share, zoom pull, rotation, colour drift, drift, music
@@ -1354,7 +1362,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart, mouth and outline 4–11 min apart and never above a breath, no jump from one picture to the next, the same for both windows of a pair, no nose at any level – and that the pages draw every line of a face through the rule (no grin, no nose in their code). `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart, mouth and outline 4–11 min apart and never above a breath, no jump from one picture to the next, the same for both windows of a pair, no nose at any level – and that the pages draw every line of a face through the rule (no grin, no nose in their code). `node --test tests/js/style.test.mjs` (#221) tests the style layer: the registry in Node (a world by its name, today's look for an unknown name, a part a world does not draw comes from the first world; every world of `settings.WORLDS` is a file `static/world-<name>.js` that registers itself, and the panel and Dream Control offer it), and in the same headless browser `tests/js/style.html` draws today's look through the layer with a seeded random and a clock that stands still – eyes with every look, iris world and pupil, every living thing, the six faces of light with hints and in the rare moment, the six window motifs – and compares small copies with the pictures kept in `tests/js/style-ref.json` (`STYLE_REF=write` keeps the ones drawn now, only when the look is meant to change). `node --test tests/js/brush.test.mjs` tests the shared brushes as numbers (`static/dreambrush.js`: seeded random and noise, a tile of noise that repeats, smooth lines and swelling bands, the dream's brightness, the lids, the skeleton of a face – in which nothing lies where a nose would be). **A new style world** is one file `static/world-<name>.js` that calls `DreamStyle.register('<name>', { eye, life, face, motif })` with the parts it draws (the rest comes from Classic), one name in `settings.WORLDS`, a script tag in `eyes.html` and `window.html`, an option in the two selects and its German name. `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the
