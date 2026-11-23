@@ -15,6 +15,7 @@ import paths
 import playlists
 import scenes
 import sensors
+import settings
 
 
 async def on_presence(present: bool):
@@ -73,6 +74,10 @@ async def midi_loop():
                 order = ["auto", *playlists.PATTERNS]
                 cur = hub.state.get("music_pattern", "auto")
                 await hub.apply({"music_pattern": order[(order.index(cur) + 1) % len(order)] if cur in order else "auto"}, by="midi")
+            elif a == "world":                         # #221: the next style world of Dreamy Eyes and the dream windows
+                order = settings.WORLDS
+                cur = hub.state.get("world")
+                await hub.apply({"world": order[(order.index(cur) + 1) % len(order)] if cur in order else order[0]}, by="midi")
             elif a.startswith("fx_"):                  # effects: the stage knows which ones go together
                 await hub.broadcast({"cmd": "fx", "arg": a[3:]}, only="stage")
         if learned:

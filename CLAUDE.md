@@ -22,12 +22,26 @@ command line for now, #231) via `dream-cloud`.
   is there). The sliders of the panel and of Dream Control are drawn by `static/sliders.js` and `sliders.css` (#216)
   from the settings table (`settings.page_schema()`, sent over `/ctl`): zero mark, influence colour, "Reset". The moving signs beside the sliders and the shape of the picture's character by `static/signs.js` and `signs.css` (#217),
   hung into the sliders' drawing (`painted`) – only transform and opacity move, paused while not on screen.
-  Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
+  Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) decide the scene (what, when, where);
+  how it is drawn is a style world (#221): the pages ask `static/dreamstyle.js` for the eye, the living things, the
+  faces of light and the window motifs of the world in use, a world is one file `static/world-<name>.js` that
+  registers the parts it draws (the rest, and everything for an unknown name, comes from the first world,
+  `world-classic.js`: today's look, kept as it is – `tests/js/style.test.mjs` compares pictures), and what all worlds
+  share is `static/dreambrush.js` (seeded random, noise, lines and bands, soft lights stamped, the dream's brightness,
+  the lids, the skeleton of a face; no page or world keeps its own copy of a helper that is there). The setting
+  `world` (`settings.WORLDS`) names the world; Dream tells it to the eyes and the windows, which never set it. They draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
-  asked over `/facemarks` – and moved by each window itself; a window never runs a model). `static/dreamyou.js` draws "you in the dream" for
-  Dreamy Eyes (#219): the person as the camera sees them, cut out on the phone, the face unchanged, the dream only around
-  – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
+  asked over `/facemarks` – and moved by each window itself, and by Dreamy Eyes for the face that opens out of their pupils (#230:
+  `windows.lookers` get the points, `DreamFace.life` is what a face does next); neither ever runs a model for it). How much of a face shows
+  is one rule for both pages (#220): `static/dreamvis.js` – mostly only the eyes, hints (brows, the sign on the
+  forehead, the outline at half strength) every minute or two, mouth, nose and hair rarely and clearly then; one face at a time – a face that
+  takes another's place while it shows waits until that one has faded out completely (`DreamVis.step`: never a cut, never two faces over each other); a drawn face has one size, the eyes' – never fitted to the screen, what has no room runs off its edge; whatever is drawn of a
+  face – a line of light, the eye's brow – asks it (`DreamVis.of(vis, part)`), and a part it does not know is not
+  drawn (`tests/js/vis.test.mjs`); the faces painted by the AI and "you in the dream" are pictures and stay whole. `static/dreamyou.js` draws "you in the dream" for
+  Dreamy Eyes (#219, #229): the person from the camera, cut out on the phone and drawn as in a dream with plain canvas
+  drawing – wavering in strips, running out into mist, the face clear only in the middle of the moment, coming apart
+  when it leaves; never a model, no blur filter, no loop over a large picture – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
   `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).

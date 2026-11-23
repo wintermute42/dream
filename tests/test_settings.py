@@ -400,3 +400,25 @@ def test_both_pages_show_the_signs_with_the_shared_file():
         assert not re.search(r"sg-(turn|rings|wheel|trail|grow|bars)", src), page
     css = open(os.path.join(ROOT, "static", "signs.css"), encoding="utf-8").read()
     assert not re.search(r"animation|transition|@keyframes", re.sub(r"/\*.*?\*/", "", css, flags=re.S))
+
+
+def test_the_style_world_is_one_entry_in_the_table():
+    """#221: the style world of Dreamy Eyes and the dream windows – a choice among settings.WORLDS, today's look first
+    and the default; Dream Control's and this Mac's to set, not a guest's; a MIDI button steps to the next one."""
+    import midi
+    import settings
+    s = settings.SETTINGS["world"]
+    assert s.choices == settings.WORLDS and s.default == settings.WORLDS[0] == "classic"
+    assert "world" not in settings.GUEST_KEYS and settings.guest_changes({"world": "classic"}) == {}
+    assert settings.coerce("world", "classic") == "classic"
+    with pytest.raises(ValueError):
+        settings.coerce("world", "../etc")
+    assert settings.loaded({"world": "classic"})["world"] == "classic"
+    assert "world" in midi.ACTIONS and "world" not in midi.TARGETS and "world" not in settings.RESET
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for page in ("index.html", "remote.html"):
+        with open(os.path.join(here, "static", page), encoding="utf-8") as f:
+            src = f.read()
+        assert '<option value="world">Button: next style world</option>' in src
+        offered = re.findall(r'<option value="([^"]+)"', re.search(r'<select id="world"[^>]*>(.*?)</select>', src).group(1))
+        assert tuple(offered) == settings.WORLDS, page
