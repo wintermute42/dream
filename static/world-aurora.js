@@ -348,10 +348,11 @@
   // the eye's own. Drawn twice by the page: without `ink` into the mask the dream shines through (so: without
   // colours), with it as the world's own glow over that.
   const FACES = ['veil', 'crown', 'pillars'];
+  const HINT = 1.2;                                    // the sign on the forehead: a little stronger than it was first drawn
   const RARE = 1.25;                                   // light adds up thinly: what comes in the rare moment is drawn a little above its share
   function face(c, mode, t, geo, v, ink, inkAl = 1) {
     const mono = ink === undefined, K = mono ? 0.5 : Math.min(1, inkAl * 4.5);
-    const mark = DreamVis.of(v, 'mark') * K, hair = DreamVis.of(v, 'hair') * RARE * K, outline = DreamVis.of(v, 'outline') * RARE * K, mouth = DreamVis.of(v, 'mouth') * RARE * K, nose = DreamVis.of(v, 'nose') * RARE * K;
+    const mark = DreamVis.of(v, 'mark') * HINT * K, hair = DreamVis.of(v, 'hair') * RARE * K, outline = DreamVis.of(v, 'outline') * RARE * K, mouth = DreamVis.of(v, 'mouth') * RARE * K, nose = DreamVis.of(v, 'nose') * RARE * K;
     if (mark + hair + outline + mouth + nose <= 0.004) return;
     const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u, S = skeleton(geo.cx, geo.ey, geo.half, t);
     const strands = S.filter(k => k.name === 'strand').map(k => k.pts), jaws = S.filter(k => k.name === 'jaw').map(k => k.pts), lips = S.find(k => k.name === 'lips').pts;
