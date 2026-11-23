@@ -112,9 +112,11 @@ def test_the_model_is_compiled_before_its_first_picture_and_then_nothing_compile
     render.model_state.update(loading="sdxl-turbo")
     render._speed_up("sdxl-turbo", gpu.pipe)
     assert len(gpu.compiles) == 2                                       # the UNet and the decoder, once
-    assert [(size, stance) for size, stance, _ in gpu.pictures] == [((512, 512), "default"), ((384, 384), "default")]
+    shapes = [(512, 512), (384, 384), (896, 512), (704, 384)]            # square and 16:9, as the stage sizes them
+    assert [(size, stance) for size, stance, _ in gpu.pictures] == [(shape, "default") for shape in shapes]
     assert all(p["compiling"] and not p["painting"] and not p["ready"] for _, _, p in gpu.pictures)
-    assert render._compiled == {"sdxl-turbo": {(512, 512, False, False), (384, 384, False, False)}}
+    assert render._compiled == {"sdxl-turbo": {(*shape, False, False) for shape in shapes}}
+    assert "-4shapes.bin" in render._cache_file("sdxl-turbo", gpu.pipe)   # not the cache of an earlier, smaller set
     assert gpu.stance[-1] == "eager_on_recompile" and render._run_only["on"] is True
     assert render.compile_state == {"since": None, "cached": False, "shapes": None}
 
@@ -141,7 +143,7 @@ def test_a_picture_the_model_was_not_compiled_for_is_painted_uncompiled_without_
     render._speed_up("sdxl-turbo", gpu.pipe)
     _painting(render)
     compiles, stances = len(gpu.compiles), len(gpu.stance)
-    for w, h, control, ref in [(896, 512, False, False), (512, 512, True, False), (512, 512, False, True)]:
+    for w, h, control, ref in [(640, 640, False, False), (1344, 768, False, False), (512, 512, True, False), (512, 512, False, True)]:
         shape = (w, h, control, ref)
         render._note_shape("sdxl-turbo", Picture(w, h), control, ref)
         p = render.progress()
@@ -149,7 +151,8 @@ def test_a_picture_the_model_was_not_compiled_for_is_painted_uncompiled_without_
         render._note_shape("sdxl-turbo", Picture(512, 512), False, False)
         assert render.progress()["unoptimized"] is False
     assert len(gpu.compiles) == compiles and len(gpu.stance) == stances   # nothing was compiled, PyTorch still may not
-    assert render._compiled["sdxl-turbo"] == {(512, 512, False, False), (384, 384, False, False)}
+    render._note_shape("sdxl-turbo", Picture(896, 512), False, False)   # 16:9 at 512, prepared at the start
+    assert render.progress()["unoptimized"] is False
 
 
 def test_the_shape_of_a_picture_is_its_size_what_leads_it_and_the_reference_adapter(render):
@@ -393,9 +396,9 @@ def test_a_download_tells_how_far_it_is(cloud):
 def test_compiling_is_shorter_with_the_cache(cloud):
     def left(**w):
         return cloud.cloud_work({**RUNNING, "worker": {"ready": False, "compiling": True, **w}}, now=1000.0)["eta_min"]
-    assert left(compiling_s=0, compile_cached=True) == 2
-    assert left(compiling_s=0, compile_cached=False) == 5
-    assert left(compiling_s=150, compile_cached=False) == 3
+    assert left(compiling_s=0, compile_cached=True) == 3
+    assert left(compiling_s=0, compile_cached=False) == 8
+    assert left(compiling_s=150, compile_cached=False) == 6
     assert left(compiling_s=900) == 1
 
 
@@ -425,7 +428,7 @@ def test_the_status_for_the_pages_carries_the_step(cloud, server, tmp_path, monk
     monkeypatch.setattr(server.config, "CLOUD", str(fake))
     monkeypatch.setitem(cloud._job, "log", str(tmp_path / "none.log"))
     st = cloud.cloud_read()
-    assert st["work"] == {"phase": "compiling", "eta_min": 1} and st["busy"] is False and st["minutes"] == 3
+    assert st["work"] == {"phase": "compiling", "eta_min": 2} and st["busy"] is False and st["minutes"] == 3
 
 
 # ---------- the owner hears when the cloud GPU is ready ----------

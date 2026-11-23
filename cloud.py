@@ -50,7 +50,9 @@ def cloud_failure(log: str) -> dict | None:
 #   stopping     the machine is being deleted
 PREPARING = ("machine", "download", "loading", "compiling")
 ROUGH_MIN = {"machine": 8, "download": 5, "loading": 3}      # from the start of a step until pictures come, roughly
-COMPILE_MIN = {True: 1.5, False: 5}                           # with the compile cache of an earlier start, and without
+# with the compile cache of an earlier start, and without. Estimated, not measured, since the start also compiles the
+# 16:9 pictures (measured for the square ones alone: about 1 and 4 minutes, RTX 4090)
+COMPILE_MIN = {True: 2.5, False: 8}
 DOWNLOAD_GB_MIN = 2.0                                         # what a data centre's line brings, roughly
 UNREADABLE_S = 60                                             # a status that cannot be read: the step stays that long
 _work = {"phase": None, "since": 0.0, "misses": 0, "unread": None}

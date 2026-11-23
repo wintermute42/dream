@@ -1265,7 +1265,7 @@ Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später. Das **Abzeic
   Modell bei jedem Start neu herunter (SD-Turbo etwa 2,6 GB, SDXL-Turbo etwa 7 GB). Eine Log-Zeile wird nirgends
   gezeigt; was `dream-cloud` zuletzt gemeldet hat, steht im Tooltip der Zeile unter den Tasten, solange es arbeitet.
 - **„Wird optimiert“ gibt es nur beim Start, nie auf der Bühne.** Vor ihrem ersten Bild übersetzt die Cloud-GPU das
-  Modell für die üblichen Bilder (quadratisch, 512 und 384 px; mit der Technik fürs Referenzbild, wenn beim Start ein
+  Modell für die üblichen Bilder (512 und 384 px, je quadratisch und 16:9 – 896×512 und 704×384; mit der Technik fürs Referenzbild, wenn beim Start ein
   Referenzbild gewählt war) – dabei kann sie nicht malen, das ist also ein Schritt des Starts, und der Mac überbrückt
   ihn. Danach wird nichts mehr übersetzt: Kommt etwas, wofür das Modell nicht vorbereitet wurde – eine andere Größe,
   das Format 16:9, Pose oder Konturen, das erste Referenzbild, ein auf der Bühne gewechseltes Modell –, **malt die
@@ -1297,7 +1297,10 @@ Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später. Das **Abzeic
 - **Turbo (#100, #131):** Auf der Cloud-GPU wird das Modell vor dem ersten Bild für die Karte übersetzt
   (torch.compile, TF32), schlank in einer Variante. Den übersetzten Code bringt `dream-cloud` als **Cache** auf den Mac
   (`~/.cache/dream/compile`, je GPU-Typ, PyTorch-Version und Modell) und beim nächsten Start wieder mit: Der **erste**
-  Start auf einem GPU-Typ dauert gut 6 Minuten bis zum ersten Bild, jeder weitere etwa 4 (gemessen RTX 4090, 2026-11-17). Die Karte
+  Start auf einem GPU-Typ dauert gut 6 Minuten bis zum ersten Bild, jeder weitere etwa 4 (gemessen RTX 4090, 2026-11-17, nur mit den quadratischen Bildern; seit auch die 16:9-Bilder beim
+  Start übersetzt werden, dauert beides länger – noch nicht gemessen, das Abzeichen rechnet für „Wird optimiert“ mit etwa
+  8 bzw. 2,5 Minuten; der erste Start nach dieser Änderung übersetzt neu, der frühere Cache enthält die 16:9-Bilder
+  nicht). Die Karte
   Rechnen zeigt, was gerade läuft. **Stil-Referenzbild in der Cloud:** Die Technik dafür kommt erst mit dem ersten
   Referenzbild; danach malt die Cloud unübersetzt weiter (gemessen etwa 4,5 statt 5 Bilder/s) – ist beim nächsten Start ein
   Referenzbild gewählt, wird gleich mit ihr übersetzt. (Malen, während im Hintergrund übersetzt wird, war ausprobiert

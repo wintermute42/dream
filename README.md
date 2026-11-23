@@ -1203,7 +1203,7 @@ A cloud GPU costs from the moment it starts, but it paints only minutes later. T
   start (SD-Turbo about 2.6 GB, SDXL-Turbo about 7 GB). No line of a log is shown; what `dream-cloud` last said is in
   the tooltip of the line under the buttons while it works.
 - **“Is optimised” happens only at the start, never on stage.** Before its first picture the cloud GPU compiles the
-  model for the usual pictures (square, 512 and 384 px; with the reference picture's technique if a reference picture
+  model for the usual pictures (512 and 384 px, each square and 16:9 – 896×512 and 704×384; with the reference picture's technique if a reference picture
   was chosen at the start) – it cannot paint during that, so this is a step of the start and the Mac bridges it.
   Afterwards nothing is compiled any more: when something arrives the model was not prepared for – another size, the
   16:9 format, pose or outlines, the first reference picture, a model switched to on stage – the **cloud paints on
@@ -1232,7 +1232,9 @@ A cloud GPU costs from the moment it starts, but it paints only minutes later. T
 **Compiling and the compile cache:** on the cloud GPU the model is compiled for the card before its first picture
 (torch.compile, TF32), slim in one variant. `dream-cloud` brings the compiled code to the Mac as a **cache**
 (`~/.cache/dream/compile`, per GPU type, PyTorch version and model) and takes it to the next machine: the **first**
-start on a GPU type takes a good 6 minutes until the first picture, later ones about 4 (measured on an RTX 4090). With
+start on a GPU type takes a good 6 minutes until the first picture, later ones about 4 (measured on an RTX 4090 with the square pictures alone; since the 16:9 pictures are compiled at the
+start too, both take longer – not measured yet, the badge reckons with about 8 and 2.5 minutes for the step “Is
+optimised”; the first start after this change compiles anew, the earlier cache does not hold the 16:9 pictures). With
 a style reference picture in the cloud, its technique comes with the first reference picture; the cloud then paints
 uncompiled (measured about 4.5 instead of 5 pictures/s) – if a reference picture is chosen at the next start, it is
 compiled in at once. If compiling fails, the model simply runs normally (switch it off: `DREAM_COMPILE=0`). After

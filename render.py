@@ -160,6 +160,11 @@ _compiled: dict = {}                                  # model -> the kinds of pi
 _plain = {"key": None}                                # the model whose last picture was painted uncompiled, compiling being on
 _run_only = {"on": False}                             # PyTorch runs compiled code and compiles nothing new
 RECOMPILE_AFTER = 3.0
+# The pictures a model is compiled for at the start: the usual sizes, square and 16:9 (the stage widens a size to the
+# next multiple of 64: static/index.html, dims()). Every one makes the start longer, so only these.
+START_SIZES = (512, 384)
+START_SHAPES = tuple((w, h) for wide in (False, True) for h in START_SIZES
+                     for w in [round(h * 16 / 9 / 64) * 64 if wide else h])
 
 
 def _compile_wanted() -> bool:
@@ -206,7 +211,8 @@ def _cache_file(key, p):
     """#131: the compiled code depends on GPU, PyTorch, model and adapter – one cache file for each such combination."""
     gpu = re.sub(r"[^A-Za-z0-9]+", "-", torch.cuda.get_device_name(0)).strip("-")
     ref = "-ref" if getattr(p, "_dream_ip", False) else ""
-    return os.path.join(COMPILE_CACHE, f"{gpu}-torch{torch.__version__.split('+')[0]}-{key}{ref}.bin")
+    shapes = f"-{len(START_SHAPES)}shapes"               # a cache of fewer shapes would never be completed (it is saved once)
+    return os.path.join(COMPILE_CACHE, f"{gpu}-torch{torch.__version__.split('+')[0]}-{key}{ref}{shapes}.bin")
 
 
 def _speed_up(key, p):
@@ -244,8 +250,8 @@ def _speed_up(key, p):
         p.unet = torch.compile(p.unet, fullgraph=False)
         p.vae.decoder = torch.compile(p.vae.decoder, fullgraph=False)
         look = {"ref": ""} if getattr(p, "_dream_ip", False) else None   # with the adapter: its one variant
-        for size in (512, 384):                          # the usual sizes, compiled now and not on stage
-            _render(key, Image.new("RGB", (size, size), (40, 20, 60)), "psychedelic colors", 0.5, 2, 1, look=look)
+        for shape in START_SHAPES:                       # the usual pictures, compiled now – nothing is compiled on stage
+            _render(key, Image.new("RGB", shape, (40, 20, 60)), "psychedelic colors", 0.5, 2, 1, look=look)
         _compiled[key] = compile_state["shapes"]
         print(f"{key}: compiled for the GPU in {time.time() - t0:.0f} s", flush=True)
     except Exception as e:                               # compiling is a bonus: without it Dream still works
