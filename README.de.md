@@ -854,6 +854,21 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
     Mohnkapsel, die nickt und ein paar Samen fallen lässt. Keine Linie ist feiner als etwa 1,2 px, damit die Platte auch
     auf groben Ausgaben hält. Gemessen wie oben (Prozessor vierfach gebremst): Dreamy Eyes etwa 25 Bilder pro Sekunde,
     ein Traum-Fenster 6 (Klassisch im selben Lauf: 39 und 8).
+  - **Aurora** (#226) – Vorhänge aus Nordlicht über einem Sternenfeld: langsam, leuchtend, kalte Grün- und Violetttöne
+    mit warmem unterem Rand; die ruhigste Welt. Ein Vorhang ist eine Linie, auf der Strahlen stehen, deren Höhe und
+    Helligkeit an ihr entlangwandern. Das Auge ist ein Stück Nachthimmel, auf dessen unterem Lid Licht steht, mit
+    Strahlen als Wimpern, die vom oberen Lid aufsteigen, und einer dünnen Korona um die Iris; die Braue ist ein kleiner
+    Bogen aus Strahlen. Um die Augen: ein kleiner treibender Vorhang, ein Halo mit Nebenmonden, eine kleine Korona,
+    Lichtsäulen über Eisstaub, eine Sternschnuppe, Diamantstaub, ein stiller Bogen. Die Lichtgesichter heißen *veil*,
+    *crown* und *pillars* (ein helleres Licht auf der Stirn mit den Andeutungen; Schleier, wo Haar fiele, ein niedriges
+    Band am Kiefer und ein warmer Hauch als Mund nur im seltenen Moment – und keine Lichtsäule zwischen den Augen,
+    obwohl der Entwurf eine hatte). Im Fenster sieht man den Traum in großen Vorhängen, um eine Polarlicht-Korona –
+    Strahlen strömen aus einer dunklen Scheibe mit dem Auge oder dem gefalteten Traum darin; die unmöglichen Figuren
+    haben Kanten aus Licht. Feuer ist ein rotes Polarlicht, das vom Horizont aufsteigt; wo Klassisch ein Herz zeigt,
+    steht eine kleine warme Nebensonne, wo es Sterne zeigt, glitzert Eisstaub, und im Schlaf verlöschen Lichtsäulen
+    nacheinander, während Schnee sinkt. Gemessen wie oben (Prozessor vierfach gebremst): Dreamy Eyes etwa 25 Bilder pro
+    Sekunde, ein Traum-Fenster 3 bei voller Auflösung (Klassisch im selben Lauf: 35 und 8) – die Fenster dieser Welt
+    sind bisher die teuersten und darauf angewiesen, dass die Seite auf einem schwachen Gerät ihre Auflösung senkt.
 - **Weibliche Augen:** eine Mandelform mit leicht angehobenem äußerem Augenwinkel, ein zarter rosé-violetter Lidschatten
   mit etwas Schimmer, ein Lidstrich mit kleinem Flügel, volle Wimpern, die zum äußeren Winkel hin länger und geschwungener
   werden (unten ein paar feine). **Die Brauen kommen nur mit den Andeutungen** (siehe oben) und zeigen dann ein Gefühl: Staunen (jemand ganz
