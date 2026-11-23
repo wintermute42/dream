@@ -1112,8 +1112,10 @@
     const z = 1.25 + 0.15 * Math.sin(t / 11000), side = Math.max(w, h) * z;
     const ox = Math.sin(t / 13000) * w * 0.08, oy = Math.cos(t / 17000) * h * 0.08;
     const fade = dream.prev ? Math.min(1, (performance.now() - dream.at) / 260) : 1;
-    if (dream.prev && fade < 1) { bk.globalAlpha = 1 - fade; bk.drawImage(glowPrev(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side); }
-    bk.globalAlpha = dream.prev && fade < 1 ? fade : 1; bk.drawImage(glowCur(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side);
+    // the crossfade: the picture before fully into the mask, the new one over it only where the mask is ("source-in" twice
+    // multiplied both alphas – the night went dark for a moment with every new picture)
+    if (dream.prev && fade < 1) { bk.drawImage(glowPrev(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side); bk.globalCompositeOperation = 'source-atop'; bk.globalAlpha = fade; }
+    bk.drawImage(glowCur(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side);
     bk.globalAlpha = 1; bk.globalCompositeOperation = 'source-over';
     for (const [mode, al] of [[bs.prev, 1 - bs.mix], [bs.mode, bs.mix]]) {   // faces: a faint own glow, so they show even in a dark dream
       if (al > 0.01 && LINEFACES.has(mode)) {
