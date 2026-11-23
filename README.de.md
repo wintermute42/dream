@@ -789,12 +789,17 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 - **Meist nur die Augen (#220):** Wie viel von einem Gesicht zu sehen ist, folgt einer einzigen Regel – für alles
   Gesichtsartige, das in den Dreamy Eyes und in den Traum-Fenstern gezeichnet wird (die von der KI gemalten Gesichter
   und „Du im Traum“ sind Bilder und bleiben ganz). Die meiste Zeit gibt es nur die Augen. Alle ein bis zwei
-  Minuten kommen für etwa zehn Sekunden **Andeutungen**: die Brauen und das Stirnzeichen eines Gesichts aus Licht. Etwa
+  Minuten kommen für etwa zehn Sekunden **Andeutungen**: die Brauen, das Stirnzeichen eines Gesichts aus Licht und – zurückhaltend, mit etwa halber
+  Stärke – **der Umriss dieses Gesichts**. Etwa
   alle fünf bis zehn Minuten, innerhalb eines solchen Moments und nur, wenn die Augen ruhig sind, kommen **Mund, Nase und
-  Umriss** dazu – für diese wenigen Sekunden deutlich zu sehen (mit etwa vier Fünfteln der vollen Stärke, nie so fest
-  wie die Augen) – und gehen wieder, bevor die Andeutungen gehen. Ein Grinsen gibt es nicht. Zum Anschauen einer Stufe `?face=0`, `?face=1` oder `?face=2` an
+  Haar** dazu, und der Umriss wird kräftiger – für diese wenigen Sekunden deutlich zu sehen (mit etwa vier Fünfteln der vollen Stärke, nie so fest
+  wie die Augen) – und gehen wieder, bevor die Andeutungen gehen. Ein Grinsen gibt es nicht. **Immer nur ein Gesicht:**
+  Wo ein Gesicht ein anderes ablöst, während es zu sehen ist (eine gehaltene Stufe wechselt ihr Gesicht, die Stilwelt
+  wechselt, die Silhouette der Person hinter den Augen), blendet das alte erst ganz aus (etwa eine Sekunde), und erst
+  dann blendet das nächste ein – nie ein harter Schnitt, nie zwei Gesichter übereinander; ein gemaltes Gesicht, das
+  weichen muss, während es noch kommt, geht von dort, wo es gerade war. Zum Anschauen einer Stufe `?face=0`, `?face=1` oder `?face=2` an
   die Adresse der Dreamy Eyes oder eines Traum-Fensters hängen: Sie wird gehalten (0: nur die Augen, 1: mit
-  Andeutungen, 2: mit Mund, Nase und Umriss).
+  Andeutungen und Umriss, 2: dazu Mund, Nase und Haar; das Gesicht wechselt alle 20 Sekunden).
 - **Weibliche Augen:** eine Mandelform mit leicht angehobenem äußerem Augenwinkel, ein zarter rosé-violetter Lidschatten
   mit etwas Schimmer, ein Lidstrich mit kleinem Flügel, volle Wimpern, die zum äußeren Winkel hin länger und geschwungener
   werden (unten ein paar feine). **Die Brauen kommen nur mit den Andeutungen** (siehe oben) und zeigen dann ein Gefühl: Staunen (jemand ganz
@@ -810,10 +815,10 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   sich weich wieder hinter die Masken zurück. Direkt hinter den Augen bleibt es dunkler, damit sie
   klar bleiben.
 - **Gesichter aus Licht, nur angedeutet:** Mit den Andeutungen erscheint um die Augen ein Gesicht aus Licht, jedes Mal
-  ein anderes, und die Augen werden seine Augen – zuerst nur sein Zeichen: das Strahlendiadem der Göttin, die Ohren der
+  ein anderes, und die Augen werden seine Augen – zuerst sein Zeichen und, zarter, sein Umriss: das Strahlendiadem der Göttin, die Ohren der
   Katze, die Schlangen über Medusas Stirn, die Muschelkrone der Meerjungfrau, die Blätterkrone des Waldgeists mit dem
-  Blatt auf der Stirn und leuchtenden Sporen, die Sichel der Mondpriesterin. In den seltenen Momenten kommen Haar,
-  Umriss und ein geschlossener Mund deutlich dazu (wallendes Haar, zuckende Schnurrhaare, sich windende Schlangen, Haar
+  Blatt auf der Stirn und leuchtenden Sporen, die Sichel der Mondpriesterin. In den seltenen Momenten kommen Haar
+  und ein geschlossener Mund deutlich dazu, und der Umriss wird kräftiger (wallendes Haar, zuckende Schnurrhaare, sich windende Schlangen, Haar
   wie Seetang, Ranken, ein Schleier und lange Ohrringe) – und die Nasenlinie der Göttin, das Näschen der Katze. Der
   Traum füllt die Linien. **Ein Gesicht ist nie gestaucht:** Es hat eine einzige Größe, die der Augen, hochkant wie
   quer; auf einem breiten, niedrigen Bildschirm laufen Kinn und Haarenden über den Rand, statt ins Bild gedrückt zu
@@ -1447,7 +1452,7 @@ Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebenei
 je ein großes Motiv, der Traum als Wolken mit Dunkel dazwischen, das Augenpaar, das gemeinsam schaut, ein gemaltes
 Gesicht, das sich über seine Punkte bewegt, und eines ohne Punkte, das still bleibt, ein Motiv, das von einem Fenster ins
 andere wandert, Welle, Streicheln und Trance, und ein schwaches Gerät, das weniger Pixel zeichnet; mit `KEEP=1` bleiben
-die Fenster offen. `node --test tests/js/vis.test.mjs` (#220) prüft die Regel selbst als reine Zahlen (`static/dreamvis.js`): mehr als vier Fünftel der Zeit nur die Augen, Andeutungen im Abstand von 60–120 s, Mund, Nase und Umriss im Abstand von 4–11 min, dann deutlich zu sehen und nie über vier Fünftel, kein Sprung von einem Bild zum nächsten, dasselbe für beide Fenster eines Paars, eine Nase nur auf der seltenen Stufe – und dass die Seiten jede Linie eines Gesichts durch die Regel zeichnen (kein Grinsen; eine Nase nur in den Gesichtern aus Licht und nur nach der Regel; kein Gesicht wird an die Bildschirmhöhe angepasst; kein Vollbild mit `?debug`). `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Das Gesicht muss mit jedem Rahmen und in jedem Moment genau das Kamerabild sein, der Raum ist nie zu sehen, und das Bild geht, indem es sich auflöst, das Gesicht zuletzt. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+die Fenster offen. `node --test tests/js/vis.test.mjs` (#220) prüft die Regel selbst als reine Zahlen (`static/dreamvis.js`): mehr als vier Fünftel der Zeit nur die Augen, Andeutungen im Abstand von 60–120 s (der Umriss mit ihnen, mit halber Stärke), Mund, Nase und Haar im Abstand von 4–11 min, dann deutlich zu sehen und nie über vier Fünftel, kein Sprung von einem Bild zum nächsten, immer nur ein Gesicht (die Uhr läuft durch Gesichtswechsel: das gezeigte blendet ganz aus, bevor das nächste einblendet, kein Bild mit einem Sprung, nie zwei zugleich), dasselbe für beide Fenster eines Paars, eine Nase nur auf der seltenen Stufe – und dass die Seiten jede Linie eines Gesichts durch die Regel zeichnen (kein Grinsen; eine Nase nur in den Gesichtern aus Licht und nur nach der Regel; kein Gesicht wird an die Bildschirmhöhe angepasst; kein Vollbild mit `?debug`). `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Das Gesicht muss mit jedem Rahmen und in jedem Moment genau das Kamerabild sein, der Raum ist nie zu sehen, und das Bild geht, indem es sich auflöst, das Gesicht zuletzt. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und

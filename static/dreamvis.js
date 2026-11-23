@@ -3,13 +3,18 @@
    by the AI, nor for "you in the dream": those are pictures and stay whole.)
 
    Mostly there are only the eyes (level 0). Now and then – every one to two minutes – hints come for a few seconds:
-   brows, the lid's crease, the sign on the forehead (level 1). Rarely – every five to ten minutes, inside such a
-   moment – mouth, nose and outline join them, clearly to be seen while they are there, yet never as solid as the eyes:
-   never stronger than RARE_MAX (level 2). What a drawing wants to show names its part (`of(vis, 'mouth')`) and gets
+   brows, the lid's crease, the sign on the forehead and, moderately, the outline of the face (level 1). Rarely – every five to ten minutes, inside such a
+   moment – mouth, nose and hair join them and the outline grows fuller, clearly to be seen while they are there, yet
+   never as solid as the eyes: never stronger than RARE_MAX (level 2). What a drawing wants to show names its part (`of(vis, 'mouth')`) and gets
    how visible that is right now, 0–1; a part the rule does not know gets 0 (there is no grin, and no teeth).
 
    Pure computation, no DOM and no memory: `at(clock, seed)` follows from the clock and a seed alone, so the two
-   windows of a pair of eyes raise their brows together (tests/js/vis.test.mjs). */
+   windows of a pair of eyes raise their brows together (tests/js/vis.test.mjs).
+
+   One face at a time: where one face takes another's place while it shows (a level held, a style world changing),
+   the one there fades out completely and only then the next fades in – never a cut, never two faces over each other.
+   The memory of such a place is the page's (`turn()`), moved on once per frame (`step`); two pictures handing over
+   by one number do it with `handover`. */
 (function (root) {
   'use strict';
   const clamp01 = x => x < 0 ? 0 : x > 1 ? 1 : x;
@@ -30,13 +35,14 @@
   const ROUND = 5;             // slots: in each round one moment also brings mouth, nose and outline (4–11 min apart) …
   const RARE = { wait: 3500, come: 3000, stay: 3000, go: 4000 };   // … which come after the hints and go before them
   const RARE_MAX = 0.8;        // … clearly, but never stronger than this
+  const OUTLINE_HINT = 0.5;    // the outline of a face comes with the hints, this strong; fuller at the rare level
   const RARE_HINT_STAY = RARE.wait + RARE.come + RARE.stay + RARE.go - HINT.come;   // the hints stay until they are gone
 
   // what belongs to which level. Whatever a style world draws of a face is one of these – or it is not drawn.
   const PARTS = {
     eyes: 0, lids: 0, lashes: 0, shadow: 0,
-    brows: 1, crease: 1, mark: 1,
-    mouth: 2, nose: 2, outline: 2, hair: 2,
+    brows: 1, crease: 1, mark: 1, outline: 1,
+    mouth: 2, nose: 2, hair: 2,
   };
 
   const make = (hint, full, hintForm, fullForm, round) => ({ level: full > 0.02 ? 2 : hint > 0.02 ? 1 : 0, hint, full, hintForm, fullForm, round });
@@ -74,10 +80,32 @@
   // how visible a part is right now, 0–1
   function of(vis, part) {
     const level = Object.prototype.hasOwnProperty.call(PARTS, part) ? PARTS[part] : -1;
+    if (part === 'outline') return Math.min(RARE_MAX, Math.max(OUTLINE_HINT * clamp01(vis.hint), clamp01(vis.full)));
     return level === 0 ? 1 : level === 1 ? clamp01(vis.hint) : level === 2 ? Math.min(RARE_MAX, clamp01(vis.full)) : 0;
   }
 
-  const api = { SLOT, LEAD, HINT, ROUND, RARE, RARE_MAX, PARTS, EYES_ONLY, hash, at, held, asked, damp, of };
+  // ---------- one face at a time ----------
+  const TURN = { out: 1.0, in: 1.2, unseen: 0.004 };   // seconds a face takes to go and the next to come; what counts as not to be seen
+  // the memory of one place where faces follow each other: which is shown (key), how far it is there (p, 0–1) and how
+  // visible that makes it (al: p eased)
+  const turn = () => ({ key: null, p: 0, al: 0 });
+  // One frame further (dt: seconds). `want` is the face that should be there (anything compared with ===; null: none),
+  // `shows` how visible a face is there anyway right now (0–1: the rule's hint): while nothing is to be seen the
+  // change is made at once – the rule itself brings the next face in softly. Else the one shown goes first.
+  function step(s, want, dt, shows = 1) {
+    if (want === undefined) want = null;
+    dt = Math.max(0, +dt || 0);
+    if (s.key !== want && (s.key === null || s.p <= 0 || shows <= TURN.unseen)) { s.key = want; s.p = want === null || shows > TURN.unseen ? 0 : 1; }
+    else if (s.key !== want) s.p = Math.max(0, s.p - dt / TURN.out);
+    else if (s.key !== null) s.p = Math.min(1, s.p + dt / TURN.in);
+    s.al = smooth(s.p);
+    return s;
+  }
+  // two pictures handing over by one number (k: 0 the old one … 1 the new one): [old, new] – the old one gone at the
+  // middle, the new one only from there
+  const handover = k => [smooth(1 - 2 * clamp01(k)), smooth(2 * clamp01(k) - 1)];
+
+  const api = { SLOT, LEAD, HINT, ROUND, RARE, RARE_MAX, OUTLINE_HINT, PARTS, EYES_ONLY, TURN, hash, at, held, asked, damp, of, turn, step, handover };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamVis = api;
 })(typeof window !== 'undefined' ? window : globalThis);

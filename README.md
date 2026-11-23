@@ -758,12 +758,16 @@ eyes** that invite people to step up and play:
   wide with surprise, and interest widens the pupils. Without anyone in front they dream around by themselves.
 - **Mostly only the eyes (#220):** how much of a face shows follows one rule, for everything face-like that is drawn in Dreamy
   Eyes and in the dream windows (the faces painted by the AI and “you in the dream” are pictures and stay whole). Most of the time there are only the eyes. Every one to two minutes **hints** come for
-  about ten seconds: the brows, and the sign on the forehead of a face drawn in light. Every five to ten minutes or so,
-  inside such a moment and only while the eyes are calm, **mouth, nose and outline** join them – clearly to be seen
+  about ten seconds: the brows, the sign on the forehead of a face drawn in light and – moderately, at about half
+  strength – **the outline of that face**. Every five to ten minutes or so,
+  inside such a moment and only while the eyes are calm, **mouth, nose and hair** join them and the outline grows fuller – clearly to be seen
   for those few seconds (at about four fifths of full strength, never as solid as the eyes) – and leave again before the
-  hints do. There is no grin. To look at a
+  hints do. There is no grin. **One face at a time:** where one face takes another's place while it is to be seen (a
+  held level changing its face, a style world changing, the person's silhouette behind the eyes), the one there fades
+  out completely (about a second) and only then the next fades in – never a hard cut, never two faces over each
+  other; a painted face that has to make way while it is still coming goes from as far as it had come. To look at a
   level, add `?face=0`, `?face=1` or `?face=2` to the address of Dreamy Eyes or of a dream window: it is held (0: only
-  the eyes, 1: with hints, 2: with mouth, nose and outline).
+  the eyes, 1: with hints and the outline, 2: with mouth, nose and hair as well; the face changes every 20 seconds).
 - **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
   come only with the hints** (see above) and show a feeling then: surprise (someone very close, waking up, a dream turning
@@ -777,9 +781,9 @@ eyes** that invite people to step up and play:
   zooms and wanders, a little brighter than on the stage. Every two to four minutes a **dream window** opens for 6–10
   seconds: the night opens wide and the dream shows clearly behind the eyes, then it softly withdraws behind the masks. Right behind the eyes it stays darker, so they stay clear.
 - **Faces drawn in light, only hinted:** with the hints a face of light appears around the eyes, another one each
-  time, and the eyes become its eyes – first only its sign: the goddess's diadem of rays, the cat's ears, the snakes
+  time, and the eyes become its eyes – first its sign and, more faintly, its outline: the goddess's diadem of rays, the cat's ears, the snakes
   above Medusa's brow, the mermaid's crown of shells, the forest spirit's crown of leaves with the leaf on the brow and
-  glowing spores, the moon priestess's crescent. In the rare moments hair, outline and a closed mouth join them,
+  glowing spores, the moon priestess's crescent. In the rare moments hair and a closed mouth join them and the outline grows fuller,
   clearly (flowing hair, twitching whiskers, writhing snakes, hair like seaweed, vines, a veil and long earrings) – and
   the goddess's line of a nose, the cat's little nose. The dream fills the lines. **A face is never squashed:** it has
   one size, that of the eyes, upright or across; on a wide, low screen its chin and the ends of its hair run off the
@@ -1357,7 +1361,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart, mouth, nose and outline 4–11 min apart, clearly to be seen then and never above four fifths, no jump from one picture to the next, the same for both windows of a pair, a nose only at the rare level – and that the pages draw every line of a face through the rule (no grin; a nose only in the faces of light and only by the rule; no face fitted to the screen's height; no fullscreen with `?debug`). `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart (the outline with them, at half strength), mouth, nose and hair 4–11 min apart, clearly to be seen then and never above four fifths, no jump from one picture to the next, one face at a time (stepping the clock through changes of face: the one shown fades out completely before the next fades in, no frame with a jump, never two at once), the same for both windows of a pair, a nose only at the rare level – and that the pages draw every line of a face through the rule (no grin; a nose only in the faces of light and only by the rule; no face fitted to the screen's height; no fullscreen with `?debug`). `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the
