@@ -356,7 +356,7 @@
     <div class="seg" id="backends" style="--n:2"><button data-b="local">Local (Mac)</button><button data-b="cloud">Cloud GPU</button></div>
     <div id="cloudstate" class="hint"></div>
     <div class="row" style="margin-top:8px">
-      <select id="gpu" aria-label="Cloud GPU"><optgroup label="Scaleway (Paris)"><option value="L4-1-24G">Scaleway · L4 · about €0.79/h</option><option value="L40S-1-48G">Scaleway · L40S · about €1.47/h</option><option value="H100-1-80G">Scaleway · H100 · about €2.87/h</option></optgroup><optgroup label="RunPod (Europe, own data centres)"><option value="runpod:RTX-4090">RunPod · RTX 4090 · about $0.70/h</option><option value="runpod:RTX-5090">RunPod · RTX 5090 · about $1.39/h</option><option value="runpod:H100">RunPod · H100 · about $4.39/h</option></optgroup><optgroup label="RunPod Community – private computers, cheaper (pictures at the outside provider)"><option value="runpod:RTX-4090-community">RunPod Community · RTX 4090 · from about $0.35/h</option><option value="runpod:RTX-5090-community">RunPod Community · RTX 5090 · from about $0.70/h</option><option value="runpod:H100-community">RunPod Community · H100 · from about $2.70/h</option></optgroup></select>
+      <select id="gpu" aria-label="Cloud GPU"></select><!-- #231: filled by DreamCommon.fillGpus -->
       <button id="cloudstart">Start</button><button id="cloudstop">Delete</button>
     </div>
     <label>Model</label>
@@ -380,6 +380,7 @@
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
   I18N.apply();
+  DreamCommon.fillGpus(document.getElementById('gpu'));   // #231: the cloud GPUs on offer, the default chosen
   document.documentElement.style.setProperty('--off-label', JSON.stringify(' · ' + T('off')));
   document.querySelectorAll('.langsw button').forEach(b => {
     b.setAttribute('aria-pressed', b.dataset.lang === I18N.lang); b.onclick = () => I18N.setLang(b.dataset.lang); });
@@ -580,7 +581,7 @@
 
   $('midilearn').onclick = () => { send({ midi_learn: $('miditarget').value }); $('midistate').textContent = T('Now turn or press on the controller …'); };
 
-  // the cloud GPU (Scaleway or RunPod)
+  // the cloud GPU (RunPod; Scaleway only from the command line for now, #231)
   async function cloud(path, body) {
     const r = await fetch(path, body ? { method: 'POST', body } : {});
     return r.json();
@@ -592,7 +593,7 @@
   }
   function showCloud(c) {
     const money = c.minutes !== undefined ? ` · ${c.minutes} min · ≈ ${(+c.cost_eur).toLocaleString(I18N.lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c.currency === 'USD' ? '$' : '€'}` : '';   // #179: the device's number format
-    $('cloudstate').textContent = c.state === 'setup' ? T('No cloud provider set up (Scaleway or RunPod, see README).')
+    $('cloudstate').textContent = c.state === 'setup' ? T('No cloud provider set up (RunPod, see README).')
       : c.state === 'off' ? (c.busy ? T('working …') : c.fail ? T('Start failed – details in the panel on the Mac.') : T('Off – no costs.')) : (c.ready ? T('Running: {type}', { type: c.type }) + money : T('Starting …') + money);
     $('cloudstart').disabled = c.busy || c.ready || c.state === 'setup';
     $('cloudstop').disabled = c.state === 'off' && !c.busy;

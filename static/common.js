@@ -28,6 +28,25 @@ window.DreamCommon = (() => {
   const prefs = prefix => (k, v) => { try { if (v === undefined) return localStorage.getItem(prefix + k); localStorage.setItem(prefix + k, v); } catch (e) { return null; } };
 
   // ---------- the cloud GPU ----------
+  // #231: the cloud GPUs the pages offer, in this one place. Scaleway accepts no new GPU instances for the time being,
+  // so its types are not offered (./dream-cloud start --type L4-1-24G still works): true shows them again.
+  const SCALEWAY_OFFERED = false;
+  const CLOUD_DEFAULT = 'runpod:RTX-4090';
+  const cloudGpus = () => [
+    [T('RunPod (Europe, own data centres)'), [['runpod:RTX-4090', T('RunPod · RTX 4090 · about $0.70/h')],
+      ['runpod:RTX-5090', T('RunPod · RTX 5090 · about $1.39/h')], ['runpod:H100', T('RunPod · H100 · about $4.39/h')]]],
+    [T('RunPod Community – private computers, cheaper (pictures at the outside provider)'), [
+      ['runpod:RTX-4090-community', T('RunPod Community · RTX 4090 · from about $0.35/h')],
+      ['runpod:RTX-5090-community', T('RunPod Community · RTX 5090 · from about $0.70/h')],
+      ['runpod:H100-community', T('RunPod Community · H100 · from about $2.70/h')]]],
+    ...(SCALEWAY_OFFERED ? [[T('Scaleway (Paris)'), [['L4-1-24G', T('Scaleway · L4 · about €0.79/h')],
+      ['L40S-1-48G', T('Scaleway · L40S · about €1.47/h')], ['H100-1-80G', T('Scaleway · H100 · about €2.87/h')]]]] : [])];
+  // the offered GPUs as the options of a select, the default chosen
+  function fillGpus(select) {
+    select.innerHTML = cloudGpus().map(([group, gpus]) => `<optgroup label="${esc(group)}">`
+      + gpus.map(([v, text]) => `<option value="${v}">${esc(text)}</option>`).join('') + '</optgroup>').join('');
+    select.value = CLOUD_DEFAULT;
+  }
   // #110: if the chosen RunPod GPU is not free, the other RTX one – only with consent, its price shown first
   const CLOUD_FALLBACK = { 'runpod:RTX-4090': 'runpod:RTX-5090', 'runpod:RTX-5090': 'runpod:RTX-4090',
     'runpod:RTX-4090-community': 'runpod:RTX-5090-community', 'runpod:RTX-5090-community': 'runpod:RTX-4090-community' };
@@ -125,5 +144,5 @@ window.DreamCommon = (() => {
     };
   }
 
-  return { hideKey, esc, fillPlaylists, prefs, CLOUD_FALLBACK, askCloudStart, playlists, gallery, cameraSender, wakeLock };
+  return { hideKey, esc, fillPlaylists, prefs, CLOUD_FALLBACK, fillGpus, askCloudStart, playlists, gallery, cameraSender, wakeLock };
 })();

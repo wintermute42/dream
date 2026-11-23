@@ -1,4 +1,4 @@
-"""The cloud GPU (Scaleway or RunPod), started and stopped through ./dream-cloud. Its status is found out here, once
+"""The cloud GPU (RunPod or Scaleway), started and stopped through ./dream-cloud. Its status is found out here, once
 for everybody, and pushed to Dream Control and this Mac (#176)."""
 import asyncio
 import json
@@ -96,7 +96,7 @@ def _spawn(*args):
 
 
 @app.post("/cloud/start")
-def cloud_start(gpu: str = Form("L4-1-24G"), model: str = Form("sd-turbo"), fallback: str = Form("")):
+def cloud_start(gpu: str = Form("runpod:RTX-4090"), model: str = Form("sd-turbo"), fallback: str = Form("")):
     extra = ["--fallback", fallback] if fallback else []   # #110: only what the owner agreed to, with its price
     if model == "sdxl-turbo" and hub.state.get("style_ref"):   # #131: a reference picture in use: compile with its adapter
         extra.append("--with-ref")
