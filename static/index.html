@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/static/sliders.css">
 <link rel="stylesheet" href="/static/worldband.css">
 <link rel="stylesheet" href="/static/signs.css">
+<link rel="stylesheet" href="/static/compute.css">
 <style>
   :root { --ap: rgba(80,190,255,.16); --apline: rgba(80,190,255,.55); --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --panel: rgba(20,18,30,.9); --panelsolid: #141220; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 16px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -695,12 +696,14 @@
   </details>
   <details class="sec" data-sec="compute">
     <summary>Computing (local/cloud, model, quality)</summary>
+  <div id="computing" class="compute"></div><!-- #238: who computes right now, drawn by DreamCompute -->
   <div class="row">
     <label>Compute on</label>
     <div class="seg" id="backends" style="grid-template-columns:1fr 1fr">
       <button data-b="local" class="on">Local (Mac)</button>
       <button data-b="cloud">Cloud GPU</button>
     </div>
+    <label style="display:flex;align-items:center;gap:6px;margin:6px 0 0" title="While the cloud GPU starts, downloads, loads or optimises its model – or does not answer – the Mac paints, and the cloud takes over by itself as soon as it delivers pictures. The Mac is slower and loads its own model for it."><input type="checkbox" id="cloud_bridge" checked> Bridge on the Mac automatically</label>
   </div>
   <div class="row" id="cloudbox">
     <div class="btns cloudrow">
@@ -732,6 +735,7 @@
 <script src="/static/sliders.js"></script>
 <script src="/static/worldband.js"></script>
 <script src="/static/signs.js"></script>
+<script src="/static/compute.js"></script>
 <script src="/static/morph.js"></script>
 <script src="/static/fx.js"></script>
 <script src="/static/gl-stage.js"></script>
@@ -808,7 +812,7 @@
   // up at 5/8 of the size; the cloud scales them back before dreaming. A dream or picture that builds on its last
   // result keeps the full size, so it never gets softer from round to round. On this Mac nothing changes.
   const webpOK = (() => { try { const c = document.createElement('canvas'); c.width = c.height = 1; return c.toDataURL('image/webp').startsWith('data:image/webp'); } catch (e) { return false; } })();
-  const lean = () => backend === 'cloud';
+  const lean = () => painting === 'cloud';
   const leanSmall = () => lean() && (mode === 'cam' || mode === 'vid' || mode === 'flow');
   const leanCv = document.createElement('canvas'), leanCtx = leanCv.getContext('2d');
   let upKB = 0;
@@ -902,18 +906,20 @@
   // ---------- connection ----------
   // ---------- backend: local (this server) or a cloud GPU – RunPod or Scaleway (SSH tunnel on port 7861) ----------
   let backend = 'local', cloud = { state: 'off' }, cloudPort = 7861;
-  function wsUrl() { return backend === 'cloud' ? `ws://127.0.0.1:${cloudPort}/ws` : `ws://${location.host}/ws`; }
+  // #238: who paints right now – 'mac' (this server), 'cloud' (the tunnel) or null (the cloud GPU is chosen, sends no
+  // pictures, and bridging is off). showComputing decides it from the choice, the cloud's status and the bridge switch.
+  let painting = 'mac', connectTimer = 0;
+  const connectSoon = ms => { clearTimeout(connectTimer); connectTimer = setTimeout(connect, ms); };   // one line at a time
+  function wsUrl() { return painting === 'cloud' ? `ws://127.0.0.1:${cloudPort}/ws` : `ws://${location.host}/ws`; }
   function connect() {
-    if (backend === 'cloud' && !cloud.ready) { status(T('The cloud GPU is not ready – start it or switch to “Local”.')); setTimeout(connect, 3000); return; }
-    const myBackend = backend;
+    if (!painting) { status(T('The cloud GPU is not ready – start it or switch to “Local”.')); return; }   // showComputing connects once somebody paints
     const sock = ws = new WebSocket(wsUrl());
-    sock._backend = myBackend;
     ws.binaryType = 'arraybuffer';
     ws.onopen = () => { sentKey = ''; nextFlow = null; lastFromAi = false; inflight = 0; sentAt = []; sentPhase = []; answers = 0; answerAt = performance.now(); status(T('Connected.')); refSent = ''; refSend(); tick(); };
     ws.onclose = () => {
       busy = false; inflight = 0; sentAt = []; sentPhase = [];
       if (sock._switching || sock !== ws) return;           // a deliberate switch reconnects itself
-      status(T('Connection lost – trying again …')); setTimeout(connect, 1500);
+      status(T('Connection lost – trying again …')); connectSoon(1500);
     };
     ws.onmessage = ev => {
       answerAt = performance.now();                    // #177: the line is alive
@@ -1815,22 +1821,36 @@
     backend = b;
     document.querySelectorAll('#backends button').forEach(x => x.classList.toggle('on', x.dataset.b === b));
     $('cloudbox').classList.toggle('off', b !== 'cloud');   // always there; pale while computing locally
-    if (ws) { ws._switching = true; try { ws.close(); } catch (e) {} }
-    busy = false; inflight = 0; sentAt = []; sentPhase = []; sentKey = '';
-    setTimeout(connect, 200);
+    showComputing();
     pollCloud();
   }
-  document.querySelectorAll('#backends button').forEach(x => x.onclick = () => switchBackend(x.dataset.b));
+  // #238: the badge "who computes right now" – and the picture line moves to where the pictures are painted now: to
+  // the Mac while the chosen cloud GPU prepares or does not answer (the bridge switch), back by itself when it is ready
+  function showComputing() {
+    const info = DreamCompute.now(backend, cloud, $('cloud_bridge').checked);
+    DreamCompute.draw($('computing'), info, () => { switchBackend('cloud'); sendCtl({ set: { backend: 'cloud' } }); });
+    if (info.paints === painting) return;
+    painting = info.paints;
+    if (ws) { ws._switching = true; try { ws.close(); } catch (e) {} }
+    busy = false; inflight = 0; sentAt = []; sentPhase = []; sentKey = '';
+    connectSoon(200);
+  }
+  $('cloud_bridge').addEventListener('change', showComputing);
+  showComputing();
 
+  // the line under the cloud buttons: what runs and what it has cost – never a line of a log (#238: the steps are in the
+  // badge; what dream-cloud last said is in the tooltip while it works)
   function fmtCloud(c) {
     if (c.state === 'setup') return T('No cloud provider set up: RunPod needs its key in the keychain (see README).');
     if (c.state === 'off' && c.fail) return cloudFailText(c.fail);
-    if (c.state === 'off') return c.busy ? T('Working … {l}', { l: lastLine(c.log) }) : T('Off – nothing costs.');
-    if (c.state === 'error') return T('Error: {e}', { e: (c.error || '') + (c.log ? ' · ' + lastLine(c.log) : '') });
-    const cur = c.currency === 'USD' ? '$' : '€';
+    if (c.state === 'off') return c.busy ? T('Working …') : T('Off – nothing costs.');
+    if (c.state === 'error') return T('The cloud’s status cannot be read right now – trying again.');
+    const cur = c.currency === 'USD' ? '$' : '€', phase = c.work && c.work.phase;
     const money = T('{m} min · about {c} {cur} ({p} {cur}/h)', { m: c.minutes, c: num(c.cost_eur, 2), p: num(c.price_eur_h, 2), cur }) + (c.provider === 'runpod' ? ' · RunPod' : '');
-    if (c.ready) return T('Running: {type} · {money} · deleted automatically after {min} min', { type: c.type, money, min: c.auto_off_min });
-    return T('Starting ({state}) · {money}', { state: c.state, money }) + (c.busy ? ' · ' + lastLine(c.log) : '');
+    if (phase === 'ready') return T('Running: {type} · {money} · deleted automatically after {min} min', { type: c.type, money, min: c.auto_off_min });
+    if (phase === 'stopping') return T('Deleting: {type} · {money}', { type: c.type, money });
+    if (phase === 'unreachable') return T('Not reachable: {type} · {money} · “Start” connects again, “Delete” ends the costs', { type: c.type, money });
+    return T('Preparing: {type} · {money}', { type: c.type, money });
   }
   const lastLine = t => ((t || '').trim().split('\n').pop() || '').slice(0, 140);
   // #98: a failed start says why – at Scaleway most often the GPU quota is still 0
@@ -1845,10 +1865,17 @@
     catch (e) { $('cloudstate').textContent = T('Status not readable: {e}', { e: e.message }); }
   }
   function showCloud(c) {
+    const justReady = DreamCompute.becameReady(cloud, c);
     cloud = c;
     if (cloud.port) cloudPort = cloud.port;
-    $('cloudstate').textContent = $('cloudstate').title = fmtCloud(cloud);
-    $('cloudstart').disabled = !!cloud.busy || cloud.ready || cloud.state === 'setup';
+    const line = fmtCloud(cloud), detail = cloud.state === 'error' ? cloud.error : cloud.busy ? lastLine(cloud.log) : '';
+    $('cloudstate').textContent = line; $('cloudstate').title = line + (detail ? ' · ' + detail : '');
+    showComputing();
+    if (justReady) {                                 // #238: said once, also as a badge (the status line is overwritten with every picture)
+      notice = backend === 'cloud' ? T('☁ The cloud GPU is ready – it computes now.') : T('☁ The cloud GPU is ready – switch to it under “Computing”.');
+      noticeUntil = performance.now() + 10000; status(notice); chips();
+    }
+    $('cloudstart').disabled = !DreamCompute.canStart(cloud);
     const nothing = cloud.state === 'off' && !cloud.busy;
     $('cloudstop').disabled = nothing;
     $('cloudstop').title = nothing ? T('No cloud GPU is running – nothing to delete.') : T('Delete the cloud GPU now (costs end)');
@@ -1885,7 +1912,7 @@
     motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
-    fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
+    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
@@ -1925,6 +1952,7 @@
         if (k.startsWith('world')) worldBand.set({ [k]: v });
         if (k === 'mode' && v !== mode) origSetMode(v);
         if (k === 'backend') switchBackend(v);
+        if (k === 'cloud_bridge') showComputing();
         if (k === 'music' && v !== $('music').value) { $('music').value = v; startMusic(v); }
         if (k === 'running' && !!v !== running) toggleRun();
         if (k === 'music_pattern') applyFixedPattern();
@@ -2471,7 +2499,7 @@
     const using = modelUsed || st.model || $('model').value, loadingNow = modelLoading || st.loading;
     t.push(tile(T('Picture · model'), `${w}×${h} · ${shortName(using)}` + (loadingNow ? T(' → {m} loading', { m: shortName(loadingNow) }) : ''), false));
     memWarn = !!st.mem_warn;
-    if (backend === 'local' && 'loading' in st) {                 // no pictures while waiting: the server still tells
+    if (painting === 'mac' && 'loading' in st) {                 // no pictures while waiting: the server still tells
       modelLoading = st.loading; modelError = st.model_error; if (st.model) modelUsed = st.model;
       modelFirst = !!st.first_download;                // #179: the very first start downloads the model
     }
@@ -2518,7 +2546,7 @@
 
   // ---------- #152: relieve – take back softly what costs the most, step by step, until Dream runs smoothly ----------
   var rel = { busy: false, step: 0, total: 0, undo: [], done: [], face: '🔮', say: '' };
-  const relTarget = () => backend === 'cloud' ? 4 : 3;            // pictures per second that feel smooth
+  const relTarget = () => painting === 'cloud' ? 4 : 3;            // pictures per second that feel smooth
   const relFps = () => { const idle = performance.now() - lastT; return idle > 2000 ? Math.min(fps, 1000 / idle) : fps; };
   function relFace() {                                 // the load as a face
     if (!running) return '😴';
@@ -2679,11 +2707,10 @@
     if (modelError && !modelLoading) c.push(['warn', T('Model not loaded – {m} runs on', { m: MODEL_NAMES[modelUsed] || T('the old one') })]);
     if (memWarn) c.push(['warn', T('⚠ Memory short – close other programs or AI models (e.g. Ollama)')]);
     if (!running) c.push(['warn', '⏸ Pause']);
-    if (backend === 'cloud') {                         // red only while a GPU runs or starts (it costs money)
-      const live = cloud && (cloud.ready || cloud.busy || cloud.state !== 'off');
-      const name = cloud && cloud.provider === 'runpod' ? 'RunPod' : 'Cloud';
-      c.push(live ? ['warn', `☁ ${name}-GPU` + (cloud.cost_eur ? ` · ${num(cloud.cost_eur, 2)} ${cloud.currency === 'USD' ? '$' : '€'}` : '')] : ['', T('☁ Cloud: not started')]);
-    }
+    // red while a cloud GPU runs or starts (it costs money) – #238: also while the Mac computes
+    if (cloud.busy || cloud.work) c.push(['warn', `☁ ${cloud.provider === 'runpod' ? 'RunPod' : 'Cloud'}-GPU` + (cloud.cost_eur ? ` · ${num(cloud.cost_eur, 2)} ${cloud.currency === 'USD' ? '$' : '€'}` : '')]);
+    else if (backend === 'cloud') c.push(['', T('☁ Cloud: not started')]);
+    if (backend === 'cloud' && painting === 'mac') c.push(['', T('💻 The Mac bridges')]);
     if (document.body.classList.contains('flow-missing')) c.push(['warn', T('Movement: no camera')]);
     else if (flowOn()) c.push(['ok', mo && performance.now() - moAt < 2000 ? T('Movement ✓') : T('Movement is starting …')]);
     if ($('playlist').value) c.push(['', '▶ ' + I18N.name($('playlist').value)]);

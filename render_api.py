@@ -56,7 +56,10 @@ async def flow_packed(loop, before, small):
 
 @app.get("/health")
 def health():
-    return {"role": config.ROLE, "device": render.device, "models": sorted(render._pipes)}
+    """#238: also where the renderer stands (render.progress: loading, downloading, compiling, ready) – dream-cloud
+    asks here, through the tunnel. Without the text of a load error: on the Mac a guest may ask here too."""
+    return {"role": config.ROLE, "device": render.device, "models": sorted(render._pipes),
+            **{k: v for k, v in render.progress().items() if k != "model_error"}}
 
 
 _stats_last = {"t": time.time(), "busy": 0.0, "n": 0}
@@ -69,9 +72,8 @@ def stats():
     dt = max(now - _stats_last["t"], 1e-3)
     out = {"ai_fps": round((render._busy["n"] - _stats_last["n"]) / dt, 1),
            "ai_busy": round(min(1.0, (render._busy["t"] - _stats_last["busy"]) / dt) * 100),
-           "device": render.device, "models": sorted(render._pipes), "model": render.model_state["active"],
-           "loading": render.model_state["loading"], "model_error": render.model_state["error"],
-           "first_download": bool(render.model_state.get("first"))}   # #179
+           "device": render.device, "models": sorted(render._pipes),
+           **render.progress()}                          # #179, #238: model, loading, first download, compiling
     _stats_last.update(t=now, busy=render._busy["t"], n=render._busy["n"])
     try:
         import psutil
