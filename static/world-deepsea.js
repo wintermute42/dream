@@ -259,7 +259,7 @@
 
   // ---------- the faces of light ----------
   // Three beings of the deep whose eyes these may be. v is the face rule's word: the sign on the forehead comes with
-  // the hints; what hangs from the head, the jaw's lights, the nose and the mouth only in the rare moment, clearly then. The brow
+  // the hints, and fainter the jaw's lights (the outline); what hangs from the head, the nose and the mouth only in the rare moment, clearly then. The brow
   // is the eye's own. Drawn twice by the page: without `ink` into the mask the dream shines through (so: without
   // colours), with it as the world's own glow over that.
   const FACES = ['medusa', 'angler', 'anemone'];
@@ -272,6 +272,7 @@
     const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u, S = skeleton(geo.cx, geo.ey, geo.half, t);
     const strands = S.filter(k => k.name === 'strand').map(k => k.pts), jaws = S.filter(k => k.name === 'jaw').map(k => k.pts), lip = n => S.find(k => k.name === n).pts;
     const pr = (s, e) => smooth(seg(v.fullForm, s, e)), pH = (s, e) => smooth(seg(v.hintForm, s, e));
+    const po = (s, e) => smooth(seg(Math.max(v.fullForm, v.hintForm), s, e));   // the outline is drawn in with the hints already
     const light = (hue, p, r, al) => { if (al > 0.004) stamp(c, mono ? pale() : glow(hue), p[0], p[1], r, al); };
     const fill = (hue, al) => { c.fillStyle = mono ? `rgba(255,255,255,${al})` : `hsla(${hue},85%,60%,${al})`; };
     c.save();
@@ -311,8 +312,8 @@
         fill(215, 0.1 * fa); c.beginPath(); rays.forEach((P, i) => c[i ? 'lineTo' : 'moveTo'](P[0][0], P[0][1])); for (let i = rays.length - 1; i >= 0; i--) { const e = rays[i][6]; c.lineTo(e[0], e[1] + a * 0.12 * (i % 2)); } c.fill();   // the fin's skin between them
         fils(c, rays, 200, a * 0.01, 0.6 * fa, pr(0, 0.8), mono); tips(c, rays, 170, a * 0.09, 0.7 * fa * pr(0.5, 1), mono);
       }
-      const oa = outline * pr(0.2, 1);
-      jaws.forEach((P, k) => { beads(c, P, 215, a * 0.085, 0.8 * oa, T, { step: 2, freq: 0.3, speed: 1.6, ph: k * 3, m: pr(0.2, 0.8) }, mono); beads(c, P.map(q => [geo.cx + (q[0] - geo.cx) * 0.9, q[1] - a * 0.12]), 190, a * 0.045, 0.6 * oa, T, { step: 3, freq: 0.5, speed: -1.4, ph: k, m: pr(0.3, 0.9) }, mono); });
+      const oa = outline * po(0.2, 1);
+      jaws.forEach((P, k) => { beads(c, P, 215, a * 0.085, 0.8 * oa, T, { step: 2, freq: 0.3, speed: 1.6, ph: k * 3, m: po(0.2, 0.8) }, mono); beads(c, P.map(q => [geo.cx + (q[0] - geo.cx) * 0.9, q[1] - a * 0.12]), 190, a * 0.045, 0.6 * oa, T, { step: 3, freq: 0.5, speed: -1.4, ph: k, m: po(0.3, 0.9) }, mono); });
       for (const o of [-1, 1]) for (let q = 0; q < 6; q++) light(180 + q * 8, F(o * (1.5 + q * 0.34), 1.3 + q * q * 0.035), a * 0.09, oa * (0.3 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(T * 1.7 - q * 0.9 + o), 2)));
     } else {
       // an anemone: a small crown on the forehead, long arms swaying where hair would fall
@@ -326,12 +327,12 @@
         fils(c, [P], 300 + i * 10, a * 0.01, 0.5 * ha, m, mono);
         const n = Math.max(2, Math.ceil(P.length * m)); light(30, P[n - 1], a * 0.12, 0.8 * ha);
       });
-      const oa = outline * pr(0.3, 1);
-      fils(c, jaws, 285, a * 0.008, 0.45 * oa, pr(0.3, 0.9), mono); jaws.forEach((P, k) => beads(c, P, 300, a * 0.06, 0.7 * oa, T, { step: 4, freq: 0.3, speed: 1.2, ph: k * 2, m: pr(0.3, 0.9) }, mono));
+      const oa = outline * po(0.3, 1);
+      fils(c, jaws, 285, a * 0.008, 0.45 * oa, po(0.3, 0.9), mono); jaws.forEach((P, k) => beads(c, P, 300, a * 0.06, 0.7 * oa, T, { step: 4, freq: 0.3, speed: 1.2, ph: k * 2, m: po(0.3, 0.9) }, mono));
     }
     if (mode !== 'angler' && mode !== 'anemone') {     // (medusa) the jaw and the cheeks: rows of photophores – dots, not lines
-      const fa = outline * pr(0.3, 1), rr = rng(21);
-      jaws.forEach((P, k) => beads(c, P, 190, a * 0.075, 0.8 * fa, T, { step: 2, freq: 0.3, speed: 1.6, ph: k * 3, m: pr(0.3, 0.8) }, mono));
+      const fa = outline * po(0.3, 1), rr = rng(21);
+      jaws.forEach((P, k) => beads(c, P, 190, a * 0.075, 0.8 * fa, T, { step: 2, freq: 0.3, speed: 1.6, ph: k * 3, m: po(0.3, 0.8) }, mono));
       for (const o of [-1, 1]) for (let j = 0; j < 3; j++) for (let q = 0; q < 6; q++) light(175 + j * 25, F(o * (1.5 + q * 0.3 + j * 0.1), 1.2 + j * 0.33 + q * q * 0.018), a * (0.085 - j * 0.012), fa * (0.25 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(T * 1.7 - q * 0.9 + j * 2 + o), 2)) * (0.6 + 0.4 * rr()));
     }
     const na = nose * pr(0.3, 1);                      // the nose: two fine filaments with rows of lights down its sides, a few under it, a glow on its tip
