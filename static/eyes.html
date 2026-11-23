@@ -579,12 +579,13 @@
   // windows grow, turn a little and merge until the face fills the screen – and later it shrinks back into the pupils
   const portal = { phase: 'off', t0: 0, kind: null, next: performance.now() + 120000, cv: document.createElement('canvas'), mk: document.createElement('canvas'), cl: document.createElement('canvas') };
   const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-  // ---------- #166, #219: "you in the dream" – the person in front as the camera sees them, cut out on this phone, the
-  // face unchanged; the dream only around them (static/dreamyou.js). Mirrored clearly in the iris now and then, and now
+  // ---------- #166, #219: "you in the dream" – the person in front as the camera sees them, cut out on this phone and
+  // drawn as in a dream (#229: wavering, running out into mist, the face clear for a moment; static/dreamyou.js).
+  // Mirrored clearly in the iris now and then, and now
   // and then as a moment: through the pupils, large, and gone again. Nothing of it is sent – no picture, no word. ----------
   const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 60000, moment: 0, momentNext: performance.now() + 90000,
     want: 0, clear: false, frame: null, cutAt: 0, d: DreamYou.create() };
-  const youSrc = n => { const v = $('cam'); return { src: v, sw: v.videoWidth, sh: v.videoHeight, mask: seg.cv, face, n }; };
+  const youSrc = n => { const v = $('cam'); return { src: v, sw: v.videoWidth, sh: v.videoHeight, mask: seg.cv, stamp: seg.have, face, n }; };
   const youSize = () => (perf > 45 ? 448 : perf > 30 ? 352 : 256) * (dpr > 1 ? 1 : 0.8) | 0;   // #188: fewer pixels when the phone runs short
   function youTick(t, present) {
     const calm = portal.phase === 'off' && !enchanted() && !trance.on && fx.sleep < 0.3;   // #218: not while the fire has them
@@ -601,14 +602,14 @@
       you.want = 0; you.momentNext = t + (140000 + Math.random() * 120000) * pace(t);
       you.frame = Math.random() < 0.4 ? DreamYou.FRAMES[Math.random() * DreamYou.FRAMES.length | 0] : null;   // now and then a frame
       you.d.crop = null;
-      portal.kind = 'you'; portal.phase = 'in'; portal.t0 = t; portal.hold = 2200 + Math.random() * 1000;   // a glimpse, not a portrait
+      portal.kind = 'you'; portal.phase = 'in'; portal.t0 = t; portal.hold = 3000 + Math.random() * 1200;   // a glimpse, not a portrait: dreamy, clear for a moment, dreamy again (#229)
     }
     if (portal.kind === 'you' && (portal.phase === 'in' || portal.phase === 'hold') && (!present || !fresh)) { portal.phase = 'out'; portal.t0 = t; }   // gone: it leaves with them
     you.clear = fresh && portal.kind !== 'you';
     you.iris = lerp(you.iris, irisOn ? 1 : 0, 1 - Math.exp(-1 / 60 * 2.5 * 2));
     if (you.clear && you.iris > 0.02) DreamYou.cutout(you.d, youSrc(160));   // for the reflection: small, once for both eyes
   }
-  const IN = 2600, OUT = 2400, OUT_YOU = 1700;        // "you in the dream" leaves faster: it dissolves into the dream
+  const IN = 2600, OUT = 2400, OUT_YOU = 2600;        // "you in the dream" dissolves into the dream: streaks, sparks, then its mist blows away (#229)
   function portalTick(t) {
     const kinds = Object.keys(aiFaces);
     if (fire.on && fire.mind.mood === 'spirit' && fire.spiritFor !== fire.mind.changes) {   // #162, #218: the fire spirit takes her turn, burning
@@ -650,7 +651,8 @@
       // it does not shrink back into the pupils: it stays where it is and comes apart into the dream, while the eyes return
       const leave = portal.phase === 'out' ? Math.min(1, (t - portal.t0) / OUT_YOU) : 0;
       if (leave) p = 1;
-      DreamYou.compose(you.d, { ...youSrc(youSize()), dream: dream.cur, hue: hueOf(dream.col), t, frame: you.frame, level: Math.min(1, p * 1.6), leave, sparks: perf > 45 ? 24 : perf > 30 ? 14 : 8 });
+      DreamYou.compose(you.d, { ...youSrc(youSize()), dream: dream.cur, hue: hueOf(dream.col), t, frame: you.frame, level: Math.min(1, p * 1.6), leave,
+        clear: portal.phase === 'hold' ? DreamYou.peak((t - portal.t0) / portal.hold) : 0, sparks: perf > 45 ? 24 : perf > 30 ? 14 : 8, strips: perf > 45 ? 112 : perf > 30 ? 72 : 44 });
     } else if (!f.soft) f.soft = feather(f.img);
     const img = mine ? you.d.pic : f.soft, e = mine ? you.d.eyes : f.eyes;
     if (portal.cv.width !== W || portal.cv.height !== H) { portal.cv.width = portal.mk.width = portal.cl.width = W; portal.cv.height = portal.mk.height = portal.cl.height = H; }
@@ -675,7 +677,7 @@
       sx.clearRect(0, 0, 96, 96); sx.drawImage(img, 0, 0, 96, 96);
       pc.drawImage(sm, X, Y, S, S); pc.globalAlpha = 1 - 0.9 * mist;
     }
-    if (!mine) pc.filter = `saturate(${1.15 + 0.3 * (1 - p)}) contrast(1.06)`;   // a painted face glows a little; the person's picture stays as it is
+    if (!mine) pc.filter = `saturate(${1.15 + 0.3 * (1 - p)}) contrast(1.06)`;   // a painted face glows a little; the person's picture keeps its colours
     pc.drawImage(img, X, Y, S, S); pc.filter = 'none'; pc.globalAlpha = 1; pc.restore();
     // the windows: soft circles around our pupils, growing – and shaped by the cloud as they open
     const R = (Math.hypot(W, H) * 0.75) * p + 4;
