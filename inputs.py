@@ -155,7 +155,8 @@ async def sensor_loop():
                     await hub.broadcast({"cmd": action, "arg": ev[1]})
                 elif action:
                     midi_thr.act(action)
-                await hub.broadcast({"sensors": {"impulse": ev[1]}}, only="stage")
+                # the stage shows it, and the phone that was swung gives a little jolt (#240: it never heard of it)
+                await hub.broadcast({"sensors": {"impulse": ev[1]}})
             elif ev[0] == "learned":
                 await hub.broadcast({"sensors": {"map": sens.mapping, "learned": {"key": ev[1], "target": ev[2]}}})
         if time.time() - shown_at > 0.5 and sens.ch:

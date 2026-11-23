@@ -6,7 +6,10 @@ so nothing needs calibrating. Derived channels:
   "swing"   – energy of the movement (gyroscope magnitude, normalised)
   "impulse" – a whip/strike: a peak of the acceleration magnitude above its running level, with a dead time
 Mappings in ~/.config/dream/sensors.json (never in the repository):
-  {"/orientation:1": {"target": "zoom", "invert": false}, "impulse": {"action": "flash"}, "sensitivity": 1.0}
+  {"/orientation:1": {"target": "zoom", "invert": false, "lo": -20.5, "hi": 31.0}, "impulse": {"action": "flash"},
+   "sensitivity": 1.0}
+"lo"/"hi" (#240): the range the channel moved through while it was learned – that movement is the whole slider, so a
+resting sensor stays where it is instead of its shrinking auto-range blowing its noise up to the full slider.
 """
 import json
 import math
@@ -17,6 +20,21 @@ import paths
 
 MAP_FILE = os.path.join(paths.config_dir(), "sensors.json")
 IMPULSE_ACTIONS = ("flash", "jolt", "reseed", "next", "blackout")
+# #240: what a channel says about the device. A position (how it is turned: orientation, or the accelerometer with
+# gravity, which shows the tilt) holds a slider where it is put; a rate (rotation rate, acceleration without gravity)
+# is noise around zero with spikes – learned onto a slider it makes the slider jump. Learning takes a rate only when
+# no position moved clearly, and an angle before the accelerometer, which every strike shakes.
+RATE_HINTS = ("gyro", "rotation_rate", "rotationrate", "linear")
+ANGLE_HINTS = ("orient", "euler", "attitude")
+STEER_SMOOTH = 0.3          # how quickly a steered value follows its channel, per sensor tick (~30 a second)
+
+
+def is_rate(key: str) -> bool:
+    return any(h in key.lower() for h in RATE_HINTS)
+
+
+def is_angle(key: str) -> bool:
+    return any(h in key.lower() for h in ANGLE_HINTS)
 
 
 def load_map() -> dict:
@@ -42,10 +60,13 @@ class Channel:
     def __init__(self, v: float):
         self.v = v
         self.lo, self.hi = v, v
+        self.rlo, self.rhi = v, v           # #240: the movement of the last moment (~0.5 s) – learning compares with it
         self.norm = 0.5
 
     def update(self, v: float, alpha: float = 0.45) -> float:
         self.v += (v - self.v) * alpha
+        self.rlo = min(self.v, self.rlo + (self.v - self.rlo) * 0.08)
+        self.rhi = max(self.v, self.rhi + (self.v - self.rhi) * 0.08)
         span = max(self.hi - self.lo, 1e-6)
         self.lo = min(self.v, self.lo + span * 0.0015)       # the range shrinks back slowly (~10 s)
         self.hi = max(self.v, self.hi - span * 0.0015)
@@ -65,6 +86,8 @@ class Sensors:
         self.acc_level = 0.0
         self.impulse_at = 0.0
         self.events: list = []              # ("learned", key, target) | ("impulse", strength)
+        self.raw: dict = {}                 # #240: an angle's last number, to unwrap it (359° → 1° is 2°, not -358°)
+        self.out: dict = {}                 # #240: the steered values, smoothed
 
     # ---------- incoming ----------
     def on_osc(self, address: str, args, source: str = "", now: float | None = None):
@@ -77,14 +100,20 @@ class Sensors:
         self.count += 1
         if now - self.rate_t >= 1:
             self.rate, self.count, self.rate_t = self.count / (now - self.rate_t), 0, now
+        low = address.lower()
+        angle = is_angle(address)
         for i, v in enumerate(nums[:4]):
             key = f"{address}:{i}"
+            if angle:                        # a turn past 360° (or ±180°) goes on, it does not jump back
+                last = self.raw.get(key)
+                if last is not None:
+                    v -= 360.0 * round((v - last) / 360.0)
+                self.raw[key] = v
             c = self.ch.get(key)
             if c is None:
                 self.ch[key] = Channel(v)
             else:
                 c.update(v)
-        low = address.lower()
         mag = math.sqrt(sum(v * v for v in nums[:3]))
         if "gyro" in low or "rotation_rate" in low or "rotationrate" in low:
             c = self.ch.setdefault("swing", Channel(0.0))
@@ -106,8 +135,10 @@ class Sensors:
     # ---------- learning: the channel that moves most while the target is chosen ----------
     def start_learning(self, target: str, now: float | None = None):
         now = time.time() if now is None else now
-        # how much each channel moved before: the learned one is the one that moves far MORE now than before
-        base = {k: max(c.hi - c.lo, 1e-6) for k, c in self.ch.items() if k != "swing"}
+        # #240: how much each channel moved just before – a device in the hand that was swung or turned a while ago
+        # (a strike tried out, the phone picked up) must not make its learning movement look small. A floor of its
+        # known range keeps a channel that rested completely from winning on noise.
+        base = {k: max(c.rhi - c.rlo, 0.02 * (c.hi - c.lo), 1e-6) for k, c in self.ch.items() if k != "swing"}
         self.learn = {"target": target, "until": now + 2.5, "seen": {}, "base": base}
 
     def _learning(self, now: float):
@@ -115,21 +146,33 @@ class Sensors:
         for k, c in self.ch.items():
             if k == "swing":
                 continue
-            lo, hi = seen.get(k, (c.v, c.v))
-            seen[k] = (min(lo, c.v), max(hi, c.v))
+            lo, hi, path, last = seen.get(k, (c.v, c.v, 0.0, c.v))
+            seen[k] = (min(lo, c.v), max(hi, c.v), path + abs(c.v - last), c.v)
         if now < self.learn["until"]:
             return
 
         base = self.learn["base"]
 
         def moved(k):
-            lo, hi = seen[k]
+            lo, hi = seen[k][:2]
             return (hi - lo) / base.get(k, max(hi - lo, 1e-6))
-        best = max(seen, key=moved, default=None)
+
+        def steady(k):                                   # #240: turned through its range, not shaken to and fro
+            lo, hi, path = seen[k][:3]
+            return (hi - lo) / path >= 0.1 if path > 0 else False
+        clear = [k for k in seen if moved(k) > 1.5]      # clearly more movement than before
+        # #240: a steady position first – an angle before the accelerometer –, then any position (see RATE_HINTS), then
+        # the one that moved most
+        best = max(clear, key=lambda k: (steady(k) and not is_rate(k), is_angle(k), not is_rate(k), moved(k)), default=None)
         target = self.learn["target"]
         self.learn = {}
-        if best and moved(best) > 1.5:                  # clearly more movement than before
-            self.mapping[best] = {"target": target, "invert": False}
+        if best:
+            lo, hi = seen[best][:2]
+            pad = (hi - lo) * 0.1                        # the ends of the shown movement reach the ends of the slider
+            for k in [k for k, m in self.mapping.items() if isinstance(m, dict) and m.get("target") == target]:
+                self.mapping.pop(k)                      # #240: one channel per target – two would pull it to and fro
+            self.mapping[best] = {"target": target, "invert": False, "lo": round(lo + pad, 4), "hi": round(hi - pad, 4)}
+            self.out.pop(target, None)
             save_map(self.mapping)
             self.events.append(("learned", best, target))
         else:
@@ -141,11 +184,20 @@ class Sensors:
         for key, m in self.mapping.items():
             if not isinstance(m, dict) or m.get("target") not in targets or key not in self.ch:
                 continue
-            n = self.ch[key].norm
+            c = self.ch[key]
+            lo, hi = m.get("lo"), m.get("hi")
+            if isinstance(lo, (int, float)) and isinstance(hi, (int, float)) and hi - lo > 1e-6:
+                n = min(1.0, max(0.0, (c.v - lo) / (hi - lo)))   # #240: the range it was learned with
+            else:
+                n = c.norm                                   # mappings of earlier versions: the auto-range
             if m.get("invert"):
                 n = 1 - n
-            lo, hi = targets[m["target"]]
-            out[m["target"]] = round(lo + (hi - lo) * n, 4)
+            t = m["target"]
+            prev = self.out.get(t)
+            n = n if prev is None else prev + (n - prev) * STEER_SMOOTH
+            self.out[t] = n
+            tlo, thi = targets[t]
+            out[t] = round(tlo + (thi - tlo) * n, 4)
         return out
 
     def live(self) -> dict:

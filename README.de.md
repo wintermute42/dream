@@ -741,9 +741,10 @@ Dream Control (über https, siehe oben) hat eine Karte **„Dieses Gerät“**:
   abgerissene Verbindung beendet sie, und die Bühne geht zurück zum Traum – nie von selbst auf die Kamera des Macs.
 - **🧭 Bewegung** schickt die Sensoren des Geräts (Beschleunigung, Drehung, Neigung) wie einen Sensor am Arm (siehe
   „Sensor-Eingang“): wählen, was sie steuert, **📡 Lernen** tippen und das Gerät 2 Sekunden bewegen; **ein Schlag** (das
-  Gerät kräftig schwingen) wird zum Impuls (Blitz, Dreh-Ruck, neues Motiv, nächste Szene, Blackout). Die Bühne zeigt
-  „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI, Sensoren,
-  Master)“ wie die von OSC.
+  Gerät kräftig schwingen) wird zum Impuls (Blitz, Dreh-Ruck, neues Motiv, nächste Szene, Blackout); der 🧭-Knopf
+  ruckt kurz, wenn der Mac einen Schlag erkannt hat. Der Blitz ist ein Lichtpuls auf der Bühne, mit und ohne Musik. Die
+  Bühne zeigt „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI,
+  Sensoren, Master)“ wie die von OSC.
 - **Immer nur ein Gerät:** Live-Kamera und Bewegung kommen nur von einem Gerät – dem, das Dream Control ist. Wer Dream
   Control auf einem anderen Gerät übernimmt, beendet beides auf dem ersten. Gäste können beides nicht senden.
 - Über einfaches http erklärt die Karte, dass der Browser Kamera und Bewegung nur über https freigibt.
@@ -1015,7 +1016,11 @@ Dream merkt sich den Schalter auch über einen Neustart, wie den Autopilot; eine
 (das frühere `--flow` gibt es nicht mehr). Daneben die Art:
 - **Hände (KI):** Ein Körpermodell (MediaPipe Pose, läuft auf der Grafikkarte) findet beide Hände, auch im Halbdunkel.
   Beim allerersten Einschalten lädt Dream das Modell einmal herunter (ca. 15 MB, nach `~/.cache/dream/mediapipe`),
-  danach geht alles offline.
+  danach geht alles offline. Der Punkt folgt einer Hand: Verliert das Modell sie kurz, springt er nicht zur anderen
+  Hand, und ein Punkt, der für ein einziges Bild weit weg auftaucht, zählt nicht; „jemand kommt / geht“ wartet einen
+  Moment, so gibt eine für ein paar Bilder verlorene Hand keinen Lichtpuls. Das Modell braucht den Oberkörper im Bild;
+  springen die Hände trotzdem, mit **D** (Diagnose) ansehen, was die Kamera sieht – ein Bildschirm oder die Projektion im
+  Bild kann Figuren zeigen, die es für eine Person hält.
 - **Feuer/LED/Lichtspuren:** helle Punkte im Bild, bis zu vier. Die Schwelle richtet sich nach der Raumhelligkeit:
   Im Dunkeln reicht eine Fackel, in einer hellen Halle zählen nur wirklich helle Lichter.
 
@@ -1210,9 +1215,14 @@ nur von Geräten im Heimnetz. Ohne Extra-App: Das Dream-Control-Gerät selbst sc
 3. Im Bedienfeld unter **Sensor-Eingang** erscheint „… Werte/s von …“ und darunter die Messwerte als Balken.
 
 **Zuordnen:** Ziel wählen (z. B. Zoom-Sog), **📡 Lernen** klicken und 2 Sekunden lang genau die Bewegung machen, die
-es steuern soll (z. B. Arm hoch/runter). Dream nimmt den Messwert, der sich jetzt deutlich mehr bewegt als vorher.
-⇅ kehrt die Richtung um, ✕ löscht. Jeder Messwert wird geglättet und passt seinen Bereich selbst an – keine
-Kalibrierung. Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository).
+es steuern soll (z. B. Arm hoch/runter oder das Handy neigen). Dream nimmt den Messwert, der sich jetzt deutlich mehr
+bewegt als im Moment davor – ein Gerät, das kurz vorher geschwungen oder gedreht wurde, lernt genauso. Ein gleichmäßiges
+Drehen oder Neigen (Ausrichtung) gewinnt vor einem Schütteln, ein Winkel vor dem Beschleunigungssensor, den jeder Schlag
+durchrüttelt; Drehrate und Beschleunigung ohne Schwerkraft nimmt Dream nur, wenn sich sonst nichts bewegt hat, denn sie
+springen um null. Die gezeigte Bewegung ist der ganze Bereich des Reglers, so bleibt der Regler eines abgelegten Geräts
+stehen. Ein Ziel neu lernen ersetzt seinen Messwert (ein Messwert je Ziel). ⇅ kehrt die Richtung um, ✕ löscht.
+Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository); mit einer früheren Version gelernte Zuordnungen
+behalten den alten, selbst angepassten Bereich – zittert der Regler, neu lernen.
 
 **Schlag (Peitschenschlag):** Eine kräftige, ruckartige Bewegung ist ein Impuls (höchstens alle 0,25 s). Unter
 „Schlag →“ festlegen, was er auslöst: Blitz, Dreh-Ruck, neues Motiv, nächste Szene oder Blackout;
