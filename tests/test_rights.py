@@ -792,7 +792,7 @@ def test_eyes_get_the_points_of_their_painted_faces_and_nothing_more(server, mon
         assert heard("eyes", "marks") == [{face: pts}, {face: pts}]
         late = [m for r, m in told if r == "eyes"][-4:]    # the faces first, then their points
         assert [k for m in late for k in ("aimasks", "marks") if k in m] == ["aimasks", "marks"]
-        assert {k for r, m in told if r == "eyes" for k in m} == {"role", "can", "can_take", "feeds_mine", "aimasks", "marks", "eyes_cfg"}
+        assert {k for r, m in told if r == "eyes" for k in m} == {"role", "can", "can_take", "feeds_mine", "aimasks", "marks", "eyes_cfg", "world"}
         assert not heard("guest", "marks") and not heard("guest", "aimasks")
         server.eyes.aimasks.clear()                    # no painted face: no points for anyone
         w.marks_tick(time.time())
