@@ -978,5 +978,10 @@
  "{name}: set to 0": "{name}: auf 0 stellen",
  "Set to 0": "Auf 0 stellen",
  "strongly changed": "stark verändert",
- "Character of the picture: change {a} %, motion {b} %, colour {c} %, music {d} %": "Bildcharakter: Wandel {a} %, Bewegung {b} %, Farbe {c} %, Musik {d} %"
+ "Character of the picture: change {a} %, motion {b} %, colour {c} %, music {d} %": "Bildcharakter: Wandel {a} %, Bewegung {b} %, Farbe {c} %, Musik {d} %",
+ "Style world: how Dreamy Eyes and the dream windows are drawn": "Stilwelt: wie die Dreamy Eyes und die Traum-Fenster gezeichnet werden",
+ "Style world: Classic": "Stilwelt: Klassisch",
+ "Button: next style world": "Taste: nächste Stilwelt",
+ "Style world – how Dreamy Eyes and the dream windows are drawn": "Stilwelt – wie die Dreamy Eyes und die Traum-Fenster gezeichnet werden",
+ "Classic – glowing lines and soft light": "Klassisch – leuchtende Linien und weiches Licht"
 }

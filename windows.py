@@ -144,8 +144,8 @@ def window_add(sock) -> None:
 
 
 def window_greet(sock) -> None:
-    """What a window that just came needs: the painted faces, their points, its motif."""
-    outbox.post(sock, json.dumps(eyes.aimask_msg()))
+    """What a window that just came needs: the style world, the painted faces, their points, its motif."""
+    outbox.post(sock, json.dumps({**eyes.aimask_msg(), **eyes.world_msg()}))
     if any(marks.values()):
         outbox.post(sock, json.dumps(marks_msg()))
     motif_send(sock)

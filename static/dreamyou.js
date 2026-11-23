@@ -11,7 +11,7 @@
    `DreamYou`. */
 (function (root) {
   'use strict';
-  const { softLight, stamp, tinted } = root.DreamLife;
+  const { softLight, stamp, tinted } = root.DreamBrush;
   const FRAMES = ['blossom', 'mandala', 'mist'];
   const LONG = 80, TINY = 64, GLOW = 28;                // the outline, small: scaled up again it is soft by itself
   const FACE = 0.3;                                     // how much of the picture's width the face takes
