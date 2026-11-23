@@ -1,5 +1,6 @@
-// #220: how much of a face shows (static/dreamvis.js) – mostly only the eyes, hints every minute or two, mouth and
-// outline rarely and only as a breath, a nose never; and that the pages draw their faces by this rule alone.
+// #220: how much of a face shows (static/dreamvis.js) – mostly only the eyes, hints every minute or two, mouth, nose
+// and outline rarely (and clearly then, yet never as solid as the eyes); and that the pages draw their faces by this
+// rule alone.
 // Run: node --test tests/js/vis.test.mjs   (the CI runs it too)
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -48,10 +49,11 @@ test('hints come every one to two minutes and stay a few seconds', () => {
   }
 });
 
-test('mouth and outline: every five to ten minutes or so, only inside a moment of hints, never more than a breath', () => {
+test('mouth, nose and outline: every five to ten minutes or so, only inside a moment of hints, clearly but never solid', () => {
   for (const seed of SEEDS) {
     const rare = moments(seed).filter(x => x.full > 0.02);
     assert.ok(rare.length >= 20 && rare.length <= 60, `${rare.length} rare moments in four hours`);
+    for (const x of rare) assert.ok(x.full > 0.7, `a rare moment is clearly to be seen (${x.full.toFixed(2)})`);
     for (let i = 1; i < rare.length; i++) {
       const gap = (rare[i].from - rare[i - 1].from) / 60000;
       assert.ok(gap >= 3.9 && gap <= 11.1, `seed ${seed}: ${gap.toFixed(1)} min between two rare moments`);
@@ -78,14 +80,17 @@ test('it comes and goes softly: no jump from one picture to the next', () => {
   }
 });
 
-test('the nose never shows – there is no level for it, and what the rule does not know stays hidden', () => {
-  assert.ok(V.NEVER.includes('nose'));
-  assert.ok(!('nose' in V.PARTS) && !Object.keys(V.PARTS).some(k => /nose|grin|teeth/i.test(k)));
+test('the nose shows only at the rare level, with the mouth – and what the rule does not know stays hidden: no grin', () => {
+  assert.equal(V.PARTS.nose, 2);
+  assert.ok(V.RARE_MAX >= 0.7 && V.RARE_MAX <= 0.85, 'the rare level: clearly to be seen, never as solid as the eyes');
+  assert.ok(!Object.keys(V.PARTS).some(k => /grin|teeth/i.test(k)));
   const all = [V.EYES_ONLY, V.held(0), V.held(1), V.held(2), { level: 2, hint: 5, full: 5 }];
   for (let t = 0; t < HOUR; t += 250) all.push(V.at(t, 3));
   for (const v of all) {
-    for (const part of ['nose', 'nostrils', 'grin', '', 'toString', 'constructor', undefined]) assert.equal(V.of(v, part), 0, `${part} at level ${v.level}`);
+    for (const part of ['nostrils', 'grin', 'teeth', '', 'toString', 'constructor', undefined]) assert.equal(V.of(v, part), 0, `${part} at level ${v.level}`);
     assert.equal(V.of(v, 'eyes'), 1);
+    assert.equal(V.of(v, 'nose'), V.of(v, 'mouth'), 'the nose comes and goes with the mouth');
+    if (v.level < 2 && v.full <= 0) assert.equal(V.of(v, 'nose'), 0, `no nose at level ${v.level}`);
     assert.ok(V.of(v, 'mouth') <= V.RARE_MAX && V.of(v, 'outline') <= V.RARE_MAX && V.of(v, 'hair') <= V.RARE_MAX);
     assert.ok(V.of(v, 'brows') <= 1);
   }
@@ -94,9 +99,9 @@ test('the nose never shows – there is no level for it, and what the rule does 
 test('the parts and their levels', () => {
   const lv = n => Object.keys(V.PARTS).filter(k => V.PARTS[k] === n).sort();
   assert.deepEqual(lv(1), ['brows', 'crease', 'mark']);
-  assert.deepEqual(lv(2), ['hair', 'mouth', 'outline']);
-  assert.deepEqual([0, 1, 2].map(n => ['eyes', 'brows', 'mark', 'mouth', 'outline'].map(p => V.of(V.held(n), p))),
-    [[1, 0, 0, 0, 0], [1, 1, 1, 0, 0], [1, 1, 1, V.RARE_MAX, V.RARE_MAX]]);
+  assert.deepEqual(lv(2), ['hair', 'mouth', 'nose', 'outline']);
+  assert.deepEqual([0, 1, 2].map(n => ['eyes', 'brows', 'mark', 'mouth', 'nose', 'outline'].map(p => V.of(V.held(n), p))),
+    [[1, 0, 0, 0, 0, 0], [1, 1, 1, 0, 0, 0], [1, 1, 1, V.RARE_MAX, V.RARE_MAX, V.RARE_MAX]]);
   assert.equal(V.held(2).level, 2);
 });
 
@@ -130,7 +135,8 @@ test('the pages draw nothing of a face past the rule', () => {
   for (const [name, src] of [['eyes.html', eyes], ['window.html', win], ['dreameye.js', eye], ['dreamlife.js', read('dreamlife.js')]]) {
     assert.ok(!/grin/i.test(src), `${name}: the grin is gone`);
     const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');   // without its comments
-    assert.ok(!/nose|nostril/i.test(code), `${name}: no nose is drawn`);
+    // a nose only in the faces drawn in light, and there only as far as the rule lets it show (below)
+    if (name !== 'eyes.html') assert.ok(!/nose|nostril/i.test(code), `${name}: no nose is drawn`);
   }
   for (const [name, src] of [['eyes.html', eyes], ['window.html', win]]) {
     assert.ok(src.includes('<script src="/static/dreamvis.js"></script>'), `${name} loads the rule`);
@@ -141,6 +147,14 @@ test('the pages draw nothing of a face past the rule', () => {
   const body = eyes.slice(eyes.indexOf('function faceMask('), eyes.indexOf('// #160: faces painted by the AI'));
   const calls = body.split('\n').filter(l => !/const (line|leaf|dot) = /.test(l) && (/\b(line|leaf|dot)\(.*\);/.test(l) || /^\s*\}, wd.*\);/.test(l)));
   assert.ok(calls.length > 25, `${calls.length} drawing calls found`);
-  for (const l of calls) assert.ok(/\* (mark|hair|outline|mouth|part)\)|, w, al\)/.test(l), `a line without its part: ${l.trim().slice(0, 120)}`);
+  for (const l of calls) assert.ok(/\* (mark|hair|outline|mouth|nose|part)\)|, w, al\)/.test(l), `a line without its part: ${l.trim().slice(0, 120)}`);
+  const noses = body.split('\n').filter(l => /nose/i.test(l.replace(/\/\/.*$/, '')) && !/const mark = /.test(l));
+  assert.ok(noses.length >= 2, 'the goddess and the cat have a nose');
+  for (const l of noses) assert.ok(/\* nose\);/.test(l), `a nose past the rule: ${l.trim().slice(0, 120)}`);
+  assert.equal(eyes.slice(0, eyes.indexOf('function faceMask(')).replace(/\/\/.*$/gm, '').match(/nose/gi), null, 'no nose anywhere else in the page');
+  // a face has one size, the eyes': nothing of it is fitted to the screen's height
+  assert.ok(!/\bH\b|\bh\b|\bfit\(/.test(body.replace(/\/\/.*$/gm, '')), 'a face of light is never pressed into the screen');
   assert.ok(!/LINEFACES\.has|BACKS = \[[^\]]*LINEFACES/.test(eyes), 'no face is a background that stays for a minute');
+  // with ?debug the page stays a window: no fullscreen
+  assert.ok(/if \(!DEBUG\) try \{ await document\.documentElement\.requestFullscreen\(/.test(eyes) && eyes.match(/requestFullscreen/g).length === 1, 'eyes.html: fullscreen only without ?debug');
 });

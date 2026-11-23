@@ -4,9 +4,9 @@
 
    Mostly there are only the eyes (level 0). Now and then – every one to two minutes – hints come for a few seconds:
    brows, the lid's crease, the sign on the forehead (level 1). Rarely – every five to ten minutes, inside such a
-   moment – mouth and outline join them, and only as a breath: never stronger than RARE_MAX (level 2). A nose never
-   shows; there is no level for it. What a drawing wants to show names its part (`of(vis, 'mouth')`) and gets how
-   visible that is right now, 0–1; a part the rule does not know gets 0.
+   moment – mouth, nose and outline join them, clearly to be seen while they are there, yet never as solid as the eyes:
+   never stronger than RARE_MAX (level 2). What a drawing wants to show names its part (`of(vis, 'mouth')`) and gets
+   how visible that is right now, 0–1; a part the rule does not know gets 0 (there is no grin, and no teeth).
 
    Pure computation, no DOM and no memory: `at(clock, seed)` follows from the clock and a seed alone, so the two
    windows of a pair of eyes raise their brows together (tests/js/vis.test.mjs). */
@@ -27,22 +27,21 @@
   const SLOT = 90000;          // ms: one moment of hints in each slot …
   const LEAD = [20000, 50000]; // … beginning this long after the slot did, so two of them begin 60–120 s apart
   const HINT = { come: 3000, stay: 4000, go: 3500 };   // ms: the hints fade in, stay, fade out
-  const ROUND = 5;             // slots: in each round one moment also brings mouth and outline (4–11 min apart) …
+  const ROUND = 5;             // slots: in each round one moment also brings mouth, nose and outline (4–11 min apart) …
   const RARE = { wait: 3500, come: 3000, stay: 3000, go: 4000 };   // … which come after the hints and go before them
-  const RARE_MAX = 0.38;       // … and never get stronger than this: a breath
+  const RARE_MAX = 0.8;        // … clearly, but never stronger than this
   const RARE_HINT_STAY = RARE.wait + RARE.come + RARE.stay + RARE.go - HINT.come;   // the hints stay until they are gone
 
   // what belongs to which level. Whatever a style world draws of a face is one of these – or it is not drawn.
   const PARTS = {
     eyes: 0, lids: 0, lashes: 0, shadow: 0,
     brows: 1, crease: 1, mark: 1,
-    mouth: 2, outline: 2, hair: 2,
+    mouth: 2, nose: 2, outline: 2, hair: 2,
   };
-  const NEVER = ['nose'];      // named so that nobody adds it above: there is no moment a nose shows
 
   const make = (hint, full, hintForm, fullForm, round) => ({ level: full > 0.02 ? 2 : hint > 0.02 ? 1 : 0, hint, full, hintForm, fullForm, round });
   const EYES_ONLY = Object.freeze(make(0, 0, 0, 0, -1));
-  // a level held (to look at it, and for what is rare by itself): 0 the eyes, 1 with hints, 2 with mouth and outline
+  // a level held (to look at it, and for what is rare by itself): 0 the eyes, 1 with hints, 2 with mouth, nose and outline
   const held = level => make(level >= 1 ? 1 : 0, level >= 2 ? RARE_MAX : 0, 1, 1, -1);
   // the level a page's address asks to hold (`?face=0|1|2`), or -1: none, the rule runs
   const asked = search => { const m = /[?&]face=([012])(?:&|$)/.exec(search || ''); return m ? +m[1] : -1; };
@@ -78,7 +77,7 @@
     return level === 0 ? 1 : level === 1 ? clamp01(vis.hint) : level === 2 ? Math.min(RARE_MAX, clamp01(vis.full)) : 0;
   }
 
-  const api = { SLOT, LEAD, HINT, ROUND, RARE, RARE_MAX, PARTS, NEVER, EYES_ONLY, hash, at, held, asked, damp, of };
+  const api = { SLOT, LEAD, HINT, ROUND, RARE, RARE_MAX, PARTS, EYES_ONLY, hash, at, held, asked, damp, of };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamVis = api;
 })(typeof window !== 'undefined' ? window : globalThis);
