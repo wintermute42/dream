@@ -583,6 +583,117 @@ def test_dream_windows_cannot_steer(server):
             w.receive_text()
 
 
+# ---------- #219: no portrait of the person. The camera's picture of Dreamy Eyes goes to the stage and nowhere else;
+# "you in the dream" is drawn on the phone (static/dreamyou.js, tests/js/you.test.mjs). These fail if a picture of the
+# person is kept, painted from or asked for again. ----------
+CAMERA_PICTURE = b"\xff\xd8" + b"an invented camera picture " * 40 + b"\xff\xd9"
+
+
+def holds(value, needle: bytes, seen: set | None = None, depth: int = 0) -> bool:
+    """Whether these bytes are kept anywhere inside a module's value (dictionaries, lists, tuples, sets, objects)."""
+    seen = set() if seen is None else seen
+    if id(value) in seen or depth > 8:
+        return False
+    seen.add(id(value))
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return bytes(value) == needle
+    if isinstance(value, dict):
+        return any(holds(v, needle, seen, depth + 1) for v in (*value.keys(), *value.values()))
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return any(holds(v, needle, seen, depth + 1) for v in value)
+    if isinstance(value, types.SimpleNamespace):
+        return holds(vars(value), needle, seen, depth + 1)
+    return False
+
+
+def app_parts(server) -> dict:
+    """Every module of Dream that is loaded (the app's own files, not the libraries, not the tests)."""
+    import os
+    import sys
+    root = os.path.dirname(os.path.abspath(server.__file__))
+    return {name: mod for name, mod in list(sys.modules.items())
+            if os.path.dirname(os.path.abspath(getattr(mod, "__file__", None) or "/")) == root}
+
+
+@pytest.fixture
+def lending_eyes(server, monkeypatch, saved_state):
+    """Dreamy Eyes that lend their camera, and a stage that takes the pictures – without sockets: what is posted to whom."""
+    eyes_sock, stage = object(), object()
+    posted = {"frames": [], "texts": []}
+    monkeypatch.setattr(server.hub.outbox, "post_frame", lambda sock, data: posted["frames"].append((sock, data)) or True)
+    monkeypatch.setattr(server.hub.outbox, "post", lambda sock, text: posted["texts"].append((sock, json.loads(text))) or True)
+    monkeypatch.setitem(server.hub.roles, eyes_sock, "eyes")
+    monkeypatch.setitem(server.hub.clients, eyes_sock, "remote")
+    monkeypatch.setitem(server.hub.clients, stage, "stage")
+    monkeypatch.setitem(server.ctl.feeds, "cam", eyes_sock)
+    monkeypatch.setattr(server.eyes, "eyes_seen", dict(server.eyes.eyes_seen))
+    return types.SimpleNamespace(sock=eyes_sock, stage=stage, posted=posted)
+
+
+def test_eyes_camera_picture_goes_to_the_stage_and_is_kept_nowhere(server, lending_eyes):
+    """The lent camera's picture is passed on to the stage as it is. No part of Dream keeps a copy – not for a moment
+    longer, not "only in memory for a portrait" as before #219."""
+    before = set(server.eyes.eyes_seen)
+    server.eyes.eyes_note({"seen": True, "arrived": True})          # what the page said for a portrait before #219
+    asyncio.run(server.ctl.feed_frame(lending_eyes.sock, CAMERA_PICTURE))
+    assert lending_eyes.posted["frames"] == [(lending_eyes.stage, CAMERA_PICTURE)]
+    assert set(server.eyes.eyes_seen) == before == {"fire"}, "the eyes note nothing about the person in front of them"
+    assert all(isinstance(v, (int, float)) for v in server.eyes.eyes_seen.values())
+    parts = app_parts(server)
+    assert {"eyes", "ctl", "hub", "render", "outbox"} <= set(parts)
+    keeps = [name for name, mod in parts.items() if holds(vars(mod), CAMERA_PICTURE)]
+    assert keeps == [], f"a camera picture of Dreamy Eyes is kept in: {keeps}"
+
+
+def test_eyes_paint_faces_from_words_only_never_from_a_picture(server, monkeypatch, lending_eyes):
+    """However long someone stands in front of the eyes and whatever their page says: the Mac paints the fantasy faces
+    (from their prompts) and nothing else – no "you", no picture-to-picture step, no picture handed to the model."""
+    from_picture, painted = [], []
+    monkeypatch.setattr(server.render, "_render", lambda *a, **k: from_picture.append((a, k)))
+    monkeypatch.setattr(server.render, "_render_now", lambda *a, **k: from_picture.append((a, k)))
+
+    def make_picture(key, prompt, w, h, seed, **more):
+        painted.append((key, prompt, w, h, seed, more))
+        return "a painted face"
+    monkeypatch.setattr(server.render, "make_picture", make_picture)
+    monkeypatch.setattr(server.render, "_jpeg", lambda pic: b"\xff\xd8 painted")
+    monkeypatch.setattr(server.eyes, "aimasks", {})
+    monkeypatch.setattr(server.eyes, "aimask_state", {"last": 0.0, "i": 0})
+    monkeypatch.setattr(server.eyes, "AIMASK_EVERY", 0.0)
+    monkeypatch.setitem(server.render.model_state, "loading", False)
+    server.hub.state.update(backend="local", running=True, prompt="a quiet lake at dawn")
+    rounds = len(server.eyes.AIMASK_PROMPTS) + 3
+    for _ in range(rounds):
+        server.eyes.eyes_note({"seen": True, "arrived": True, "fire": False})
+        asyncio.run(server.ctl.feed_frame(lending_eyes.sock, CAMERA_PICTURE))
+        asyncio.run(server.eyes.aimask_step())
+    assert len(painted) == rounds and from_picture == []
+    assert set(server.eyes.aimasks) == set(server.eyes.AIMASK_PROMPTS) and "you" not in server.eyes.aimask_msg()["aimasks"]
+    for call in painted:
+        assert not holds(list(call), CAMERA_PICTURE)
+        assert all(isinstance(v, (str, int, float, bool)) for v in (*call[:5], *call[5].values())), "words and numbers only"
+    assert not any(holds(vars(mod), CAMERA_PICTURE) for mod in app_parts(server).values())
+
+
+def test_eyes_have_no_way_to_a_portrait_in_the_code(server):
+    """Fail closed, in the files themselves: eyes.py has nothing that takes a picture (no image library, no
+    picture-to-picture call, no place for a frame); the page sends its camera only as the feed it lends to the stage
+    (one sender, common.js) and no word about who stands in front of it; "you in the dream" is drawn by dreamyou.js."""
+    import os
+    root = os.path.dirname(os.path.abspath(server.__file__))
+    part = open(os.path.join(root, "eyes.py"), encoding="utf-8").read()
+    for word in ("PIL", "Image", "_render", "frame", "YOU_", '"you"', "img2img", "io.BytesIO"):
+        assert word not in part, f"eyes.py: {word}"
+    assert not any(hasattr(server.eyes, name) for name in ("YOU_PROMPT", "YOU_EVERY", "YOU_KEEP"))
+    assert "eyes.eyes_seen" not in open(os.path.join(root, "ctl.py"), encoding="utf-8").read()
+    page = open(os.path.join(root, "static", "eyes.html"), encoding="utf-8").read()
+    assert page.count("DreamCommon.cameraSender(") == 1
+    for word in ("toBlob", "toDataURL", "captureStream", "MediaRecorder", "seen: true", "arrived: true", "aiFaces.you", "FormData", "fetch("):
+        assert word not in page, f"eyes.html: {word}"
+    assert page.count(".send(") == 1 and "ctl.send(JSON.stringify(m))" in page     # words over /ctl; pictures only by the lent feed
+    assert '<script src="/static/dreamyou.js"></script>' in page and "DreamYou.compose(" in page
+
+
 # ---------- #218: Dreamy Eyes hear the music's beat – one number, and nothing else the stage tells its windows ----------
 STAGE_SAYS = [                                         # what the stage tells its output windows over /out
     json.dumps({"fx": {"k": 0.8, "amts": {"kaleido": 0.7}, "pulse": 0.5, "bass": 0.4, "spin": 0.3, "t": 12.5, "seed": 7,

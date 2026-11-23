@@ -1,0 +1,104 @@
+<!doctype html>
+<!-- #219: "you in the dream" (static/dreamyou.js) in a real browser, with an invented person drawn here: the face stays
+     exactly the camera's picture, the room is never shown, the dream is only around; tests/js/you.test.mjs reads the report -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>You in the dream</title>
+<style>body { background: #141220; color: #f2eefb; font: 14px system-ui, sans-serif; } canvas { margin: 4px; }</style>
+</head>
+<body>
+<script src="/static/dreamlife.js"></script>
+<script src="/static/dreamyou.js"></script>
+<script>
+(async () => {
+  const report = { error: '' };
+  try {
+    const SW = 640, SH = 360, N = 360;                 // the crop is the camera's full height: one pixel stays one pixel
+    const FX = 256, FY = 162, FRX = 54, FRY = 70;      // the invented person's face, in the camera's picture
+    const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+    const person = (c, kx, ky, room) => {              // the same outline for the camera's picture and for the mask
+      const in_ = room ? 0 : 4;                         // the mask a little inside the person, as a careful segmentation is
+      c.beginPath(); c.moveTo((FX - 150 + in_) * kx, SH * ky); c.lineTo((FX - 110 + in_) * kx, (FY + 110 + in_) * ky); c.lineTo((FX + 110 - in_) * kx, (FY + 110 + in_) * ky); c.lineTo((FX + 150 - in_) * kx, SH * ky); c.closePath(); c.fill();
+      c.beginPath(); c.ellipse(FX * kx, FY * ky, (FRX - (room ? 0 : 3)) * kx, (FRY - (room ? 0 : 3)) * ky, 0, 0, Math.PI * 2); c.fill();
+    };
+    const cam = mk(SW, SH), cc = cam.getContext('2d');
+    for (let y = 0; y < SH; y += 20) for (let x = 0; x < SW; x += 20) { cc.fillStyle = (x + y) % 40 ? 'rgb(0,255,0)' : 'rgb(0,210,0)'; cc.fillRect(x, y, 20, 20); }   // the room: green
+    cc.fillStyle = 'rgb(190,60,70)'; person(cc, 1, 1, true);
+    const skin = cc.createLinearGradient(FX - FRX, FY - FRY, FX + FRX, FY + FRY);   // a face that is not the same left and right
+    skin.addColorStop(0, 'rgb(236,188,150)'); skin.addColorStop(1, 'rgb(170,110,84)');
+    cc.fillStyle = skin; cc.beginPath(); cc.ellipse(FX, FY, FRX, FRY, 0, 0, Math.PI * 2); cc.fill();
+    cc.fillStyle = 'rgb(40,30,60)'; cc.fillRect(FX - 32, FY - 20, 16, 8); cc.fillRect(FX + 14, FY - 22, 20, 10);
+    cc.fillStyle = 'rgb(150,40,50)'; cc.fillRect(FX - 22, FY + 36, 40, 7); cc.fillStyle = 'rgb(90,60,40)'; cc.fillRect(FX + 34, FY + 8, 5, 5);
+    const maskOf = hole => {
+      const m = mk(256, 256), x = m.getContext('2d');
+      x.fillStyle = '#fff'; person(x, 256 / SW, 256 / SH, false);
+      if (hole) { x.globalCompositeOperation = 'destination-out'; x.beginPath(); x.arc(FX * 256 / SW, FY * 256 / SH, 9, 0, Math.PI * 2); x.fill(); }
+      return m;
+    };
+    const dream = mk(64, 64); { const x = dream.getContext('2d'); x.fillStyle = 'rgb(20,30,90)'; x.fillRect(0, 0, 64, 64); }
+    const face = { x: FX / SW, y: FY / SH, size: 2 * FRX / SW, h: 2 * FRY / SH, eyes: [{ x: (FX - 26) / SW, y: (FY - 16) / SH }, { x: (FX + 26) / SW, y: (FY - 17) / SH }] };
+    const y = DreamYou.create();
+    const base = { src: cam, sw: SW, sh: SH, mask: maskOf(false), face, n: N, dream, hue: 300, still: true };
+    const read = c => c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, N, N).data;
+    DreamYou.cutout(y, base);
+    report.crop = y.crop;
+    // what the camera's picture is at each place of ours: cropped and mirrored, nothing else
+    const want = mk(N, N); { const x = want.getContext('2d'); x.translate(N, 0); x.scale(-1, 1); x.drawImage(cam, y.crop.x, y.crop.y, N, N, 0, 0, N, N); }
+    const exp = read(want), mfx = N - (FX - y.crop.x), mfy = FY - y.crop.y;   // the face, where it is in our picture
+    const inFace = (px, py, k) => ((px - mfx) / (FRX * k)) ** 2 + ((py - mfy) / (FRY * k)) ** 2 < 1;
+    report.mirrored = [exp[(mfy * N + mfx + 40) * 4], read(cam.getContext ? (() => { const c = mk(N, N); c.getContext('2d').drawImage(cam, y.crop.x, 0, N, N, 0, 0, N, N); return c; })() : want)[(mfy * N + (N - mfx) - 41) * 4]];
+    const cut = read(y.cut);
+    report.cutCorner = cut[3] + cut[(N - 1) * 4 + 3]; report.cutFace = cut[(mfy * N + mfx) * 4 + 3];
+    report.eyes = y.eyes; report.eyesWant = { x0: (N - (FX + 26 - y.crop.x)) / N, x1: (N - (FX - 26 - y.crop.x)) / N };
+
+    const faceDiff = d => { let worst = 0; for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) if (inFace(px, py, 0.97)) { const i = (py * N + px) * 4; for (let k = 0; k < 4; k++) worst = Math.max(worst, Math.abs(d[i + k] - (k === 3 ? 255 : exp[i + k]))); } return worst; };
+    report.face = {}; report.overFace = {}; report.frameDrawn = {}; report.room = {}; report.thrown = 0;
+    const plain = {};
+    for (const frame of [null, ...DreamYou.FRAMES]) {
+      let worst = 0, over = 0, drawn = 0, room = 0;
+      for (const t of [0, 700, 4100, 9000, 23456]) {
+        const d = read(DreamYou.compose(y, { ...base, t, frame, level: 1 }));
+        worst = Math.max(worst, faceDiff(d));
+        const ov = read(y.over);
+        for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) {
+          const i = (py * N + px) * 4;
+          if (inFace(px, py, 1)) over = Math.max(over, ov[i + 3]);
+          if (d[i + 1] > 150 && d[i] < 90 && d[i + 2] < 90) room++;           // the room's green, shown
+        }
+        if (frame === null) plain[t] = d; else for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - plain[t][i]) + Math.abs(d[i + 1] - plain[t][i + 1]) + Math.abs(d[i + 2] - plain[t][i + 2]) > 30) drawn++;
+      }
+      report.face[frame] = worst; report.overFace[frame] = over; report.frameDrawn[frame] = drawn; report.room[frame] = room;
+    }
+    // the dream is the background, the outline glows: brighter just outside the shoulder than far from the person
+    const d0 = plain[700], lum = (px, py) => { const i = (py * N + px) * 4; return d0[i] + d0[i + 1] + d0[i + 2]; };
+    report.corner = [d0[(8 * N + 8) * 4], d0[(8 * N + 8) * 4 + 1], d0[(8 * N + 8) * 4 + 2]];
+    report.glow = lum(mfx + FRX + 5, mfy) - lum(8, 8);
+    // only the edge shimmers: nothing in front of the person's middle either
+    DreamYou.compose(y, { ...base, t: 700, frame: null, level: 1, sparks: 0 });
+    const ov = read(y.over); report.overChest = ov[((mfy + 126) * N + mfx) * 4 + 3];
+    // a mask with a hole in the middle of the face (segmentation gone wrong): the face is the camera's picture all the same
+    const holed = read(DreamYou.compose(y, { ...base, mask: maskOf(true), t: 700, frame: 'blossom', level: 1 }));
+    let core = 0; for (let py = mfy - 30; py < mfy + 30; py++) for (let px = mfx - 22; px < mfx + 22; px++) { const i = (py * N + px) * 4; for (let k = 0; k < 3; k++) core = Math.max(core, Math.abs(holed[i + k] - exp[i + k])); }
+    report.holedCore = core;
+    // leaving: the picture comes apart – the outside first, the face last
+    const gone = k => read(DreamYou.dissolve(y, N, k)), al = (d, px, py) => d[(py * N + px) * 4 + 3];
+    const mid = read(DreamYou.compose(y, { ...base, t: 700, frame: null, level: 1, leave: 0.4 })), mi = (mfy * N + mfx) * 4;
+    const when = new Set(); { const pts = [[20, 20], [340, 30], [60, 300], [300, 320], [120, 90], [250, 200], [mfx, mfy], [mfx + 40, mfy + 60]];
+      for (const [px, py] of pts) { let at = 0; for (let k = 0; k <= 20; k++) if (al(gone(k / 20), px, py) > 128) at = k; when.add(at); } }
+    const end = read(DreamYou.compose(y, { ...base, t: 700, frame: null, level: 1, leave: 1 })); let left = 0;
+    for (let i = 0; i < end.length; i += 4) if (end[i + 3] > 0 && Math.abs(end[i] - exp[i]) + Math.abs(end[i + 1] - exp[i + 1]) + Math.abs(end[i + 2] - exp[i + 2]) < 12 && inFace(i / 4 % N, i / 4 / N | 0, 0.9)) left = Math.max(left, end[i + 3]);
+    report.leave = { start: al(gone(0), mfx, mfy), cornerMid: al(gone(0.7), 12, 12), faceMid: mid[mi + 3], faceMidDiff: Math.max(Math.abs(mid[mi] - exp[mi]), Math.abs(mid[mi + 1] - exp[mi + 1]), Math.abs(mid[mi + 2] - exp[mi + 2])), end: left, steps: when.size };
+    // nobody found, no dream yet, other sizes: it draws all the same
+    for (const o of [{ face: { size: 0 } }, { face: null, dream: null }, { n: 256 }, { n: 200, sparks: 8, frame: 'mist' }, { level: 0 }, { face: { ...face, size: 0.5, h: 0.9 }, frame: 'blossom' }]) {
+      try { const c = DreamYou.compose(DreamYou.create(), { ...base, t: 1000, ...o }); if (c.width !== (o.n || N)) report.thrown++; } catch (e) { report.thrown++; report.error += String(e); }
+    }
+    const t0 = performance.now(); for (let k = 0; k < 30; k++) DreamYou.compose(y, { ...base, t: k * 33, frame: 'blossom', level: 1 });
+    report.ms = (performance.now() - t0) / 30;
+    document.body.append(cam, y.pic, y.over);
+  } catch (e) { report.error += String(e && e.stack || e); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>

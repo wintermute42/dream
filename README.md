@@ -762,28 +762,36 @@ eyes** that invite people to step up and play:
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
   come only now and then, for a feeling** – like the grin: surprise (someone very close, waking up, a dream turning
   wild), joy (with the grin), sadness (with the tear of light), doubt (one up, one flat, when they cross their eyes),
-  a frown (rarely, in a dark wild dream) or curiosity – then they fade again. **Their look changes softly** every minute or so: rose, smoky (grey
+  a frown (rarely, in a dark wild dream) or curiosity – then they fade again. **Their look changes softly** every two minutes or so: rose, smoky (grey
   with a long wing), golden (with glitter), nymph (turquoise, long lashes) or doll (no wing, very long lashes, round
   brows).
 - **Behind the eyes the dream shines through the night** – through drifting clouds, a huge breathing spiral of soft
   lights, a kaleidoscopic flower of rings, or a face only hinted in light around the eyes – a goddess with a diadem and
   flowing hair, a cat with ears and twitching whiskers, Medusa with writhing snakes, a mermaid with hair drifting like
-  seaweed and a crown of shells, a fairy with pointed ears, beating butterfly wings and antennae, a moon priestess with a
-  crescent on her brow, a swaying veil and long earrings; the masks change every half minute
+  seaweed and a crown of shells, a forest spirit with a crown of leaves, vines framing the eyes, a leaf on the brow and glowing spores drifting up (no mouth), a moon priestess with a
+  crescent on her brow, a swaying veil and long earrings; the masks change every minute or two
   or so (upright a little calmer), the dream behind them slowly
-  zooms and wanders, a little brighter than on the stage. Every minute or two a **dream window** opens for 6–10
+  zooms and wanders, a little brighter than on the stage. Every two to four minutes a **dream window** opens for 6–10
   seconds: the night opens wide and the dream shows clearly behind the eyes, then it softly withdraws behind the masks. Right behind the eyes it stays darker, so they stay clear.
-- **You in the dream:** whoever stands in front is mirrored in the iris – clearly, and every minute or two for a few
-  seconds very clearly, as in real eyes. Now and then the person appears behind the eyes, cut out from the background
-  (on the phone), in the dream's colours and patterns, rippling like a reflection on water, and fades again. And about
-  every three minutes the Mac paints a **dream portrait** of the person from the eyes' camera picture (a quick
-  picture-to-picture step, about 0.3–0.6 s) that comes through the pupils like the other painted faces, but stays only
-  a moment (about 2.5–4 s) – only while someone is there. The camera picture is kept in memory for seconds only, the
-  portrait for two minutes at the most; nothing goes into the gallery, only the eyes (and Dream Control) may fetch it.
-  `DREAM_YOU_EVERY=…` changes the interval (seconds). **Someone who just comes** (after a while with nobody) is
-  greeted at once – very clearly in the iris or as the water moment, in turn – and their dream portrait follows within
-  seconds (at most one every two minutes).
-- **Now and then they mirror you:** for a few seconds, every minute or two while someone stands in front, the eyes
+- **You in the dream:** whoever stands in front is mirrored in the iris – faintly all the time, and every two or three minutes
+  for a few seconds very clearly, as in real eyes: then it is the person alone, cut out from the room (on the
+  phone), the face exactly as the camera sees it, and behind them the iris keeps dreaming. Now and then (every three to five
+  minutes, only while someone is there) the person appears as a **moment**: first in the two pupils, as if seen through
+  them, then the windows open and for about 2–3 seconds they stand in a soft cloud in the middle of the screen –
+  **the real camera picture, the face unchanged and recognisable**, a little smaller and lighter than a painted face.
+  Only around them is the dream: the dream's picture instead of the room, a softly glowing outline, fireflies, a
+  shimmer in the dream's colour at their edge, and sometimes a wreath of blossoms, a mandala behind the head or veils
+  of mist. Nothing is ever drawn over the face. Then the picture does not simply fade: within a second or two it
+  **comes apart into the dream** – its pieces drift off, the outermost first, the face last, the fireflies fly away –
+  while the eyes return (about 7 seconds in all). **Someone who just comes** (after a while with nobody) is greeted
+  at once – very clearly in the iris or with this moment, in turn.
+  **What happens with the camera picture:** all of this is drawn on the phone itself, from the live camera and a mask
+  of the person found there (selfie segmentation, about 250 KB); no picture and no word about who stands there is sent
+  for it, and nothing is kept. The AI does **not** repaint people: the dream portrait the Mac used to paint from the
+  eyes' camera picture is gone (and `DREAM_YOU_EVERY` with it) – the Mac paints only the fantasy faces below, from
+  words. The one thing that leaves the phone is what Dreamy Eyes are for: the front camera you lend to the dream
+  (below, “One camera at a time”), passed on to the stage as it is and kept nowhere; tests guard both.
+- **Now and then they mirror you:** for a few seconds, every two or three minutes while someone stands in front, the eyes
   copy their expression – a blink or wink (the matching eye), a squint, eyes opened wide, raised or lowered brows – then
   they go their own way again.
 - **Your silhouette as a mask:** now and then, only while someone is there, the dream shines through the outline of
@@ -847,20 +855,20 @@ eyes** that invite people to step up and play:
   lady, owl woman, masked lady, aurora, raven witch, nebula, and sun god, green man, sea king, star sage, faun, dream
   pharaoh and moon knight – in the mood of the dream's
   current prompt (a single quick AI step, about 0.4 s, the first one a few seconds; the stage barely notices). Every
-  two to four minutes one of them comes through the pupils: it appears inside them as if seen through them,
+  four to eight minutes one of them comes through the pupils: it appears inside them as if seen through mist – soft, pale, veiled, with no edge –,
   the two windows grow with glowing rims, turn a little and open into a **dream cloud** – the face inside soft puffs that
   drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays three to five seconds,
   breathing, swaying and drifting a little; then it shrinks back into the pupils, and the eyes are there again.
   The pictures stay in memory only and never go into the gallery; only the eyes (and Dream Control) may fetch them.
   `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds); `DREAM_AIMASK=0`
-  switches the painted faces off altogether (no fire spirit, no dream portrait: Dreamy Eyes never make the Mac load a model). With the cloud GPU
+  switches the painted faces off altogether (no fire spirit either: Dreamy Eyes never make the Mac load a model). With the cloud GPU
   there are no painted faces.
 - **The pupils change shape:** a cat's slit while the grin is there, hearts when someone keeps smiling, stars when they
   are surprised, a turning spiral when they hypnotise (or are spellbound by a fire). About one time in four (#218) it is
   a soft shimmer instead of the spiral, never the same one twice in a row: lights turning like a mandala, lights sinking
   like snow, rings sinking into the depth, or a slow swirl – half transparent, in the dream's colours (like embers by a
   fire), breathing with the music's beat (without music: with the dream).
-- **The iris is a world that changes** every half minute or so: the dream itself, the dream folded into a kaleidoscope,
+- **The iris is a world that changes** every minute or two: the dream itself, the dream folded into a kaleidoscope,
   a vortex of the dream with rings turning against each other, or a spiral galaxy in the dream's colours.
 - **Moods now and then:** they wink, cross their eyes, roll them, hypnotise, shed a tear of light that bursts into
   stars, or sparkle. Nobody there for a long while and a calm dream: they slowly fall asleep and little z's drift up –
@@ -1339,7 +1347,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the

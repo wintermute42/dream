@@ -291,11 +291,10 @@ MAX_FRAME = 1024 * 1024
 
 
 async def feed_frame(sock, data: bytes):
-    """A JPEG of the device's camera, passed on to the stage(s) as it is; nothing is kept."""
+    """A JPEG of the device's camera, passed on to the stage(s) as it is; nothing is kept – #219: no copy for a
+    portrait either, whoever lends the camera."""
     if feeds["cam"] is not sock or not data or len(data) > MAX_FRAME or data[:2] != b"\xff\xd8":
         return
-    if rights.can(hub.roles.get(sock), "eyes_only") or sock in eyes.eyes_pages:   # #166: the latest picture only, in memory, for a dream portrait
-        eyes.eyes_seen["frame"], eyes.eyes_seen["frame_at"] = data, time.time()
     for c, kind in list(hub.clients.items()):
         if kind == "stage" and not outbox.post_frame(c, data):   # #187: the latest picture only, never waited for
             hub.clients.pop(c, None)

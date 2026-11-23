@@ -58,5 +58,7 @@ jobs:
         run: node --test tests/js/eye.test.mjs
       - name: Picture chain (WebGL 2 against Canvas 2D)
         run: node --test tests/js/gl-stage.test.mjs
+      - name: You in the dream (the face stays the camera's picture; in the runner's Chrome)
+        run: node --test tests/js/you.test.mjs
       - name: Dream windows (several of them in the runner's Chrome)
         run: node --test tests/js/window.test.mjs

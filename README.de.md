@@ -800,24 +800,34 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 - **Hinter den Augen scheint der Traum durch die Nacht** – durch treibende Wolken, eine riesige atmende Spirale aus
   weichen Lichtern, eine kaleidoskopische Blume aus Ringen oder ein nur angedeutetes Gesicht aus Licht um die Augen – eine
   Göttin mit Diadem und wallendem Haar, eine Katze mit Ohren und zuckenden Schnurrhaaren, Medusa mit sich windenden
-  Schlangen, eine Meerjungfrau mit Haar, das wie Seetang treibt, und einer Krone aus Muscheln, eine Fee mit spitzen Ohren,
-  schlagenden Schmetterlingsflügeln und Fühlern, eine Mondpriesterin mit Sichel auf der Stirn, wehendem Schleier und langen
-  Ohrringen; die Masken wechseln etwa jede halbe Minute (hochkant etwas ruhiger), der Traum
-  dahinter zoomt und wandert langsam, etwas heller als auf der Bühne. Alle ein, zwei Minuten öffnet sich für 6–10
+  Schlangen, eine Meerjungfrau mit Haar, das wie Seetang treibt, und einer Krone aus Muscheln, ein Waldgeist mit einer Krone aus Blättern,
+  Ranken um die Augen, einem Blatt auf der Stirn und aufsteigenden leuchtenden Sporen (ohne Mund), eine Mondpriesterin mit Sichel auf der Stirn, wehendem Schleier und langen
+  Ohrringen; die Masken wechseln alle ein, zwei Minuten (hochkant etwas ruhiger), der Traum
+  dahinter zoomt und wandert langsam, etwas heller als auf der Bühne. Alle zwei bis vier Minuten öffnet sich für 6–10
   Sekunden ein **Traumfenster**: Die Nacht geht weit auf und der Traum ist deutlich hinter den Augen zu sehen, dann zieht er
   sich weich wieder hinter die Masken zurück. Direkt hinter den Augen bleibt es dunkler, damit sie
   klar bleiben.
-- **Du im Traum:** Wer davorsteht, spiegelt sich in der Iris – deutlich, und alle ein, zwei Minuten für ein paar Sekunden
-  ganz deutlich, wie in echten Augen. Ab und zu erscheint die Person hinter den Augen, vom Hintergrund freigestellt (auf
-  dem Handy), in den Farben und Mustern des Traums, gekräuselt wie ein Spiegelbild auf Wasser, und verblasst wieder. Und
-  etwa alle drei Minuten malt der Mac aus dem Kamerabild der Augen ein **Traum-Porträt** der Person (ein schneller
-  Bild-zu-Bild-Schritt, etwa 0,3–0,6 s), das wie die anderen gemalten Gesichter durch die Pupillen kommt, aber nur
-  kurz bleibt (etwa 2,5–4 s) – nur solange jemand da ist. Das Kamerabild bleibt nur Sekunden im Speicher, das Porträt
-  höchstens zwei Minuten; nichts kommt in die Galerie, nur die Augen (und Dream Control) dürfen es abholen.
-  `DREAM_YOU_EVERY=…` ändert den Abstand (Sekunden). **Wer gerade kommt** (nachdem eine Weile niemand da war), wird
-  sofort begrüßt – ganz deutlich in der Iris oder als Spiegelmoment, im Wechsel – und sein Traum-Porträt folgt nach
-  wenigen Sekunden (höchstens eines alle zwei Minuten).
-- **Ab und zu spiegeln sie dich:** Für einige Sekunden, alle ein, zwei Minuten, wenn jemand davorsteht, ahmen die Augen
+- **Du im Traum:** Wer davorsteht, spiegelt sich in der Iris – schwach die ganze Zeit, und alle zwei, drei Minuten für
+  ein paar Sekunden ganz deutlich, wie in echten Augen: dann ist es die Person allein, vom Raum freigestellt (auf dem
+  Handy), das Gesicht genau so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle drei bis fünf
+  Minuten, nur solange jemand da ist) erscheint die Person als **Moment**: zuerst in den beiden Pupillen, wie durch sie
+  hindurch gesehen, dann öffnen sich die Fenster und sie steht für etwa 2–3 Sekunden in einer weichen Wolke in der
+  Bildmitte – **das echte Kamerabild, das Gesicht unverändert und erkennbar**, etwas kleiner und leichter als ein
+  gemaltes Gesicht. Nur drumherum ist der Traum: das Traumbild statt des Raums, ein weicher Leuchtrand,
+  Glühwürmchen, ein Farbschimmer in der Farbe des Traums an ihrem Rand, und manchmal ein Kranz aus Blüten, ein
+  Mandala hinter dem Kopf oder Nebelschleier. Über dem Gesicht wird nie etwas gezeichnet. Danach blendet das Bild
+  nicht einfach aus: In ein, zwei Sekunden **löst es sich in den Traum auf** – seine Stücke treiben davon, die
+  äußeren zuerst, das Gesicht zuletzt, die Glühwürmchen fliegen fort –, während die Augen zurückkehren (insgesamt etwa
+  7 Sekunden). **Wer gerade kommt** (nachdem eine Weile niemand da war), wird sofort begrüßt – ganz deutlich in der
+  Iris oder mit diesem Moment, im Wechsel.
+  **Was mit dem Kamerabild passiert:** All das zeichnet das Handy selbst, aus der Live-Kamera und einer dort
+  gefundenen Maske der Person (Selfie-Segmentierung, etwa 250 KB); dafür wird kein Bild und kein Wort darüber, wer
+  davorsteht, gesendet, und nichts wird aufbewahrt. Die KI malt Menschen **nicht** um: Das Traum-Porträt, das der Mac
+  früher aus dem Kamerabild der Augen gemalt hat, gibt es nicht mehr (und `DREAM_YOU_EVERY` auch nicht) – der Mac malt
+  nur noch die Fantasie-Gesichter unten, aus Worten. Das Einzige, was das Handy verlässt, ist das, wofür Dreamy Eyes da
+  sind: die Frontkamera, die du dem Traum leihst (unten, „Immer nur eine Kamera“), unverändert an die Bühne
+  weitergereicht und nirgends aufbewahrt; Tests sichern beides ab.
+- **Ab und zu spiegeln sie dich:** Für einige Sekunden, alle zwei, drei Minuten, wenn jemand davorsteht, ahmen die Augen
   dessen Ausdruck nach – Blinzeln oder Zwinkern (das passende Auge), Zusammenkneifen, weit aufgerissene Augen, gehobene
   oder gesenkte Brauen –, dann gehen sie wieder ihre eigenen Wege.
 - **Deine Silhouette als Maske:** Ab und zu, nur wenn jemand da ist, scheint der Traum durch die Umrisse der Person
@@ -886,13 +896,13 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   Blütenfee, Orakel, Uhrwerk-Dame, Eulenfrau, Dame mit Maske, Polarlicht, Rabenhexe, Nebel-Frau sowie Sonnengott, Grüner
   Mann, Meereskönig, Sternenweiser, Faun, Traum-Pharao und Mondritter – in der Stimmung des
   aktuellen Traum-Prompts (ein einziger schneller KI-Schritt, etwa 0,4 s, der erste einige Sekunden; die Bühne merkt
-  kaum etwas). Alle zwei bis vier Minuten kommt eines davon durch die Pupillen: Es taucht in ihnen auf, als sähe man
+  kaum etwas). Alle vier bis acht Minuten kommt eines davon durch die Pupillen: Es taucht in ihnen wie durch Nebel auf (weich, blass, verschleiert, ohne Rand), als sähe man
   hindurch, die beiden Fenster wachsen mit leuchtendem Rand, drehen sich ein wenig und öffnen sich zu einer **Traumwolke** – das
   Gesicht in weichen Bällchen, die treiben und ihre Form ändern, ringsum ein Schimmer in der Traumfarbe, dahinter weiter der
   Traum –, bleibt dort drei bis fünf Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
   und die Augen sind wieder da. Die Bilder bleiben nur im Speicher und kommen nie in die Galerie; nur die Augen
   (und Dream Control) dürfen sie abholen. `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` ändert, wie oft eines
-  gemalt wird (Sekunden); `DREAM_AIMASK=0` schaltet die gemalten Gesichter ganz ab (kein Feuergeist, kein Traumporträt:
+  gemalt wird (Sekunden); `DREAM_AIMASK=0` schaltet die gemalten Gesichter ganz ab (auch kein Feuergeist:
   die Dreamy Eyes lassen den Mac dann nie ein Modell laden). Mit der Cloud-GPU gibt es keine gemalten Gesichter.
 - **Die Pupillen verwandeln sich:** ein Katzenschlitz, solange das Grinsen da ist, Herzen, wenn jemand weiter lächelt,
   Sterne, wenn sie staunen, eine drehende Spirale, wenn sie hypnotisieren (oder von einem Feuer gebannt sind). Etwa
@@ -900,7 +910,7 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   die sich wie ein Mandala drehen, Lichter, die wie Schnee sinken, Ringe, die in die Tiefe sinken, oder ein langsamer
   Strudel – halb durchsichtig, in den Farben des Traums (am Feuer wie Glut), atmend im Takt der Musik (ohne Musik: mit
   dem Traum).
-- **Die Iris ist eine Welt, die wechselt**, etwa jede halbe Minute: der Traum selbst, der Traum als Kaleidoskop gefaltet,
+- **Die Iris ist eine Welt, die wechselt**, alle ein, zwei Minuten: der Traum selbst, der Traum als Kaleidoskop gefaltet,
   ein Wirbel aus dem Traum mit gegeneinander drehenden Ringen oder eine Spiralgalaxie in den Farben des Traums.
 - **Launen ab und zu:** Sie zwinkern, schielen, rollen die Augen, hypnotisieren, weinen eine Träne aus Licht, die zu
   Sternen zerplatzt, oder funkeln. Lange niemand da und ein ruhiger Traum: Sie schlafen langsam ein, kleine z's steigen
@@ -1428,7 +1438,7 @@ Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebenei
 je ein großes Motiv, der Traum als Wolken mit Dunkel dazwischen, das Augenpaar, das gemeinsam schaut, ein gemaltes
 Gesicht, das sich über seine Punkte bewegt, und eines ohne Punkte, das still bleibt, ein Motiv, das von einem Fenster ins
 andere wandert, Welle, Streicheln und Trance, und ein schwaches Gerät, das weniger Pixel zeichnet; mit `KEEP=1` bleiben
-die Fenster offen. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+die Fenster offen. `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Das Gesicht muss mit jedem Rahmen und in jedem Moment genau das Kamerabild sein, der Raum ist nie zu sehen, und das Bild geht, indem es sich auflöst, das Gesicht zuletzt. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und
