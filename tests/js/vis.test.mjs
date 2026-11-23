@@ -175,6 +175,10 @@ test('one face at a time: between two moments nothing shows, so the next face si
   assert.deepEqual([s.key, s.al], ['cat', 1]);
   V.step(s, 'medusa', 1 / 60, 0.5);
   assert.equal(s.key, 'cat', 'in full view the one shown goes first');
+  // a face that is not to be seen makes way at once – for one that is to be seen and so comes from nothing
+  const far = V.turn();
+  V.step(far, 'a', 1 / 60, 0); V.step(far, 'b', 1 / 60, key => (key === 'a' ? 0 : 1));
+  assert.deepEqual([far.key, far.p < 0.05], ['b', true]);
   const frames = watch([['goddess', 20], ['cat', 20], ['forest', 20]], { shows: hint });
   oneAtATime(frames, 0.03);
   assert.deepEqual([...new Set(frames.filter(f => f.al > 0.99).map(f => f.key))], ['goddess', 'cat', 'forest'], 'each moment its face, in full');

@@ -90,12 +90,14 @@
   // visible that makes it (al: p eased)
   const turn = () => ({ key: null, p: 0, al: 0 });
   // One frame further (dt: seconds). `want` is the face that should be there (anything compared with ===; null: none),
-  // `shows` how visible a face is there anyway right now (0–1: the rule's hint): while nothing is to be seen the
-  // change is made at once – the rule itself brings the next face in softly. Else the one shown goes first.
+  // `shows` how visible a face is there anyway right now (0–1: the rule's hint; a function of the face where that
+  // differs from face to face): while nothing is to be seen of the one shown the change is made at once – and where
+  // nothing is to be seen of the next one either, the rule itself brings it in softly. Else the one shown goes first.
   function step(s, want, dt, shows = 1) {
     if (want === undefined) want = null;
     dt = Math.max(0, +dt || 0);
-    if (s.key !== want && (s.key === null || s.p <= 0 || shows <= TURN.unseen)) { s.key = want; s.p = want === null || shows > TURN.unseen ? 0 : 1; }
+    const seen = key => (typeof shows === 'function' ? shows(key) : shows) > TURN.unseen;
+    if (s.key !== want && (s.key === null || s.p <= 0 || !seen(s.key))) { s.key = want; s.p = want === null || seen(want) ? 0 : 1; }
     else if (s.key !== want) s.p = Math.max(0, s.p - dt / TURN.out);
     else if (s.key !== null) s.p = Math.min(1, s.p + dt / TURN.in);
     s.al = smooth(s.p);
