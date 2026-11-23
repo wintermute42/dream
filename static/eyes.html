@@ -180,9 +180,10 @@
     if (fire.on && t - (fire.sent || 0) > 2000) { fire.sent = t; send({ fire: true }); }   // the Mac paints burning faces
     if (!fire.on && wasOn) fire.longing = t + 3000;
   }
-  // #218: with ?debug in the address, a corner shows what the fire detection makes of the camera: the sample in grey,
+  const DEBUG = new URLSearchParams(location.search).has('debug');   // ?debug in the address: for looking closely, and for the tests
+  // #218: with ?debug, a corner shows what the fire detection makes of the camera: the sample in grey,
   // warm light in yellow (its bright core white), what counts as fire in red – and the numbers beside it
-  const fireSeen = new URLSearchParams(location.search).has('debug') ? document.createElement('canvas') : null;
+  const fireSeen = DEBUG ? document.createElement('canvas') : null;
   if (fireSeen) { fireSeen.width = FW; fireSeen.height = FH; }
   function fireShow(sample) {
     const d = sample.data, c = fire.cells, lit = c.blobs.map(b => b.lit);
@@ -284,8 +285,8 @@
     }
   }
   // ---------- #220: how much of a face shows – mostly only the eyes (static/dreamvis.js) ----------
-  // Now and then hints come (the brows, the sign on the forehead of a face drawn in light), rarely and only as a breath
-  // mouth and outline; never a nose. `?face=0|1|2` holds a level, to look at it. The rule is for what is drawn: the
+  // Now and then hints come (the brows, the sign on the forehead of a face drawn in light), rarely – then clearly –
+  // mouth, nose and outline. `?face=0|1|2` holds a level, to look at it. The rule is for what is drawn: the
   // faces painted by the AI and "you in the dream" stay whole.
   const vis = { seed: Math.random() * 0x7fffffff | 0, cur: DreamVis.EYES_ONLY, round: -1, mode: null, quiet: 1, calm: 1,
     hold: DreamVis.asked(location.search) };
@@ -811,7 +812,7 @@
     backMask(bs.mode, t, w, h, bs.mix);
     const facing = vis.cur.level > 0 && vis.mode;       // #220: a face drawn in light, as far as the rule lets it show
     // #221: drawn by the style world, around where the eyes are (in the mask's pixels)
-    const q = w / W, [x0, y0, a] = eyesAt[0], [x1] = eyesAt[1], geo = { cx: (x0 + x1) / 2 * q, ey: y0 * q, A: a * q, half: (x1 - x0) / 2 * q, h: H * q, q };
+    const q = w / W, [x0, y0, a] = eyesAt[0], [x1] = eyesAt[1], geo = { cx: (x0 + x1) / 2 * q, ey: y0 * q, A: a * q, half: (x1 - x0) / 2 * q, q };
     if (facing) DreamStyle.face().draw(bk, vis.mode, t, geo, vis.cur);
     // the dream into the mask: slowly zooming and wandering, so the night never stands still
     bk.globalCompositeOperation = 'source-in';          // brighter than the dream itself: it glows out of the night
@@ -823,8 +824,8 @@
     if (dream.prev && fade < 1) { bk.drawImage(glowPrev(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side); bk.globalCompositeOperation = 'source-atop'; bk.globalAlpha = fade; }
     bk.drawImage(glowCur(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side);
     bk.globalAlpha = 1; bk.globalCompositeOperation = 'source-over';
-    if (facing) {                                       // a faint own glow, so it shows even in a dark dream
-      bk.globalCompositeOperation = 'lighter'; DreamStyle.face().draw(bk, vis.mode, t, geo, vis.cur, `hsla(${hueOf(dream.col) + 20},80%,70%,`, 0.22); bk.globalCompositeOperation = 'source-over';
+    if (facing) {                                       // an own glow, so it shows even in a dark dream
+      bk.globalCompositeOperation = 'lighter'; DreamStyle.face().draw(bk, vis.mode, t, geo, vis.cur, `hsla(${hueOf(dream.col) + 20},80%,70%,`, 0.34); bk.globalCompositeOperation = 'source-over';
     }
   }
 
@@ -1036,13 +1037,13 @@
   }
   requestAnimationFrame(draw);
 
-  // ---------- start: one tap opens the eyes (fullscreen, screen stays on, camera lent) ----------
+  // ---------- start: one tap opens the eyes (fullscreen – not with ?debug –, screen stays on, camera lent) ----------
   const keepAwake = DreamCommon.wakeLock(false);       // the screen stays on (where the browser grants it)
   document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
   async function start() {
     $('start').classList.add('gone'); $('note').classList.remove('on');
     st.wake = 0.6;
-    try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) { /* not offered */ }
+    if (!DEBUG) try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) { /* not offered */ }   // (with ?debug the page stays a window)
     keepAwake();
     if (!cam.lent) camStart();
   }
@@ -1107,7 +1108,7 @@
     }
   };
   cv.addEventListener('pointerup', lift); cv.addEventListener('pointercancel', lift);
-  if (new URLSearchParams(location.search).has('debug')) window.dreamyEyes = { st, dream, face, vis, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, enchanted, you, trance, tranceStart, dreamIn: bm => { dream.prev = dream.cur; dream.cur = bm; dream.at = performance.now(); analyse(bm); glowIn(bm); }, eyesAt: () => eyesAt, res, dpr: () => dpr };   // for the tests only
+  if (DEBUG) window.dreamyEyes = { st, dream, face, vis, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, enchanted, you, trance, tranceStart, dreamIn: bm => { dream.prev = dream.cur; dream.cur = bm; dream.at = performance.now(); analyse(bm); glowIn(bm); }, eyesAt: () => eyesAt, res, dpr: () => dpr };   // for the tests only
   view(); connect();
 })();
 </script>
