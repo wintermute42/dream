@@ -70,6 +70,10 @@ def _fx(v: str) -> str:
     return "+".join(dict.fromkeys(e for e in v.split("+") if e in playlists.FX))
 
 
+# #221: the style worlds Dreamy Eyes and the dream windows can be drawn in. Each is one file `static/world-<name>.js`
+# that registers itself with the style layer (static/dreamstyle.js); the first is today's look. A test compares.
+WORLDS = ("classic",)
+
 # #148, owner's decision (2026-11-18) on what a guest may change: painting, touching, directness, impulses, movement
 # reaction, the pose and the music automatic/drop are the performer's – not a guest's; nor are "New" (the dream starts
 # anew) and the QR on the stage … and (same day) neither removing the owner's picture or video, the rest of the
@@ -147,6 +151,7 @@ SETTINGS: dict[str, Setting] = {
     "fx": text("", guest=True, clean=_fx),                      # effects by hand: "tunnel+waves", their strength, pulse on the beat
     "fx_amt": num(0.7, 0.0, 1.0, guest=True, target=True, weight=0.8, needs="fx"),
     "fx_beat": flag(True, guest=True),
+    "world": text("classic", choices=WORLDS),                   # #221: the style world of Dreamy Eyes and the dream windows
 }
 
 # ---------- what the rest of Dream reads: views of the table ----------

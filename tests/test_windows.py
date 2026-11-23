@@ -1,5 +1,6 @@
 """Dream windows (#201, #214): one large motif per window, motifs that wander without two windows showing the same, the
 points of the painted faces found once on Dream's Mac – and windows that still only look."""
+import asyncio
 import json
 import os
 import random
@@ -223,6 +224,30 @@ def test_face_points_are_asked_for_once_however_many_windows(server, win):
     assert not any("marks" in m for s in socks for m in s.got)                  # (the others got them from the route, below)
 
 
+def test_face_points_are_asked_for_when_only_dreamy_eyes_look_on(server, win):
+    """#230: Dreamy Eyes move the painted faces too – with no window open they are who the points are found for."""
+    server.eyes.aimasks["goddess"] = (FACE, b"jpeg", time.time())
+    stage, eyes, guest = Sock("stage"), Sock("eyes"), Sock("guest")
+    win.markers.append(stage)
+    server.hub.roles[guest] = "guest"
+    try:
+        win.marks_tick(100.0)                           # a guest's remote shows no face
+        assert not stage.got and win.lookers() == []
+        server.hub.roles[eyes] = "eyes"
+        for now in (100.0, 100.5, 105.0):
+            win.marks_tick(now)
+        assert stage.got == [{"face": FACE, "url": f"/eyes/mask/{FACE}.jpg"}] and win.lookers() == [eyes]
+        window = come(server, 1)[0]
+        assert win.lookers() == [window, eyes]
+        win.marks_greet(eyes)                           # no points yet: nothing to hand on
+        assert not eyes.got
+        assert win.marks_take({"face": FACE, "points": points(win)}) == FACE
+        win.marks_greet(eyes)
+        assert eyes.got == [{"marks": {FACE: points(win)}}]
+    finally:
+        server.hub.roles.pop(eyes, None); server.hub.roles.pop(guest, None)
+
+
 def test_a_face_without_points_stays_still(server, win):
     server.eyes.aimasks["cat"] = (FACE, b"jpeg", time.time())
     stage = Sock("stage")
@@ -293,10 +318,13 @@ def read(name: str) -> str:
 def test_dream_and_the_window_page_name_the_same_motifs_and_points(server):
     w = server.windows
     page = read("window.html")
-    known = set(re.findall(r"'(\w+)'", re.search(r"const MOTIFS = new Set\(\[(.*?)\]\)", page).group(1)))
-    assert known == set(w.MOTIFS) | {w.PAIR}
-    drawn = set(re.findall(r"(\w+):", re.search(r"const DRAW = \{(.*?)\}", page).group(1)))
-    assert drawn == known                               # every motif Dream may name is drawn
+    # #221: the eye and the painted face are the page's own, every other motif is drawn by the style world – all of
+    # them by the first one, today's look (static/world-classic.js)
+    own = set(re.findall(r"(\w+):", re.search(r"const DRAW = \{(.*?)\}", page).group(1)))
+    assert "const MOTIFS = new Set(['eye', 'pair', 'face', ...DreamStyle.motifs()]);" in page
+    world = {k.split(":")[0].strip() for k in re.search(r"\n    motif: \{(.*?)\}", read("world-classic.js")).group(1).split(",")}
+    assert own == {"eye", "pair", "face"} and not own & world
+    assert own | world == set(w.MOTIFS) | {w.PAIR}       # every motif Dream may name is drawn
     assert float(re.search(r"const FORM = (\d+);", page).group(1)) == w.DISSOLVE * 1000
     life = set(re.findall(r"'(\w+)'", re.search(r"const KINDS = new Set\(\[(.*?)\]\)", page).group(1)))
     assert life == set(w.LIFE_KINDS)
@@ -312,12 +340,32 @@ def test_a_window_never_looks_for_faces_itself():
     assert "/mp/" not in page and "data-detect" not in page and "FaceLandmarker" not in page
     assert '<script src="/static/dreamface.js" data-detect defer></script>' in read("index.html")
     assert "data-detect" not in read("eyes.html") and "data-detect" not in read("output.html")
+    assert '<script src="/static/dreamface.js"></script>' in read("eyes.html")   # #230: Dreamy Eyes move the points they are given
 
 
 def test_the_eye_is_drawn_by_one_module_for_both_pages():
-    """#214: Dreamy Eyes and the windows draw the very same eye (static/dreameye.js) – no copy in either page."""
+    """#214: Dreamy Eyes and the windows draw the very same eye (static/dreameye.js) – no copy in either page.
+    #221: both ask the style layer for it, and today's look – the first style world – is that very module."""
     eyes, window = read("eyes.html"), read("window.html")
+    assert "eye: { draw: DreamEye.draw, irisWorld: DreamEye.irisWorld, pupilShape: DreamEye.pupilShape }" in read("world-classic.js")
     for page in (eyes, window):
-        assert '<script src="/static/dreameye.js"></script>' in page and "DreamEye.draw(" in page and "DreamEye.irisWorld(" in page
+        assert '<script src="/static/dreameye.js"></script>' in page and "DreamStyle.eye()" in page
+        assert "style.draw(" in page and "style.irisWorld(" in page and "style.pupilShape(" in page
         for own in ("function irisWorld", "function pupilShape", "function almond(cx", "bezierCurveTo(cx - a * 0.45"):
             assert own not in page
+
+
+# ---------- #221: the style world ----------
+def test_a_window_is_told_the_style_world_when_it_comes_and_when_it_changes(server, win, monkeypatch):
+    monkeypatch.setitem(server.hub.state, "world", "classic")
+    first, = come(server, 1)
+    assert [m["world"] for m in first.got if "world" in m] == ["classic"]
+    first.got.clear()
+    monkeypatch.setattr(server.settings, "WORLDS", ("classic", "other"))   # (a second world, for the test)
+    monkeypatch.setitem(server.settings.SETTINGS, "world", server.settings.text("classic", choices=("classic", "other")))
+    monkeypatch.setattr(server.eyes.outbox, "post", lambda sock, text: sock.got.append(json.loads(text)) or True)
+    asyncio.run(server.hub.apply({"world": "other"}, persist=False))
+    assert first.got == [{"world": "other"}]            # one small word, nothing else of the shared state
+    first.got.clear()
+    asyncio.run(server.hub.apply({"world": "no-such-world"}, persist=False))
+    assert first.got == [] and server.hub.state["world"] == "other"    # an unknown world is not taken

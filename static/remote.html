@@ -289,6 +289,8 @@
     <label id="trancelbl" style="margin-top:8px;display:block">The trance – a third eye opens – comes at most</label>
     <div class="seg" id="trancefreq" role="group" aria-labelledby="trancelbl" style="--n:4"><button data-v="0">only by hand</button><button data-v="25">rarely</button><button data-v="12">now and then</button><button data-v="5">often</button></div>
     <div id="trancestate" class="hint" role="status" aria-live="polite"></div>
+    <label for="world" style="margin-top:8px">Style world – how Dreamy Eyes and the dream windows are drawn</label>
+    <select id="world"><option value="classic">Classic – glowing lines and soft light</option></select>
   </section>
 
   <section data-sec="windows" data-only="control">
@@ -301,7 +303,7 @@
     <h2>MIDI · master</h2>
     <label>Master brightness (0 = black)</label><input type="range" id="master" min="0" max="1" step="0.01">
     <div id="midistate" class="hint">no MIDI device at the Mac</div>
-    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
+    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
   </section>
 
   <section data-key data-sec="motion" class="haschar">
@@ -354,7 +356,7 @@
     <div class="seg" id="backends" style="--n:2"><button data-b="local">Local (Mac)</button><button data-b="cloud">Cloud GPU</button></div>
     <div id="cloudstate" class="hint"></div>
     <div class="row" style="margin-top:8px">
-      <select id="gpu" aria-label="Cloud GPU"><optgroup label="Scaleway (Paris)"><option value="L4-1-24G">Scaleway · L4 · about €0.79/h</option><option value="L40S-1-48G">Scaleway · L40S · about €1.47/h</option><option value="H100-1-80G">Scaleway · H100 · about €2.87/h</option></optgroup><optgroup label="RunPod (Europe, own data centres)"><option value="runpod:RTX-4090">RunPod · RTX 4090 · about $0.70/h</option><option value="runpod:RTX-5090">RunPod · RTX 5090 · about $1.39/h</option><option value="runpod:H100">RunPod · H100 · about $4.39/h</option></optgroup><optgroup label="RunPod Community – private computers, cheaper (pictures at the outside provider)"><option value="runpod:RTX-4090-community">RunPod Community · RTX 4090 · from about $0.35/h</option><option value="runpod:RTX-5090-community">RunPod Community · RTX 5090 · from about $0.70/h</option><option value="runpod:H100-community">RunPod Community · H100 · from about $2.70/h</option></optgroup></select>
+      <select id="gpu" aria-label="Cloud GPU"></select><!-- #231: filled by DreamCommon.fillGpus -->
       <button id="cloudstart">Start</button><button id="cloudstop">Delete</button>
     </div>
     <label>Model</label>
@@ -378,6 +380,7 @@
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
   I18N.apply();
+  DreamCommon.fillGpus(document.getElementById('gpu'));   // #231: the cloud GPUs on offer, the default chosen
   document.documentElement.style.setProperty('--off-label', JSON.stringify(' · ' + T('off')));
   document.querySelectorAll('.langsw button').forEach(b => {
     b.setAttribute('aria-pressed', b.dataset.lang === I18N.lang); b.onclick = () => I18N.setLang(b.dataset.lang); });
@@ -414,7 +417,7 @@
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master']);
-  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast'];
+  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast', 'world'];
   let ws = null, state = {}, applying = false;
   // the one movement switch (state key "flowtrack"; off = no movement effect)
   function updFlowSwitch() {
@@ -578,7 +581,7 @@
 
   $('midilearn').onclick = () => { send({ midi_learn: $('miditarget').value }); $('midistate').textContent = T('Now turn or press on the controller …'); };
 
-  // the cloud GPU (Scaleway or RunPod)
+  // the cloud GPU (RunPod; Scaleway only from the command line for now, #231)
   async function cloud(path, body) {
     const r = await fetch(path, body ? { method: 'POST', body } : {});
     return r.json();
@@ -590,7 +593,7 @@
   }
   function showCloud(c) {
     const money = c.minutes !== undefined ? ` · ${c.minutes} min · ≈ ${(+c.cost_eur).toLocaleString(I18N.lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c.currency === 'USD' ? '$' : '€'}` : '';   // #179: the device's number format
-    $('cloudstate').textContent = c.state === 'setup' ? T('No cloud provider set up (Scaleway or RunPod, see README).')
+    $('cloudstate').textContent = c.state === 'setup' ? T('No cloud provider set up (RunPod, see README).')
       : c.state === 'off' ? (c.busy ? T('working …') : c.fail ? T('Start failed – details in the panel on the Mac.') : T('Off – no costs.')) : (c.ready ? T('Running: {type}', { type: c.type }) + money : T('Starting …') + money);
     $('cloudstart').disabled = c.busy || c.ready || c.state === 'setup';
     $('cloudstop').disabled = c.state === 'off' && !c.busy;
