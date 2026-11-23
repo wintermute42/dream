@@ -62,6 +62,11 @@
   const $ = id => document.getElementById(id);
   const cv = $('eyes'), main = cv.getContext('2d');
   let g = main;                                        // #160: the eyes are drawn on a layer of their own while a face takes over
+  // #224: while two style worlds are crossfaded the frame is drawn once per world – the first into the page (`out`),
+  // the second (`again`: nothing is counted or moved on twice) into a layer – and the two are added up by their weights
+  const mix = { cv: document.createElement('canvas'), told: false, hold: new URLSearchParams(location.search).get('blend') };
+  mix.g = mix.cv.getContext('2d');
+  let out = main, again = false;
   const layer = document.createElement('canvas'), lg = layer.getContext('2d');
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   let noteT = 0;
@@ -244,7 +249,7 @@
       if (m.marks && typeof m.marks === 'object') {    // #230: where a painted face has its eyes, brows and mouth – found once, on Dream's Mac
         for (const [id, pts] of Object.entries(m.marks)) if (/^[0-9a-f]{12}$/.test(id) && Array.isArray(pts) && pts.length === 2 * DreamFace.PICK.length) faceMarks[id] = pts;
       }
-      if (typeof m.world === 'string') { DreamStyle.use(m.world); vis.mode = null; }   // #221: the style world to draw in – its own faces of light
+      if (typeof m.world === 'string') { DreamStyle.blend(m.world, m.world_to, m.world_mix, !mix.told); mix.told = true; }   // #221, #224: the style world to draw in, and the one it fades to
       if (m.eyes_cfg) { trance.every = +m.eyes_cfg.trance_every || 0; tranceSchedule(performance.now(), true); }   // #172
       if (m.trance) tranceStart(performance.now());
       if (m.feed_taken === 'cam') camStop(T('Dream Control took the camera back – tap to lend it again.'));
@@ -294,17 +299,19 @@
   // Now and then hints come (the brows, the sign on the forehead of a face drawn in light), rarely – then clearly –
   // mouth, nose and outline. `?face=0|1|2` holds a level, to look at it. The rule is for what is drawn: the
   // faces painted by the AI and "you in the dream" stay whole.
-  const vis = { seed: Math.random() * 0x7fffffff | 0, cur: DreamVis.EYES_ONLY, round: -1, mode: null, quiet: 1, calm: 1,
-    hold: DreamVis.asked(location.search) };
+  // #224: which face of light is a number – each world shows the one of its own faces it names (two worlds at once)
+  const vis = { seed: Math.random() * 0x7fffffff | 0, cur: DreamVis.EYES_ONLY, round: -1, pick: -1, quiet: 1, calm: 1,
+    hold: DreamVis.asked(location.search),
+    get mode() { const M = DreamStyle.face().MODES; return this.pick < 0 ? null : M[this.pick % M.length]; } };
   function visTick(t, dt) {
     // nothing of a face while something else takes the eyes' place; mouth and outline only while the eyes are calm
     const free = portal.phase === 'off' && !trance.on && you.moment < 0.05, calm = free && !enchanted() && st.energy < 0.6;
     vis.quiet = lerp(vis.quiet, free ? 1 : 0, 1 - Math.exp(-dt * 2)); vis.calm = lerp(vis.calm, calm ? 1 : 0, 1 - Math.exp(-dt * 1.2));
     vis.cur = DreamVis.damp(vis.hold >= 0 ? DreamVis.held(vis.hold) : DreamVis.at(t, vis.seed), vis.quiet, vis.quiet * vis.calm);
     const round = vis.hold >= 0 ? Math.floor(t / 20000) : vis.cur.round;   // (a held level: another face every 20 s)
-    if (vis.cur.level && (vis.round !== round || !vis.mode)) {   // a new moment: another face, another feeling
+    if (vis.cur.level && (vis.round !== round || vis.pick < 0)) {   // a new moment: another face, another feeling
       vis.round = round;
-      const o = DreamStyle.face().MODES.filter(k => k !== vis.mode); vis.mode = o[Math.random() * o.length | 0];
+      const n = DreamStyle.face().MODES.length; vis.pick = (Math.max(0, vis.pick) + 1 + (Math.random() * (n - 1) | 0)) % n;
       brow.idle = dream.lum < 0.3 && st.energy > 0.45 && Math.random() < 0.4 ? 'frown' : ['curious', 'doubt', 'joy', 'sad'][Math.random() * 4 | 0];   // frowning only in a dark, wild dream
     }
   }
@@ -826,14 +833,14 @@
       if (bs.mode === 'silhouette' && !seg.sg && !seg.loading) segLoad();
     }
     if ((bs.mode === 'silhouette' || (bs.prev === 'silhouette' && bs.mix < 1)) && perf > 30) segTick(t);
-    bs.mix = Math.min(1, bs.mix + 1 / 180);
+    if (!again) bs.mix = Math.min(1, bs.mix + 1 / 180);
     // now and then the night opens wide and the dream shows clearly behind the eyes for a while
     if (t > bs.revealNext && portal.phase === 'off') { bs.revealUntil = t + 6000 + Math.random() * 4000; bs.revealNext = t + (120000 + Math.random() * 120000) * pace(t); }
     const rv = t < bs.revealUntil ? 1 : 0;
     const dtb = Math.min(0.1, (t - (bs.lt || t)) / 1000); bs.lt = t;   // softly in (about 2 s) and out (about 3 s)
     bs.reveal = lerp(bs.reveal, rv, 1 - Math.exp(-dtb * (rv ? 2.4 : 1.4)));
     // #188: the masks drift slowly – at a high frame rate every second frame is enough; in between the last one is shown again
-    if (resized || t - bs.drawn >= 20) { bs.drawn = t; backDraw(t, w, h); }
+    if (resized || mix.pair || t - bs.drawn >= 20) { bs.drawn = mix.pair ? -1e9 : t; backDraw(t, w, h); }   // (#224: every world its own night)
     const base = (0.75 + 0.25 * st.energy) * (H > W ? 0.75 : 1);   // the dream a little clearer than before; upright calmer
     g.save(); g.globalAlpha = Math.min(1, base + (0.95 - base) * bs.reveal); g.drawImage(back, 0, 0, W, H); g.restore();
   }
@@ -866,7 +873,29 @@
   }
 
   let last = performance.now();
+  // #224: one frame – one world, or two added up: what is asked of the style layer between `paint` and the next is that world's
   function draw(t) {
+    const plan = DreamStyle.plan((t - last) / 1000, mix.hold ? { hold: mix.hold } : { fps: perf, tier: perf > 45 ? 2 : perf > 30 ? 1 : 0 });
+    mix.pair = plan.length > 1;
+    plan.forEach(([world, weight], i) => {
+      DreamStyle.paint(world); again = i > 0; out = main;
+      if (again) {
+        if (mix.cv.width !== cv.width || mix.cv.height !== cv.height) { mix.cv.width = cv.width; mix.cv.height = cv.height; }
+        out = mix.g; out.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      scene(t);
+      main.save(); main.setTransform(1, 0, 0, 1, 0, 0);
+      if (again) { main.globalCompositeOperation = 'lighter'; main.globalAlpha = weight; main.drawImage(mix.cv, 0, 0); }
+      else if (weight < 0.999) { main.fillStyle = `rgba(0,0,0,${1 - weight})`; main.fillRect(0, 0, cv.width, cv.height); }
+      main.restore();
+    });
+    again = false; g = out = main; DreamStyle.paint(plan[plan.length > 1 && plan[1][1] > 0.5 ? 1 : 0][0]);   // between frames: the world that shows most
+    if (!mix.pair && mix.cv.width > 1) mix.cv.width = mix.cv.height = 1;   // one world again: the layer's memory back
+    if (fireSeen) fireDraw();
+    requestAnimationFrame(draw);
+  }
+  function scene(t) {
+    g = out;
     const dt = Math.min(0.1, (t - last) / 1000); last = t;
     // the mood: dark dream → wide pupils; much movement → wide awake; calm → dreamily half closed
     st.energy = lerp(st.energy, dream.dyn, 1 - Math.exp(-dt * 1.5));
@@ -881,11 +910,13 @@
     st.pupil = lerp(st.pupil, 0.56 - 0.3 * dream.lum + 0.06 * st.energy + (st.watching ? 0.06 : 0), 1 - Math.exp(-dt * 1.2));   // #157: interest widens them
     st.rot += dt * (0.04 + 0.25 * st.energy);
     // where they look: at whoever stands in front (#157) – otherwise now here, now there
-    perf = lerp(perf, 1 / Math.max(dt, 0.001), 0.05);
-    face.every = perf > 45 ? 80 : 160;
-    resTick(t);
-    faceTick(t);
-    fireTick(t);
+    if (!again) {
+      perf = lerp(perf, 1 / Math.max(dt, 0.001), 0.05);
+      face.every = perf > 45 ? 80 : 160;
+      resTick(t);
+      faceTick(t);
+      fireTick(t);
+    }
     const present = face.seen && t - face.seen < 1500;
     // #166, #219: someone just came (after a while with nobody): greet them – very clearly in the iris, or as "you in the
     // dream", in turn. The Mac learns nothing of it.
@@ -895,7 +926,7 @@
       if ((you.greet = !you.greet)) { you.irisUntil = t + 4500; you.irisNext = t + (100000 + Math.random() * 100000) * pace(t); }
       else if (t - you.momentAt > 180000) you.momentNext = Math.min(you.momentNext, t + 1500);   // a greeting, but not right after the last one
     }
-    youTick(t, present);
+    if (!again) youTick(t, present);
     const tt = tranceTick(t, dt, present);              // #172
     if (tt >= 0) {                                     // in trance: calm, half closed – then closed while the third eye is open
       st.wake = 0;
@@ -1033,7 +1064,7 @@
     eye(W / 2 + gap, cy, a, bb, true);
     g.restore();
     if (pp > 0) {
-      g = main;
+      g = out;
       g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = Math.max(0, 1 - Math.max(0, pp - 0.15) * 1.6); g.drawImage(layer, 0, 0); g.restore();
       const sc = v => [W / 2 + (v[0] - W / 2) * sway, cy + (v[1] - cy) * sway];
       drawPortal(t, pp, [sc(irisAt[0]), sc(irisAt[1])]);
@@ -1068,8 +1099,6 @@
         g.save(); g.globalAlpha = 0.12 + 0.6 * hint; drawTranceEye(t, hp); g.restore();
       }
     }
-    if (fireSeen) fireDraw();
-    requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
 

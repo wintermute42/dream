@@ -291,6 +291,13 @@
     <div id="trancestate" class="hint" role="status" aria-live="polite"></div>
     <label for="world" style="margin-top:8px">Style world – how Dreamy Eyes and the dream windows are drawn</label>
     <select id="world"><option value="classic">Classic – glowing lines and soft light</option><option value="deepsea">Bioluminescence – lights of the deep sea, no outlines</option><option value="ink">Ink & watercolour – light pigment on black paper, brushed lines</option><option value="etching">Engraving – an old engraved plate come alive, Art Nouveau lines</option><option value="aurora">Aurora – curtains of northern light over a field of stars</option></select>
+    <label for="world_mix" style="margin-top:8px">Crossfade – from this world to the second one <span class="val" id="v-world_mix"></span></label>
+    <input type="range" id="world_mix" min="0" max="1" step="0.01">
+    <label for="world_to" style="margin-top:8px">Second style world – where the crossfade leads</label>
+    <select id="world_to"></select>
+    <label for="world_auto" style="margin-top:8px">Worlds drift – Dream wanders from world to world by itself</label>
+    <select id="world_auto"><option value="0">off</option><option value="300">slow – a world every five minutes</option><option value="120">calm – a world every two minutes</option><option value="45">lively – a world every 45 seconds</option></select>
+    <div class="hint">A hand on the worlds or the crossfade (here, in the panel, a MIDI knob) makes the drift wait three minutes. Old phones show one world at a time and change over in a short fade.</div>
   </section>
 
   <section data-sec="windows" data-only="control">
@@ -303,7 +310,7 @@
     <h2>MIDI · master</h2>
     <label>Master brightness (0 = black)</label><input type="range" id="master" min="0" max="1" step="0.01">
     <div id="midistate" class="hint">no MIDI device at the Mac</div>
-    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
+    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
   </section>
 
   <section data-key data-sec="motion" class="haschar">
@@ -416,8 +423,9 @@
   byId('uinight').onclick = () => setNight(!document.body.classList.contains('night'));
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
-  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master']);
-  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast', 'world'];
+  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master', 'world_mix', 'world_auto']);
+  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast', 'world', 'world_to', 'world_mix', 'world_auto'];
+  const worldPace = DreamCommon.worldControls(document.getElementById('world'), document.getElementById('world_to'), document.getElementById('world_auto'));   // #224
   let ws = null, state = {}, applying = false;
   // the one movement switch (state key "flowtrack"; off = no movement effect)
   function updFlowSwitch() {
@@ -458,7 +466,7 @@
   document.querySelectorAll('.character').forEach(signs.shape);
   const show = () => {
     const f = (id, t) => { if ($('v-' + id)) $('v-' + id).textContent = t; };
-    f('strength', +$('strength').value <= 0.001 ? T('off (picture direct)') : (+$('strength').value).toFixed(2)); f('mix', Math.round($('mix').value * 100) + ' %');
+    f('strength', +$('strength').value <= 0.001 ? T('off (picture direct)') : (+$('strength').value).toFixed(2)); f('mix', Math.round($('mix').value * 100) + ' %'); f('world_mix', Math.round($('world_mix').value * 100) + ' %');
     f('zoom', (+$('zoom').value).toFixed(3)); f('rot', (+$('rot').value).toFixed(1) + '°');
     f('hue', (+$('hue').value).toFixed(1) + '°'); f('touch_amt', +$('touch_amt').value ? Math.round($('touch_amt').value * 100) + ' %' : T('off')); f('drift', +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off')); f('smooth', +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off')); f('sens', (+$('sens').value).toFixed(2) + '×');
     f('motion_sens', (+$('motion_sens').value).toFixed(2) + '×'); f('pose_scale', (+$('pose_scale').value).toFixed(2));
@@ -494,6 +502,7 @@
       const el = $(k);
       if (k === 'prompt' && document.activeElement === el) continue;   // don't overwrite while typing
       if (el.type === 'checkbox') el.checked = !!st[k]; else el.value = st[k];
+      if (k === 'world_auto') worldPace(st[k]);
     }
     if ('mode' in st) { seg('modes', 'm', st.mode); $('flowmode').classList.toggle('on', st.mode === 'flow'); }
     if ('music' in st) seg('musics', 'v', st.music);

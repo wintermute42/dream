@@ -64,6 +64,8 @@ jobs:
         run: node --test tests/js/style.test.mjs
       - name: The other style worlds (full vocabulary, face rule, no borrowed signs; in the runner's Chrome)
         run: node --test tests/js/worlds.test.mjs
+      - name: Crossfade between two style worlds (the plan of a frame; the real pages in the runner's Chrome)
+        run: node --test tests/js/blend.test.mjs
       - name: Picture chain (WebGL 2 against Canvas 2D)
         run: node --test tests/js/gl-stage.test.mjs
       - name: You in the dream (the face stays the camera's picture; in the runner's Chrome)
