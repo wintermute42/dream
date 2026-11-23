@@ -10,7 +10,8 @@
    moves keeps its sum; a dimmed lamp, an LED's beat or the camera's exposure change the sum but not the shape (and
    while the whole picture gets brighter or darker nothing counts at all); a light pulsing with music or a lamp that
    flickers in a phone held in the hand change sum and middle but keep their outline, and a hand waving in warm light
-   goes up and down evenly (#233). They believe it only after most of a second.
+   goes up and down evenly (#233). A wall in warm room light that a person moves in front of is torn apart and joined
+   again – that says nothing – and is larger than any flame (#233). They believe it only after most of a second.
    think(): what the fire does to them – one of a few moods that take turns, and getting used to a fire that only
    burns on. */
 (function (root) {
@@ -32,6 +33,8 @@
                                // running through it) is told by this: how little of its course a plain wave leaves unexplained
   const CALM = 0.1;            // … and a light that does so very evenly (#233: skin in warm light that moves, a hand waving – a
                                // flame's light almost never) loses the jumps it made before that was known
+  const ROOM = 0.25;           // a patch that covers more than this share of the picture is a lit wall, not a flame (#233: a
+                               // campfire close by covers a fifth): it makes no jumps – a fire that grows so large stays fire
   const MAX_BLOBS = 48;        // patches of warm light looked at in one picture
   const REACH = 0.35;          // how far a patch may have moved since the last picture (picture widths): a swung flame is fast
   const FLOOR = 14;            // warm pixels a patch needs before its jumps count in full
@@ -87,8 +90,9 @@
   // One camera sample (RGBA, w × h) at time t (ms). face: { x, y, w, h } of a face the phone sees (0–1), or null.
   function look(s, d, w, h, t, face) {
     let c = s.cells;
-    if (!c || c.n !== w * h) c = s.cells = { n: w * h, k: new Float32Array(w * h), id: new Int16Array(w * h), stack: new Int32Array(w * h), blobs: [] };
-    const warmth = c.k, id = c.id, stack = c.stack;
+    if (!c || c.n !== w * h) c = s.cells = { n: w * h, k: new Float32Array(w * h), id: new Int16Array(w * h), before: new Int16Array(w * h), stack: new Int32Array(w * h), blobs: [] };
+    const warmth = c.k, id = c.id, past = c.before, stack = c.stack;
+    past.set(id);                                      // which patch each pixel belonged to a moment ago
     // the face as an oval, a little larger than what was found of it
     const fx = face ? face.x * w : 0, fy = face ? face.y * h : 0, fa = face ? face.w * w * 0.62 : 1, fb = face ? face.h * h * 0.68 : 1;
     let any = 0, rest = 0, restN = 0;
@@ -111,10 +115,11 @@
     let fire = 0, sx = 0, sy = 0;
     for (let p0 = 0; any > 0 && p0 < w * h && blobs.length < MAX_BLOBS; p0++) {
       if (!(warmth[p0] > 0) || id[p0]) continue;
-      const b = { e: 0, x: 0, y: 0, xx: 0, yy: 0, xy: 0, tall: 0, lean: 0, tall1: 0, lean1: 0, n: 0, core: 0, e1: 0, x1: 0, y1: 0, hits: 0, age: 0, lit: false, held: 0, past: null, wave: 1, even: false }, mark = blobs.length + 1;
-      let top = 0; stack[top++] = p0; id[p0] = mark;
+      const b = { torn: false, e: 0, x: 0, y: 0, xx: 0, yy: 0, xy: 0, tall: 0, lean: 0, tall1: 0, lean1: 0, n: 0, core: 0, e1: 0, x1: 0, y1: 0, hits: 0, age: 0, calm: 0, lit: false, held: 0, past: null, wave: 1, even: false }, mark = blobs.length + 1;
+      let top = 0, one = 0; stack[top++] = p0; id[p0] = mark;
       while (top) {
         const p = stack[--top], x = p % w, y = (p - x) / w;
+        if (past[p]) { if (!one) one = past[p]; else if (past[p] !== one) b.torn = true; }   // it covers two patches of a moment ago
         let k = warmth[p];
         if (k > 1) { k -= 1; b.core++; }
         b.e += k; b.x += k * x; b.y += k * y; b.xx += k * x * x; b.yy += k * y * y; b.xy += k * x * y; b.n++; any--;
@@ -127,34 +132,34 @@
       // its outline, as the spread of its light: taller than wide (1) or wider than tall (-1), leaning right or left
       const wide = b.xx / b.e - b.x * b.x + 1 / 12, high = b.yy / b.e - b.y * b.y + 1 / 12;
       b.tall = (high - wide) / (high + wide); b.lean = 2 * (b.xy / b.e - b.x * b.y) / (high + wide);
-      let old = null, near = REACH * w, close = 0;     // the patch it was a moment ago: the nearest one
-      const reach = Math.sqrt(b.n / Math.PI) + 2;
-      for (const o of before) { const dist = Math.hypot(o.x - b.x, o.y - b.y); if (dist < near) { near = dist; old = o; } if (dist < reach + o.r) close++; }
-      b.r = reach - 2;
+      let old = null, near = REACH * w;                // the patch it was a moment ago: the nearest one
+      for (const o of before) { const dist = Math.hypot(o.x - b.x, o.y - b.y); if (dist < near) { near = dist; old = o; } }
       if (old) {
         b.e1 = old.e; b.x1 = old.x; b.y1 = old.y; b.tall1 = old.tall; b.lean1 = old.lean; b.age = old.age + 1; b.hits = old.hits; b.lit = old.lit; b.held = old.held;
         // a patch that was much larger or smaller a moment ago (#233: a hand that parted from a face) has no course of its own yet
         const same = b.e < 2.5 * old.e + FLOOR && old.e < 2.5 * b.e + FLOOR;
         b.past = !old.past ? [old.e] : same ? old.past.slice(-(PAST - 1)) : []; b.past.push(b.e); b.wave = wave(b.past); b.even = b.wave < EVEN;
         old.heirs = (old.heirs || 0) + 1; b.from = old;
-        // a patch that fell apart or grew together with another says nothing this time (a lamp behind bands, a face's edge)
-        b.torn = close > 1;
-        if (!shift && !b.torn) {
+        // a patch that fell apart or grew together with another (a lamp behind bands, a face's edge; #233: a warm wall a head
+        // moves in front of) makes no jumps – nor in the next two pictures, which still compare it with what it was before:
+        // calm counts the pictures it has been one and the same patch
+        b.calm = same && !b.torn ? old.calm + 1 : 0;
+        if (!shift) {
           const mean = (b.e + old.e + old.e1) / 3, turn = Math.abs(b.e - 2 * old.e + old.e1) / (mean + FLOOR);
           const wob = Math.hypot(b.x - 2 * old.x + old.x1, b.y - 2 * old.y + old.y1) / (Math.sqrt(mean / Math.PI) + 0.5);
           const bend = Math.hypot(b.tall - 2 * old.tall + old.tall1, b.lean - 2 * old.lean + old.lean1);
           const small = mean < SMALL && !old.lit;       // a flame they know may get small and stay a flame
-          const jump = b.age > 1 && b.core >= CORE_SHARE * b.n && !b.even && (small ? turn > SMALL_JUMP && Math.hypot(b.x - old.x, b.y - old.y) > SMALL_WAY : turn > JUMP && wob > WOBBLE && (b.n < BEND_N || bend > BEND));
+          const jump = b.calm >= 2 && b.n <= ROOM * w * h && b.core >= CORE_SHARE * b.n && !b.even && (small ? turn > SMALL_JUMP && Math.hypot(b.x - old.x, b.y - old.y) > SMALL_WAY : turn > JUMP && wob > WOBBLE && (b.n < BEND_N || bend > BEND));
           // a light that turned out to go up and down very evenly loses the jumps it made before that was known – unless it
           // has been a flame for a while
-          b.hits = b.wave < CALM && old.held < PAST ? 0 : old.hits * 0.88 + (jump ? 1 : 0);
+          b.hits = b.calm >= 2 && b.wave < CALM && old.held < PAST ? 0 : old.hits * 0.88 + (jump ? 1 : 0);
           b.lit = old.lit ? b.hits > HITS[0] : b.hits > HITS[1] && b.past.length >= 8; b.held = b.lit ? old.held + 1 : 0;
         }
       }
       blobs.push(b);
     }
     for (const b of blobs) {
-      if (b.from && b.from.heirs > 1 && !b.torn && !shift) { b.hits = b.from.hits; b.lit = b.from.lit; b.held = b.from.held; }   // fallen apart: the jump just counted is taken back
+      if (b.from && b.from.heirs > 1 && !b.torn && !shift) { b.hits = b.from.hits; b.lit = b.from.lit; b.held = b.from.held; b.calm = 0; }   // fallen apart: the jump just counted is taken back
       b.from = null;
       if (b.lit) { fire += b.e; sx += b.e * b.x; sy += b.e * b.y; }
     }

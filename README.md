@@ -855,7 +855,7 @@ eyes** that invite people to step up and play:
   edge instead of being pressed into the picture.
 - **You in the dream:** whoever stands in front is mirrored in the iris – faintly all the time, and every two or three minutes
   for a few seconds very clearly, as in real eyes: then it is the person alone, cut out from the room (on the
-  phone) and running out softly at their edge, the face as the camera sees it, and behind them the iris keeps dreaming. Now and then (every three to five
+  phone) and running out softly at their edge, the face as the camera sees it, and behind them the iris keeps dreaming. Now and then (every four to eight
   minutes, only while someone is there) the person appears as a **moment**: first in the two pupils, as if seen through
   them, then the windows open and for 3–4 seconds they stand in a soft cloud in the middle of the screen, a little
   smaller and lighter than a painted face – **seen as in a dream, not as a photograph** (#229): the whole picture
@@ -890,7 +890,9 @@ eyes** that invite people to step up and play:
   warm walls and a dim warm room in a noisy camera, the camera hunting for its exposure, warm LEDs beating with the
   camera's shutter (they go up and down evenly and keep their shape), a screen with warm moving pictures, a face or a
   hand in warm light, even when it moves or waves (its light goes up and down evenly), a warm light pulsing with music
-  and a lamp that flickers a little in a phone held in the hand (both keep their outline). A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
+  and a lamp that flickers a little in a phone held in the hand (both keep their outline), and a wall in warm room light
+  with a person moving in front of it (the head tears its light apart and joins it again, and a wall is larger than any
+  flame: warm light over more than a quarter of the picture is a wall). A candle held in front of such a wall is found. A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
   does not flicker at all, is no more than a lamp.
   **To see what the eyes take for fire in your room:** open Dreamy Eyes with `?debug` at the end of its address (after
   an existing `?…`: `&debug`). A corner then shows the camera sample in grey, warm light in yellow (its bright core

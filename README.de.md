@@ -897,7 +897,7 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   werden.
 - **Du im Traum:** Wer davorsteht, spiegelt sich in der Iris – schwach die ganze Zeit, und alle zwei, drei Minuten für
   ein paar Sekunden ganz deutlich, wie in echten Augen: dann ist es die Person allein, vom Raum freigestellt (auf dem
-  Handy) und am Rand weich auslaufend, das Gesicht so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle drei bis fünf
+  Handy) und am Rand weich auslaufend, das Gesicht so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle vier bis acht
   Minuten, nur solange jemand da ist) erscheint die Person als **Moment**: zuerst in den beiden Pupillen, wie durch sie
   hindurch gesehen, dann öffnen sich die Fenster und sie steht für 3–4 Sekunden in einer weichen Wolke in der
   Bildmitte, etwas kleiner und leichter als ein gemaltes Gesicht – **wie im Traum gesehen, nicht wie ein Foto** (#229):
@@ -937,7 +937,9 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   gleichmäßig heller und dunkler und behalten ihre Form), ein Bildschirm mit warmen bewegten Bildern, ein Gesicht oder
   eine Hand in warmem Licht, auch wenn sie sich bewegt oder winkt (ihr Licht geht gleichmäßig auf und ab), ein warmes
   Licht, das mit der Musik pulsiert, und eine Lampe, die in einem Handy in der Hand leicht flackert (beide behalten ihren
-  Umriss). Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
+  Umriss), und eine Wand in warmem Zimmerlicht, vor der sich jemand bewegt (der Kopf reißt ihr Licht auseinander und fügt
+  es wieder zusammen, und eine Wand ist größer als jede Flamme: warmes Licht über mehr als ein Viertel des Bildes ist eine
+  Wand). Eine Kerze, die vor so einer Wand gehalten wird, wird erkannt. Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
   weg steht, oder eine Flamme, die gar nicht flackert, ist nicht mehr als eine Lampe.
   **Sehen, was die Augen im eigenen Raum für Feuer halten:** Dreamy Eyes mit `?debug` am Ende der Adresse öffnen (nach
   einem vorhandenen `?…`: `&debug`). Eine Ecke zeigt dann die Kamera-Probe in Grau, warmes Licht in Gelb (sein heller
