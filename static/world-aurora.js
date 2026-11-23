@@ -343,8 +343,8 @@
   }
 
   // ---------- the faces of light ----------
-  // Three skies whose eyes these may be. v is the face rule's word: the sign on the forehead comes with the hints; what
-  // falls where hair would, the low light along the jaw, the nose and the mouth only in the rare moment, clearly then. The brow is
+  // Three skies whose eyes these may be. v is the face rule's word: the sign on the forehead comes with the hints, and
+  // fainter the low light along the jaw (the outline); what falls where hair would, the nose and the mouth only in the rare moment, clearly then. The brow is
   // the eye's own. Drawn twice by the page: without `ink` into the mask the dream shines through (so: without
   // colours), with it as the world's own glow over that.
   const FACES = ['veil', 'crown', 'pillars'];
@@ -357,6 +357,7 @@
     const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u, S = skeleton(geo.cx, geo.ey, geo.half, t);
     const strands = S.filter(k => k.name === 'strand').map(k => k.pts), jaws = S.filter(k => k.name === 'jaw').map(k => k.pts), lips = S.find(k => k.name === 'lips').pts;
     const pr = (s, e) => smooth(seg(v.fullForm, s, e)), pH = (s, e) => smooth(seg(v.hintForm, s, e));
+    const po = (s, e) => smooth(seg(Math.max(v.fullForm, v.hintForm), s, e));   // the outline comes in with the hints already
     const V = k => mono ? 3 : k, L = spr => mono ? pale() : spr(), m0 = F(0, -2.6), tw = 0.75 + 0.25 * Math.sin(T * 2.3);
     c.save();
     if (mode === 'veil') {
@@ -369,7 +370,7 @@
         const sway = P.map((q, j) => [q[0] + Math.sin(T * 0.5 - j * 0.16 + k) * a * 0.1 * (j / P.length), q[1]]);
         curtain(c, sway, tall * (1 - i * 0.09), T, 20 + k, 0.75 * hair, V(i === 2 ? 1 : 0), a * 0.07, null, pr(i * 0.06, 0.7 + i * 0.06));
       });
-      jaws.forEach((P, k) => curtain(c, P, a * 0.45, T, 40 + k, 0.55 * outline, V(2), a * 0.06, null, pr(0.2, 0.9)));
+      jaws.forEach((P, k) => curtain(c, P, a * 0.45, T, 40 + k, 0.55 * outline, V(2), a * 0.06, null, po(0.2, 0.9)));
     } else if (mode === 'crown') {
       // the light standing overhead: rays streaming out over the head; a low bow under the chin; on the forehead a halo with its mock moons
       const la = mark * pH(0.2, 1);
@@ -382,7 +383,7 @@
         curtain(c, arc, u => tall * 0.55 * grow, T, 27, 0.5 * hair, V(1), a * 0.1, outward(mid[0], mid[1]));
         glowLine(c, [arc], 160, a * 0.006, 0.3 * hair * grow, mono);
       }
-      jaws.forEach((P, k) => curtain(c, P.slice(Math.floor(P.length * 0.55)), a * 0.4, T, 44 + k, 0.6 * outline, V(1), a * 0.06, null, pr(0.2, 0.9)));
+      jaws.forEach((P, k) => curtain(c, P.slice(Math.floor(P.length * 0.55)), a * 0.4, T, 44 + k, 0.6 * outline, V(1), a * 0.06, null, po(0.2, 0.9)));
     } else {
       // light pillars standing where hair would fall, ice dust glittering along the jaw; on the forehead a star with a pillar over it
       const la = mark * pH(0.2, 1);
@@ -392,7 +393,7 @@
         pillar(c, V([0, 2, 1][j % 3]), foot[0] + Math.sin(T * 0.3 + j + o) * a * 0.04, foot[1], a * (0.34 - j * 0.03), Math.max(a, foot[1] - top) * grow, hair * (0.5 + 0.4 * n1(T * 0.4 + j * 3, 5 + o)));
         stamp(c, L(white), foot[0], foot[1] - a * 0.04, a * 0.09, hair * grow * 0.8);
       }
-      const oa = outline * pr(0.2, 1), rr = rng(31);
+      const oa = outline * po(0.2, 1), rr = rng(31);
       if (oa > 0.004) jaws.forEach((P, k) => { for (let i = 4; i < P.length; i += 3) { const q = P[i], z = Math.pow(0.5 + 0.5 * Math.sin(T * 2.2 + i * 1.7 + k * 3), 2); stamp(c, L(i % 2 ? white : ice), q[0] + (rr() - 0.5) * a * 0.3, q[1] + (rr() - 0.5) * a * 0.3, a * (0.05 + 0.07 * z), oa * (0.3 + 0.7 * z)); } });
       c.globalAlpha = 1;
     }
