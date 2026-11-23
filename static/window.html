@@ -40,7 +40,12 @@
   const T = (window.I18N && I18N.t) || (s => s);
   if (window.I18N && I18N.apply) I18N.apply();
   const $ = id => document.getElementById(id);
-  const cv = $('cv'), g = cv.getContext('2d');
+  const cv = $('cv'), main = cv.getContext('2d');
+  // #224: while two style worlds are crossfaded the frame is drawn once per world – the first into the page, the
+  // second into a layer – and the two are added up by their weights; `g` is where the pass in hand draws
+  let g = main;
+  const mix = { cv: document.createElement('canvas'), told: false, pair: false, hold: new URLSearchParams(location.search).get('blend') };
+  mix.g = mix.cv.getContext('2d');
   // #221: the brushes every style world shares (static/dreambrush.js); what is drawn comes from the world in use
   const { lerp, clamp, canvas, rng, hash, hueOf, cover, night } = DreamBrush;
   const ease = x => x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2;
@@ -111,7 +116,7 @@
       if (m.fx) st.pulse = Math.max(st.pulse, clamp(+m.fx.pulse || 0, 0, 1) * clamp(+m.fx.k || 0, 0, 1) + clamp(+m.fx.bass || 0, 0, 1) * 0.3);
       if ('pulse' in m) st.pulse = Math.max(st.pulse, clamp(+m.pulse || 0, 0, 1));
       if ('master' in m) st.master = clamp(+m.master, 0, 1);
-      if (typeof m.world === 'string') DreamStyle.use(m.world);   // #221: the style world to draw in
+      if (typeof m.world === 'string') { DreamStyle.blend(m.world, m.world_to, m.world_mix, !mix.told); mix.told = true; }   // #221, #224: the style world to draw in, and the one it fades to
       if (m.aimasks) {
         faces.urls = Object.values(m.aimasks).filter(u => typeof u === 'string' && FACE_URL.test(u));
         for (const u of Object.keys(faces.set)) if (!faces.urls.includes(u) && !(motif.cur && motif.cur.face === u) && !(motif.next && motif.next.face === u)) delete faces.set[u];
@@ -134,7 +139,7 @@
   const layer = canvas(2), lg = layer.getContext('2d');   // a motif that forms, dissolves or dims is drawn here first
   function size() {
     W = innerWidth; H = innerHeight;
-    const k = dpr * res; cv.width = Math.round(W * k); cv.height = Math.round(H * k); g.setTransform(k, 0, 0, k, 0, 0);
+    const k = dpr * res; cv.width = Math.round(W * k); cv.height = Math.round(H * k); main.setTransform(k, 0, 0, k, 0, 0);
   }
   addEventListener('resize', size); size();
   const keepAwake = DreamCommon.wakeLock(true);        // the screen stays on (over http: a tiny silent video)
@@ -168,13 +173,13 @@
   const FRINGE = cloudField(23, 0.6, 0.2);
   const cl = canvas(2), cg = cl.getContext('2d'), mk = canvas(2), mg = mk.getContext('2d');
   const drift = Math.random() * 50;                    // every window has its own piece of the sky
-  let cloudAt = -1e9;
+  let cloudAt = -1e9, cloudOf = '';                    // (#224: and never another world's sky)
   function clouds(t, breath) {                         // the dream, seen through drifting fields of cloud, darkness between
     const q = [0.16, 0.24, 0.32][tier()] * Math.min(1.5, dpr), w = Math.max(48, Math.round(W * q)), h = Math.max(48, Math.round(H * q));
     const resized = cl.width !== w || cl.height !== h;
     if (resized) { cl.width = mk.width = w; cl.height = mk.height = h; }
-    if (!resized && tier() === 0 && t - cloudAt < 30) return;   // the weakest: every other frame is enough, clouds are slow
-    cloudAt = t;
+    if (!resized && tier() === 0 && t - cloudAt < 30 && cloudOf === DreamStyle.name) return;   // the weakest: every other frame is enough, clouds are slow
+    cloudAt = t; cloudOf = DreamStyle.name;
     cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'source-over'; cg.globalAlpha = 1; cg.clearRect(0, 0, w, h);
     DreamStyle.part('sky').clouds(cg, t, { w, h, tier: tier(), swell: clamp(0.25 + 0.5 * breath + 0.6 * st.pulse, 0, 1), drift, index: st.index, pulse: st.pulse,
       dream: (c, x, y, pw, ph, zoom, cx, cy) => { if (dream.cur) dreamPic(c, x, y, pw, ph, zoom, cx, cy); else { c.fillStyle = '#17122a'; c.fillRect(x, y, pw, ph); } } });
@@ -182,12 +187,12 @@
   // ---------- drawing helpers ----------
   // a soft-edged round piece (a mandala of the dream): drawn small off screen, its edge dissolved once by a soft light
   const soft = canvas(2), sg = soft.getContext('2d');
-  let EDGE = null, softAt = -1e9;
+  let EDGE = null, softAt = -1e9, softOf = '';
   function softPiece(c, t, paint, x, y, r, al) {
     const n = [192, 256, 384][tier()], fresh = soft.width !== n;
     if (fresh) { soft.width = soft.height = n; EDGE = DreamBrush.softLight([[0, 'rgba(0,0,0,1)'], [0.7, 'rgba(0,0,0,1)'], [1, 'rgba(0,0,0,0)']], n); }
-    if (fresh || t - softAt >= [70, 30, 0][tier()]) {   // it turns slowly: a weak device paints it less often
-      softAt = t;
+    if (fresh || softOf !== DreamStyle.name || t - softAt >= [70, 30, 0][tier()]) {   // it turns slowly: a weak device paints it less often
+      softAt = t; softOf = DreamStyle.name;
       sg.globalCompositeOperation = 'source-over'; sg.globalAlpha = 1; sg.clearRect(0, 0, n, n);
       paint(sg, n);
       sg.globalCompositeOperation = 'destination-in'; sg.drawImage(EDGE, 0, 0);
@@ -383,7 +388,7 @@
   // ---------- the frame ----------
   let last = performance.now(), fps = 60, upWait = 8000, upAt = -1e9, held = false;
   function frame(t) {
-    const dt = Math.min(0.1, (t - last) / 1000); last = t;
+    const real = (t - last) / 1000, dt = Math.min(0.1, real); last = t;
     fps = lerp(fps, 1 / Math.max(dt, 1e-3), 0.05);
     // a weak device draws with fewer pixels and less detail until it keeps up (like Dreamy Eyes, #188)
     if (fps < 38) { if (!slowSince) slowSince = t; fastSince = 0; } else if (fps > 52) { if (!fastSince) fastSince = t; slowSince = 0; }
@@ -394,10 +399,31 @@
     }
     if (step > 0 && fastSince && t - fastSince > upWait) { res = STEPS[step - 1]; fastSince = t; upAt = t; size(); }
     st.pulse *= Math.pow(0.04, dt);                    // the pulse fades within a beat
+    picTick();
+    // #224: one world, or two added up; what is asked of the style layer between `paint` and the next is that world's
+    const plan = DreamStyle.plan(real, mix.hold ? { hold: mix.hold } : { fps, tier: tier() });
+    mix.pair = plan.length > 1;
+    plan.forEach(([world, weight], i) => {
+      DreamStyle.paint(world); g = main;
+      if (i) {
+        if (mix.cv.width !== cv.width || mix.cv.height !== cv.height) { mix.cv.width = cv.width; mix.cv.height = cv.height; }
+        g = mix.g; g.setTransform(dpr * res, 0, 0, dpr * res, 0, 0);
+      }
+      scene(t, i ? 0 : dt);
+      main.save(); main.setTransform(1, 0, 0, 1, 0, 0);
+      if (i) { main.globalCompositeOperation = 'lighter'; main.globalAlpha = weight; main.drawImage(mix.cv, 0, 0); }
+      else if (weight < 0.999) { main.fillStyle = `rgba(0,0,0,${1 - weight})`; main.fillRect(0, 0, cv.width, cv.height); }
+      main.restore();
+    });
+    g = main; DreamStyle.paint(plan[mix.pair && plan[1][1] > 0.5 ? 1 : 0][0]);   // between frames: the world that shows most
+    if (!mix.pair && mix.cv.width > 1) mix.cv.width = mix.cv.height = 1;       // one world again: the layer's memory back
+    if (st.master < 0.999) { g.fillStyle = `rgba(0,0,0,${1 - st.master})`; g.fillRect(0, 0, W, H); }
+    requestAnimationFrame(frame);
+  }
+  function scene(t, dt) {                              // the whole picture of this frame, in the world in hand
     const breath = 0.5 + 0.5 * Math.sin(now() / 9000 * Math.PI * 2);   // all windows breathe together (Dream's clock)
     const tr = trance();
     g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    picTick();
     clouds(t, breath);
     g.globalAlpha = (0.72 + 0.16 * breath + 0.12 * st.pulse) * (1 - 0.55 * tr); g.drawImage(cl, 0, 0, W, H);
     const spill = (0.1 + 0.08 * breath + 0.3 * st.pulse) * (1 - 0.55 * tr);   // their light spills over a little, more on the beat
@@ -415,8 +441,6 @@
       gr.addColorStop(0, `rgba(${col[0] | 0},${col[1] | 0},${col[2] | 0},${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
       g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.fillRect(0, 0, W, H); g.restore();
     }
-    if (st.master < 0.999) { g.fillStyle = `rgba(0,0,0,${1 - st.master})`; g.fillRect(0, 0, W, H); }
-    requestAnimationFrame(frame);
   }
   if (new URLSearchParams(location.search).has('debug')) {   // for the tests only
     window.dreamWindow = { st, dream, faces, life, motif, sow, show, faceOf, cloud: cl, frame: { canvas: cv, get t() { return last; } },

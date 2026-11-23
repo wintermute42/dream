@@ -767,23 +767,29 @@ def test_no_painted_faces_when_switched_off(server, monkeypatch):
 
 
 def test_eyes_are_told_the_style_world_and_cannot_set_it(server, monkeypatch, saved_state):
-    """#221: the style world is the one setting Dreamy Eyes hear of – as one word, when they come and when it changes.
-    Their key changes nothing of it, nor does a guest's; and a guest is told through the shared state as always."""
+    """#221, #224: the style world and its crossfade (the world it fades to, how far) are the only settings Dreamy Eyes
+    hear of – as one small word, when they come and when it changes. Their key changes nothing of them, nor does a
+    guest's; and a guest is told through the shared state as always."""
     monkeypatch.setattr(server.settings, "WORLDS", ("classic", "other"))   # (a second world, for the test)
     monkeypatch.setitem(server.settings.SETTINGS, "world", server.settings.text("classic", choices=("classic", "other")))
-    server.hub.state["world"] = "classic"
+    monkeypatch.setitem(server.settings.SETTINGS, "world_to", server.settings.text("classic", choices=("classic", "other")))
+    server.hub.state.update(world="classic", world_to="classic", world_mix=0.0, world_auto=0)
     with client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes") + "&as=eyes") as eyes:
         greeting = [eyes.receive_json() for _ in range(3)]
         assert greeting[0]["role"] == "eyes"
-        assert [m["world"] for m in greeting if "world" in m] == ["classic"]
+        assert [{k: v for k, v in m.items() if k.startswith("world")} for m in greeting if "world" in m] == [
+            {"world": "classic", "world_to": "classic", "world_mix": 0.0}]   # (not the drift's pace: Dream steps the mix)
         assert not any("state" in m or "set" in m for m in greeting)       # nothing else of the shared state
-        eyes.send_text(json.dumps({"set": {"world": "other"}}))
-        ctl_session(server, "guest", [{"set": {"world": "other", "prompt": "a guest was here"}}],
+        eyes.send_text(json.dumps({"set": {"world": "other", "world_to": "other", "world_mix": 1, "world_auto": 5}}))
+        ctl_session(server, "guest", [{"set": {"world": "other", "world_to": "other", "world_mix": 1, "world_auto": 5,
+                                               "prompt": "a guest was here"}}],
                     done=lambda: server.hub.state["prompt"] == "a guest was here")
-        assert server.hub.state["world"] == "classic"                      # neither the eyes nor a guest
+        assert [server.hub.state[k] for k in ("world", "world_to", "world_mix", "world_auto")] == ["classic", "classic", 0.0, 0]   # neither the eyes nor a guest
         ctl_session(server, "control", [{"set": {"world": "other"}}], done=lambda: server.hub.state["world"] == "other")
         told = eyes.receive_json()
         while "world" not in told:                                         # (who is connected, in between)
             assert set(told) <= {"live", "feeds_mine", "aimasks", "eyes_cfg"}, told
             told = eyes.receive_json()
-        assert told == {"world": "other"}
+        assert told == {"world": "other", "world_to": "classic", "world_mix": 0.0}
+        ctl_session(server, "control", [{"set": {"world_to": "other", "world_mix": 0.5}}], done=lambda: server.hub.state["world_mix"] == 0.5)
+        assert eyes.receive_json() == {"world": "other", "world_to": "other", "world_mix": 0.5}   # one word for both

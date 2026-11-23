@@ -39,6 +39,7 @@ async def ctl(sock: WebSocket):
         hub.live["midi"] = asyncio.create_task(inputs.midi_loop())
         hub.live["sensors"] = asyncio.create_task(inputs.sensor_loop())
         hub.live["aimask"] = asyncio.create_task(eyes.aimask_loop())   # #160
+        hub.live["worlds"] = asyncio.create_task(eyes.world_loop())    # #224
     key_role = rights.ws_role(sock)
     role = key_role
     if role == "control" and "control" in hub.roles.values():

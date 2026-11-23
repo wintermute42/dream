@@ -26,8 +26,10 @@ export function findChrome() {
 }
 
 // serves the test page (a file of tests/js) and static/, starts the browser on it and waits for the page's report
-// (the page POSTs it to /result as JSON)
-export function runPage(chrome, page) {
+// (the page POSTs it to /result as JSON). #224: /eyes and /window are the real pages, for a frame inside the test
+// page – with tests/js/still.js before everything else: a clock the test steps, a seeded random, no network
+// gl: false – a page that only draws on Canvas 2D: without the software WebGL it is drawn many times faster
+export function runPage(chrome, page, { gl = true } = {}) {
   return new Promise((resolve, reject) => {
     const profile = mkdtempSync(path.join(os.tmpdir(), 'dream-gl-'));
     let browser = null;
@@ -36,6 +38,12 @@ export function runPage(chrome, page) {
         let body = '';
         req.on('data', d => { body += d; });
         req.on('end', () => { res.end('ok'); if (!process.env.KEEP) finish(); try { resolve(JSON.parse(body)); } catch (e) { reject(e); } });
+        return;
+      }
+      const real = /^\/(eyes|window)(\?|$)/.exec(req.url);
+      if (real) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(readFileSync(path.join(ROOT, 'static', real[1] + '.html'), 'utf8').replace('<head>', '<head><script src="/tests/still.js"></script>'));
         return;
       }
       const file = req.url === '/' ? path.join(ROOT, 'tests', 'js', page)
@@ -55,7 +63,7 @@ export function runPage(chrome, page) {
       const url = `http://127.0.0.1:${server.address().port}/`;
       if (process.env.KEEP) console.log(`open ${url} – Ctrl-C ends`);
       browser = spawn(chrome, [...(process.env.KEEP ? [] : ['--headless=new']), '--no-sandbox', '--disable-gpu-sandbox', '--no-first-run', '--no-default-browser-check',
-        '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--force-device-scale-factor=1', '--force-color-profile=srgb',
+        ...(gl ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] : ['--disable-gpu']), '--force-device-scale-factor=1', '--force-color-profile=srgb',
         '--window-size=900,700', `--user-data-dir=${profile}`, url], { stdio: 'ignore' });
       browser.once('error', e => { finish(); reject(e); });
     });
