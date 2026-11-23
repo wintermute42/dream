@@ -23,22 +23,23 @@ function watch(sc, secs, each) {
 const firstOn = log => { const f = log.find(r => r.on); return f ? f.t / 1000 : Infinity; };
 const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
 
-test('the rule is looser than it was: dimmer, paler and less orange light counts – but not inside a face', () => {
+test('flame light is bright, saturated and orange to yellow – close to #162, and exactly #162 inside a face', () => {
   const was = (r, g, b) => r > 200 && Math.max(r, g, b) > 215 && r >= g && g > b * 1.15 && (r - Math.min(g, b)) / r > 0.42 && g - b > 35;   // #162
-  for (const rgb of [[190, 120, 60], [200, 150, 110], [204, 140, 100], [185, 140, 100]]) {
-    assert.ok(!was(...rgb), `${rgb} was no flame light`);
-    assert.ok(F.warm(...rgb) > 0.5, `${rgb} is flame light now`);
-    assert.equal(F.warm(...rgb, F.STRICT), 0, `${rgb} is none inside a face`);
+  for (const rgb of [[255, 150, 40], [240, 200, 90], [255, 120, 20], [230, 150, 60]]) {
+    assert.ok(was(...rgb)); assert.equal(F.warm(...rgb), 1, `${rgb} is a flame`); assert.equal(F.warm(...rgb, F.FACE), 1, `${rgb} is a flame anywhere`);
   }
-  for (const rgb of [[255, 150, 40], [240, 200, 90], [255, 120, 20]]) assert.equal(F.warm(...rgb, F.STRICT), 1, `${rgb} is a flame anywhere`);
+  // what the first, loose rule of #218 took for flame light and a real room is full of: none of it counts any more
+  for (const rgb of [[190, 120, 60], [185, 140, 100], [170, 118, 70], [150, 112, 74], [195, 150, 110]]) assert.equal(F.warm(...rgb), 0, `${rgb} is a warm room, no flame`);
   for (const rgb of [[255, 255, 255], [120, 80, 40], [90, 140, 255], [200, 60, 180], [230, 228, 200], [60, 200, 60]]) assert.equal(F.warm(...rgb), 0, `${rgb} is not warm`);
-  for (const k of ['red', 'sat', 'warm']) assert.ok(F.LOOSE[k][0] < F.STRICT[k][0] && F.LOOSE[k][1] < F.STRICT[k][1], k);
+  for (const rgb of [[210, 160, 110], [215, 150, 95]]) assert.ok(F.warm(...rgb) > 0 && F.warm(...rgb) < 1 && F.warm(...rgb, F.FACE) < F.warm(...rgb), `${rgb}: at the soft edge, less inside a face`);
+  for (const k of ['red', 'sat', 'warm']) assert.ok(F.RULE[k][0] <= F.FACE[k][0] && F.RULE[k][1] <= F.FACE[k][1] && F.RULE.red[0] >= 195, k);
+  assert.ok(F.CORE >= 235, 'and a patch needs a core as bright as the camera can show');
 });
 
 for (const [name, sc] of Object.entries(SCENES).filter(([, x]) => x.fire === true)) {
   test(`fire: ${name}`, () => {
     const log = watch(sc.make(), 20), at = firstOn(log);
-    assert.ok(at <= 1.6, `seen after ${at} s`);
+    assert.ok(at >= 0.8 && at <= (sc.moving ? 4.5 : 2.2), `seen after ${at} s: not before 0.8 s of flicker, and soon`);
     const after = log.filter(r => r.t / 1000 > at);
     assert.ok(mean(after.map(r => +r.on)) === 1, 'and never lost while it burns');
     assert.ok(Math.min(...after.slice(15).map(r => r.level)) > 0.05, 'its strength never drops to nothing');
@@ -50,28 +51,26 @@ for (const [name, sc] of Object.entries(SCENES).filter(([, x]) => x.fire === tru
 }
 for (const [name, sc] of Object.entries(SCENES).filter(([, x]) => x.fire === false)) {
   test(`no fire: ${name}`, () => {
-    const log = watch(sc.make(), 40);
+    const log = watch(sc.make(), 60);
     assert.equal(firstOn(log), Infinity, 'never taken for fire');
     assert.ok(Math.max(...log.map(r => r.level)) < 0.02, 'and nothing of it shows');
   });
 }
 
-test('small and distant flames count: far less of the picture than #162 asked for', () => {
-  for (const name of ['distant flame', 'poi']) {
-    const log = watch(SCENES[name].make(), 10).filter(r => r.on);
-    assert.ok(log.length > 100, name);
-    assert.ok(Math.max(...log.map(r => r.share)) < 0.004, `${name}: under 0.4 % of the picture`);
-  }
+test('a small flame counts only when it is swung: a poi does, a small flame standing far away does not', () => {
+  const poi = watch(SCENES.poi.make(), 12).filter(r => r.on);
+  assert.ok(poi.length > 100 && Math.max(...poi.map(r => r.share)) < 0.004, 'the poi: under 0.4 % of the picture');
+  assert.equal(firstOn(watch(SCENES['distant flame'].make(), 60)), Infinity, 'the distant flame: too little to be sure');
 });
 
-test('a candle in still air is the limit: no more than a lamp while it does not flicker', () => {
+test('a flame that does not flicker at all is no more than a lamp', () => {
   const calm = scene({ seed: 13, things: [flame({ cx: 67, cy: 44, wd: 3.2, ht: 8, lively: 0, seed: 6 })] });
   assert.equal(firstOn(watch(calm, 30)), Infinity);
 });
 
 test('the reaction follows the strength of the fire: the more flame, the higher the level – without steps', () => {
   const level = name => mean(watch(SCENES[name].make(), 10).slice(45).map(r => r.level));
-  const [far, candle, torch, camp] = ['distant flame', 'candle', 'torch', 'campfire'].map(level);
+  const [far, candle, torch, camp] = ['poi', 'candle', 'torch', 'campfire'].map(level);
   assert.ok(far > 0.08 && far < candle && candle < torch && torch < camp && camp > 0.95, `${far} < ${candle} < ${torch} < ${camp}`);
   // one flame growing slowly: the level grows with it, in small steps
   const log = watch(scene({ seed: 2, things: [flame({ cx: 48, cy: 56, wd: 6, ht: 12, seed: 4, grow: i => 1 + 2 * Math.min(1, i / (12 * FPS)) })] }), 14);
@@ -126,7 +125,7 @@ test('a flame beside a face: it is the flame they look at, and the face alone is
   const sc = SCENES['flame beside a face'];
   const log = watch(sc.make(), 10).filter(r => r.on);
   assert.ok(Math.max(...log.map(r => Math.abs(r.x - sc.at[0]))) < 0.08);
-  for (const rgb of Object.values(SKIN)) assert.ok(F.warm(...rgb, F.STRICT) <= F.warm(...rgb), 'skin never counts more inside a face');
+  for (const rgb of Object.values(SKIN)) assert.ok(F.warm(...rgb, F.FACE) <= F.warm(...rgb), 'skin never counts more inside a face');
 });
 
 // ---------- moods and getting used to it: fires that are only told ----------
@@ -157,6 +156,15 @@ test('while the fire is lively the mood changes every 10–20 s, never the same 
     assert.deepEqual([...seen].sort(), ['dream', 'love', 'play', 'spell'], 'spellbound, playful, dreamy, in love – and no spirit unless she can come');
     assert.ok(log.every(r => r.habit === 0), 'never used to a fire that moves');
   }
+});
+
+test('a lone candle is taken gently: a mood lasts up to twice as long; much fire or a dancing flame sets the full pace', () => {
+  const span = (level, move) => { const out = []; for (let seed = 1; seed <= 40; seed++) { const m = F.mind(); F.think(m, { on: true, since: 0, flare: { at: 0, k: 1 }, move, level }, 0, rng(seed)); out.push(m.until); } return [Math.min(...out), Math.max(...out)]; };
+  const [c0, c1] = span(0.3, 0.02), [t0, t1] = span(0.5, 0.02), [f0, f1] = span(0.9, 0.02), [p0, p1] = span(0.2, 1);
+  assert.ok(c0 >= 20000 && c1 <= 40000 && c1 > 30000, `a candle: ${c0}–${c1} ms`);
+  assert.ok(t0 >= 15000 && t1 <= 30000, `a torch: ${t0}–${t1} ms`);
+  assert.ok(f0 >= 10000 && f1 <= 20000, `much fire: ${f0}–${f1} ms`);
+  assert.ok(p0 >= 10000 && p1 <= 20000, `a small flame that dances: ${p0}–${p1} ms`);
 });
 
 test('the fire spirit comes now and then – less often than the others, and only when she can', () => {
@@ -202,5 +210,5 @@ test('seen through the camera: a steady torch becomes the background, a swung fl
   assert.ok(torch.filter(r => r.t > 34000).every(r => r.mood === 'glow'), 'the torch: background after half a minute');
   assert.ok(turns(torch.filter(r => r.t > 1000 && r.t < 30000)).length >= 2, 'with a change of mood on the way');
   const poi = run('poi', 50);
-  assert.ok(poi.filter(r => r.t > 2000).every(r => r.mood && r.mood !== 'glow' && r.habit === 0), 'the poi: never');
+  assert.ok(poi.filter(r => r.t > 5000).every(r => r.mood && r.mood !== 'glow' && r.habit === 0), 'the poi: never');
 });

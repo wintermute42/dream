@@ -196,10 +196,38 @@
     fireCv[0].drawImage(v, 0, 0, FW * 2, FH * 2);
     fireCv[1].drawImage(fireCv[0].canvas, 0, 0, FW, FH);
     const wasOn = fire.on, seen = face.seen && t - face.seen < 700;   // a face it has found: there, only very fiery light counts
-    DreamFire.look(fire, fireCv[1].getImageData(0, 0, FW, FH).data, FW, FH, t, seen ? { x: face.x, y: face.y, w: face.size, h: face.h } : null);
+    const sample = fireCv[1].getImageData(0, 0, FW, FH);
+    DreamFire.look(fire, sample.data, FW, FH, t, seen ? { x: face.x, y: face.y, w: face.size, h: face.h } : null);
+    if (fireSeen) fireShow(sample);
     DreamFire.think(fire.mind, fire, t, Math.random, { spirit: spiritReady(t) });
     if (fire.on && t - (fire.sent || 0) > 2000) { fire.sent = t; send({ fire: true }); }   // the Mac paints burning faces
     if (!fire.on && wasOn) fire.longing = t + 3000;
+  }
+  // #218: with ?debug in the address, a corner shows what the fire detection makes of the camera: the sample in grey,
+  // warm light in yellow (its bright core white), what counts as fire in red – and the numbers beside it
+  const fireSeen = new URLSearchParams(location.search).has('debug') ? document.createElement('canvas') : null;
+  if (fireSeen) { fireSeen.width = FW; fireSeen.height = FH; }
+  function fireShow(sample) {
+    const d = sample.data, c = fire.cells, lit = c.blobs.map(b => b.lit);
+    for (let p = 0, i = 0; p < FW * FH; p++, i += 4) {
+      const k = c.k[p], grey = (d[i] + d[i + 1] + d[i + 2]) / 6;
+      if (!(k > 0)) { d[i] = d[i + 1] = d[i + 2] = grey; continue; }
+      const on = lit[c.id[p] - 1], core = k > 1, a = 0.35 + 0.65 * Math.min(1, core ? k - 1 : k);
+      d[i] = 255; d[i + 1] = on ? (core ? 150 : 40) * a : (core ? 255 : 210) * a; d[i + 2] = core && !on ? 255 * a : 0;
+    }
+    fireSeen.getContext('2d').putImageData(sample, 0, 0);
+    const b = c.blobs.slice().sort((p, q) => q.hits - p.hits)[0];
+    fire.told = [`fire ${fire.on ? 'ON' : 'off'}   sure ${fire.sure.toFixed(2)} (on above 0.70)`, `strength ${fire.level.toFixed(2)}   fire light ${fire.e.toFixed(0)} px`,
+      `warm patches ${c.blobs.length}${c.shift ? '   exposure shifts' : ''}`,
+      b ? `best: ${b.e.toFixed(0)} px, core ${Math.round(100 * b.core / b.n)} %, jumps ${b.hits.toFixed(1)} (fire above 4)${b.even ? ', even beat' : ''}${b.torn ? ', torn' : ''}` : 'no warm light'];
+  }
+  function fireDraw() {                                // as the camera sees it (not mirrored)
+    const s = Math.max(1.5, Math.min(3, W / 400)), x = 8, y = 8, w = FW * s, h = FH * s;
+    g.save(); g.imageSmoothingEnabled = false; g.globalAlpha = 0.92; g.drawImage(fireSeen, x, y, w, h);
+    g.strokeStyle = fire.on ? '#ff5030' : 'rgba(255,255,255,.5)'; g.lineWidth = 2; g.strokeRect(x, y, w, h);
+    g.font = '11px ui-monospace, Menlo, monospace'; g.textBaseline = 'top';
+    (fire.told || ['waiting for the camera']).forEach((line, k) => { g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(x, y + h + 4 + k * 15, g.measureText(line).width + 8, 15); g.fillStyle = '#fff'; g.fillText(line, x + 4, y + h + 6 + k * 15); });
+    g.restore();
   }
   // #218: the fire flares up (or catches): sparks fly in from where it is, the night glows for a moment, they startle
   function flareUp(t, k) {
@@ -207,7 +235,7 @@
     if (Math.hypot(vx, vy) < 0.2) { vx = 0; vy = 1; }        // right in front of them: from below
     const sc = 1 / Math.max(Math.abs(vx), Math.abs(vy)), ox = W / 2 + vx * sc * W / 2, oy = H / 2 + vy * sc * H / 2;
     fire.from = [ox, oy];
-    const n = (perf > 45 ? 26 : perf > 30 ? 16 : 9) * (0.5 + 0.5 * k);
+    const n = (perf > 45 ? 26 : perf > 30 ? 16 : 9) * (0.5 + 0.5 * k) * (0.35 + 0.65 * fire.level);   // a candle: a few sparks; much fire: a shower
     decor.push({ kind: 'sparks', x: ox, y: oy, dir: Math.atan2(H * 0.5 - oy, W / 2 - ox), born: t, life: 1300 + 500 * k, size: Math.hypot(W, H) * (0.35 + 0.35 * k), hue: 18, spin: 1,
       puffs: Array.from({ length: Math.round(n) }, () => [(Math.random() - 0.5) * 1.3, 0.35 + Math.random() * 0.65, Math.random()]) });
     st.wake = 1; feel('surprise', t, 700);
@@ -268,9 +296,9 @@
   const lerp = (a, b, k) => a + (b - a) * k;
   // #157: the eyes' look changes softly now and then – shade, liner, lashes, brows
   const { LOOKS, EMO } = DreamEye;
-  const look = { name: 'rose', cur: { ...LOOKS.rose }, next: performance.now() + 45000 };
+  const look = { name: 'rose', cur: { ...LOOKS.rose }, next: performance.now() + 90000 };
   function lookTick(t, dt) {
-    if (t > look.next) { const o = Object.keys(LOOKS).filter(k => k !== look.name); look.name = o[Math.random() * o.length | 0]; look.next = t + 45000 + Math.random() * 45000; }
+    if (t > look.next) { const o = Object.keys(LOOKS).filter(k => k !== look.name); look.name = o[Math.random() * o.length | 0]; look.next = t + 90000 + Math.random() * 90000; }
     const want = LOOKS[look.name], k = 1 - Math.exp(-dt * 0.8);   // about three seconds from one look to the next
     for (const key in want) {
       if (key === 'hue') { const d = ((want.hue - look.cur.hue + 540) % 360) - 180; look.cur.hue = (look.cur.hue + d * k + 360) % 360; }
@@ -278,7 +306,7 @@
     }
   }
   // #157: the brows come only for a feeling – surprise, joy, sadness, doubt, a frown, curiosity – then they fade again
-  const brow = { al: 0, emo: null, until: 0, mirrorWant: [{ inner: 0, peak: 0, outer: 0 }, { inner: 0, peak: 0, outer: 0 }], next: performance.now() + 20000, cur: [{ inner: 0, peak: 0, outer: 0 }, { inner: 0, peak: 0, outer: 0 }], lastEnergy: 0 };
+  const brow = { al: 0, emo: null, until: 0, mirrorWant: [{ inner: 0, peak: 0, outer: 0 }, { inner: 0, peak: 0, outer: 0 }], next: performance.now() + 45000, cur: [{ inner: 0, peak: 0, outer: 0 }, { inner: 0, peak: 0, outer: 0 }], lastEnergy: 0 };
   function feel(emo, t, ms) { if (brow.emo !== emo || t > brow.until - 400) { brow.emo = emo; brow.until = t + ms; } else brow.until = Math.max(brow.until, t + ms); }
   function browTick(t, dt, present) {
     // what calls for a feeling right now
@@ -291,7 +319,7 @@
     }
     else if (t > brow.next) {                          // now and then by itself – frowning only in a dark, wild dream
       const pick = dream.lum < 0.3 && st.energy > 0.45 && Math.random() < 0.4 ? 'frown' : ['curious', 'doubt', 'joy', 'sad'][Math.random() * 4 | 0];
-      feel(pick, t, 2500 + Math.random() * 1500); brow.next = t + (20000 + Math.random() * 30000) * pace(t);
+      feel(pick, t, 2500 + Math.random() * 1500); brow.next = t + (40000 + Math.random() * 60000) * pace(t);
     }
     if (mirror.on) {                                   // #162: while mirroring, the brows copy the person's
       const inner = bsv('browInnerUp'), outs = [bsv('browOuterUpLeft'), bsv('browOuterUpRight')], down = [bsv('browDownLeft'), bsv('browDownRight')];
@@ -343,10 +371,10 @@
     });
   }
   // ---------- #157: what appears around the eyes – clouds, blooming fractals, mandalas, and the grin ----------
-  const grin = { a: 0, until: 0, nextFree: performance.now() + 45000 + Math.random() * 60000 };
+  const grin = { a: 0, until: 0, nextFree: performance.now() + 90000 + Math.random() * 120000 };
   const decor = [];
   const EVENT_KINDS = new Set(['tear', 'stars', 'zzz', 'ember', 'fireheart', 'sparks']);   // these belong to a mood, not to the ambient count
-  let decorNext = performance.now() + 2500, perf = 60;
+  let decorNext = performance.now() + 6000, perf = 60;
   function spawn(t) {
     for (let tries = 0; tries < 6; tries++) {          // a free place on a ring around the eyes
       const size = Math.min(W, H) * (0.1 + Math.random() * 0.12), th = Math.random() * Math.PI * 2;
@@ -422,8 +450,8 @@
 
   // ---------- #157: the fantasy – iris worlds, pupil shapes, moods, and what they do now and then ----------
   const eyesAt = [[0, 0, 1], [0, 0, 1]], irisAt = [[0, 0], [0, 0]];
-  const fx = { squint: 0, iris: 'dream', irisPrev: 'dream', irisMix: 1, irisNext: performance.now() + 25000,
-    pupil: 'round', pupilMix: 0, pupilWant: 'round', wink: [0, 0], cross: 0, mood: null, moodAt: 0, nextMood: performance.now() + 9000,
+  const fx = { squint: 0, iris: 'dream', irisPrev: 'dream', irisMix: 1, irisNext: performance.now() + 50000,
+    pupil: 'round', pupilMix: 0, pupilWant: 'round', wink: [0, 0], cross: 0, mood: null, moodAt: 0, nextMood: performance.now() + 20000,
     sleep: 0, alone: performance.now(), smileSince: 0, hypno: 'spiral' };
   const IRIS = ['dream', 'kaleido', 'vortex', 'galaxy'];
   const stars = DreamEye.stars();
@@ -443,9 +471,11 @@
     tear: { dur: 600, ok: () => dream.lum < 0.45 },
     sparkle: { dur: 1600, ok: () => true },
   };
+  // #218: what hypnotises – nearly always the spiral, one time in four a soft shimmer (never the same one twice in a row)
+  function hypnoNext() { fx.hypno = DreamEye.nextHypno(fx.hypnoOther, Math.random); if (fx.hypno !== 'spiral') fx.hypnoOther = fx.hypno; }
   function moodStart(name, t) {
     fx.mood = name; fx.moodAt = t; fx.wink = [0, 0]; fx.moodSide = Math.random() < 0.5 ? 0 : 1;
-    if (name === 'hypno') fx.hypno = DreamEye.nextHypno(fx.hypno, Math.random);   // #218: a spiral, a mandala, a shower of stars, a tunnel, a swirl
+    if (name === 'hypno') hypnoNext();
     if (name === 'tear') { const [x, y, a] = eyesAt[fx.moodSide]; decor.push({ kind: 'tear', x: x + (fx.moodSide ? -1 : 1) * a * 0.35, y: y + a * 0.42, born: t, life: 3600, size: a * 0.1, hue: hueOf(dream.col), spin: 1, puffs: [] }); }
     if (name === 'sparkle') for (const [x, y, a] of eyesAt) decor.push({ kind: 'stars', x, y, born: t, life: 1800, size: a * 1.1, hue: hueOf(dream.col) + 40, spin: 1, puffs: Array.from({ length: 14 }, () => [Math.random() * Math.PI * 2, 0.6 + Math.random() * 0.5, Math.random()]) });
   }
@@ -453,11 +483,11 @@
   const tempo = t => 0.55 + 0.45 * Math.sin(t / 97000 + 1.3) * Math.sin(t / 41000 + 0.4);   // 0.1 … 1
   const pace = t => 1.6 - tempo(t);                    // a factor for waiting times: lively → shorter
   // #162: now and then they mirror the person in front – blinks, squint, wide eyes, brows – for a few seconds
-  const mirror = { on: false, until: 0, next: performance.now() + 25000 };
+  const mirror = { on: false, until: 0, next: performance.now() + 60000 };
   const bsv = n => (face.bs && face.bs[n]) || 0;
   function mirrorTick(t, present) {
     if (!mirror.on && present && t > mirror.next) { mirror.on = true; mirror.until = t + 6000 + Math.random() * 6000; }
-    if (mirror.on && (!present || t > mirror.until)) { mirror.on = false; mirror.next = t + (40000 + Math.random() * 50000) * pace(t); }
+    if (mirror.on && (!present || t > mirror.until)) { mirror.on = false; mirror.next = t + (80000 + Math.random() * 100000) * pace(t); }
     if (!mirror.on) return;
     const blink = v => Math.max(0, Math.min(1, (v - 0.35) / 0.4));
     fx.wink[0] = Math.max(fx.wink[0], blink(bsv('eyeBlinkLeft')));    // like a mirror: their left eye, our left one
@@ -471,7 +501,7 @@
     const smiling = present && face.smile > 0.45;
     fx.smileSince = smiling ? fx.smileSince || t : 0;
     const fm = fire.on ? fire.mind.mood : null, held = enchanted();   // #218: the fire's mood shows in the pupils
-    if (fm === 'spell' && fx.spellFor !== fire.mind.changes) { fx.spellFor = fire.mind.changes; fx.hypno = DreamEye.nextHypno(fx.hypno, Math.random); }   // spellbound: the next of the hypnotic pupils
+    if (fm === 'spell' && fx.spellFor !== fire.mind.changes) { fx.spellFor = fire.mind.changes; hypnoNext(); }   // spellbound: the next of the hypnotic pupils
     fx.pupilWant = held ? ({ spell: fx.hypno, play: 'star', love: 'heart', spirit: 'heart' }[fm] || 'round') : fx.mood === 'hypno' ? fx.hypno : fx.surprise > t ? 'star' : (smiling && t - fx.smileSince > 2500) || touch.loveUntil > t ? 'heart' : grin.a > 0.5 ? 'slit' : 'round';
     if (fx.pupil !== fx.pupilWant) { fx.pupilMix = Math.max(0, fx.pupilMix - dt * 4); if (fx.pupilMix === 0) fx.pupil = fx.pupilWant; }
     else fx.pupilMix = Math.min(fx.pupil === 'round' ? 0 : 1, fx.pupilMix + dt * 3);
@@ -480,7 +510,7 @@
     const hot = x => x === 'fire' || x === 'embers', fireIris = fire.on ? (fm === 'dream' || fm === 'glow' ? 'embers' : 'fire') : null;
     if (fireIris && fx.iris !== fireIris) { if (!hot(fx.iris)) fx.beforeFire = fx.iris; fx.irisPrev = fx.iris; fx.iris = fireIris; fx.irisMix = 0; }
     if (!fireIris && hot(fx.iris)) { fx.irisPrev = fx.iris; fx.iris = fx.beforeFire || 'dream'; fx.irisMix = 0; }
-    if (t > fx.irisNext && !fire.on) { fx.irisPrev = fx.iris; const o = IRIS.filter(x => x !== fx.iris); fx.iris = o[Math.random() * o.length | 0]; fx.irisMix = 0; fx.irisNext = t + 22000 + Math.random() * 30000 * (1 - 0.5 * st.energy); }
+    if (t > fx.irisNext && !fire.on) { fx.irisPrev = fx.iris; const o = IRIS.filter(x => x !== fx.iris); fx.iris = o[Math.random() * o.length | 0]; fx.irisMix = 0; fx.irisNext = t + 45000 + Math.random() * 60000 * (1 - 0.5 * st.energy); }
     fx.irisMix = Math.min(1, fx.irisMix + dt / 2.5);
     // sleepy when nobody comes for a long while and the dream is calm; whoever comes wakes them – with surprise
     fx.alone = present ? 0 : fx.alone || t;
@@ -488,13 +518,13 @@
     fx.sleep = lerp(fx.sleep, sleepy ? 1 : 0, 1 - Math.exp(-dt * (sleepy ? 0.25 : 3)));
     if (present && fx.wasSleeping) { fx.surprise = t + 1600; st.wake = 0.9; for (const [x, y, a] of eyesAt) decor.push({ kind: 'stars', x, y, born: t, life: 1800, size: a * 1.2, hue: 50, spin: 1, puffs: Array.from({ length: 16 }, () => [Math.random() * Math.PI * 2, 0.6 + Math.random() * 0.5, Math.random()]) }); }
     fx.wasSleeping = fx.sleep > 0.6;
-    if (fx.sleep > 0.6 && t > (fx.zzzNext || 0)) { const [x, y, a] = eyesAt[1]; decor.push({ kind: 'zzz', x: x + a * 0.6, y: y - a * 0.5, born: t, life: 4200, size: a * 0.22, hue: hueOf(dream.col), spin: 1, puffs: [] }); fx.zzzNext = t + 1400; }
+    if (fx.sleep > 0.6 && t > (fx.zzzNext || 0)) { const [x, y, a] = eyesAt[1]; decor.push({ kind: 'zzz', x: x + a * 0.6, y: y - a * 0.5, born: t, life: 4200, size: a * 0.22, hue: hueOf(dream.col), spin: 1, puffs: [] }); fx.zzzNext = t + 2800; }
     // a mood now and then
     if (!fx.mood && t > fx.nextMood && fx.sleep < 0.3) {
       const names = Object.keys(MOODS).filter(n => n !== fx.lastMood && MOODS[n].ok());
       const name = names[Math.random() * names.length | 0];
       if (name) { moodStart(name, t); fx.lastMood = name; }
-      fx.nextMood = t + (7000 + Math.random() * 14000 * (1 - 0.6 * st.energy)) * pace(t);
+      fx.nextMood = t + (15000 + Math.random() * 28000 * (1 - 0.6 * st.energy)) * pace(t);
     }
     fx.cross = 0; fx.wink = [0, 0]; fx.squint = 0;
     mirrorTick(t, present);
@@ -557,8 +587,8 @@
       });
     } catch (e) { /* a frame it could not read */ }
   }
-  const bs = { mode: 'clouds', prev: 'fractal', mix: 1, next: performance.now() + 35000, every: 0, drawn: -1e9,
-    reveal: 0, revealUntil: 0, revealNext: performance.now() + 40000,   // a window wide open onto the dream, now and then
+  const bs = { mode: 'clouds', prev: 'fractal', mix: 1, next: performance.now() + 70000, every: 0, drawn: -1e9,
+    reveal: 0, revealUntil: 0, revealNext: performance.now() + 90000,   // a window wide open onto the dream, now and then
     clouds: Array.from({ length: 13 }, () => ({ x: Math.random(), y: Math.random(), r: 0.16 + Math.random() * 0.2, v: 0.004 + Math.random() * 0.01,
       puffs: Array.from({ length: 5 }, () => [(Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.5, 0.45 + Math.random() * 0.55]) })) };
   function backMask(mode, t, w, h, al) {               // white where the dream may shine through
@@ -608,29 +638,41 @@
       for (const [k, aa] of [[3.2, al * 0.3], [1, al]]) { bk.lineWidth = wd * k; bk.strokeStyle = `${ink}${aa * inkAl})`; bk.beginPath(); draw(); bk.stroke(); }
     };
     bk.lineCap = 'round'; bk.lineJoin = 'round';
-    const wd = A * 0.07, sway = Math.sin(t / 1800);
+    const wd = Math.max(A * 0.07, 4.5 * q), sway = Math.sin(t / 1800);   // never hair-thin on a small upright screen
     const fit = (want, top, bottom) => Math.max(A * 1.2, Math.min(want, top, bottom));   // the face stays on the screen
+    // Nothing of a face lies on the eyes: above `lid` the lids, lashes and brows are clear. The head's upper half is as
+    // tall as that needs (`up`), whatever the screen leaves for its lower half; what sits on the head over the eyes rests
+    // on that line at the lowest (`over`); and a crown is as tall as the room above it allows (`tall`: 0.4–1).
+    const lid = ey - A * 1.12;
+    const up = (fy, ry) => Math.max(A, Math.min(fy - 4, Math.max(ry, fy - lid + A * 0.1)));
+    const over = (x, y) => Math.abs(x - cx) < half + A * 1.2 ? Math.min(y, lid) : y;
+    const tall = y => Math.max(0.4, Math.min(1, (y - 4) / (A * 1.25)));
+    const dot = (x, y, r, al) => {                     // a small light with a soft halo – spores, sparkles, drops
+      for (const [k, aa] of [[2.6, al * 0.28], [1, al]]) { bk.fillStyle = `${ink}${aa * inkAl})`; bk.beginPath(); bk.arc(x, y, r * k, 0, Math.PI * 2); bk.fill(); }
+    };
     if (mode === 'goddess') {                          // a beautiful goddess: face, flowing hair, a diadem of light, lips
       const fy = ey + A * 0.75, rx = half + A * 1.45, ry = fit(A * 2.7, (fy - 4) / 1.24, (h - fy - 4) / 0.95);
       line(() => bk.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.12, Math.PI * 0.88), wd, 0.85);          // jaw and cheeks
+      const rt = up(fy, ry);
       for (const sd of [-1, 1]) for (let k = 0; k < 6; k++) {                                         // hair falling in waves
-        const sx = cx + sd * (rx * 0.35 + k * A * 0.22), sy = fy - ry * 0.95 + k * A * 0.08;
-        line(() => { bk.moveTo(sx, sy); bk.bezierCurveTo(sx + sd * rx * 0.9, sy + ry * 0.2, sx + sd * rx * (0.6 + 0.15 * Math.sin(t / 1500 + k)), sy + ry * 1.1, sx + sd * rx * (1.05 + 0.1 * sway), sy + ry * 1.9); }, wd * 0.7, 0.6);
+        const sx = cx + sd * (rx * 0.35 + k * A * 0.22), sy = over(sx, fy - rt * 0.95 + k * A * 0.08);
+        line(() => { bk.moveTo(sx, sy); bk.bezierCurveTo(sx + sd * rx * 0.9, sy + A * 0.05, sx + sd * rx * (0.6 + 0.15 * Math.sin(t / 1500 + k)), sy + ry * 1.1, sx + sd * rx * (1.05 + 0.1 * sway), sy + ry * 1.9); }, wd * 0.7, 0.6);
       }
       for (let k = -4; k <= 4; k++) {                  // a diadem: rays of light above the brow
-        const an = -Math.PI / 2 + k * 0.17, r0 = ry * 1.02, r1 = ry * (1.18 + 0.06 * Math.sin(t / 600 + k));
-        line(() => { bk.moveTo(cx + Math.cos(an) * r0 * 0.75, fy + Math.sin(an) * r0); bk.lineTo(cx + Math.cos(an) * r1 * 0.75, fy + Math.sin(an) * r1); }, wd * 0.8, 0.7);
+        const an = -Math.PI / 2 + k * 0.17, ix = cx + Math.cos(an) * rt * 0.78, iy = over(ix, fy + Math.sin(an) * rt * 1.02) - A * 0.08;
+        const len = A * (0.6 + 0.12 * Math.sin(t / 600 + k) - Math.abs(k) * 0.05) * tall(iy);
+        line(() => { bk.moveTo(ix, iy); bk.lineTo(ix + Math.cos(an) * len, iy + Math.sin(an) * len); }, wd * 0.8, 0.9);
       }
       const ly = ey + A * 1.55, lw = A * 0.55, smile = grin.a > 0.2 ? 0 : 1;                       // lips, only hinted (not while the grin is there)
       line(() => { bk.moveTo(cx - lw, ly); bk.quadraticCurveTo(cx - lw * 0.4, ly - A * 0.18, cx, ly - A * 0.05); bk.quadraticCurveTo(cx + lw * 0.4, ly - A * 0.18, cx + lw, ly); bk.quadraticCurveTo(cx, ly + A * 0.32, cx - lw, ly); }, wd * 0.8, 0.7 * smile);
-      line(() => { bk.moveTo(cx, ey + A * 0.15); bk.quadraticCurveTo(cx - A * 0.1, ey + A * 0.75, cx - A * 0.16, ey + A * 0.95); }, wd * 0.6, 0.45);   // the line of the nose
+      line(() => { bk.moveTo(cx, ey + A * 0.15); bk.quadraticCurveTo(cx - A * 0.1, ey + A * 0.75, cx - A * 0.16, ey + A * 0.95); }, wd * 0.6, 0.6);   // the line of the nose
     } else if (mode === 'cat') {                       // a cat: ears, a wide soft face, nose, whiskers that twitch
       const fy = ey + A * 0.45, rx = half + A * 1.6, ry = fit(A * 2.1, (fy - A * 1.3 - 4) / 0.78, (h - fy - 4) / 0.98);
       line(() => bk.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.05, Math.PI * 0.95), wd, 0.85);
       for (const sd of [-1, 1]) {
-        const bx = cx + sd * rx * 0.62, by = fy - ry * 0.78, tip = Math.sin(t / 2200 + sd) * A * 0.12;
-        line(() => { bk.moveTo(bx - sd * A * 0.75, by + A * 0.25); bk.lineTo(bx + sd * A * 0.25 + tip, by - A * 1.25); bk.lineTo(bx + sd * A * 0.95, by + A * 0.4); }, wd, 0.8);
-        line(() => { bk.moveTo(bx - sd * A * 0.35, by + A * 0.15); bk.lineTo(bx + sd * A * 0.22 + tip, by - A * 0.75); bk.lineTo(bx + sd * A * 0.6, by + A * 0.25); }, wd * 0.6, 0.45);
+        const bx = cx + sd * rx * 0.62, by = over(bx, fy - up(fy, ry) * 0.78) - A * 0.05, eh = tall(by), tip = Math.sin(t / 2200 + sd) * A * 0.12;   // the ears stand on the brow line
+        line(() => { bk.moveTo(bx - sd * A * 0.75, by); bk.lineTo(bx + sd * A * 0.25 + tip, by - A * 1.25 * eh); bk.lineTo(bx + sd * A * 0.95, by + A * 0.1); }, wd, 0.85);
+        line(() => { bk.moveTo(bx - sd * A * 0.35, by - A * 0.08 * eh); bk.lineTo(bx + sd * A * 0.22 + tip, by - A * 0.8 * eh); bk.lineTo(bx + sd * A * 0.6, by - A * 0.02); }, wd * 0.6, 0.65);
         for (let k = 0; k < 3; k++) {                  // whiskers
           const wy = ey + A * (1.0 + k * 0.18), tw = Math.sin(t / 300 + k * 2 + sd) * A * 0.06;
           line(() => { bk.moveTo(cx + sd * A * 0.45, wy); bk.quadraticCurveTo(cx + sd * A * 1.6, wy - A * 0.1 + tw, cx + sd * A * (2.6 + k * 0.2), wy + (k - 1) * A * 0.35 + tw); }, wd * 0.45, 0.7);
@@ -643,60 +685,59 @@
       const fy = ey + A * 0.7, rx = half + A * 1.35, ry = fit(A * 2.5, (fy - 4) / 1.15, (h - fy - 4) / 0.95);
       line(() => bk.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.12, Math.PI * 0.88), wd, 0.85);
       for (const sd of [-1, 1]) for (let k = 0; k < 5; k++) {   // hair drifting like seaweed in a current
-        const sx = cx + sd * rx * (0.3 + k * 0.12), sy = fy - ry * 0.9;
+        const sx = cx + sd * rx * (0.3 + k * 0.12), sy = over(sx, fy - up(fy, ry) * 0.9) - k * A * 0.05;
         line(() => { bk.moveTo(sx, sy); for (let j = 1; j <= 16; j++) { const u = j / 16; bk.lineTo(sx + sd * (rx * 0.5 + rx * 0.9 * u), sy + ry * 2.1 * u + Math.sin(t / 700 + u * 7 + k) * A * 0.3 * u); } }, wd * 0.7, 0.6);
       }
       for (let k = -3; k <= 3; k++) {                  // a crown of shells: little fans above the brow
-        const an = -Math.PI / 2 + k * 0.2, bx = cx + Math.cos(an) * rx * 0.72, by = fy + Math.sin(an) * ry * 1.02, r = A * (0.28 - Math.abs(k) * 0.03);
-        line(() => { for (let j = 0; j <= 4; j++) { const a2 = Math.PI * (1.1 + j * 0.2); bk.moveTo(bx, by); bk.lineTo(bx + Math.cos(a2) * r, by + Math.sin(a2) * r); } bk.moveTo(bx - r, by); bk.arc(bx, by, r, Math.PI, Math.PI * 2); }, wd * 0.5, 0.7);
+        const an = -Math.PI / 2 + k * 0.2, bx = cx + Math.cos(an) * rx * 0.72, by = over(bx, fy + Math.sin(an) * up(fy, ry) * 1.02) - A * 0.3, r = A * (0.3 - Math.abs(k) * 0.03);
+        line(() => { for (let j = 0; j <= 4; j++) { const a2 = Math.PI * (1.1 + j * 0.2); bk.moveTo(bx, by); bk.lineTo(bx + Math.cos(a2) * r, by + Math.sin(a2) * r); } bk.moveTo(bx - r, by); bk.arc(bx, by, r, Math.PI, Math.PI * 2); }, wd * 0.55, 0.9);
       }
       for (const sd of [-1, 1]) for (let k = 0; k < 4; k++) {   // scales on the cheekbones
         const sx = cx + sd * (half + A * (0.2 + (k % 2) * 0.25)), sy = ey + A * (0.75 + k * 0.22);
-        line(() => bk.arc(sx, sy, A * 0.13, Math.PI * 0.1, Math.PI * 0.9), wd * 0.45, 0.55);
+        line(() => bk.arc(sx, sy, A * 0.14, Math.PI * 0.1, Math.PI * 0.9), wd * 0.6, 0.85);
       }
       const ly = ey + A * 1.55, lw = A * 0.5;
       line(() => { bk.moveTo(cx - lw, ly); bk.quadraticCurveTo(cx, ly - A * 0.2, cx + lw, ly); bk.quadraticCurveTo(cx, ly + A * 0.3, cx - lw, ly); }, wd * 0.8, 0.7 * (grin.a > 0.2 ? 0 : 1));
     } else if (mode === 'forest') {                    // a forest spirit: a crown of leaves, vines framing the eyes, a leaf on the brow, spores – no mouth
       const fy = ey + A * 0.75, rx = half + A * 1.25, ry = fit(A * 2.4, (fy - A * 0.9 - 4) / 1.05, (h - fy - 4) / 0.95);
       for (const [a0, a1] of [[0.12, 0.36], [0.64, 0.88]]) line(() => bk.ellipse(cx, fy, rx, ry, 0, Math.PI * a0, Math.PI * a1), wd, 0.8);   // only the cheeks: no chin line that could read as a mouth
+      const rt = up(fy, ry);
       const leaf = (bx, by, an, len, wide, w, al) => {   // one leaf: two curves and its rib
         const tx = bx + Math.cos(an) * len, ty = by + Math.sin(an) * len, mx = (bx + tx) / 2, my = (by + ty) / 2, nx = -Math.sin(an) * wide, ny = Math.cos(an) * wide;
         line(() => { bk.moveTo(bx, by); bk.quadraticCurveTo(mx + nx, my + ny, tx, ty); bk.quadraticCurveTo(mx - nx, my - ny, bx, by); bk.moveTo(bx, by); bk.lineTo(bx + (tx - bx) * 0.8, by + (ty - by) * 0.8); }, w, al);
       };
       for (let k = -4; k <= 4; k++) {                  // the crown: leaves fanning out above the brow, stirring as in a breeze
-        const an = -Math.PI / 2 + k * 0.24, bx = cx + Math.cos(an) * rx * 0.8, by = fy + Math.sin(an) * ry * 0.98;
-        leaf(bx, by, an + k * 0.07 + 0.1 * Math.sin(t / 1400 + k * 1.3), A * (1.15 - Math.abs(k) * 0.09) * (k % 2 ? 0.8 : 1), A * 0.42, wd * 0.6, 0.75);
+        const an = -Math.PI / 2 + k * 0.24, bx = cx + Math.cos(an) * rx * 0.8, by = over(bx, fy + Math.sin(an) * rt * 0.98) - A * 0.06, th = tall(by);
+        leaf(bx, by, an + k * 0.07 + 0.1 * Math.sin(t / 1400 + k * 1.3), A * (1.15 - Math.abs(k) * 0.09) * (k % 2 ? 0.8 : 1) * th, A * 0.42 * Math.max(0.6, th), wd * 0.6, 0.9);
       }
       leaf(cx, ey - A * 0.12, -Math.PI / 2 + 0.06 * sway, A * 0.46, A * 0.2, wd * 0.55, 0.7 + 0.2 * Math.sin(t / 1100));   // a leaf on the brow, softly glowing
       for (const sd of [-1, 1]) {                       // vines down both sides of the eyes, ending in a curl, a few leaves on them
-        const vx = cx + sd * rx * 0.8, vy = fy - ry * 0.6, wv = k => Math.sin(t / 1700 + k * 1.9 + sd) * A * 0.07;
-        const at = u => [vx + sd * (rx * 0.3 * Math.sin(u * Math.PI) + A * 0.14 * Math.sin(u * 9)) + wv(u * 3) * u, vy + ry * 1.2 * u];
+        const vx = cx + sd * (half + A * 1.35), vy = ey - A * 0.55, wv = k => Math.sin(t / 1700 + k * 1.9 + sd) * A * 0.07;
+        const at = u => [vx + sd * (A * 0.5 * Math.sin(u * Math.PI) + A * 0.14 * Math.sin(u * 9)) + wv(u * 3) * u, vy + Math.min(ry * 1.25, h - 6 - A * 0.3 - vy) * u];
         line(() => { bk.moveTo(vx, vy); for (let j = 1; j <= 14; j++) { const [px, py] = at(j / 14); bk.lineTo(px, py); } }, wd * 0.6, 0.65);
         const [ex, eY] = at(1);
         line(() => { for (let j = 0; j <= 12; j++) { const an = j / 12 * Math.PI * 2.6, rr = A * 0.26 * (1 - j / 14); bk.lineTo(ex - sd * (A * 0.26 - Math.cos(an) * rr), eY + Math.sin(an) * rr); } }, wd * 0.5, 0.6);
-        for (let k = 1; k <= 3; k++) { const [lx, ly] = at(k * 0.24); leaf(lx, ly, Math.PI / 2 - sd * (1.15 - 0.15 * k) + 0.12 * Math.sin(t / 1200 + k + sd), A * 0.5, A * 0.2, wd * 0.45, 0.6); }
+        for (let k = 1; k <= 3; k++) { const [lx, ly] = at(k * 0.24); leaf(lx, ly, Math.PI / 2 - sd * (1.15 - 0.15 * k) + 0.12 * Math.sin(t / 1200 + k + sd), A * 0.5, A * 0.2, wd * 0.5, 0.8); }
       }
-      const whole = bk.globalAlpha;
-      bk.fillStyle = `${ink}${0.8 * inkAl})`;
-      for (let k = 0; k < 9; k++) {                    // glowing spores drifting upwards
-        const u = (t / 9000 + k * 0.37) % 1, sx = cx + Math.sin(k * 2.4 + u * 3) * rx * (0.5 + 0.55 * ((k * 7) % 5) / 4), sy = fy + ry * (0.9 - 2.0 * u);
-        bk.globalAlpha = whole * Math.sin(u * Math.PI) * (0.6 + 0.4 * Math.sin(t / 350 + k)); bk.beginPath(); bk.arc(sx, sy, A * (0.05 + 0.03 * (k % 3)), 0, Math.PI * 2); bk.fill();
+      for (let k = 0; k < 9; k++) {                    // glowing spores drifting upwards, each with a soft halo
+        const u = (t / 9000 + k * 0.37) % 1, sx = cx + Math.sin(k * 2.4 + u * 3) * rx * (0.5 + 0.55 * ((k * 7) % 5) / 4), sy = fy + ry * 0.9 - (fy + ry * 0.9 - 8) * u;
+        dot(sx, sy, A * (0.06 + 0.035 * (k % 3)), Math.sin(u * Math.PI) * (0.75 + 0.25 * Math.sin(t / 350 + k)));
       }
-      bk.globalAlpha = whole;
     } else if (mode === 'priestess') {                 // a moon priestess: a crescent on her brow, a veil of light, long earrings
       const fy = ey + A * 0.75, rx = half + A * 1.3, ry = fit(A * 2.5, (fy - 4) / 1.25, (h - fy - 4) / 0.95);
       line(() => bk.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.12, Math.PI * 0.88), wd, 0.85);
-      const my = fy - ry * 0.72, mr = A * 0.38;          // the crescent, gently glowing
-      line(() => { bk.arc(cx, my, mr, Math.PI * 0.15, Math.PI * 0.85, true); bk.arc(cx, my - mr * 0.35, mr * 0.8, Math.PI * 0.8, Math.PI * 0.2); }, wd * 0.8, 0.75 + 0.2 * Math.sin(t / 900));
+      const rt = up(fy, ry), mr = A * 0.34 * tall(lid), my = Math.min(fy - rt * 0.72, lid - mr * 0.6);   // the crescent, gently glowing, above the brows
+      line(() => { bk.arc(cx, my, mr, Math.PI * 0.15, Math.PI * 0.85, true); bk.arc(cx, my - mr * 0.35, mr * 0.8, Math.PI * 0.8, Math.PI * 0.2); }, wd * 0.8, 0.8 + 0.2 * Math.sin(t / 900));
       for (let k = 0; k < 7; k++) {                    // the veil: arcs falling from her brow to her shoulders, swaying
         const u = k / 6, sw = Math.sin(t / 1600 + k * 0.6) * A * 0.15;
-        line(() => { bk.moveTo(cx - rx * (0.2 + u * 0.95), fy - ry * (0.95 - u * 0.1)); bk.quadraticCurveTo(cx + sw, fy - ry * (1.35 - u * 0.15), cx + rx * (0.2 + u * 0.95), fy - ry * (0.95 - u * 0.1)); }, wd * 0.45, 0.35);
-        for (const sd of [-1, 1]) line(() => { const x0 = cx + sd * rx * (0.95 + u * 0.15); bk.moveTo(x0, fy - ry * 0.5 + u * ry * 0.3); bk.quadraticCurveTo(x0 + sd * A * 0.4 + sw, fy + ry * 0.4, x0 + sd * A * 0.2, fy + ry * (0.9 + u * 0.4)); }, wd * 0.45, 0.4);
+        const vx = rx * (0.2 + u * 0.95), vy = over(cx + vx, fy - rt * (0.95 - u * 0.1)) - A * 0.04;
+        line(() => { bk.moveTo(cx - vx, vy); bk.quadraticCurveTo(cx + sw, Math.max(4 - vy * 0.5, vy - A * (1.3 - u * 0.5) * tall(vy)), cx + vx, vy); }, wd * 0.5, 0.55);
+        for (const sd of [-1, 1]) line(() => { const x0 = cx + sd * rx * (0.95 + u * 0.15); bk.moveTo(x0, fy - ry * 0.5 + u * ry * 0.3); bk.quadraticCurveTo(x0 + sd * A * 0.4 + sw, fy + ry * 0.4, x0 + sd * A * 0.2, fy + ry * (0.9 + u * 0.4)); }, wd * 0.5, 0.55);
       }
       for (const sd of [-1, 1]) {                       // long earrings: a chain and a drop, swinging
         const ex = cx + sd * rx * 0.97, eY = fy + ry * 0.05, sw = Math.sin(t / 700 + sd) * A * 0.12;
-        line(() => { bk.moveTo(ex, eY); bk.lineTo(ex + sw, eY + A * 0.9); }, wd * 0.4, 0.7);
-        bk.fillStyle = `${ink}${0.8 * inkAl})`; bk.beginPath(); bk.ellipse(ex + sw, eY + A * 1.05, A * 0.08, A * 0.14, 0, 0, Math.PI * 2); bk.fill();
+        line(() => { bk.moveTo(ex, eY); bk.lineTo(ex + sw, eY + A * 0.9); }, wd * 0.5, 0.9);
+        dot(ex + sw, eY + A * 1.05, A * 0.12, 0.95);
       }
       const ly = ey + A * 1.55, lw = A * 0.5;
       line(() => { bk.moveTo(cx - lw, ly); bk.quadraticCurveTo(cx - lw * 0.4, ly - A * 0.18, cx, ly - A * 0.05); bk.quadraticCurveTo(cx + lw * 0.4, ly - A * 0.18, cx + lw, ly); bk.quadraticCurveTo(cx, ly + A * 0.3, cx - lw, ly); }, wd * 0.8, 0.7 * (grin.a > 0.2 ? 0 : 1));
@@ -704,8 +745,8 @@
       const fy = ey + A * 0.7, rx = half + A * 1.3, ry = fit(A * 2.4, fy / 0.9, (h - fy - 4) / 0.95);
       line(() => bk.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.1, Math.PI * 0.9), wd, 0.85);
       for (let k = 0; k < 13; k++) {
-        const an = Math.PI * (1.05 + k / 12 * 0.9), bx = cx + Math.cos(an) * rx * 0.85, by = fy + Math.sin(an) * ry * 0.85;
-        const len = ry * (0.9 + 0.35 * Math.sin(k * 1.7)), ph = t / 420 + k * 1.3;
+        const an = Math.PI * (1.05 + k / 12 * 0.9), bx = cx + Math.cos(an) * rx * 0.85, by = over(bx, fy + Math.sin(an) * up(fy, ry) * 0.85);
+        const len = ry * (0.9 + 0.35 * Math.sin(k * 1.7)) * (1 - (1 - tall(by)) * Math.abs(Math.sin(an))), ph = t / 420 + k * 1.3;   // those reaching up: as long as the room above
         let hx = bx, hy = by, px = bx, py = by;
         line(() => {
           bk.moveTo(bx, by);
@@ -751,18 +792,18 @@
   }
   // the painted face now and then takes the eyes' place: it appears in the pupils, as if seen through them, the two
   // windows grow, turn a little and merge until the face fills the screen – and later it shrinks back into the pupils
-  const portal = { phase: 'off', t0: 0, kind: null, next: performance.now() + 60000, cv: document.createElement('canvas'), mk: document.createElement('canvas'), cl: document.createElement('canvas') };
+  const portal = { phase: 'off', t0: 0, kind: null, next: performance.now() + 120000, cv: document.createElement('canvas'), mk: document.createElement('canvas'), cl: document.createElement('canvas') };
   const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
   // ---------- #166, #219: "you in the dream" – the person in front as the camera sees them, cut out on this phone, the
   // face unchanged; the dream only around them (static/dreamyou.js). Mirrored clearly in the iris now and then, and now
   // and then as a moment: through the pupils, large, and gone again. Nothing of it is sent – no picture, no word. ----------
-  const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 30000, moment: 0, momentNext: performance.now() + 45000,
+  const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 60000, moment: 0, momentNext: performance.now() + 90000,
     want: 0, clear: false, frame: null, cutAt: 0, d: DreamYou.create() };
   const youSrc = n => { const v = $('cam'); return { src: v, sw: v.videoWidth, sh: v.videoHeight, mask: seg.cv, face, n }; };
   const youSize = () => (perf > 45 ? 448 : perf > 30 ? 352 : 256) * (dpr > 1 ? 1 : 0.8) | 0;   // #188: fewer pixels when the phone runs short
   function youTick(t, present) {
     const calm = portal.phase === 'off' && !enchanted() && !trance.on && fx.sleep < 0.3;   // #218: not while the fire has them
-    if (present && t > you.irisNext) { you.irisUntil = t + 4000 + Math.random() * 2000; you.irisNext = t + (50000 + Math.random() * 50000) * pace(t); }
+    if (present && t > you.irisNext) { you.irisUntil = t + 4000 + Math.random() * 2000; you.irisNext = t + (100000 + Math.random() * 100000) * pace(t); }
     if (present && t > you.momentNext && calm && !you.want) you.want = t;   // the moment is due: first the mask of the person
     const irisOn = present && t < you.irisUntil;
     if ((you.want || irisOn) && !seg.sg && !seg.loading) {
@@ -772,7 +813,7 @@
     const fresh = seg.have > 0 && t - seg.have < 1500 && $('cam').videoWidth > 0;
     if (you.want && (!present || !calm || t - you.want > 8000)) { you.want = 0; you.momentNext = t + 20000; }
     else if (you.want && fresh) {                      // it comes through the pupils like a painted face – and stays a little longer
-      you.want = 0; you.momentNext = t + (70000 + Math.random() * 60000) * pace(t);
+      you.want = 0; you.momentNext = t + (140000 + Math.random() * 120000) * pace(t);
       you.frame = Math.random() < 0.4 ? DreamYou.FRAMES[Math.random() * DreamYou.FRAMES.length | 0] : null;   // now and then a frame
       you.d.crop = null;
       portal.kind = 'you'; portal.phase = 'in'; portal.t0 = t; portal.hold = 2200 + Math.random() * 1000;   // a glimpse, not a portrait
@@ -798,8 +839,8 @@
     const out = portal.kind === 'you' ? OUT_YOU : OUT;
     if (portal.phase === 'out' && t - portal.t0 > out) {
       portal.phase = 'off';
-      if (portal.kind === 'you') { portal.kind = null; portal.next = Math.max(portal.next, t + 30000); }   // a painted face not right after
-      else portal.next = t + (120000 + Math.random() * 120000) * pace(t);
+      if (portal.kind === 'you') { portal.kind = null; portal.next = Math.max(portal.next, t + 60000); }   // a painted face not right after
+      else portal.next = t + (240000 + Math.random() * 240000) * pace(t);
     }
     you.moment = portal.kind === 'you' && portal.phase !== 'off' ? 1 : 0;
     return portal.phase === 'off' ? 0 : portal.phase === 'hold' ? 1 : portal.phase === 'in' ? ease((t - portal.t0) / IN) : 1 - ease((t - portal.t0) / out);
@@ -853,13 +894,22 @@
     pc.globalCompositeOperation = 'source-over'; pc.clearRect(0, 0, W, H);
     const rot = (1 - p) * 0.25 + 0.03 * Math.sin(t / 2700);
     pc.save(); pc.translate(ccx, ccy); pc.rotate(rot); pc.translate(-ccx, -ccy);   // it sways
+    // while it is still in the pupils the picture is seen as through mist: soft (a small copy, scaled up – no blur filter),
+    // pale, veiled; it clears as the windows open. The large picture is not misted.
+    const mist = Math.max(0, Math.min(1, 1 - (p - 0.3) / 0.4)), hue = hueOf(dream.col);
+    if (mist > 0.02) {
+      const sm = portal.sm || (portal.sm = document.createElement('canvas')), sx = sm.getContext('2d');
+      if (sm.width !== 96) sm.width = sm.height = 96;
+      sx.clearRect(0, 0, 96, 96); sx.drawImage(img, 0, 0, 96, 96);
+      pc.drawImage(sm, X, Y, S, S); pc.globalAlpha = 1 - 0.9 * mist;
+    }
     if (!mine) pc.filter = `saturate(${1.15 + 0.3 * (1 - p)}) contrast(1.06)`;   // a painted face glows a little; the person's picture stays as it is
-    pc.drawImage(img, X, Y, S, S); pc.filter = 'none'; pc.restore();
+    pc.drawImage(img, X, Y, S, S); pc.filter = 'none'; pc.globalAlpha = 1; pc.restore();
     // the windows: soft circles around our pupils, growing – and shaped by the cloud as they open
     const R = (Math.hypot(W, H) * 0.75) * p + 4;
     mk.globalCompositeOperation = 'source-over'; mk.clearRect(0, 0, W, H); mk.globalCompositeOperation = 'lighter';
     for (const [px, py] of pupils) {
-      const gr = mk.createRadialGradient(px, py, R * 0.55, px, py, R);
+      const gr = mk.createRadialGradient(px, py, R * (0.55 - 0.45 * mist), px, py, R);   // in the pupils: no edge, it fades out
       gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
       mk.fillStyle = gr; mk.fillRect(0, 0, W, H);
     }
@@ -874,23 +924,34 @@
       mk.fillStyle = fg; mk.fillRect(-1, -1, 2, 2); mk.restore();
     }
     // a glow in the dream's colour around the cloud
-    const hue = hueOf(dream.col);
     g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35 * p;
     const halo = g.createRadialGradient(ccx, ccy, size * 0.3, ccx, ccy, size * 0.7);
     halo.addColorStop(0, `hsla(${hue},85%,65%,.5)`); halo.addColorStop(1, `hsla(${hue + 40},85%,60%,0)`);
     g.fillStyle = halo; g.fillRect(ccx - size, ccy - size, size * 2, size * 2); g.restore();
     pc.globalCompositeOperation = 'destination-in'; pc.drawImage(portal.mk, 0, 0);
+    if (mist > 0.02) {                                 // the veil: pale mist over the picture, drifting – and a soft glow in each pupil
+      pc.globalCompositeOperation = 'source-atop';
+      pc.fillStyle = `hsla(${hue},40%,84%,${0.3 * mist})`; pc.fillRect(0, 0, W, H);
+      for (const [px, py] of pupils) for (let j = 0; j < 3; j++) {
+        const an = t / (5200 + j * 1700) + j * 2.1 + px;
+        stamp(pc, tinted(hue + 20 + j * 25), px + Math.cos(an) * R * 0.4, py + Math.sin(an * 1.3) * R * 0.3, R * (0.6 + 0.15 * j), 0.3 * mist);
+      }
+      pc.globalAlpha = 1; pc.globalCompositeOperation = 'source-over';
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (const [px, py] of pupils) stamp(g, tinted(hue), px, py, R * 1.2, 0.3 * mist * Math.min(1, p * 6));
+      g.restore();
+    }
     const rings = () => {                              // a glowing ring at each window's edge, in the dream's colours
       if (p >= 0.98) return;
       g.save(); g.globalCompositeOperation = 'lighter';
       for (const [px, py] of pupils) {
-        g.strokeStyle = `hsla(${hue + t * 0.05},90%,70%,${0.6 * (1 - p)})`; g.lineWidth = 2 + 6 * (1 - p);
+        g.strokeStyle = `hsla(${hue + t * 0.05},90%,70%,${0.6 * (1 - p) * (1 - 0.6 * mist)})`; g.lineWidth = (2 + 6 * (1 - p)) * (1 - 0.5 * mist);
         g.beginPath(); g.arc(px, py, Math.min(R * 0.8, size * 0.5), 0, Math.PI * 2); g.stroke();
       }
       g.restore();
     };
     if (mine) rings();                                 // behind the person: nothing is drawn over their face
-    if (mine) g.globalAlpha = 0.9;                     // a little of the night shows through: a vision, not a photograph
+    g.globalAlpha = (mine ? 0.9 : 1) * (1 - 0.4 * mist);   // "you": a little of the night shows through – a vision, not a photograph
     g.drawImage(portal.cv, 0, 0, W, H); g.globalAlpha = 1;
     if (!mine) rings();
   }
@@ -1022,13 +1083,13 @@
       bs.prev = bs.mode;
       // the silhouette only now and then, and only with someone there; the faces and patterns otherwise
       const o = BACKS.filter(x => x !== bs.mode && (x !== 'silhouette' || (present && Math.random() < 0.6)));
-      bs.mode = o[Math.random() * o.length | 0]; bs.mix = 0; bs.next = t + (30000 + Math.random() * 25000) * pace(t);
+      bs.mode = o[Math.random() * o.length | 0]; bs.mix = 0; bs.next = t + (60000 + Math.random() * 50000) * pace(t);
       if (bs.mode === 'silhouette' && !seg.sg && !seg.loading) segLoad();
     }
     if ((bs.mode === 'silhouette' || (bs.prev === 'silhouette' && bs.mix < 1)) && perf > 30) segTick(t);
     bs.mix = Math.min(1, bs.mix + 1 / 180);
     // now and then the night opens wide and the dream shows clearly behind the eyes for a while
-    if (t > bs.revealNext && portal.phase === 'off') { bs.revealUntil = t + 6000 + Math.random() * 4000; bs.revealNext = t + (60000 + Math.random() * 60000) * pace(t); }
+    if (t > bs.revealNext && portal.phase === 'off') { bs.revealUntil = t + 6000 + Math.random() * 4000; bs.revealNext = t + (120000 + Math.random() * 120000) * pace(t); }
     const rv = t < bs.revealUntil ? 1 : 0;
     const dtb = Math.min(0.1, (t - (bs.lt || t)) / 1000); bs.lt = t;   // softly in (about 2 s) and out (about 3 s)
     bs.reveal = lerp(bs.reveal, rv, 1 - Math.exp(-dtb * (rv ? 2.4 : 1.4)));
@@ -1088,7 +1149,7 @@
     const arrived = present && !you.wasPresent && t - (you.goneAt || -1e9) > 8000;
     if (present) you.wasPresent = true; else if (you.wasPresent) { you.wasPresent = false; you.goneAt = t; }
     if (arrived) {
-      if ((you.greet = !you.greet)) { you.irisUntil = t + 4500; you.irisNext = t + (50000 + Math.random() * 50000) * pace(t); }
+      if ((you.greet = !you.greet)) { you.irisUntil = t + 4500; you.irisNext = t + (100000 + Math.random() * 100000) * pace(t); }
       else you.momentNext = t + 1500;
     }
     youTick(t, present);
@@ -1148,7 +1209,7 @@
     if (present && face.smile > 0.45) grin.until = t + 2500;
     if (t < grin.until && grin.a < 0.05 && !grin.showing) { grin.showing = true; grin.start = t; grin.kind = ['teeth', 'stars', 'neon'][Math.random() * 3 | 0]; grin.from = Math.random() < 0.5 ? -1 : 1; }
     if (t >= grin.until && grin.a < 0.02) grin.showing = false;
-    if (t > grin.nextFree) { grin.until = Math.max(grin.until, t + 3500); grin.nextFree = t + 60000 + Math.random() * 90000; }
+    if (t > grin.nextFree) { grin.until = Math.max(grin.until, t + 3500); grin.nextFree = t + 120000 + Math.random() * 180000; }
     const gt = t < grin.until ? 1 : 0;
     grin.a = lerp(grin.a, gt, 1 - Math.exp(-dt * (gt ? 2.2 : 0.9)));
     const k = 1 - Math.exp(-dt * (held ? (fm === 'dream' ? 5 : 26) : 9));   // #218: on a flame at once – dreaming, they drift after it
@@ -1172,9 +1233,9 @@
     vg.addColorStop(0, `rgba(7,6,11,${0.4 * vd})`); vg.addColorStop(0.45, `rgba(7,6,11,${0.1 * vd})`); vg.addColorStop(1, 'rgba(7,6,11,0)');
     g.fillStyle = vg; g.fillRect(0, 0, W, H);
     // #157: clouds and fractals around them – fewer when the phone runs short (the camera never waits for them)
-    const maxDecor = perf > 45 ? 5 : perf > 30 ? 2 : 0;
+    const maxDecor = perf > 45 ? 2 : perf > 30 ? 1 : 0;   // calm: two things around the eyes at most
     const ambient = decor.filter(d => !EVENT_KINDS.has(d.kind));
-    if (t > decorNext) { if (ambient.length < maxDecor) spawn(t); decorNext = t + (2600 - 1600 * st.energy + Math.random() * 1500) * pace(t); }
+    if (t > decorNext) { if (ambient.length < maxDecor) spawn(t); decorNext = t + (5500 - 3000 * st.energy + Math.random() * 3000) * pace(t); }
     if (ambient.length > maxDecor) decor.splice(decor.indexOf(ambient[0]), 1);
     drawDecor(t);
     // #218: the flames stand as high as the fire is strong, leap when it flares up and sink when they are used to it
@@ -1272,6 +1333,7 @@
     if (pp < 0.5 && !(tp && tp.dim > 0.98)) {         // always whole on the screen; it fades in trance
       g.save(); if (tp) g.globalAlpha = 1 - tp.dim; drawGrin(W / 2, Math.min(cy + a * 1.05, H - gw * 0.24 * 0.95 - 8), gw, t); g.restore();
     }
+    if (fireSeen) fireDraw();
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);

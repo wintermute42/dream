@@ -802,14 +802,14 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   Göttin mit Diadem und wallendem Haar, eine Katze mit Ohren und zuckenden Schnurrhaaren, Medusa mit sich windenden
   Schlangen, eine Meerjungfrau mit Haar, das wie Seetang treibt, und einer Krone aus Muscheln, ein Waldgeist mit einer Krone aus Blättern,
   Ranken um die Augen, einem Blatt auf der Stirn und aufsteigenden leuchtenden Sporen (ohne Mund), eine Mondpriesterin mit Sichel auf der Stirn, wehendem Schleier und langen
-  Ohrringen; die Masken wechseln etwa jede halbe Minute (hochkant etwas ruhiger), der Traum
-  dahinter zoomt und wandert langsam, etwas heller als auf der Bühne. Alle ein, zwei Minuten öffnet sich für 6–10
+  Ohrringen; die Masken wechseln alle ein, zwei Minuten (hochkant etwas ruhiger), der Traum
+  dahinter zoomt und wandert langsam, etwas heller als auf der Bühne. Alle zwei bis vier Minuten öffnet sich für 6–10
   Sekunden ein **Traumfenster**: Die Nacht geht weit auf und der Traum ist deutlich hinter den Augen zu sehen, dann zieht er
   sich weich wieder hinter die Masken zurück. Direkt hinter den Augen bleibt es dunkler, damit sie
   klar bleiben.
-- **Du im Traum:** Wer davorsteht, spiegelt sich in der Iris – schwach die ganze Zeit, und alle ein, zwei Minuten für
+- **Du im Traum:** Wer davorsteht, spiegelt sich in der Iris – schwach die ganze Zeit, und alle zwei, drei Minuten für
   ein paar Sekunden ganz deutlich, wie in echten Augen: dann ist es die Person allein, vom Raum freigestellt (auf dem
-  Handy), das Gesicht genau so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle ein, zwei
+  Handy), das Gesicht genau so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle drei bis fünf
   Minuten, nur solange jemand da ist) erscheint die Person als **Moment**: zuerst in den beiden Pupillen, wie durch sie
   hindurch gesehen, dann öffnen sich die Fenster und sie steht für etwa 2–3 Sekunden in einer weichen Wolke in der
   Bildmitte – **das echte Kamerabild, das Gesicht unverändert und erkennbar**, etwas kleiner und leichter als ein
@@ -827,17 +827,25 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   nur noch die Fantasie-Gesichter unten, aus Worten. Das Einzige, was das Handy verlässt, ist das, wofür Dreamy Eyes da
   sind: die Frontkamera, die du dem Traum leihst (unten, „Immer nur eine Kamera“), unverändert an die Bühne
   weitergereicht und nirgends aufbewahrt; Tests sichern beides ab.
-- **Ab und zu spiegeln sie dich:** Für einige Sekunden, alle ein, zwei Minuten, wenn jemand davorsteht, ahmen die Augen
+- **Ab und zu spiegeln sie dich:** Für einige Sekunden, alle zwei, drei Minuten, wenn jemand davorsteht, ahmen die Augen
   dessen Ausdruck nach – Blinzeln oder Zwinkern (das passende Auge), Zusammenkneifen, weit aufgerissene Augen, gehobene
   oder gesenkte Brauen –, dann gehen sie wieder ihre eigenen Wege.
 - **Deine Silhouette als Maske:** Ab und zu, nur wenn jemand da ist, scheint der Traum durch die Umrisse der Person
   davor (Selfie-Segmentierung auf dem Handy, etwa 250 KB, nichts wird gesendet oder gespeichert).
-- **Dreamy liebt Feuer ❤️‍🔥 (#162, #218):** Sieht die Kamera Flammen – warmes, helles Licht, das **flackert**, erkannt
-  auf dem Handy etwa 15-mal pro Sekunde –, sind die Augen verzaubert. Auch kleine und ferne Flammen zählen (Poi, Fackel,
-  Kerzen: eine Flamme von etwa drei Hundertstel Prozent des Bildes genügt, dunkler und blasser als bisher); das Flackern
-  bleibt Pflicht: Eine ruhige orange Lampe, eine Lampe, während das Handy berührt oder getragen wird, ein Gesicht oder
-  eine Hand in warmem Licht sind kein Feuer (in einem Gesicht, das das Handy gefunden hat, zählt nur sehr feuriges
-  Licht), und eine Kerze in ganz ruhiger Luft ist nicht mehr als eine Lampe, bis sie flackert.
+- **Dreamy liebt Feuer ❤️‍🔥 (#162, #218):** Sieht die Kamera Flammen, sind die Augen verzaubert. Was als Flamme zählt, ist
+  streng, damit ein warmes Zimmer kein Feuer ist: sehr helles, sattes Orange bis Gelb (nah an der Regel von #162) mit
+  einem Kern, so hell, wie die Kamera es zeigen kann, das **flackert wie eine Flamme** – Größe und Form ändern sich
+  beide ständig und unregelmäßig –, und das fast eine Sekunde lang (etwa 0,8 s), bevor die Augen es glauben. Erkannt auf
+  dem Handy, etwa 15-mal pro Sekunde. Kein Feuer sind: eine ruhige orange Lampe, eine Lampe, während das Handy berührt
+  oder getragen wird, eine Lampe, die gedimmt wird, warme Wände und ein schummriges warmes Zimmer in einer rauschenden
+  Kamera, die Kamera, die ihre Belichtung sucht, warme LEDs, die mit dem Verschluss der Kamera pulsieren (sie werden
+  gleichmäßig heller und dunkler und behalten ihre Form), ein Bildschirm mit warmen bewegten Bildern, ein Gesicht oder
+  eine Hand in warmem Licht. Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
+  weg steht, oder eine Flamme, die gar nicht flackert, ist nicht mehr als eine Lampe.
+  **Sehen, was die Augen im eigenen Raum für Feuer halten:** Dreamy Eyes mit `?debug` am Ende der Adresse öffnen (nach
+  einem vorhandenen `?…`: `&debug`). Eine Ecke zeigt dann die Kamera-Probe in Grau, warmes Licht in Gelb (sein heller
+  Kern weiß) und das, was als Feuer zählt, in Rot, daneben die Zahlen: wie sicher sie sind (Feuer ab 0,70), die Stärke
+  und für den lebhaftesten Fleck seine Größe, den Anteil seines Kerns und seine Sprünge (Feuer über 4).
   - **Sie folgen dem Feuer sofort.** Der Blick geht dorthin, wo die Flamme im Bild ist (innerhalb von etwa einer
     Zehntelsekunde), und bleibt an ihr, wenn sie sich bewegt. Alles folgt stufenlos seiner **Stärke**: wie weit sie sich
     öffnen, wie hoch die Flammen am unteren Bildrand stehen (am höchsten auf der Seite der Flamme), wie viel Glut
@@ -845,7 +853,8 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
     fliegt aus der Richtung der Flamme herein und die Nacht glüht kurz auf. **Flaut es ab**, werden sie ruhig: Die Lider
     sinken, Flammen und Glut werden weniger; ist es weg (1,5 s lang keines), ein Moment der Sehnsucht – dann geht es
     weiter wie zuvor.
-  - **Ihre Stimmung wechselt alle 10–20 s**, nie zweimal dieselbe hintereinander: **gebannt** (weit offen, eine
+  - **Ihre Stimmung wechselt alle 10–20 s** bei viel Feuer oder einer tanzenden Flamme – eine einzelne Kerze nehmen sie
+    sanfter (bis 20–40 s je Stimmung, nur wenige Funken) –, nie zweimal dieselbe hintereinander: **gebannt** (weit offen, eine
     hypnotische Pupille – siehe unten), **verspielt** (Sternpupillen, ein Zwinkern mal mit dem einen, mal mit dem
     anderen Auge, von dem Funken fliegen), **träumerisch** (halb geschlossen, Glut treibt in der Iris, der Blick gleitet
     der Flamme nach), **verliebt** (glühende Herz-Pupillen, die schlagen, kleine brennende Herzen, das tiefste Erröten)
@@ -887,7 +896,7 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   Blütenfee, Orakel, Uhrwerk-Dame, Eulenfrau, Dame mit Maske, Polarlicht, Rabenhexe, Nebel-Frau sowie Sonnengott, Grüner
   Mann, Meereskönig, Sternenweiser, Faun, Traum-Pharao und Mondritter – in der Stimmung des
   aktuellen Traum-Prompts (ein einziger schneller KI-Schritt, etwa 0,4 s, der erste einige Sekunden; die Bühne merkt
-  kaum etwas). Alle zwei bis vier Minuten kommt eines davon durch die Pupillen: Es taucht in ihnen auf, als sähe man
+  kaum etwas). Alle vier bis acht Minuten kommt eines davon durch die Pupillen: Es taucht in ihnen wie durch Nebel auf (weich, blass, verschleiert, ohne Rand), als sähe man
   hindurch, die beiden Fenster wachsen mit leuchtendem Rand, drehen sich ein wenig und öffnen sich zu einer **Traumwolke** – das
   Gesicht in weichen Bällchen, die treiben und ihre Form ändern, ringsum ein Schimmer in der Traumfarbe, dahinter weiter der
   Traum –, bleibt dort drei bis fünf Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
@@ -896,11 +905,12 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   gemalt wird (Sekunden); `DREAM_AIMASK=0` schaltet die gemalten Gesichter ganz ab (auch kein Feuergeist:
   die Dreamy Eyes lassen den Mac dann nie ein Modell laden). Mit der Cloud-GPU gibt es keine gemalten Gesichter.
 - **Die Pupillen verwandeln sich:** ein Katzenschlitz, solange das Grinsen da ist, Herzen, wenn jemand weiter lächelt,
-  Sterne, wenn sie staunen – und wenn sie hypnotisieren (oder von einem Feuer gebannt sind) reihum eine von fünf, nie
-  zweimal dieselbe hintereinander (#218): eine drehende Spirale, ein Mandala, das sich dreht und atmet, ein Regen
-  kleiner Sterne, ein Tunnel aus Ringen, die in die Tiefe ziehen, oder ein Strudel; in den Farben des Traums (am Feuer
-  wie Glut), bewegt im Takt der Musik (ohne Musik: lebhafter mit dem Traum).
-- **Die Iris ist eine Welt, die wechselt**, etwa jede halbe Minute: der Traum selbst, der Traum als Kaleidoskop gefaltet,
+  Sterne, wenn sie staunen, eine drehende Spirale, wenn sie hypnotisieren (oder von einem Feuer gebannt sind). Etwa
+  jedes vierte Mal (#218) ist es statt der Spirale ein weicher Schimmer, nie zweimal derselbe hintereinander: Lichter,
+  die sich wie ein Mandala drehen, Lichter, die wie Schnee sinken, Ringe, die in die Tiefe sinken, oder ein langsamer
+  Strudel – halb durchsichtig, in den Farben des Traums (am Feuer wie Glut), atmend im Takt der Musik (ohne Musik: mit
+  dem Traum).
+- **Die Iris ist eine Welt, die wechselt**, alle ein, zwei Minuten: der Traum selbst, der Traum als Kaleidoskop gefaltet,
   ein Wirbel aus dem Traum mit gegeneinander drehenden Ringen oder eine Spiralgalaxie in den Farben des Traums.
 - **Launen ab und zu:** Sie zwinkern, schielen, rollen die Augen, hypnotisieren, weinen eine Träne aus Licht, die zu
   Sternen zerplatzt, oder funkeln. Lange niemand da und ein ruhiger Traum: Sie schlafen langsam ein, kleine z's steigen
@@ -942,8 +952,8 @@ einem Gerät zum anderen.
 - **Ein großes Motiv pro Fenster:**
   - ein **großes Auge** – genau das Auge der Dreamy Eyes: Iris-Fasern, Lider, Wimpern, eine Braue, wenn es etwas
     fühlt. Es schaut umher, blinzelt, seine Pupille weitet sich im dunklen Traum und mit dem Takt, und seine Iris ist
-    der Traum – pur, zum Kaleidoskop gefaltet, als Tunnel oder als Galaxie; ab und zu hypnotisiert seine Pupille für
-    ein paar Sekunden (#218: Spirale, Mandala, Sternenregen, Tunnel, Strudel reihum, im Takt bewegt – in beiden
+    der Traum – pur, zum Kaleidoskop gefaltet, als Tunnel oder als Galaxie; selten (etwa jedes zehnte Mal, alle 47 s) hypnotisiert seine
+    Pupille für ein paar Sekunden (#218: die Spirale oder einer der weichen Schimmer reihum, atmend im Takt – in beiden
     Fenstern eines Paars dieselbe);
   - ein **Augenpaar über zwei Geräte**: je ein Auge, die gemeinsam schauen und blinzeln;
   - ein **Traumgesicht**: ein von der KI gemaltes Gesicht, lebendig (siehe unten);
@@ -1434,11 +1444,14 @@ Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` 
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und
 `tests/js/signs.html` im Browser (Zeichen neben den Namen, Pause im Verborgenen, die Form). `node --test tests/js/fire.test.mjs`
 (#218) prüft, wie die Dreamy Eyes Feuer finden (`static/dreamfire.js`), an gemalten Kamerabildern
-(`tests/js/fire-frames.mjs`; keine echten Bilder): Flammen vom Lagerfeuer bis zum fernen Poi zählen, Lampen (ruhig, klein
-in einer rauschenden Kamera, eine Lichterkette, gedimmt, bei berührtem oder getragenem Handy), eine orange Jacke und
-Haut von hell bis dunkel in warmem Licht nicht; dazu die Stärke, Aufflammen, Abflauen, der Blick, der binnen zwei
-Proben folgt, der Wechsel der Stimmungen und die Gewöhnung an ein ruhiges Feuer. `node --test tests/js/eye.test.mjs`
-prüft, dass die hypnotischen Pupillen sich abwechseln. Die Augen mit Feuer sehen, ohne eines anzuzünden:
+(`tests/js/fire-frames.mjs`; keine echten Bilder): Flammen vom Lagerfeuer bis zum Feuerzeug und zum geschwungenen Poi
+zählen; je eine Minute lang still bleiben Lampen (ruhig, klein in einer rauschenden Kamera, eine Lichterkette, gedimmt,
+bei berührtem oder getragenem Handy), ein schummriges warmes Zimmer und warme Wände in einer rauschenden Kamera, die
+pumpende Belichtung der Kamera, pulsierende warme LEDs (langsam, schnell, mit durchlaufenden Streifen, als Kette), ein
+Bildschirm mit warmen bewegten Bildern, eine orange Jacke und Haut von hell bis dunkel in warmem Licht; dazu die
+Stärke, Aufflammen, Abflauen, der Blick, der binnen zwei Proben folgt, der Wechsel der Stimmungen und die Gewöhnung an
+ein ruhiges Feuer. `node --test tests/js/eye.test.mjs`
+prüft, wie oft welche hypnotische Pupille kommt. Die Augen mit Feuer sehen, ohne eines anzuzünden:
 `node scripts/fire_video.mjs fire.y4m` schreibt einen 70-s-Film desselben gemalten Feuers (etwa 90 MB), und ein Chrome
 oder Chromium, gestartet mit `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
 --use-file-for-fake-video-capture=fire.y4m`, zeigt ihn den Dreamy Eyes als Kamera (ein nur dafür gestartetes Dream:
