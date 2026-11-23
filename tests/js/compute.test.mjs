@@ -117,7 +117,8 @@ test('the badge in a browser', { skip: !chrome && !process.env.CI ? 'no Chrome o
   assert.deepEqual(r.bridge.marks, ['✓', '●', '○', '○', '○']);
   assert.deepEqual(r.bridge.current, ['Model is downloaded (43 %)']);       // aria-current="step" on exactly the step it is at
   assert.equal(r.bridge.stepsLabel, 'Steps of the cloud GPU');
-  assert.ok(r.bridge.dotMoves && r.bridge.onlyTransformAndOpacity, 'the dot breathes with transform and opacity only');
+  assert.ok(r.bridge.onlyTransformAndOpacity, 'only transform and opacity are animated');
+  assert.equal(r.bridge.dotMoves, !r.bridge.reducedMotion, 'the dot breathes – unless the system asks for less motion');
   assert.equal(r.sameNodes, true, 'a new status rewrites the texts, not the badge');
   assert.deepEqual(r.offer, { shown: true, text: '☁ Cloud ready – switch?', tag: 'BUTTON', taps: 1, height: true });
   assert.equal(r.cloud.kind, 'cloud');

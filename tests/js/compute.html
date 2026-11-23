@@ -35,7 +35,7 @@
     for (const sheet of document.styleSheets) for (const rule of sheet.cssRules) if (rule.type === CSSRule.KEYFRAMES_RULE) for (const frame of rule.cssRules) for (const prop of frame.style) moved.add(prop);
     report.bridge = { kind: box.dataset.kind, marks: [...box.querySelectorAll('.compute-mark')].map(m => m.textContent),
       current: [...box.querySelectorAll('[aria-current="step"]')].map(li => li.lastChild.textContent), stepsLabel: q('.compute-steps').getAttribute('aria-label'),
-      dotMoves: dot.animationName !== 'none', onlyTransformAndOpacity: [...moved].every(p => p === 'transform' || p === 'opacity') };
+      dotMoves: dot.animationName !== 'none', reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, onlyTransformAndOpacity: [...moved].every(p => p === 'transform' || p === 'opacity') };
     report.sameNodes = nodes.every((n, i) => n === [q('.compute-now'), q('.compute-sub'), q('.compute-steps'), q('.compute-offer')][i]);
 
     draw('local', running({ phase: 'ready' }), true);
