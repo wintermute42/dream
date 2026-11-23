@@ -7,7 +7,8 @@
 
    What today's look shows as signs has its own form here: a drop of red pigment blooming instead of a heart, a flick
    of splatter instead of stars, slow rings of wash instead of letters, a brushed enso instead of the triangle. Of a
-   face there is what the face rule lets through (static/dreamvis.js), and never the middle of it.
+   face there is what the face rule lets through (static/dreamvis.js) – the nose, in the rare moment, as one loaded
+   stroke down its side and a dry flick under its tip.
 
    Everything is sprites drawn once (static/dreambrush.js) and short paths – no blur, shadow or filter per frame: old
    phones. Registers itself with the style layer (static/dreamstyle.js). */
@@ -395,15 +396,17 @@
 
   // ---------- the faces of light ----------
   // Three ways a brush hints at whose eyes these are. v is the face rule's word: the sign on the forehead comes with
-  // the hints; hair, the jaw and the closed mouth only in the rare moment, and faintly – a few strokes painted in one
+  // the hints; hair, the jaw, the nose and the closed mouth only in the rare moment, clearly then – a few strokes painted in one
   // after the other. The brow is the eye's own. Drawn twice by the page: without `ink` into the mask the dream shines
   // through (so: white), with it as the world's own pigment over that.
   const FACES = ['sumi', 'willow', 'plum'];
+  const HINT = 1.2;                                    // the sign on the forehead: a little stronger than it was first drawn
+  const RARE = 1.25;                                   // pigment on black is thin: what comes in the rare moment is painted a little above its share
   function face(c, mode, t, geo, v, ink, inkAl = 1) {
     const mono = ink === undefined, K = mono ? 0.45 : Math.min(1, inkAl * 4.5);
-    const mark = DreamVis.of(v, 'mark') * K, hair = DreamVis.of(v, 'hair') * 1.7 * K, outline = DreamVis.of(v, 'outline') * 1.7 * K, mouth = DreamVis.of(v, 'mouth') * 1.7 * K;
-    if (mark + hair + outline + mouth <= 0.004) return;
-    const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half, geo.h), a = F.u, sk = skeleton(geo.cx, geo.ey, geo.half, t, geo.h), bf = boil(t);
+    const mark = DreamVis.of(v, 'mark') * HINT * K, hair = DreamVis.of(v, 'hair') * RARE * K, outline = DreamVis.of(v, 'outline') * RARE * K, mouth = DreamVis.of(v, 'mouth') * RARE * K, nose = DreamVis.of(v, 'nose') * RARE * K;
+    if (mark + hair + outline + mouth + nose <= 0.004) return;
+    const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u, sk = skeleton(geo.cx, geo.ey, geo.half, t), bf = boil(t);
     const strands = sk.filter(k => k.name === 'strand').map(k => k.pts), jaws = sk.filter(k => k.name === 'jaw').map(k => k.pts), lip = n => sk.find(k => k.name === n).pts, M = sk.find(k => k.name === 'mark').pts[0];
     const pr = (s, e) => smooth(seg(v.fullForm, s, e)), pH = (s, e) => smooth(seg(v.hintForm, s, e));
     const tone = col => mono ? PIG.white : col, wash = (i, col, q, size, al, rot, sy) => blot(c, i, tone(col), q[0], q[1], size, al, rot, sy);
@@ -439,7 +442,7 @@
       press(green, PIG.viridian, 0.8 * hair); press(gold, PIG.ochre, 0.8 * hair);
       jaws.forEach((P, k) => stroke(wob(P, a * 0.008, bf + 20 + k), u => a * 0.022 * Math.pow(Math.sin(PI * u), 0.6), { seed: 66 + k, color: PIG.bone, alpha: 0.8 * outline, dry: 0.6, nb: 3, prog: pr(0.2 + k * 0.1, 0.8 + k * 0.1) }));
       const fallen = [];                               // a few leaves let go, sinking past the cheeks
-      for (let k = 0; k < 6; k++) { const sd = k % 2 ? 1 : -1, u = (T * 0.05 + hash(5, k)) % 1, q = F(sd * (2.7 + 0.9 * hash(6, k)) + Math.sin(T * 0.7 + k) * 0.15, 1.3 + u * 3.6); fallen.push(leaf(q[0], q[1], PI / 2 + Math.sin(T * 0.9 + k * 2) * 0.9, a * 0.36 * Math.sin(PI * u), 0.1)); }
+      for (let k = 0; k < 6; k++) { const sd = k % 2 ? 1 : -1, u = (T * 0.05 + hash(5, k)) % 1, q = F(sd * (2.7 + 0.9 * hash(6, k)) + Math.sin(T * 0.7 + k) * 0.15, 1.1 + u * 3.0); fallen.push(leaf(q[0], q[1], PI / 2 + Math.sin(T * 0.9 + k * 2) * 0.9, a * 0.36 * Math.sin(PI * u), 0.1)); }
       press(fallen, PIG.viridian, 0.7 * outline * pr(0.4, 1));
     } else {
       // a plum branch in blossom: dry knotted strokes for the boughs, blossoms dabbed along them, petals falling; a drop
@@ -470,10 +473,17 @@
       });
       drops(jd, PIG.bone, 0.9 * oa);
     }
+    const na = nose * pr(0.35, 1);                     // the nose: a pale wash, one loaded stroke down its side, a dry flick under its tip
+    if (na > 0.004) {
+      const side = sk.find(k => k.name === 'nose side').pts;
+      wash(4, mode === 'willow' ? PIG.viridian : PIG.indigo, lip('nose tip')[0], a * 1.4, 0.4 * na, 0.6);
+      stroke(wob(side, a * 0.005, bf + 54), u => a * 0.034 * (0.35 + u) * Math.pow(Math.sin(PI * Math.min(1, u * 1.08)), 0.5), { seed: 86, color: PIG.bone, alpha: 0.95 * na, dry: 0.4, nb: 3, prog: pr(0.35, 0.75) });
+      stroke(wob(lip('nose base'), a * 0.005, bf + 56), u => a * 0.016 * Math.sin(PI * u), { seed: 87, color: PIG.bone, alpha: 0.75 * na, dry: 0.6, nb: 2, prog: pr(0.55, 1) });
+    }
     const ma = mouth * pr(0.45, 1);                    // the mouth: closed – a small wash, one line between the lips, a dry one below
     if (ma > 0.004) {
-      const upl = lip('upper lip'), low = lip('lower lip'), fit = clamp((low[10][1] - upl[15][1]) / (a * 0.88), 0.3, 1);   // (as small as the face is pressed together)
-      wash(2, mode === 'willow' ? '#d98f7c' : PIG.madder, F(0, 3.95), a * 2.9 * fit, 0.9 * ma, 0.2, 0.42);
+      const low = lip('lower lip');
+      wash(2, mode === 'willow' ? '#d98f7c' : PIG.madder, F(0, 2.75), a * 2.6, 0.9 * ma, 0.2, 0.42);
       stroke(wob(lip('lips'), a * 0.005, bf + 50), u => a * 0.024 * Math.sin(PI * u), { seed: 81, color: PIG.bone, alpha: ma, dry: 0.3, nb: 3, prog: pr(0.45, 0.8) });
       stroke(wob(low, a * 0.005, bf + 52), u => a * 0.014 * Math.sin(PI * u), { seed: 83, color: PIG.bone, alpha: 0.7 * ma, dry: 0.55, nb: 2, prog: pr(0.6, 1) });
     }

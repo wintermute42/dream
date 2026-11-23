@@ -5,7 +5,7 @@
 
    What today's look shows as signs has its own form here: a warm lure instead of a heart, plankton flashing instead of
    stars, bubbles of light instead of letters, a medusa instead of the triangle. Of a face there is what the face rule
-   lets through (static/dreamvis.js), and never a nose.
+   lets through (static/dreamvis.js) – the nose, in the rare moment, as two fine rows of lights and a glow on its tip.
 
    Everything is stamped lights (drawn once, static/dreambrush.js) and a few paths of many lines each – no blur, no
    shadow, no filter: old phones. Registers itself with the style layer (static/dreamstyle.js). */
@@ -259,15 +259,17 @@
 
   // ---------- the faces of light ----------
   // Three beings of the deep whose eyes these may be. v is the face rule's word: the sign on the forehead comes with
-  // the hints; what hangs from the head, the jaw's lights and the mouth only in the rare moment, and faintly. The brow
+  // the hints; what hangs from the head, the jaw's lights, the nose and the mouth only in the rare moment, clearly then. The brow
   // is the eye's own. Drawn twice by the page: without `ink` into the mask the dream shines through (so: without
   // colours), with it as the world's own glow over that.
   const FACES = ['medusa', 'angler', 'anemone'];
+  const HINT = 1.2;                                    // the sign on the forehead: a little stronger than it was first drawn
+  const RARE = 1.25;                                   // light adds up thinly: what comes in the rare moment is drawn a little above its share
   function face(c, mode, t, geo, v, ink, inkAl = 1) {
     const mono = ink === undefined, K = mono ? 0.5 : Math.min(1, inkAl * 4.5);
-    const mark = DreamVis.of(v, 'mark') * K, hair = DreamVis.of(v, 'hair') * 1.6 * K, outline = DreamVis.of(v, 'outline') * 1.6 * K, mouth = DreamVis.of(v, 'mouth') * 1.6 * K;
-    if (mark + hair + outline + mouth <= 0.004) return;
-    const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half, geo.h), a = F.u, S = skeleton(geo.cx, geo.ey, geo.half, t, geo.h);
+    const mark = DreamVis.of(v, 'mark') * HINT * K, hair = DreamVis.of(v, 'hair') * RARE * K, outline = DreamVis.of(v, 'outline') * RARE * K, mouth = DreamVis.of(v, 'mouth') * RARE * K, nose = DreamVis.of(v, 'nose') * RARE * K;
+    if (mark + hair + outline + mouth + nose <= 0.004) return;
+    const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u, S = skeleton(geo.cx, geo.ey, geo.half, t);
     const strands = S.filter(k => k.name === 'strand').map(k => k.pts), jaws = S.filter(k => k.name === 'jaw').map(k => k.pts), lip = n => S.find(k => k.name === n).pts;
     const pr = (s, e) => smooth(seg(v.fullForm, s, e)), pH = (s, e) => smooth(seg(v.hintForm, s, e));
     const light = (hue, p, r, al) => { if (al > 0.004) stamp(c, mono ? pale() : glow(hue), p[0], p[1], r, al); };
@@ -304,14 +306,14 @@
       for (let k = 0; k < 4; k++) { const an = T * 0.8 + k * TAU / 4; light(180, [lure[0] + Math.cos(an) * a * 0.42, lure[1] + Math.sin(an) * a * 0.3], a * 0.09, 0.6 * la); }
       const fa = hair * pr(0, 0.8), rays = [];
       if (fa > 0.004) {
-        const room = F(0, -3.3)[1] - F(0, -4.6)[1];     // as tall as the screen leaves room above the head
+        const room = a * 1.3;                           // how tall they stand over the head
         for (let k = -5; k <= 5; k++) { const b0 = F(k * 0.62, -3.3 + Math.abs(k) * 0.12); rays.push(tentacle(b0[0], b0[1], -PI / 2 + k * 0.17, room * (0.96 - Math.abs(k) * 0.077), 6, T * 0.6, k * 1.3, 0.14)); }
         fill(215, 0.1 * fa); c.beginPath(); rays.forEach((P, i) => c[i ? 'lineTo' : 'moveTo'](P[0][0], P[0][1])); for (let i = rays.length - 1; i >= 0; i--) { const e = rays[i][6]; c.lineTo(e[0], e[1] + a * 0.12 * (i % 2)); } c.fill();   // the fin's skin between them
         fils(c, rays, 200, a * 0.01, 0.6 * fa, pr(0, 0.8), mono); tips(c, rays, 170, a * 0.09, 0.7 * fa * pr(0.5, 1), mono);
       }
       const oa = outline * pr(0.2, 1);
       jaws.forEach((P, k) => { beads(c, P, 215, a * 0.085, 0.8 * oa, T, { step: 2, freq: 0.3, speed: 1.6, ph: k * 3, m: pr(0.2, 0.8) }, mono); beads(c, P.map(q => [geo.cx + (q[0] - geo.cx) * 0.9, q[1] - a * 0.12]), 190, a * 0.045, 0.6 * oa, T, { step: 3, freq: 0.5, speed: -1.4, ph: k, m: pr(0.3, 0.9) }, mono); });
-      for (const o of [-1, 1]) for (let q = 0; q < 6; q++) light(180 + q * 8, F(o * (1.5 + q * 0.4), 1.5 + q * q * 0.05), a * 0.09, oa * (0.3 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(T * 1.7 - q * 0.9 + o), 2)));
+      for (const o of [-1, 1]) for (let q = 0; q < 6; q++) light(180 + q * 8, F(o * (1.5 + q * 0.34), 1.3 + q * q * 0.035), a * 0.09, oa * (0.3 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(T * 1.7 - q * 0.9 + o), 2)));
     } else {
       // an anemone: a small crown on the forehead, long arms swaying where hair would fall
       const la = mark * pH(0.2, 1), mid = F(0, -2.8), crown = [];
@@ -330,12 +332,21 @@
     if (mode !== 'angler' && mode !== 'anemone') {     // (medusa) the jaw and the cheeks: rows of photophores – dots, not lines
       const fa = outline * pr(0.3, 1), rr = rng(21);
       jaws.forEach((P, k) => beads(c, P, 190, a * 0.075, 0.8 * fa, T, { step: 2, freq: 0.3, speed: 1.6, ph: k * 3, m: pr(0.3, 0.8) }, mono));
-      for (const o of [-1, 1]) for (let j = 0; j < 3; j++) for (let q = 0; q < 6; q++) light(175 + j * 25, F(o * (1.5 + q * 0.38 + j * 0.12), 1.55 + j * 0.42 + q * q * 0.035), a * (0.085 - j * 0.012), fa * (0.25 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(T * 1.7 - q * 0.9 + j * 2 + o), 2)) * (0.6 + 0.4 * rr()));
+      for (const o of [-1, 1]) for (let j = 0; j < 3; j++) for (let q = 0; q < 6; q++) light(175 + j * 25, F(o * (1.5 + q * 0.3 + j * 0.1), 1.2 + j * 0.33 + q * q * 0.018), a * (0.085 - j * 0.012), fa * (0.25 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(T * 1.7 - q * 0.9 + j * 2 + o), 2)) * (0.6 + 0.4 * rr()));
     }
-    const ma = mouth * pr(0.4, 1);                     // the mouth: closed, a soft membrane with a faint light behind it – a breath
+    const na = nose * pr(0.3, 1);                      // the nose: two fine filaments with rows of lights down its sides, a few under it, a glow on its tip
+    if (na > 0.004) {
+      const hue = mode === 'angler' ? 200 : mode === 'anemone' ? 300 : 185;
+      const sides = S.filter(k => k.name === 'nose side').map(k => k.pts);
+      fils(c, sides.concat([lip('nose base')]), hue, a * 0.007, 0.5 * na, pr(0.3, 0.9), mono);
+      sides.forEach((P, i) => beads(c, P, hue, a * 0.07, na, T, { step: 2, freq: 0.5, speed: 1.4, ph: i * 2, m: pr(0.3, 0.9) }, mono));
+      beads(c, lip('nose base'), hue + 20, a * 0.05, 0.75 * na, T, { step: 3, freq: 0.5, speed: -1.2, ph: 1 }, mono);
+      light(hue, lip('nose tip')[0], a * 0.55, 0.4 * na);
+    }
+    const ma = mouth * pr(0.4, 1);                     // the mouth: closed, a soft membrane with a faint light behind it
     if (ma > 0.004) {
       const hue = mode === 'angler' ? 200 : mode === 'anemone' ? 290 : 322, up = lip('upper lip'), lw = lip('lower lip');
-      light(hue, F(0, 3.95), a * 1.1 * clamp((lw[10][1] - up[15][1]) / (a * 0.88), 0.3, 1), 0.4 * ma);   // (as small as the face is pressed together)
+      light(hue, F(0, 2.75), a * 0.9, 0.4 * ma);
       fill(hue, 0.6 * ma); trace(c, up); for (let i = lw.length - 1; i >= 0; i--) c.lineTo(lw[i][0], lw[i][1]); c.fill();
       fils(c, [lip('lips')], hue + 3, a * 0.014, ma, undefined, mono);
     }

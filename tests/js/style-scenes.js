@@ -23,7 +23,7 @@ window.StyleScenes = (() => {
   const LOOKS = Object.keys(DreamEye.LOOKS), EMO = Object.keys(DreamEye.EMO);
   const LIFE = ['cloud', 'bloom', 'mandala', 'tree', 'moth', 'bubbles', 'aurora', 'orbit', 'tear', 'stars', 'ember', 'fireheart', 'sparks', 'zzz'];
   const thing = (kind, i, x, y, size) => ({ kind, x, y, size, hue: hue + i * 40, spin: i % 2 ? 1 : -1, side: 0, life: 9000, dir: 0.4, wob: 1, puffs: Array.from({ length: 10 }, (_, k) => [k * 0.63 - 0.5, 0.6 + 0.05 * k - 0.5, 0.4 + (k * 0.37) % 0.4]) });
-  const geo = { cx: W / 4, ey: H / 2, A: 48, half: 58, h: H, q: 1 };
+  const geo = { cx: W / 4, ey: H / 2, A: 48, half: 58, q: 1 };
   const faces = level => g => {                        // the faces of light, drawn around a pair of eyes
     DreamStyle.face().MODES.forEach((mode, i) => {
       g.save(); g.translate((i % 3) * (W / 3) - W / 12, (i / 3 | 0) * (H / 2) - H / 4 + 40); g.scale(0.62, 0.62);

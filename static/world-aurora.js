@@ -9,7 +9,7 @@
    corona rings the iris, a warm line lies under the lower lid. What today's look shows as signs has its own form here:
    a small warm sun dog instead of a heart, ice dust glittering instead of stars, slow snow under dimming pillars instead
    of letters, an auroral corona instead of the triangle. Of a face there is what the face rule lets through
-   (static/dreamvis.js), and nothing between the eyes and the mouth.
+   (static/dreamvis.js) – the nose, in the rare moment, as a slim pillar of light with a star on its tip.
 
    Everything is stamped lights and rays (drawn once, static/dreambrush.js), additive – no blur, no shadow, no filter:
    old phones. On a weak device the rays stand wider apart. Registers itself with the style layer (static/dreamstyle.js). */
@@ -344,25 +344,26 @@
 
   // ---------- the faces of light ----------
   // Three skies whose eyes these may be. v is the face rule's word: the sign on the forehead comes with the hints; what
-  // falls where hair would, the low light along the jaw and the mouth only in the rare moment, and faintly. The brow is
+  // falls where hair would, the low light along the jaw, the nose and the mouth only in the rare moment, clearly then. The brow is
   // the eye's own. Drawn twice by the page: without `ink` into the mask the dream shines through (so: without
   // colours), with it as the world's own glow over that.
   const FACES = ['veil', 'crown', 'pillars'];
+  const HINT = 1.2;                                    // the sign on the forehead: a little stronger than it was first drawn
+  const RARE = 1.25;                                   // light adds up thinly: what comes in the rare moment is drawn a little above its share
   function face(c, mode, t, geo, v, ink, inkAl = 1) {
     const mono = ink === undefined, K = mono ? 0.5 : Math.min(1, inkAl * 4.5);
-    const mark = DreamVis.of(v, 'mark') * K, hair = DreamVis.of(v, 'hair') * 1.7 * K, outline = DreamVis.of(v, 'outline') * 1.7 * K, mouth = DreamVis.of(v, 'mouth') * 1.7 * K;
-    if (mark + hair + outline + mouth <= 0.004) return;
-    const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half, geo.h), a = F.u, S = skeleton(geo.cx, geo.ey, geo.half, t, geo.h);
+    const mark = DreamVis.of(v, 'mark') * HINT * K, hair = DreamVis.of(v, 'hair') * RARE * K, outline = DreamVis.of(v, 'outline') * RARE * K, mouth = DreamVis.of(v, 'mouth') * RARE * K, nose = DreamVis.of(v, 'nose') * RARE * K;
+    if (mark + hair + outline + mouth + nose <= 0.004) return;
+    const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u, S = skeleton(geo.cx, geo.ey, geo.half, t);
     const strands = S.filter(k => k.name === 'strand').map(k => k.pts), jaws = S.filter(k => k.name === 'jaw').map(k => k.pts), lips = S.find(k => k.name === 'lips').pts;
     const pr = (s, e) => smooth(seg(v.fullForm, s, e)), pH = (s, e) => smooth(seg(v.hintForm, s, e));
     const V = k => mono ? 3 : k, L = spr => mono ? pale() : spr(), m0 = F(0, -2.6), tw = 0.75 + 0.25 * Math.sin(T * 2.3);
-    const over = y => Math.max(a * 0.25, F(0, y)[1] - (geo.h || 0) * 0.01);   // the room above a height of the face: nothing stands taller
     c.save();
     if (mode === 'veil') {
       // veils where hair would fall, a low band of light along the jaw; on the forehead a brighter star in its small corona
       const la = mark * pH(0.2, 1);
       if (la > 0.004) { stamp(c, mono ? haloPale() : halo(), m0[0], m0[1], a * 0.62, 0.55 * la * tw); stamp(c, L(green), m0[0], m0[1], a * 0.85, 0.5 * la); stamp(c, L(white), m0[0], m0[1], a * 0.17, la * tw); c.globalAlpha = 1; }
-      const tall = Math.min(a * 1.2, over(-3.6));
+      const tall = a * 1.2;
       if (hair > 0.004) strands.forEach((P, k) => {
         const i = k % 5; if (i % 2) return;
         const sway = P.map((q, j) => [q[0] + Math.sin(T * 0.5 - j * 0.16 + k) * a * 0.1 * (j / P.length), q[1]]);
@@ -374,7 +375,7 @@
       const la = mark * pH(0.2, 1);
       if (la > 0.004) { ringOfLight(c, m0[0], m0[1], a * 0.55 * (0.5 + 0.5 * pH(0.2, 0.9)), la, mono); stamp(c, L(white), m0[0], m0[1], a * 0.12, la * tw); stamp(c, L(ice), m0[0], m0[1], a * 0.5, 0.35 * la); c.globalAlpha = 1; }
       if (hair > 0.004) {
-        const mid = F(0, -1.6), arc = [], tall = Math.min(a * 1.5, over(-4.0) * 0.95);
+        const mid = F(0, -1.6), arc = [], tall = a * 1.5;
         for (let k = 0; k <= 40; k++) { const an = PI * (0.1 + 0.8 * k / 40); arc.push(F(-3.75 * Math.cos(an), -1.6 - 2.4 * Math.sin(an))); }
         const grow = pr(0, 0.8);
         curtain(c, arc, u => tall * (0.55 + 0.45 * Math.sin(PI * u)) * grow, T, 24, 0.8 * hair, V(0), a * 0.075, outward(mid[0], mid[1]));
@@ -385,22 +386,28 @@
     } else {
       // light pillars standing where hair would fall, ice dust glittering along the jaw; on the forehead a star with a pillar over it
       const la = mark * pH(0.2, 1);
-      if (la > 0.004) { pillar(c, V(2), m0[0], m0[1] + a * 0.1, a * 0.3, Math.min(a * 1.5, over(-2.6) * 0.9) * pH(0.2, 1), 0.7 * la); stamp(c, L(ice), m0[0], m0[1], a * 0.7, 0.5 * la); stamp(c, L(white), m0[0], m0[1], a * 0.17, la * tw); c.globalAlpha = 1; }
+      if (la > 0.004) { pillar(c, V(2), m0[0], m0[1] + a * 0.1, a * 0.3, a * 1.5 * pH(0.2, 1), 0.7 * la); stamp(c, L(ice), m0[0], m0[1], a * 0.7, 0.5 * la); stamp(c, L(white), m0[0], m0[1], a * 0.17, la * tw); c.globalAlpha = 1; }
       if (hair > 0.004) for (const o of [-1, 1]) for (let j = 0; j < 5; j++) {
         const foot = F(o * (4.05 + j * 0.5), 0.8 + ((j * 3) % 5) * 0.95), top = F(0, -3.9 + ((j * 2) % 5) * 0.5)[1], grow = pr(j * 0.08, 0.6 + j * 0.08);
-        pillar(c, V([0, 2, 1][j % 3]), foot[0] + Math.sin(T * 0.3 + j + o) * a * 0.04, foot[1], a * (0.34 - j * 0.03), Math.max(a, foot[1] - Math.max(top, a * 0.2)) * grow, hair * (0.5 + 0.4 * n1(T * 0.4 + j * 3, 5 + o)));
+        pillar(c, V([0, 2, 1][j % 3]), foot[0] + Math.sin(T * 0.3 + j + o) * a * 0.04, foot[1], a * (0.34 - j * 0.03), Math.max(a, foot[1] - top) * grow, hair * (0.5 + 0.4 * n1(T * 0.4 + j * 3, 5 + o)));
         stamp(c, L(white), foot[0], foot[1] - a * 0.04, a * 0.09, hair * grow * 0.8);
       }
       const oa = outline * pr(0.2, 1), rr = rng(31);
       if (oa > 0.004) jaws.forEach((P, k) => { for (let i = 4; i < P.length; i += 3) { const q = P[i], z = Math.pow(0.5 + 0.5 * Math.sin(T * 2.2 + i * 1.7 + k * 3), 2); stamp(c, L(i % 2 ? white : ice), q[0] + (rr() - 0.5) * a * 0.3, q[1] + (rr() - 0.5) * a * 0.3, a * (0.05 + 0.07 * z), oa * (0.3 + 0.7 * z)); } });
       c.globalAlpha = 1;
     }
-    const ma = mouth * pr(0.4, 1);                     // the mouth: closed, a warm breath – low rays on the line of the lips, a faint warm light
+    const na = nose * pr(0.3, 1);                      // the nose: a slim pillar of light down its ridge, a star on its tip, a low glimmer under it
+    if (na > 0.004) {
+      const tip = S.find(k => k.name === 'nose tip').pts[0];
+      pillar(c, V(2), tip[0], tip[1] + a * 0.14, a * 0.22, a * 1.1 * pr(0.3, 0.9), 0.65 * na);
+      curtain(c, S.find(k => k.name === 'nose base').pts, a * 0.14, T, 52, 0.6 * na, V(0), a * 0.03);
+      stamp(c, L(ice), tip[0], tip[1], a * 0.42, 0.3 * na); stamp(c, L(white), tip[0], tip[1], a * 0.1, 0.8 * na * tw); c.globalAlpha = 1;
+    }
+    const ma = mouth * pr(0.4, 1);                     // the mouth: closed, warm – low rays on the line of the lips, a soft warm light
     if (ma > 0.004) {
-      const room = F(0, 3.8)[1] - F(0, 2.6)[1];        // (as small as the face is pressed together: nothing reaches up towards the eyes)
-      curtain(c, lips, Math.min(a * 0.3, room * 0.5), T, 50, 0.85 * ma, V(1), a * 0.035);
+      curtain(c, lips, a * 0.3, T, 50, 0.85 * ma, V(1), a * 0.035);
       glowLine(c, [lips], 335, a * 0.006, 0.4 * ma, mono);
-      const p = F(0, 3.95); stamp(c, L(warm), p[0], p[1], Math.min(a * 0.9, room * 0.85), 0.3 * ma);
+      const p = F(0, 2.75); stamp(c, L(warm), p[0], p[1], a * 0.8, 0.3 * ma);
     }
     c.restore(); c.globalAlpha = 1;
   }
