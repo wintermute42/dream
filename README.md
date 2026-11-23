@@ -10,7 +10,7 @@
 Dream is an endless, ever-changing stream of pictures: a fast image model (SD-Turbo or SDXL-Turbo) turns each picture
 into the next. It runs on a Mac with Apple Silicon, in the browser, only on `127.0.0.1` (the phone remote and a
 second output device join over the home Wi-Fi when you allow it). It computes either **locally** on the Mac's GPU or
-on a **cloud GPU** you rent by the hour (Scaleway in Paris or RunPod in Europe). It reacts to music, to a camera, to
+on a **cloud GPU** you rent by the hour (RunPod, data centres in Europe). It reacts to music, to a camera, to
 movement (hands, fire, LEDs), to MIDI controllers and body sensors, and can be driven by an autopilot.
 
 The whole interface is available in English and German (switch **DE | EN** at the top right).
@@ -58,8 +58,8 @@ The whole interface is available in English and German (switch **DE | EN** at th
 **Cloud GPU**
 
 - [Cloud GPU](#cloud-gpu)
-  - [Scaleway: set up once](#scaleway-set-up-once)
   - [RunPod: set up once](#runpod-set-up-once)
+  - [Scaleway (currently unavailable)](#scaleway-currently-unavailable)
 
 **Help and more**
 
@@ -99,7 +99,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 | Chrome (or another current browser) | yes | panel and stage; Chrome for `--beamer` and the installable apps |
 | [Ollama](https://ollama.com) with `llama3.2:3b` | optional | prompt ideas and generated playlists |
 | `ffmpeg` (`brew install ffmpeg`) | optional | saving clips as video |
-| [Scaleway CLI](https://www.scaleway.com/en/cli/) or a RunPod account | optional | a cloud GPU instead of the Mac's |
+| A [RunPod](https://www.runpod.io/) account | optional | a cloud GPU instead of the Mac's |
 
 ```bash
 ./dream.sh
@@ -1198,10 +1198,12 @@ hit → flash. A planned wristband and finger glove send in the same format.
 
 ## Cloud GPU
 
-A rented GPU computes much faster than the Mac, especially SDXL-Turbo and the style models. Two providers:
-**Scaleway** (Paris, billed in €) and **RunPod** (data centres in Europe, billed in $ per second). Under “Computing” →
-**Cloud GPU** the list has both; start, delete, the cost display and the automatic deletion after 2 hours work the
-same way. After every restart Dream first computes locally again – the cloud is not remembered, so it is never chosen
+A rented GPU computes much faster than the Mac, especially SDXL-Turbo and the style models. Dream rents it
+at **RunPod** (data centres in Europe, billed in $ per second): under “Computing” → **Cloud GPU** the list has RunPod's
+GPUs, the RTX 4090 chosen. **Scaleway** (Paris, billed in €) is currently unavailable – Scaleway accepts no new GPU
+instances for the time being – and not in the list; it is still usable from the command line, see
+“[Scaleway (currently unavailable)](#scaleway-currently-unavailable)”. After every restart Dream first computes
+locally again – the cloud is not remembered, so it is never chosen
 by accident. Camera, picture and video frames and the prompt then go to your own machine at the provider; speech and
 music analysis stay on the Mac.
 
@@ -1246,26 +1248,6 @@ softer round by round). With a camera picture the upload fell from about 57 to 2
 
 <sub>[↑ Contents](#contents)</sub>
 
-### Scaleway: set up once
-
-```bash
-brew install scw
-scw init
-```
-
-`scw init` asks for access key and secret key (they stay in `~/.config/scw/config.yaml` on the Mac); choose the default
-zone **fr-par-2**, telemetry **no**, **add** the local SSH key. `dream-cloud` creates machines only in the default
-project of this configuration (`scw config get default-project-id`).
-
-**SSH key:** Scaleway console → IAM → SSH keys – the key from `~/.ssh/id_rsa.pub` must be there, otherwise Dream does
-not get onto the machine (it costs anyway, until `dream-cloud stop`).
-
-**GPU quota:** new accounts are often not allowed to create a GPU (“quota exceeded … 0/0”). Check in the Scaleway
-console → Organization → Organization Dashboard → tab **Quotas**, product “Instances”, search “L4”: if L4-1-24G shows at
-least 1, it works. Otherwise have it unlocked: **“Verify ID”** at the top or **“Contact support”** with “Instances,
-L4-1-24G, fr-par-2, quota 1”. Prices: L4 (24 GB) about €0.79 per hour, L40S (48 GB) about €1.47, H100 (80 GB) about
-€2.87; every type needs its own quota.
-
 ### RunPod: set up once
 
 1. An account on runpod.io, top up credit under **Billing** (from $10 for many hours). Without credit nothing starts.
@@ -1286,6 +1268,31 @@ CUDA 13; on machines with an older driver (12.6 or newer) `dream-cloud` installs
 (≈ 190 ms). The picture rate depends mostly on the line, not the GPU: each picture must go up and come back, the way to
 the data centre costs ~35 ms. What helps: a faster upload (cable instead of Wi-Fi, fibre), **384 px** instead of 512,
 and the line saving above.
+
+### Scaleway (currently unavailable)
+
+Scaleway accepts no new GPU instances for the time being, so the panel and Dream Control do not offer its GPUs. The
+way stays in `dream-cloud` and is still usable from the command line: `./dream-cloud start --type L4-1-24G` (also
+`L40S-1-48G`, `H100-1-80G`); status, `stop`, the cost display and the automatic deletion work as with RunPod. Without
+`--type`, `dream-cloud start` takes RunPod's RTX 4090. Set up once:
+
+```bash
+brew install scw
+scw init
+```
+
+`scw init` asks for access key and secret key (they stay in `~/.config/scw/config.yaml` on the Mac); choose the default
+zone **fr-par-2**, telemetry **no**, **add** the local SSH key. `dream-cloud` creates machines only in the default
+project of this configuration (`scw config get default-project-id`).
+
+**SSH key:** Scaleway console → IAM → SSH keys – the key from `~/.ssh/id_rsa.pub` must be there, otherwise Dream does
+not get onto the machine (it costs anyway, until `dream-cloud stop`).
+
+**GPU quota:** new accounts are often not allowed to create a GPU (“quota exceeded … 0/0”). Check in the Scaleway
+console → Organization → Organization Dashboard → tab **Quotas**, product “Instances”, search “L4”: if L4-1-24G shows at
+least 1, it works. Otherwise have it unlocked: **“Verify ID”** at the top or **“Contact support”** with “Instances,
+L4-1-24G, fr-par-2, quota 1”. Prices: L4 (24 GB) about €0.79 per hour, L40S (48 GB) about €1.47, H100 (80 GB) about
+€2.87; every type needs its own quota.
 
 ---
 
@@ -1326,7 +1333,8 @@ and the line saving above.
 - **“No answer from the AI for a while – reconnecting …”** (#177): the stage got no answer for 10 s (the first
   picture of a connection: 3 minutes) and opens the line anew by itself; a single broken picture never stops it.
 - **Speech input shows an error:** restart Dream; really hold key V (too short → “Too short”).
-- **Scaleway “quota exceeded”:** the GPU quota is missing, see “Scaleway: set up once”. Dream says so in the Computing
+- **Scaleway “quota exceeded”** (command line only for now): the GPU quota is missing, see “Scaleway (currently
+  unavailable)”. Dream says so in the Computing
   card (“Start failed: no GPU quota for … – … Quotas”) and switches back to “Local” by itself; nothing costs. The ID
   verification alone is not enough – the quota must also be requested from the support.
 - **Chip “☁ …” below the preview:** red means a GPU runs or starts (it costs money); neutral “not started” means the

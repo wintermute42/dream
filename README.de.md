@@ -9,7 +9,7 @@
 
 Dream ist ein endloser, sich ständig verwandelnder Bilderstrom: Ein schnelles Bildmodell (SD-Turbo bzw. SDXL-Turbo)
 verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im Browser, nur unter
-`127.0.0.1`. Gerechnet wird wahlweise **lokal** auf der Apple-GPU oder auf einer **Scaleway-GPU** in Paris.
+`127.0.0.1`. Gerechnet wird wahlweise **lokal** auf der Apple-GPU oder auf einer gemieteten **Cloud-GPU** (RunPod, Rechenzentren in Europa).
 
 <p align="center"><img src="docs/images/stage-de.webp" alt="Ein Traum auf der Bühne – SD-Turbo macht aus jedem Bild das nächste" width="420"></p>
 
@@ -53,10 +53,10 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 
 **Cloud-GPU**
 
-- [Scaleway-GPU](#scaleway-gpu)
-  - [Einmal einrichten](#einmal-einrichten)
+- [Cloud-GPU](#cloud-gpu)
   - [Benutzen](#benutzen)
-- [RunPod-GPU (zweiter Cloud-Anbieter)](#runpod-gpu-zweiter-cloud-anbieter)
+- [RunPod-GPU](#runpod-gpu)
+- [Scaleway-GPU (zurzeit nicht verfügbar)](#scaleway-gpu-zurzeit-nicht-verfügbar)
 
 **Hilfe und mehr**
 
@@ -79,7 +79,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 | Handy verbinden | auf der Bühne **Q** → QR-Code scannen (siehe unten) |
 | Alle Optionen | `./dream.sh --help` |
 | Beenden | Strg+C im Terminal |
-| Scaleway-GPU prüfen | `./dream-cloud status` |
+| Cloud-GPU prüfen | `./dream-cloud status` |
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -95,7 +95,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 | Chrome (oder ein anderer aktueller Browser) | ja | Bedienfeld und Bühne; Chrome für `--beamer` und die installierbaren Apps |
 | [Ollama](https://ollama.com) mit `llama3.2:3b` | optional | Prompt-Ideen und erzeugte Playlists |
 | `ffmpeg` (`brew install ffmpeg`) | optional | Clips als Video speichern |
-| [Scaleway CLI](https://www.scaleway.com/de/cli/) oder ein RunPod-Konto | optional | eine Cloud-GPU statt der des Macs |
+| Ein [RunPod](https://www.runpod.io/)-Konto | optional | eine Cloud-GPU statt der des Macs |
 
 Auf dem Mac:
 
@@ -178,7 +178,7 @@ länger, scrollt der Kartenbereich statt umzubauen.
   Entsperren holt nach, was sich in der Zwischenzeit geändert hat.
 
 **Unter der Vorschau** stehen immer **Pause, Neu, Vollbild, Speichern**, die farbigen **Statusanzeigen** (Pause,
-Scaleway-GPU läuft, Bewegung ohne Kamera, Playlist, Musik, Syphon) und die **Auslastung**, jede Sekunde neu:
+Cloud-GPU läuft, Bewegung ohne Kamera, Playlist, Musik, Syphon) und die **Auslastung**, jede Sekunde neu:
 KI-Bilder pro Sekunde, GPU-Zeit pro Bild, wie viel Prozent der Zeit die KI rechnet, Anzeige-fps, Bildgröße und
 Modell, CPU von Dream und dem ganzen Mac, Speicher von Dream, GPU-Speicher und Speicher gesamt (sowie
 Bewegungs-Werte pro Sekunde, wenn die Bewegung an ist). Rot heißt: am Anschlag. Bleibt unter der Vorschau Platz (vor
@@ -206,7 +206,7 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   jeden Text ohne deutsche Fassung.
 - Die Handy-Fernbedienung hat Show, A−/A+ und 🌙 weiterhin; ihre Abschnitte lassen sich durch Tippen auf die Überschrift zuklappen.
 
-- **Rechnen auf:** „Lokal (Mac)“ oder „Scaleway-GPU“. Umschalten geht jederzeit, ohne Neustart.
+- **Rechnen auf:** „Lokal (Mac)“ oder „Cloud-GPU“. Umschalten geht jederzeit, ohne Neustart.
 - **Modell:** SD-Turbo (schnell) oder SDXL-Turbo (schöner, lokal sehr langsam, in der Cloud gut). Umschalten geht
   mitten in der Show: Das neue Modell lädt im Hintergrund (SD-Turbo Sekunden, SDXL-Turbo lokal etwa 20–60 s, beim
   allerersten Mal mit Download deutlich länger), das alte träumt so lange weiter, ein Chip zeigt „⏳ … wird geladen“.
@@ -523,12 +523,12 @@ Statt eigene Bilder vorzubereiten, lässt du Dream gezielt ein Bild oder einen k
   dem aktuellen Bild weiter. Mit 💾 gespeicherte Kopien in `~/Pictures/Dream/` bleiben.
 
 Gut zu wissen:
-- Gerechnet wird dort, wo auch der Traum rechnet (Mac oder Scaleway-GPU). Der Traum ruckelt währenddessen etwas,
+- Gerechnet wird dort, wo auch der Traum rechnet (Mac oder Cloud-GPU). Der Traum ruckelt währenddessen etwas,
   weil sich beide die GPU teilen.
 - Die Bühne bzw. das Bedienfeld muss offen sein, auch wenn du am Handy auf „Erzeugen“ tippst.
 - Clips brauchen **ffmpeg** auf dem Mac (`brew install ffmpeg`); fehlt es, sagt Dream das in der Karte.
 - Es ist kein echtes Videomodell: Die Bewegung ist eine Kamerafahrt durch den Traum. Clips mit echter, erfundener
-  Bewegung (Stable Video Diffusion) stehen als eigenes Ticket im Backlog (#57), sinnvoll auf der Scaleway-GPU.
+  Bewegung (Stable Video Diffusion) stehen als eigenes Ticket im Backlog (#57), sinnvoll auf der Cloud-GPU.
 
 ## Playlists und Autostart
 
@@ -1257,39 +1257,26 @@ Schlag → Blitz. Das geplante Armband und der Finger-Handschuh (Tickets #38, #3
 
 ---
 
-## Scaleway-GPU
+## Cloud-GPU
+
+Eine gemietete GPU rechnet viel schneller als der Mac, vor allem SDXL-Turbo und die Stil-Modelle. Dream mietet sie bei
+**RunPod** (Rechenzentren in Europa, Abrechnung in $ pro Sekunde): Unter „Rechnen“ → **Cloud-GPU** stehen in der Liste
+die GPUs von RunPod, die RTX 4090 ist vorgewählt. Einrichten: siehe „[RunPod-GPU](#runpod-gpu)“. **Scaleway** (Paris,
+in €) ist zurzeit nicht verfügbar – Scaleway nimmt vorübergehend keine neuen GPU-Instanzen an – und steht nicht in der
+Liste; auf der Kommandozeile geht es weiter, siehe
+„[Scaleway-GPU (zurzeit nicht verfügbar)](#scaleway-gpu-zurzeit-nicht-verfügbar)“.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
-### Einmal einrichten
-
-```bash
-brew install scw
-scw init
-```
-
-`scw init` fragt Access Key und Secret Key ab (sie bleiben in `~/.config/scw/config.yaml` auf dem Mac),
-Standard-Zone **fr-par-2** wählen, Telemetrie **no**, den lokalen SSH-Schlüssel **hinzufügen**. `dream-cloud`
-legt Instanzen nur im Standard-Projekt dieser Konfiguration an (`scw config get default-project-id`).
-
-**SSH-Schlüssel:** Scaleway-Konsole → IAM → SSH-Schlüssel – dort muss der Schlüssel aus `~/.ssh/id_rsa.pub` stehen,
-sonst kommt Dream nicht auf die Instanz (sie kostet dann trotzdem, bis `dream-cloud stop`).
-
-**GPU-Kontingent (Quota):** Neue Konten dürfen oft keine GPU anlegen („quota exceeded … 0/0“). Prüfen unter
-Scaleway-Konsole → Organisation → Organization Dashboard → Reiter **Quotas**, Produkt „Instances“, Suche „L4“:
-steht bei L4-1-24G mindestens 1, geht es. Sonst freischalten lassen: oben **„Verify ID“** (Ausweis) oder
-**„Contact support“** mit „Instances, L4-1-24G, fr-par-2, Quota 1“.
-
 ### Benutzen
 
-In der App „Scaleway-GPU“ wählen, GPU-Typ aussuchen, **Starten**, die Kostenabfrage bestätigen. Nach jedem Neustart
-von Dream rechnet es zunächst wieder lokal auf dem Mac – Scaleway wird nicht gemerkt, damit nie versehentlich die
-Cloud gewählt ist. Nach einigen
-Minuten (Instanz anlegen, Python und Modell laden) rechnet Dream in der Cloud. **Löschen** beendet sofort.
+In der App „Cloud-GPU“ wählen, GPU-Typ aussuchen, **Starten**, die Kostenabfrage bestätigen. Nach jedem Neustart
+von Dream rechnet es zunächst wieder lokal auf dem Mac – die Cloud wird nicht gemerkt, damit sie nie versehentlich
+gewählt ist. Nach einigen
+Minuten (Maschine anlegen, Python und Modell laden) rechnet Dream in der Cloud. **Löschen** beendet sofort.
 
-- L4 (24 GB): etwa 0,79 € pro Stunde, mit Festplatte und IP rund 0,80 €. L40S (48 GB): etwa 1,47 € pro Stunde.
-  H100 (80 GB): etwa 2,87 € pro Stunde – die schnellste, für einen Auftritt mit möglichst vielen Bildern pro Sekunde.
-  Jeder Typ braucht bei Scaleway ein eigenes GPU-Kontingent.
+- Empfohlen: RTX 4090 (etwa 0,70 $ pro Stunde; für Dream so schnell wie teurere Karten). Die Preise stehen in der
+  Liste und in der Frage vor dem Start.
 - **Turbo (#100, #131):** Auf der Cloud-GPU wird das Modell vor dem ersten Bild für die Karte übersetzt
   (torch.compile, TF32), schlank in einer Variante. Den übersetzten Code bringt `dream-cloud` als **Cache** auf den Mac
   (`~/.cache/dream/compile`, je GPU-Typ, PyTorch-Version und Modell) und beim nächsten Start wieder mit: Der **erste**
@@ -1304,31 +1291,30 @@ Minuten (Instanz anlegen, Python und Modell laden) rechnet Dream in der Cloud. *
   Vorschau steht „… Bilder/s · GPU … ms · Weg … ms · überlappend“: GPU = Rechenzeit pro Bild, Weg = Übertragung.
   Lokal auf dem Mac bringt das Überlappen kaum etwas (die Mac-GPU ist schon voll ausgelastet, der Weg nur ~5 ms);
   bei 150 ms Weg (simuliert) hielt es die Bildrate von 4,9 statt 2,9 Bildern/s.
-- Die Instanz wird **spätestens nach 2 Stunden automatisch gelöscht** (lokaler Zeitgeber auf dem Mac;
-  zusätzlich schaltet sich die Instanz selbst ab). Ist der Mac in der Zeit ausgeschaltet, bitte selbst
+- Die Maschine wird **spätestens nach 2 Stunden automatisch gelöscht** (lokaler Zeitgeber auf dem Mac;
+  zusätzlich schaltet sie sich selbst ab). Ist der Mac in der Zeit ausgeschaltet, bitte selbst
   prüfen: `./dream-cloud status`.
 - Bedienfeld und Dream Control zeigen den Zustand der GPU, ohne ständig nachzufragen (#176): Dream schaut selbst nach –
   alle paar Sekunden, solange eine GPU startet, stoppt oder in Gebrauch ist, sonst alle halbe Minute, ohne eingerichteten
   Anbieter nur selten – und sagt es ihnen. Gäste sehen von der Cloud nichts.
-- Kamera-, Bild- und Videobilder und der Prompt gehen dann an die eigene Instanz bei Scaleway (Paris). Sprache
+- Kamera-, Bild- und Videobilder und der Prompt gehen dann an die eigene Maschine beim Anbieter. Sprache
   und Musik-Analyse bleiben auf dem Mac.
 
 Auch im Terminal:
 
 ```bash
 ./dream-cloud status
-./dream-cloud start --type L4-1-24G --model sd-turbo
+./dream-cloud start --type runpod:RTX-4090 --model sdxl-turbo
 ./dream-cloud stop
 ```
 
-`stop` löscht Instanz, Festplatte und IP. Danach kostet nichts mehr.
+`stop` löscht Maschine, Festplatte und IP. Danach kostet nichts mehr.
 
-## RunPod-GPU (zweiter Cloud-Anbieter)
+## RunPod-GPU
 
-Wenn Scaleway kein Kontingent gibt: **RunPod** vermietet GPUs (RTX 4090, RTX 5090, H100) pro Sekunde – empfohlen RTX 4090 (für Dream so schnell wie teurere Karten, siehe unten), Dream nimmt
-Rechenzentren in **Europa** (kurzer Weg). Unter „Rechnen“ → **Cloud-GPU** stehen in der Liste beide Anbieter
-(„Scaleway (Paris)“ in €, „RunPod (Europa)“ in $); Starten, Löschen, Kostenanzeige und das automatische Löschen nach
-2 Stunden funktionieren genau wie bei Scaleway. Der Pod löscht sich zusätzlich selbst, falls der Mac aus ist.
+**RunPod** vermietet GPUs (RTX 4090, RTX 5090, H100) pro Sekunde – empfohlen RTX 4090 (für Dream so schnell wie teurere Karten, siehe unten), Dream nimmt
+Rechenzentren in **Europa** (kurzer Weg). Unter „Rechnen“ → **Cloud-GPU** stehen in der Liste „RunPod (Europa,
+eigene Rechenzentren)“ und die günstigere „RunPod Community“ (private Rechner), beide in $. Der Pod löscht sich zusätzlich selbst, falls der Mac aus ist.
 
 **Einmal einrichten:**
 1. Konto auf runpod.io, unter **Billing** Guthaben aufladen (ab 10 $ für viele Stunden). Ohne Guthaben startet nichts.
@@ -1365,6 +1351,34 @@ Größe; zurück kommt das Bild in voller Größe, der Beamer bleibt scharf. „
 von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorschau steht „↑ … KB ↓ … KB“.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
+
+## Scaleway-GPU (zurzeit nicht verfügbar)
+
+Scaleway nimmt vorübergehend keine neuen GPU-Instanzen an; deshalb bieten Bedienfeld und Dream Control seine GPUs
+zurzeit nicht an. Der Weg bleibt in `dream-cloud` und geht weiter auf der Kommandozeile:
+`./dream-cloud start --type L4-1-24G` (auch `L40S-1-48G`, `H100-1-80G`); Status, `stop`, Kostenanzeige und das
+automatische Löschen funktionieren wie bei RunPod. Ohne `--type` nimmt `dream-cloud start` die RTX 4090 von RunPod.
+Preise: L4 (24 GB) etwa 0,79 € pro Stunde, L40S (48 GB) etwa 1,47 €, H100 (80 GB) etwa 2,87 €; jeder Typ braucht bei
+Scaleway ein eigenes GPU-Kontingent.
+
+**Einmal einrichten:**
+
+```bash
+brew install scw
+scw init
+```
+
+`scw init` fragt Access Key und Secret Key ab (sie bleiben in `~/.config/scw/config.yaml` auf dem Mac),
+Standard-Zone **fr-par-2** wählen, Telemetrie **no**, den lokalen SSH-Schlüssel **hinzufügen**. `dream-cloud`
+legt Instanzen nur im Standard-Projekt dieser Konfiguration an (`scw config get default-project-id`).
+
+**SSH-Schlüssel:** Scaleway-Konsole → IAM → SSH-Schlüssel – dort muss der Schlüssel aus `~/.ssh/id_rsa.pub` stehen,
+sonst kommt Dream nicht auf die Instanz (sie kostet dann trotzdem, bis `dream-cloud stop`).
+
+**GPU-Kontingent (Quota):** Neue Konten dürfen oft keine GPU anlegen („quota exceeded … 0/0“). Prüfen unter
+Scaleway-Konsole → Organisation → Organization Dashboard → Reiter **Quotas**, Produkt „Instances“, Suche „L4“:
+steht bei L4-1-24G mindestens 1, geht es. Sonst freischalten lassen: oben **„Verify ID“** (Ausweis) oder
+**„Contact support“** mit „Instances, L4-1-24G, fr-par-2, Quota 1“.
 
 ---
 
@@ -1409,12 +1423,13 @@ von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorscha
 - **„Seit einer Weile keine Antwort von der KI – verbinde neu …“** (#177): Die Bühne bekam 10 s keine Antwort (beim
   ersten Bild einer Verbindung 3 Minuten) und baut die Leitung selbst neu auf; ein einzelnes kaputtes Bild hält sie nie an.
 - **Spracheingabe zeigt einen Fehler:** Dream neu starten; Taste V wirklich gedrückt halten (zu kurz → „Zu kurz“).
-- **Scaleway „quota exceeded“:** GPU-Kontingent fehlt, siehe „Scaleway-GPU → Einmal einrichten“. Dream sagt das in
+- **Scaleway „quota exceeded“** (zurzeit nur Kommandozeile): GPU-Kontingent fehlt, siehe „Scaleway-GPU (zurzeit nicht
+  verfügbar)“. Dream sagt das in
   der Karte Rechnen („Start fehlgeschlagen: kein GPU-Kontingent für … – … Quotas“) und schaltet von selbst auf
   „Lokal“ zurück; es entstehen keine Kosten. Die Freigabe der Ausweis-Prüfung allein reicht nicht – das Kontingent
   muss zusätzlich beim Support angefragt werden.
-- **Anzeige „☁ Scaleway“ unter der Vorschau:** rot heißt, eine GPU läuft oder startet (kostet Geld); neutral
-  „nicht gestartet“ heißt, Scaleway ist nur als Rechner gewählt. „Löschen“ ist nur aktiv, wenn etwas läuft, und
+- **Anzeige „☁ …“ unter der Vorschau:** rot heißt, eine GPU läuft oder startet (kostet Geld); neutral
+  „nicht gestartet“ heißt, die Cloud ist nur als Rechner gewählt. „Löschen“ ist nur aktiv, wenn etwas läuft, und
   zeigt „Wird gelöscht …“ und „Gelöscht ✓“.
 - **Bewegungs-Warnung oben rot:** Keine Kamera (Zugriff im Browser erlauben, Kamera anschließen) oder das KI-Modell
   ließ sich nicht laden (beim allerersten Einschalten von „Hände (KI)“ ist Internet nötig). Taste D zeigt, was die
