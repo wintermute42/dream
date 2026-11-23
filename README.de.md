@@ -821,6 +821,19 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
     und Schlaf sind langsame Blasen. Gemessen in einem Browser ohne Grafikkarte, der Prozessor vierfach gebremst:
     Dreamy Eyes etwa 19 Bilder pro Sekunde (Klassisch: 30), ein Traum-Fenster 6 (Klassisch: 8) bei voller Auflösung –
     beide Seiten senken ihre Auflösung wie bisher selbst, wenn ein Gerät nicht mitkommt.
+  - **Tusche & Aquarell** (#223) – helle Pigmente auf schwarzem Papier. Flächen sind Lavierungen mit nassen Rändern und
+    Körnung, Linien sind Pinselstriche, die anschwellen, dünner werden und trocken auslaufen; die Linien „kochen“ ein
+    wenig, wie in handgezeichneter Animation. Das Auge ist eine beinfarbene Lavierung mit gepinseltem Irisring, blankem
+    Papier als Glanzlicht und einem satten Lidstrich, der in einen Flügel ausläuft; die Braue ist ein Pinselstrich. Um
+    die Augen: Blütenlavierungen, eine Pigmentblüte, die sich ausbreitet, ein Ensō, ein Tuschezweig, der Blatt für Blatt
+    wächst, ein Vogel aus zwei Strichen, Tropfen im nassen Papier, der Zug eines breiten Pinsels. Die Lichtgesichter
+    heißen *sumi*, *willow* und *plum* (ein kleines Zeichen auf der Stirn mit den Andeutungen; Haarstriche und
+    Lavierungen, eine dünne Kieferlinie und geschlossene Lippen nur im seltenen Moment). Im Fenster scheint der Traum
+    durch Lavierungsflecken, um ein gepinseltes Ensō mit dem Auge oder dem gefalteten Traum darin; die unmöglichen
+    Figuren sind lavierte Scheiben mit gepinselten Kanten. Feuer sind Lavierungen in Zinnober und Ocker mit
+    aufsteigenden Flammenstrichen; wo Klassisch ein Herz zeigt, blüht ein Tropfen rotes Pigment, wo es Sterne zeigt, ist
+    es ein Spritzer, und Schlaf sind langsame Ringe aus Lavierung. Gemessen wie oben (Prozessor vierfach gebremst):
+    Dreamy Eyes etwa 20 Bilder pro Sekunde, ein Traum-Fenster 4 (Klassisch im selben Lauf: 36 und 8).
 - **Weibliche Augen:** eine Mandelform mit leicht angehobenem äußerem Augenwinkel, ein zarter rosé-violetter Lidschatten
   mit etwas Schimmer, ein Lidstrich mit kleinem Flügel, volle Wimpern, die zum äußeren Winkel hin länger und geschwungener
   werden (unten ein paar feine). **Die Brauen kommen nur mit den Andeutungen** (siehe oben) und zeigen dann ein Gefühl: Staunen (jemand ganz

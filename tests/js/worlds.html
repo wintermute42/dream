@@ -30,6 +30,7 @@ const watch = { parts: new Set(), life: [], pupils: [], letters: 0 };
 </script>
 <script src="/static/world-classic.js"></script>
 <script src="/static/world-deepsea.js"></script>
+<script src="/static/world-ink.js"></script>
 <script src="/tests/style-scenes.js"></script>
 <script>
 (async () => {
@@ -78,6 +79,9 @@ const watch = { parts: new Set(), life: [], pupils: [], letters: 0 };
           DreamStyle.life().draw(g, { ...S.thing(kind, 3, 300, 220, 60), variant: 'star' }, 900, 0.9, 60, 208, { H: 400, anchor: [300, 200, 40] });
           g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; r.signs[kind] = lit(c);
         }
+        // (as the pages make them: a thing of a mood comes without puffs)
+        for (const kind of ['tear', 'zzz', 'ember', 'fireheart']) DreamStyle.life().draw(g, { ...S.thing(kind, 1, 300, 220, 12), puffs: [], born: 1000 }, 500, 1, 12, 210, { H: 400 });
+        g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
         for (const shape of ['heart', 'star']) { g.clearRect(0, 0, 600, 400); S.eye(g, 300, 200, 200, false, { shape }); r.signs['pupil ' + shape] = lit(c); }
         r.borrowed = { life: [...new Set(watch.life)], pupils: [...new Set(watch.pupils)].filter(s => s === 'heart' || s === 'star') };
         r.letters = watch.letters; r.parts = [...watch.parts].sort();
