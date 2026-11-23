@@ -848,7 +848,8 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
     mit Locken am Ende, Lilien an den Schläfen, ein offener Heiligenschein mit Teilstrichen), *fern* (ein junger
     Farnwedel auf der Stirn; selten Ranken als Haar, ein Blätterkranz, ein gepunktetes Kinn) und *moth* (ein ruhender
     Falter auf der Stirn; selten ein Schleier feiner Linien, ein Heiligenschein aus Punkten) – geschlossene,
-    schraffierte Lippen nur im seltenen Moment, und keine Nase, obwohl der Entwurf eine hatte. Im Fenster ist der Traum
+    schraffierte Lippen und die Nase (eine Seite mit anschwellender Linie gestochen und im Schatten schraffiert, die
+    andere nur gepunktet) nur im seltenen Moment. Im Fenster ist der Traum
     eine Rosette, in ein Medaillon mit Teilstrichen gestochen, um dessen Rahmen Ranken wachsen; das dritte Auge sitzt
     mitten in einer Pusteblume; die unmöglichen Figuren sind Fläche für Fläche schraffiert, und ein Samen steigt die
     Treppe hinauf; der Himmel ist punktiert, in den Farben des Traums. Feuer sind gestochene Flammen mit Gold darin.

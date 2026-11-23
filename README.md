@@ -811,8 +811,8 @@ eyes** that invite people to step up and play:
     with hatched wings, hatched drops of dew, winged seeds circling an eye, a cloud of stipple. The faces of light are
     *lily* (a gem on a fine chain on the brow; rarely hair in bundles ending in curls, lilies at the temples, an open
     ticked halo), *fern* (a young crozier on the brow; rarely vines for hair, a wreath of leaves, a stippled jaw) and
-    *moth* (a moth at rest on the brow; rarely a veil of fine lines, a halo of stipple) – closed, hatched lips only in
-    the rare moment, and no nose although the design had one. In a window the dream is a rosette engraved in a ticked
+    *moth* (a moth at rest on the brow; rarely a veil of fine lines, a halo of stipple) – closed, hatched lips and the nose (one side cut
+    with a swelling line and hatched in its shade, the other only stippled) only in the rare moment. In a window the dream is a rosette engraved in a ticked
     medallion with vines growing round its frame, the third eye sits in the middle of a seed head, the impossible shapes
     are hatched face by face and a seed climbs the stairs; the sky is stipple in the dream's colours. Fire is engraved
     flames with gold inside. Instead of a heart there is a bud, instead of stars a seed head and drifting seeds, and
