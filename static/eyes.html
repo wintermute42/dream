@@ -238,7 +238,7 @@
         for (const k of Object.keys(aiFaces)) if (!(k in m.aimasks)) delete aiFaces[k];
         for (const [k, u] of Object.entries(m.aimasks)) aiFaceLoad(k, u);
       }
-      if (typeof m.world === 'string') { DreamStyle.use(m.world); vis.mode = null; }   // #221: the style world to draw in – its own faces of light
+      if (typeof m.world === 'string') { DreamStyle.use(m.world); if (vis.world !== DreamStyle.name) { vis.world = DreamStyle.name; vis.want = null; vis.face = DreamVis.turn(); } }   // #221: the style world to draw in – its own faces of light
       if (m.eyes_cfg) { trance.every = +m.eyes_cfg.trance_every || 0; tranceSchedule(performance.now(), true); }   // #172
       if (m.trance) tranceStart(performance.now());
       if (m.feed_taken === 'cam') camStop(T('Dream Control took the camera back – tap to lend it again.'));
@@ -288,19 +288,24 @@
   // Now and then hints come (the brows, the sign on the forehead of a face drawn in light), rarely – then clearly –
   // mouth, nose and outline. `?face=0|1|2` holds a level, to look at it. The rule is for what is drawn: the
   // faces painted by the AI and "you in the dream" stay whole.
-  const vis = { seed: Math.random() * 0x7fffffff | 0, cur: DreamVis.EYES_ONLY, round: -1, mode: null, quiet: 1, calm: 1,
-    hold: DreamVis.asked(location.search) };
+  // One face at a time: the face asked for (`want`) takes the place of the one shown (`mode`) only once that has faded
+  // out completely (DreamVis.step) – between two moments nothing shows anyway, a held level changes it in full view.
+  const vis = { seed: Math.random() * 0x7fffffff | 0, cur: DreamVis.EYES_ONLY, round: -1, want: null, face: DreamVis.turn(), shown: DreamVis.EYES_ONLY, quiet: 1, calm: 1,
+    hold: DreamVis.asked(location.search),
+    get mode() { return this.face.key; } };
   function visTick(t, dt) {
     // nothing of a face while something else takes the eyes' place; mouth and outline only while the eyes are calm
     const free = portal.phase === 'off' && !trance.on && you.moment < 0.05, calm = free && !enchanted() && st.energy < 0.6;
     vis.quiet = lerp(vis.quiet, free ? 1 : 0, 1 - Math.exp(-dt * 2)); vis.calm = lerp(vis.calm, calm ? 1 : 0, 1 - Math.exp(-dt * 1.2));
     vis.cur = DreamVis.damp(vis.hold >= 0 ? DreamVis.held(vis.hold) : DreamVis.at(t, vis.seed), vis.quiet, vis.quiet * vis.calm);
     const round = vis.hold >= 0 ? Math.floor(t / 20000) : vis.cur.round;   // (a held level: another face every 20 s)
-    if (vis.cur.level && (vis.round !== round || !vis.mode)) {   // a new moment: another face, another feeling
+    if (vis.cur.level && (vis.round !== round || !vis.want)) {   // a new moment: another face, another feeling
       vis.round = round;
-      const o = DreamStyle.face().MODES.filter(k => k !== vis.mode); vis.mode = o[Math.random() * o.length | 0];
+      const o = DreamStyle.face().MODES.filter(k => k !== vis.want); vis.want = o[Math.random() * o.length | 0];
       brow.idle = dream.lum < 0.3 && st.energy > 0.45 && Math.random() < 0.4 ? 'frown' : ['curious', 'doubt', 'joy', 'sad'][Math.random() * 4 | 0];   // frowning only in a dark, wild dream
     }
+    DreamVis.step(vis.face, vis.want, dt, vis.cur.hint);
+    vis.shown = DreamVis.damp(vis.cur, vis.face.al);   // what the face of light may show: the rule's word, and its turn
   }
   // #157: the brows show a feeling – surprise, joy, sadness, doubt, a frown, curiosity. #220: they come only with the
   // hints; what is felt then decides their shape, not whether they are there
@@ -611,6 +616,11 @@
     if (you.clear && you.iris > 0.02) DreamYou.cutout(you.d, youSrc(160));   // for the reflection: small, once for both eyes
   }
   const IN = 2600, OUT = 2400, OUT_YOU = 2600;        // "you in the dream" dissolves into the dream: streaks, sparks, then its mist blows away (#229)
+  // a painted face has to go while it is still coming: it goes from as far as it had come, never there at once
+  function portalLeave(t) {
+    const come = portal.phase === 'in' && portal.kind !== 'you' ? Math.min(1, Math.max(0, (t - portal.t0) / IN)) : 1;
+    portal.phase = 'out'; portal.t0 = t - (1 - come) * OUT;
+  }
   function portalTick(t) {
     const kinds = Object.keys(aiFaces);
     if (fire.on && fire.mind.mood === 'spirit' && fire.spiritFor !== fire.mind.changes) {   // #162, #218: the fire spirit takes her turn, burning
@@ -737,7 +747,7 @@
     if (trance.on) return;
     trance.on = true; trance.t0 = t;
     send({ eyes_mood: 'trance' });                     // #201: the dream windows open their third eye too
-    if (portal.phase === 'in' || portal.phase === 'hold') { portal.phase = 'out'; portal.t0 = t; }   // a painted face makes way
+    if (portal.phase === 'in' || portal.phase === 'hold') portalLeave(t);   // a painted face makes way
   }
   function tranceTick(t, dt, present) {
     trance.avg = lerp(trance.avg, st.energy, 1 - Math.exp(-dt / 90));   // what is usual for this dream (about 1.5 min)
@@ -808,12 +818,15 @@
       gr.addColorStop(0, `rgba(255,255,255,${bs.reveal})`); gr.addColorStop(0.7, `rgba(255,255,255,${0.85 * bs.reveal})`); gr.addColorStop(1, `rgba(255,255,255,${0.4 * bs.reveal})`);
       bk.fillStyle = gr; bk.fillRect(0, 0, w, h);
     }
-    if (bs.mix < 1) backMask(bs.prev, t, w, h, 1 - bs.mix);
-    backMask(bs.mode, t, w, h, bs.mix);
-    const facing = vis.cur.level > 0 && vis.mode;       // #220: a face drawn in light, as far as the rule lets it show
+    // the person's outline never lies over another mask: one goes completely, then the other comes (patterns of
+    // light blend into each other – the night would go dark between them)
+    const [was, is] = bs.mode === 'silhouette' || bs.prev === 'silhouette' ? DreamVis.handover(bs.mix) : [1 - bs.mix, bs.mix];
+    if (was > 0) backMask(bs.prev, t, w, h, was);
+    if (is > 0) backMask(bs.mode, t, w, h, is);
+    const facing = vis.shown.level > 0 && vis.mode;     // #220: a face drawn in light, as far as the rule lets it show
     // #221: drawn by the style world, around where the eyes are (in the mask's pixels)
     const q = w / W, [x0, y0, a] = eyesAt[0], [x1] = eyesAt[1], geo = { cx: (x0 + x1) / 2 * q, ey: y0 * q, A: a * q, half: (x1 - x0) / 2 * q, q };
-    if (facing) DreamStyle.face().draw(bk, vis.mode, t, geo, vis.cur);
+    if (facing) DreamStyle.face().draw(bk, vis.mode, t, geo, vis.shown);
     // the dream into the mask: slowly zooming and wandering, so the night never stands still
     bk.globalCompositeOperation = 'source-in';          // brighter than the dream itself: it glows out of the night
     const z = 1.25 + 0.15 * Math.sin(t / 11000), side = Math.max(w, h) * z;
@@ -825,7 +838,7 @@
     bk.drawImage(glowCur(), (w - side) / 2 + ox, (h - side) / 2 + oy, side, side);
     bk.globalAlpha = 1; bk.globalCompositeOperation = 'source-over';
     if (facing) {                                       // an own glow, so it shows even in a dark dream
-      bk.globalCompositeOperation = 'lighter'; DreamStyle.face().draw(bk, vis.mode, t, geo, vis.cur, `hsla(${hueOf(dream.col) + 20},80%,70%,`, 0.34); bk.globalCompositeOperation = 'source-over';
+      bk.globalCompositeOperation = 'lighter'; DreamStyle.face().draw(bk, vis.mode, t, geo, vis.shown, `hsla(${hueOf(dream.col) + 20},80%,70%,`, 0.34); bk.globalCompositeOperation = 'source-over';
     }
   }
 
