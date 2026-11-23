@@ -68,7 +68,8 @@ async def ctl(sock: WebSocket):
         outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
         outbox.post(sock, json.dumps({"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
                                          "cams": hub.live.get("cams", []), "lan": config.LAN,
-                                         "schema": settings.page_schema(), **hub.status_msg()}, ensure_ascii=False))
+                                         "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
+                                         **eyes.drift_msg(time.monotonic()), **hub.status_msg()}, ensure_ascii=False))
     await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
     try:

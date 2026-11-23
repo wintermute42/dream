@@ -123,21 +123,52 @@ for _k in WORLD_KEYS:
 # One world every `world_auto` seconds: it stays for a while, then the mix glides over to the next world in the list.
 # The server steps the mix (the pages follow it softly), so every eye and window shows the same and the sliders of the
 # panel and of Dream Control show where it is. A hand on the world, the target or the mix (panel, Dream Control, MIDI)
-# is noticed by its trace – the three settings are no longer what the drift left – and makes the drift wait
-# WORLD_HAND seconds, then it goes on from wherever the hand left the mix.
+# is noticed – one of the three settings was set by someone else than the drift (also to what it already was: a tap
+# on the world that shows), or they are no longer what the drift left – and makes the drift wait WORLD_HAND seconds,
+# then it goes on from wherever the hand left the mix. What the panel and Dream Control show of it – how long it still
+# waits, when the next world begins to come – they are told whenever it changes (`drift_msg`) and count down themselves.
 WORLD_STEP = 0.25                                  # seconds between two steps of the mix
 WORLD_STAY = 0.4                                   # the share of its time a world is shown alone
 WORLD_HAND = 180.0                                 # seconds the drift waits after a hand on the worlds
-drift: dict = {"left": None, "stay_from": None, "wait_until": 0.0, "at": None}
+drift: dict = {"left": None, "stay_from": None, "wait_until": 0.0, "at": None, "hand": False, "own": False, "told": None}
+
+
+def _world_hand() -> None:
+    if not drift["own"]:                           # (not the drift's own step)
+        drift["hand"] = True
+
+
+for _k in WORLD_KEYS:
+    hub.on_change(_k, _world_hand)
+
+
+def drift_msg(now: float) -> dict:
+    """What the panel and Dream Control show of the drift at the time `now` (seconds, monotonic): the seconds it still
+    waits after a hand, the seconds until the next world begins to come (None: it is off, waits or is on its way),
+    and whether it rests because nobody looks."""
+    every, stay = hub.state["world_auto"], drift["stay_from"]
+    wait = max(0.0, drift["wait_until"] - now) if every else 0.0
+    ahead = max(0.0, every * WORLD_STAY - (now - stay)) if every and not wait and stay is not None else None
+    return {"world_drift": {"wait": round(wait), "next": None if ahead is None else round(ahead),
+                            "idle": bool(every) and not world_watchers()}}
 
 
 async def world_step(now: float) -> None:
-    """One step of the drift at the time `now` (seconds, monotonic)."""
+    """One step of the drift at the time `now` (seconds, monotonic) – and a word to the pages when its state changed."""
+    await _drift_step(now)
+    every = hub.state["world_auto"]
+    state = (every, drift["wait_until"] if every and now < drift["wait_until"] else 0.0, drift["stay_from"], bool(world_watchers()))
+    if state != drift["told"]:
+        drift["told"] = state
+        await hub.broadcast(drift_msg(now))
+
+
+async def _drift_step(now: float) -> None:
     s, every = hub.state, hub.state["world_auto"]
     cur = tuple(s[k] for k in WORLD_KEYS)
     dt, drift["at"] = (min(1.0, now - drift["at"]) if drift["at"] is not None else 0.0), now   # (a stalled loop is no leap)
-    if drift["left"] is not None and cur != drift["left"]:      # a hand was on it
-        drift["wait_until"] = now + WORLD_HAND
+    if drift["hand"] or (drift["left"] is not None and cur != drift["left"]):   # a hand was on it
+        drift["wait_until"], drift["hand"] = now + WORLD_HAND, False
     drift["left"] = cur
     if not every or len(settings.WORLDS) < 2 or now < drift["wait_until"] or not world_watchers():
         drift["stay_from"] = None                  # nobody looks, it is off or it waits: time does not count
@@ -154,11 +185,15 @@ async def world_step(now: float) -> None:
         # there: the target is the world now, and the one after it the next target (the picture stays what it is)
         change = {"world": b, "world_to": settings.world_next(b), "world_mix": 0.0} if k >= 1 else {"world_mix": round(k, 4)}
     drift["stay_from"] = None
-    await hub.apply(change, persist=False, by="drift")
+    drift["own"] = True
+    try:
+        await hub.apply(change, persist=False, by="drift")
+    finally:
+        drift["own"] = False
     drift["left"] = tuple(s[k] for k in WORLD_KEYS)
 
 
-hub.on_change("world_auto", lambda: drift.update(wait_until=0.0))   # the drift chosen anew: it does not wait
+hub.on_change("world_auto", lambda: drift.update(wait_until=0.0, hand=False))   # the drift chosen anew: it does not wait
 
 
 async def world_loop():

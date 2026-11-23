@@ -24,17 +24,6 @@ window.DreamCommon = (() => {
     select.innerHTML = select.options[0].outerHTML + names.map(n => `<option value="${esc(n)}">${esc(I18N.name(n))}</option>`).join('');
   }
 
-  // #224: the controls of the crossfade between two style worlds (panel and Dream Control). The second world offers
-  // what the first offers – the worlds are listed once in a page; returns how to show the drift's pace, also when it
-  // is none of the offered ones (set from somewhere else)
-  function worldControls(from, to, pace) {
-    to.innerHTML = from.innerHTML;
-    return v => {
-      if (![...pace.options].some(o => o.value === String(v))) pace.add(new Option(I18N.t('Worlds drift: every {n} s', { n: v }), String(v)));
-      pace.value = String(v);
-    };
-  }
-
   // what a device remembers about its own view (text size, open cards …): prefs('dream-ui-')('fs') reads, …('fs', 18) writes
   const prefs = prefix => (k, v) => { try { if (v === undefined) return localStorage.getItem(prefix + k); localStorage.setItem(prefix + k, v); } catch (e) { return null; } };
 
@@ -155,5 +144,5 @@ window.DreamCommon = (() => {
     };
   }
 
-  return { hideKey, esc, fillPlaylists, worldControls, prefs, CLOUD_FALLBACK, fillGpus, askCloudStart, playlists, gallery, cameraSender, wakeLock };
+  return { hideKey, esc, fillPlaylists, prefs, CLOUD_FALLBACK, fillGpus, askCloudStart, playlists, gallery, cameraSender, wakeLock };
 })();

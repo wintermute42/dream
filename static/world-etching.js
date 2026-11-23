@@ -464,7 +464,7 @@
 
   // ---------- the faces of light ----------
   // Three beings of the plate whose eyes these may be. v is the face rule's word: the sign on the forehead comes with
-  // the hints; hair, the halo, the jaw, the nose and the hatched, closed lips only in the rare moment, clearly then.
+  // the hints, and fainter the jaw (the outline); hair, the halo, the nose and the hatched, closed lips only in the rare moment, clearly then.
   // The brow is the eye's own. Drawn twice by the page: without `ink` into the
   // mask the dream shines through (so: without colours), with it as the plate's own drawing over that.
   const FACES = ['lily', 'fern', 'moth'];
@@ -476,6 +476,7 @@
     const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u * 1.3, S = skeleton(geo.cx, geo.ey, geo.half, t);
     const strands = S.filter(k => k.name === 'strand').map(k => k.pts), jaws = S.filter(k => k.name === 'jaw').map(k => k.pts), lip = n => S.find(k => k.name === n).pts;
     const pr = (s, e) => smooth(seg(v.fullForm, s, e)), pH = (s, e) => smooth(seg(v.hintForm, s, e)), mk = F(0, -2.6);
+    const po = (s, e) => smooth(seg(Math.max(v.fullForm, v.hintForm), s, e));   // the outline is engraved with the hints already
     // a ring behind the head, in the face's own measure, open below
     const A0 = PI * 0.76, A1 = PI * 2.24, AM = (A0 + A1) / 2, arc = (r, a0, a1, n = 44) => Array.from({ length: n + 1 }, (_, k) => { const an = lerp(a0, a1, k / n); return F(Math.cos(an) * r, 0.2 + Math.sin(an) * r); });
     const beside = (P, off, n) => P.map((p, i) => { const p0 = P[Math.max(0, i - 1)], p1 = P[Math.min(P.length - 1, i + 1)], l = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) || 1, f = Math.sin(PI * Math.min(1, i / n)); return [p[0] - (p1[1] - p0[1]) / l * off * f, p[1] + (p1[0] - p0[0]) / l * off * f]; });
@@ -500,7 +501,7 @@
         line(c, P, a * 0.022, 0.9 * hairAl, q.ink, m); hair(c, [-2, -1, 1, 2].map(k => beside(P, k * a * 0.055, P0.length)), a * 0.012, 0.55 * hairAl, q.ink, m);
         if (m >= 1 && !mono) glint(c, P, T, 0.05, n * 0.37, a * 0.5, 0.45 * hairAl);
       });
-      jaws.forEach((P, k) => line(c, P, u => a * 0.022 * Math.pow(Math.sin(PI * Math.pow(u, 0.6)), 0.8), 0.9 * outline, q.ink, pr(0.25 + k * 0.08, 0.7 + k * 0.08)));
+      jaws.forEach((P, k) => line(c, P, u => a * 0.022 * Math.pow(Math.sin(PI * Math.pow(u, 0.6)), 0.8), 0.9 * outline, q.ink, po(0.25 + k * 0.08, 0.7 + k * 0.08)));
       for (const o of [-1, 1]) { const fp = F(3.75 * o, -2.3); lily(c, fp[0], fp[1], a * 0.8, pr(0.6, 1), -PI / 2 + o * (1.0 + 0.06 * Math.sin(T * 0.7 + o)), hairAl, q); }   // a lily at each temple
       const jk = pH(0.2, 1);                           // the sign: a gem on the brow, hung from a chain as fine as stipple – the plate's one steady light
       if (jk > 0 && mark > 0.004) {
@@ -529,7 +530,7 @@
         leaves(c, L[0], hairAl, q.verd, 1, q.ink); leaves(c, L[1], hairAl, q.gold, 1, q.ink);
       });
       // the jaw: stipple, heavier where the cheek turns
-      jaws.forEach((P, k) => { const m = pr(0.25 + k * 0.08, 0.75 + k * 0.08), D = []; for (let i = 0; i < P.length * m; i++) D.push([P[i][0], P[i][1], a * 0.035 * Math.sin(PI * Math.pow(i / P.length, 0.6)) + 0.6]); dots(c, D, 0.9 * outline, q.ink); });
+      jaws.forEach((P, k) => { const m = po(0.25 + k * 0.08, 0.75 + k * 0.08), D = []; for (let i = 0; i < P.length * m; i++) D.push([P[i][0], P[i][1], a * 0.035 * Math.sin(PI * Math.pow(i / P.length, 0.6)) + 0.6]); dots(c, D, 0.9 * outline, q.ink); });
       // the sign: a young crozier on the brow, unrolling a little, a seed of gold at its foot
       const jk = pH(0.2, 1);
       if (jk > 0 && mark > 0.004) {
@@ -555,7 +556,7 @@
         if (m >= 1) { const e = P0[P0.length - 1]; ends.push([e[0], e[1] + a * 0.2, a * 0.3, PI + 0.3 * Math.sin(T * 0.9 + n)]); }
       });
       seeds(c, ends, hairAl * pr(0.8, 1), q);
-      jaws.forEach((P, k) => { const m = pr(0.25 + k * 0.08, 0.7 + k * 0.08); line(c, P, u => a * 0.018 * Math.pow(Math.sin(PI * Math.pow(u, 0.6)), 0.8), 0.9 * outline, q.ink, m); hair(c, [beside(P, a * 0.09, P.length * 2)], 0, 0.45 * outline, q.ink, m); });
+      jaws.forEach((P, k) => { const m = po(0.25 + k * 0.08, 0.7 + k * 0.08); line(c, P, u => a * 0.018 * Math.pow(Math.sin(PI * Math.pow(u, 0.6)), 0.8), 0.9 * outline, q.ink, m); hair(c, [beside(P, a * 0.09, P.length * 2)], 0, 0.45 * outline, q.ink, m); });
       // the sign: a moth at rest on the brow, its wings breathing
       const jk = pH(0.2, 1);
       if (jk > 0 && mark > 0.004) {

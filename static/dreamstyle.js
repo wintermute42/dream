@@ -133,9 +133,16 @@
   }
   const MODES = ['mix', 'fade', 'dip'];
   let lastMode = 'mix';
-  // a part of the world in use – or of the first world, where this one has none of its own
-  function part(kind) {
-    const w = worlds.get(current), own = w && w[kind];
+  // What only one world may show at a time – a face of light: two faces never lie over each other. Of a plan, the
+  // world that carries it: the one that did (`cur`) while it still shows clearly, else the one that shows most. The
+  // page lets the face go completely before the other world's comes (static/dreamvis.js, `step`).
+  function lead(plan, cur) {
+    const mine = plan.find(p => p[0] === cur);
+    return mine && mine[1] >= 0.5 - FLIP ? cur : plan.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+  }
+  // a part of the world in use (or of the world named) – or of the first world, where this one has none of its own
+  function part(kind, name) {
+    const w = worlds.get(name === undefined ? current : known(name)), own = w && w[kind];
     return own || (worlds.get(FIRST) || {})[kind];
   }
   // one large motif of a dream window, by its kind – the world's own, or the first world's
@@ -145,7 +152,7 @@
   }
   const motifs = () => Object.keys((worlds.get(FIRST) || {}).motif || {});   // the kinds of motif a world can draw
 
-  const api = { FIRST, register, names, use, paint, blend, plan, part, motif, motifs, get name() { return current; },
+  const api = { FIRST, register, names, use, paint, blend, plan, lead, part, motif, motifs, get name() { return current; },
     get mixing() { return { a: shown.a, b: shown.b, k: shown.k, dim: shown.dim, mode: lastMode, asked: { ...asked } }; },   // (to look at, and for the tests)
     BLEND: { MODES, SWITCH, DIP, SWEEP, FLIP, SLOW_FPS, SLOW_SECS, BACK_SECS },
     eye: () => part('eye'), life: () => part('life'), face: () => part('face') };
