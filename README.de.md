@@ -802,8 +802,75 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   im Bedienfeld (neben „Trance: …“: **Stilwelt**) oder in Dream Control (Karte „👀 Dreamy Eyes“); eine MIDI-Taste kann
   zur nächsten weiterschalten („Taste: nächste Stilwelt“). Dream sagt es sofort jeder Dreamy-Eyes-Seite und jedem
   Traum-Fenster – sie hören es nur, mit ihren Codes lässt es sich nicht setzen. Feuer, Trance und „Du im Traum“ laufen
-  in jeder Welt. Vorerst ist Klassisch die einzige Welt; weitere folgen, jede als eine Datei (wie eine Welt eingebaut
-  wird, steht unter „Tests“).
+  in jeder Welt: Außer dem Auge, den Lebewesen, den Gesichtern und den Motiven zeichnet eine Welt auch die Nacht hinter
+  den Augen, den Himmel eines Fensters, die Flammen, die Trance und das, was „Du im Traum“ umgibt (#222: die Rahmen,
+  die Glühwürmchen und die Funken, die es hinterlässt, die Farben seines Leuchtens; das Bild der Person selbst und wie
+  es geträumt wird – das Wabern, der Nebel am Rand mit seinem Farbsaum, die Klarheit im Höhepunkt, das Zerfallen – ist
+  in jeder Welt gleich). In jeder Welt außer Klassisch gilt die Gesichts-Regel oben für alles
+  Gezeichnete, und es gibt keine der heutigen Zeichen (Herzen, Sterne, „z“): Jede Welt hat dafür eine eigene Form.
+  Eine Welt ist eine Datei (wie sie eingebaut wird, steht unter „Tests“). Die Welten:
+  - **Klassisch** – der bisherige Look, unverändert.
+  - **Biolumineszenz** (#222) – die Tiefsee: nirgends Konturen, nur Fäden aus Licht, dünne Häute und Lichtperlen, die
+    an ihnen entlang pulsieren; Meeresschnee treibt durch alles. Das Auge ist eine dunkle Kammer, vom Rand her
+    beleuchtet, mit einer Anemonenkrone um die Iris und Flimmerhärchen als Wimpern; die Braue ist eine Reihe kleiner
+    Lichter. Um die Augen: Plankton, eine Anemone, die sich öffnet, eine Rippenqualle, ein wachsender Seefächer,
+    kleine Medusen, die Lichterkette einer Staatsqualle. Die Gesichter aus Licht sind eine Meduse, ein Anglerfisch
+    und eine Anemone (ein warmes Locklicht oder eine kleine Krone auf der Stirn mit den Andeutungen; Glocke, Arme und
+    die Lichter am Kiefer nur im seltenen Moment). Im Fenster leuchtet der Traum im Wasser um eine Meduse von oben –
+    mit dem Auge oder dem gefalteten Traum in ihrer Glocke –, und die unmöglichen Figuren sind Scheiben des Traums
+    mit Rändern aus Lichtfäden. Feuer ist ein glühender Schlot in der Tiefe (warme Fahnen steigen auf); wo Klassisch
+    ein Herz zeigt, ist hier ein warmes Locklicht oder eine winzige warme Meduse, wo es Sterne zeigt, blitzt Plankton,
+    und Schlaf sind langsame Blasen. Gemessen in einem Browser ohne Grafikkarte, der Prozessor vierfach gebremst:
+    Dreamy Eyes etwa 19 Bilder pro Sekunde (Klassisch: 30), ein Traum-Fenster 6 (Klassisch: 8) bei voller Auflösung –
+    beide Seiten senken ihre Auflösung wie bisher selbst, wenn ein Gerät nicht mitkommt.
+  - **Tusche & Aquarell** (#223) – helle Pigmente auf schwarzem Papier. Flächen sind Lavierungen mit nassen Rändern und
+    Körnung, Linien sind Pinselstriche, die anschwellen, dünner werden und trocken auslaufen; die Linien „kochen“ ein
+    wenig, wie in handgezeichneter Animation. Das Auge ist eine beinfarbene Lavierung mit gepinseltem Irisring, blankem
+    Papier als Glanzlicht und einem satten Lidstrich, der in einen Flügel ausläuft; die Braue ist ein Pinselstrich. Um
+    die Augen: Blütenlavierungen, eine Pigmentblüte, die sich ausbreitet, ein Ensō, ein Tuschezweig, der Blatt für Blatt
+    wächst, ein Vogel aus zwei Strichen, Tropfen im nassen Papier, der Zug eines breiten Pinsels. Die Lichtgesichter
+    heißen *sumi*, *willow* und *plum* (ein kleines Zeichen auf der Stirn mit den Andeutungen; Haarstriche und
+    Lavierungen, eine dünne Kieferlinie und geschlossene Lippen nur im seltenen Moment). Im Fenster scheint der Traum
+    durch Lavierungsflecken, um ein gepinseltes Ensō mit dem Auge oder dem gefalteten Traum darin; die unmöglichen
+    Figuren sind lavierte Scheiben mit gepinselten Kanten. Feuer sind Lavierungen in Zinnober und Ocker mit
+    aufsteigenden Flammenstrichen; wo Klassisch ein Herz zeigt, blüht ein Tropfen rotes Pigment, wo es Sterne zeigt, ist
+    es ein Spritzer, und Schlaf sind langsame Ringe aus Lavierung. Gemessen wie oben (Prozessor vierfach gebremst):
+    Dreamy Eyes etwa 20 Bilder pro Sekunde, ein Traum-Fenster 4 (Klassisch im selben Lauf: 36 und 8).
+  - **Kupferstich** (#225) – eine alte Kupferplatte, die lebendig wird, mit den langen Linien des Jugendstils. Es gibt
+    nur Linie – Striche, die an- und abschwellen, Schraffur, Punktierung – in knochenfarbener Tinte mit Grünspan,
+    Altrosa und ein wenig Goldlicht, das hin und wieder eine Linie entlangläuft. Das Auge: Das Weiße sind feine Linien,
+    die dem Augapfel folgen, das Lid eine schwellende Linie, die in einer Ranke endet, einzelne Wimpern; der Traum
+    selbst ist in die Iris gestochen, die Striche so dick, wie er dort hell ist. Um die Augen und durch die Fenster: ein
+    Farn, dessen Wedel sich entrollt, eine Ranke, die sich selbst zeichnet und hinter deren Spitze Blätter aufgehen,
+    eine Pusteblume, deren Samen davonfliegen, eine Lilie, die sich öffnet, ein Nachtfalter wie aus einer
+    Naturkundetafel mit schraffierten Flügeln, schraffierte Tautropfen, Flügelsamen, die ein Auge umkreisen, eine Wolke
+    aus Punkten. Die Lichtgesichter heißen *lily* (ein Edelstein an feiner Kette auf der Stirn; selten Haar in Bündeln
+    mit Locken am Ende, Lilien an den Schläfen, ein offener Heiligenschein mit Teilstrichen), *fern* (ein junger
+    Farnwedel auf der Stirn; selten Ranken als Haar, ein Blätterkranz, ein gepunktetes Kinn) und *moth* (ein ruhender
+    Falter auf der Stirn; selten ein Schleier feiner Linien, ein Heiligenschein aus Punkten) – geschlossene,
+    schraffierte Lippen nur im seltenen Moment, und keine Nase, obwohl der Entwurf eine hatte. Im Fenster ist der Traum
+    eine Rosette, in ein Medaillon mit Teilstrichen gestochen, um dessen Rahmen Ranken wachsen; das dritte Auge sitzt
+    mitten in einer Pusteblume; die unmöglichen Figuren sind Fläche für Fläche schraffiert, und ein Samen steigt die
+    Treppe hinauf; der Himmel ist punktiert, in den Farben des Traums. Feuer sind gestochene Flammen mit Gold darin.
+    Statt eines Herzens gibt es eine Knospe, statt Sternen eine Pusteblume und treibende Samen, und Schlaf ist eine
+    Mohnkapsel, die nickt und ein paar Samen fallen lässt. Keine Linie ist feiner als etwa 1,2 px, damit die Platte auch
+    auf groben Ausgaben hält. Gemessen wie oben (Prozessor vierfach gebremst): Dreamy Eyes etwa 25 Bilder pro Sekunde,
+    ein Traum-Fenster 6 (Klassisch im selben Lauf: 39 und 8).
+  - **Aurora** (#226) – Vorhänge aus Nordlicht über einem Sternenfeld: langsam, leuchtend, kalte Grün- und Violetttöne
+    mit warmem unterem Rand; die ruhigste Welt. Ein Vorhang ist eine Linie, auf der Strahlen stehen, deren Höhe und
+    Helligkeit an ihr entlangwandern. Das Auge ist ein Stück Nachthimmel, auf dessen unterem Lid Licht steht, mit
+    Strahlen als Wimpern, die vom oberen Lid aufsteigen, und einer dünnen Korona um die Iris; die Braue ist ein kleiner
+    Bogen aus Strahlen. Um die Augen: ein kleiner treibender Vorhang, ein Halo mit Nebenmonden, eine kleine Korona,
+    Lichtsäulen über Eisstaub, eine Sternschnuppe, Diamantstaub, ein stiller Bogen. Die Lichtgesichter heißen *veil*,
+    *crown* und *pillars* (ein helleres Licht auf der Stirn mit den Andeutungen; Schleier, wo Haar fiele, ein niedriges
+    Band am Kiefer und ein warmer Hauch als Mund nur im seltenen Moment – und keine Lichtsäule zwischen den Augen,
+    obwohl der Entwurf eine hatte). Im Fenster sieht man den Traum in großen Vorhängen, um eine Polarlicht-Korona –
+    Strahlen strömen aus einer dunklen Scheibe mit dem Auge oder dem gefalteten Traum darin; die unmöglichen Figuren
+    haben Kanten aus Licht. Feuer ist ein rotes Polarlicht, das vom Horizont aufsteigt; wo Klassisch ein Herz zeigt,
+    steht eine kleine warme Nebensonne, wo es Sterne zeigt, glitzert Eisstaub, und im Schlaf verlöschen Lichtsäulen
+    nacheinander, während Schnee sinkt. Gemessen wie oben (Prozessor vierfach gebremst): Dreamy Eyes etwa 25 Bilder pro
+    Sekunde, ein Traum-Fenster 3 bei voller Auflösung (Klassisch im selben Lauf: 35 und 8) – die Fenster dieser Welt
+    sind bisher die teuersten und darauf angewiesen, dass die Seite auf einem schwachen Gerät ihre Auflösung senkt.
 - **Weibliche Augen:** eine Mandelform mit leicht angehobenem äußerem Augenwinkel, ein zarter rosé-violetter Lidschatten
   mit etwas Schimmer, ein Lidstrich mit kleinem Flügel, volle Wimpern, die zum äußeren Winkel hin länger und geschwungener
   werden (unten ein paar feine). **Die Brauen kommen nur mit den Andeutungen** (siehe oben) und zeigen dann ein Gefühl: Staunen (jemand ganz
@@ -1489,7 +1556,7 @@ Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebenei
 je ein großes Motiv, der Traum als Wolken mit Dunkel dazwischen, das Augenpaar, das gemeinsam schaut, ein gemaltes
 Gesicht, das sich über seine Punkte bewegt, und eines ohne Punkte, das still bleibt, ein Motiv, das von einem Fenster ins
 andere wandert, Welle, Streicheln und Trance, und ein schwaches Gerät, das weniger Pixel zeichnet; mit `KEEP=1` bleiben
-die Fenster offen. `node --test tests/js/vis.test.mjs` (#220) prüft die Regel selbst als reine Zahlen (`static/dreamvis.js`): mehr als vier Fünftel der Zeit nur die Augen, Andeutungen im Abstand von 60–120 s, Mund und Umriss im Abstand von 4–11 min und nie mehr als ein Hauch, kein Sprung von einem Bild zum nächsten, dasselbe für beide Fenster eines Paars, auf keiner Stufe eine Nase – und dass die Seiten jede Linie eines Gesichts durch die Regel zeichnen (kein Grinsen, keine Nase in ihrem Code). `node --test tests/js/style.test.mjs` (#221) prüft die Stil-Schicht: die Registrierung in Node (eine Welt über ihren Namen, der heutige Look bei unbekanntem Namen, ein Teil, den eine Welt nicht selbst zeichnet, kommt aus der ersten Welt; jede Welt aus `settings.WORLDS` ist eine Datei `static/world-<name>.js`, die sich selbst anmeldet, und Bedienfeld und Dream Control bieten sie an), und im selben Browser ohne Fenster zeichnet `tests/js/style.html` den heutigen Look durch die Schicht, mit festem Zufall und stehender Uhr – Augen mit jedem Look, jeder Iris-Welt und Pupille, alles Lebendige, die sechs Gesichter aus Licht mit Andeutungen und im seltenen Moment, die sechs Fenster-Motive – und vergleicht kleine Kopien mit den Bildern in `tests/js/style-ref.json` (`STYLE_REF=write` behält die jetzt gezeichneten, nur wenn sich der Look ändern soll). `node --test tests/js/brush.test.mjs` prüft die gemeinsamen Pinsel als Zahlen (`static/dreambrush.js`: Zufall und Rauschen aus einem Startwert, eine Rausch-Kachel, die sich wiederholt, glatte Linien und anschwellende Bänder, die Helligkeit des Traums, die Lider, das Skelett eines Gesichts – in dem nichts dort liegt, wo eine Nase wäre). **Eine neue Stilwelt** ist eine Datei `static/world-<name>.js`, die `DreamStyle.register('<name>', { eye, life, face, motif })` mit den Teilen aufruft, die sie zeichnet (der Rest kommt aus Klassisch), ein Name in `settings.WORLDS`, ein Script-Tag in `eyes.html` und `window.html`, eine Option in den beiden Auswahllisten und ihr deutscher Name. `node --test tests/js/eyes-face.test.mjs` (#230) öffnet die Dreamy Eyes im selben Browser und ist auch ihr Dream: Ein gemaltes Gesicht mit seinen Punkten kommt durch die Pupillen und bewegt sich (Blinzeln, Lächeln, Brauen, leichtes Kopfdrehen), seine eigenen Augen liegen auf den Pupillen, ein Handy, dem die Luft ausgeht, bekommt ein kleineres Netz und kein Kopfdrehen, und ein Gesicht ohne Punkte bleibt still. `node --test tests/js/you.test.mjs` (#219, #229) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Die Person läuft weich aus, statt in einer Linie zu enden, in der Mitte des Moments ist das Gesicht genau das Kamerabild und nichts liegt darüber, davor und danach ist es weich und wabert, der Raum ist nie zu sehen, und das Bild geht, indem es sich in Schlieren auflöst, das Gesicht zuletzt, bis nichts mehr übrig ist; und der Code der Zeichnung benutzt kein Netz, kein Modell, keinen Weichzeichner-Filter und keine Schleife über ein großes Bild. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+die Fenster offen. `node --test tests/js/vis.test.mjs` (#220) prüft die Regel selbst als reine Zahlen (`static/dreamvis.js`): mehr als vier Fünftel der Zeit nur die Augen, Andeutungen im Abstand von 60–120 s, Mund und Umriss im Abstand von 4–11 min und nie mehr als ein Hauch, kein Sprung von einem Bild zum nächsten, dasselbe für beide Fenster eines Paars, auf keiner Stufe eine Nase – und dass die Seiten jede Linie eines Gesichts durch die Regel zeichnen (kein Grinsen, keine Nase in ihrem Code). `node --test tests/js/style.test.mjs` (#221) prüft die Stil-Schicht: die Registrierung in Node (eine Welt über ihren Namen, der heutige Look bei unbekanntem Namen, ein Teil, den eine Welt nicht selbst zeichnet, kommt aus der ersten Welt; jede Welt aus `settings.WORLDS` ist eine Datei `static/world-<name>.js`, die sich selbst anmeldet, und Bedienfeld und Dream Control bieten sie an), und im selben Browser ohne Fenster zeichnet `tests/js/style.html` den heutigen Look durch die Schicht, mit festem Zufall und stehender Uhr – Augen mit jedem Look, jeder Iris-Welt und Pupille, alles Lebendige, die sechs Gesichter aus Licht mit Andeutungen und im seltenen Moment, die sechs Fenster-Motive – und vergleicht kleine Kopien mit den Bildern in `tests/js/style-ref.json` (`STYLE_REF=write` behält die jetzt gezeichneten, nur wenn sich der Look ändern soll). Er zeichnet auch, was mit #222 hinter die Schicht gewandert ist (die Nacht hinter den Augen, den Himmel eines Fensters, Flammen, Trance, das Drumherum von „Du im Traum“). `node --test tests/js/worlds.test.mjs` (#222) prüft jede andere Welt (`tests/js/worlds.html`, dieselben Szenen aus `tests/js/style-scenes.js`): Jede Szene wird ohne Fehler gezeichnet und sieht nicht aus wie Klassisch; die Welt zeichnet jeden Teil und jedes Fenster-Motiv selbst; ihre Gesichter zeigen nichts, solange nur die Augen zu sehen sind, lassen den Platz einer Nase auf jeder Stufe leer und fragen die Gesichts-Regel nur nach Teilen, die sie kennt; wo Klassisch ein Herz, einen Stern oder einen Buchstaben zeichnet, zeichnet die Welt eine eigene Form (nichts von Klassisch geliehen, kein Text); und keine Welt-Datei spricht mit dem Netz oder gibt ein Bild heraus. `you.test.mjs` prüft das Gesicht in jeder Welt. **Eine neue Welt:** `static/world-<name>.js` schreiben (Muster: `world-deepsea.js`; jeden Teil registrieren), den Namen in `settings.WORLDS`, eine Option in die beiden Auswahlen (`static/index.html`, `static/remote.html`) mit dem Deutschen in `static/i18n/de.json`, das Skript in `eyes.html`, `window.html` und die drei Testseiten – die Tests nennen, was fehlt. `node --test tests/js/brush.test.mjs` prüft die gemeinsamen Pinsel als Zahlen (`static/dreambrush.js`: Zufall und Rauschen aus einem Startwert, eine Rausch-Kachel, die sich wiederholt, glatte Linien und anschwellende Bänder, die Helligkeit des Traums, die Lider, das Skelett eines Gesichts – in dem nichts dort liegt, wo eine Nase wäre). **Eine neue Stilwelt** ist eine Datei `static/world-<name>.js`, die `DreamStyle.register('<name>', { eye, life, face, motif })` mit den Teilen aufruft, die sie zeichnet (der Rest kommt aus Klassisch), ein Name in `settings.WORLDS`, ein Script-Tag in `eyes.html` und `window.html`, eine Option in den beiden Auswahllisten und ihr deutscher Name. `node --test tests/js/eyes-face.test.mjs` (#230) öffnet die Dreamy Eyes im selben Browser und ist auch ihr Dream: Ein gemaltes Gesicht mit seinen Punkten kommt durch die Pupillen und bewegt sich (Blinzeln, Lächeln, Brauen, leichtes Kopfdrehen), seine eigenen Augen liegen auf den Pupillen, ein Handy, dem die Luft ausgeht, bekommt ein kleineres Netz und kein Kopfdrehen, und ein Gesicht ohne Punkte bleibt still. `node --test tests/js/you.test.mjs` (#219, #229) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Die Person läuft weich aus, statt in einer Linie zu enden, in der Mitte des Moments ist das Gesicht genau das Kamerabild und nichts liegt darüber, davor und danach ist es weich und wabert, der Raum ist nie zu sehen, und das Bild geht, indem es sich in Schlieren auflöst, das Gesicht zuletzt, bis nichts mehr übrig ist; und der Code der Zeichnung benutzt kein Netz, kein Modell, keinen Weichzeichner-Filter und keine Schleife über ein großes Bild. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und

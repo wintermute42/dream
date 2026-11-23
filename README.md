@@ -769,8 +769,69 @@ eyes** that invite people to step up and play:
   is the look Dream has had so far (glowing lines, soft light), unchanged. Choose the world in the panel (next to
   “Trance: …”: **Style world**) or in Dream Control (card “👀 Dreamy Eyes”); a MIDI button can step to the next one
   (“Button: next style world”). Dream tells every Dreamy Eyes page and every dream window at once – they only hear
-  it, their codes cannot set it. Fire, trance and “you in the dream” run in every world. For now Classic is the only
-  world; more follow, each as one file (see “Tests” for how a world is built in).
+  it, their codes cannot set it. Fire, trance and “you in the dream” run in every world: besides the eye, the
+  living things, the faces and the motifs, a world also draws the night behind the eyes, a window's sky, the flames,
+  the trance and what surrounds “you in the dream” (#222: its frames, fireflies and the sparks it leaves, the colours
+  of its glow; the person's picture itself and how it is dreamed – wavering, mist at the edge with its colour fringe,
+  clear at the peak, coming apart – are the same in every world). In every
+  world besides Classic the face rule above holds for everything drawn, and none of today's signs appear (hearts,
+  stars, “z”): each world has a form of its own for them. A world is one file (see “Tests” for how it is built in).
+  The worlds:
+  - **Classic** – today's look, unchanged.
+  - **Bioluminescence** (#222) – the deep sea: no outlines anywhere, only filaments of light, thin membranes and
+    beads of light pulsing along them; marine snow drifts through everything. The eye is a dark chamber lit from its
+    rim, with an anemone's crown around the iris and cilia for lashes; the brow is a row of small lights. Around the
+    eyes: plankton, an anemone opening, a comb jelly, a sea fan growing, small medusae, a siphonophore's chain of
+    lights. The faces of light are a medusa, an anglerfish and an anemone (a warm lure or a small crown on the
+    forehead with the hints; bell, arms and the jaw's lights only in the rare moment). In a window the dream glows in
+    the water around a medusa seen from above – with the eye or the folded dream in her bell – and the impossible
+    shapes are panes of the dream edged with filaments. A fire is a vent glowing in the deep (warm plumes rising);
+    where Classic shows a heart there is a warm lure or a tiny warm medusa, where it shows stars plankton flashes,
+    and sleep is slow bubbles. Measured in a headless browser without a graphics card, the processor slowed four
+    times: Dreamy Eyes about 19 frames a second (Classic: 30), a dream window 6 (Classic: 8) at full resolution – both
+    pages lower their resolution by themselves when a device does not keep up, as before.
+  - **Ink & watercolour** (#223) – light pigment on black paper. Surfaces are washes with wet edges and grain, lines are
+    brush strokes that swell, thin out and run dry; the line work “boils” a little, as hand animation does. The eye is a
+    bone-coloured wash with a brushed iris ring, bare paper for its highlight and one loaded lid stroke flicked into a
+    wing; the brow is a brush stroke. Around the eyes: petal washes, a bloom of pigment spreading, an enso, an ink twig
+    growing leaf by leaf, a bird of two strokes, drops in wet paper, a sweep of a broad brush. The faces of light are
+    *sumi*, *willow* and *plum* (a small sign on the forehead with the hints; hair strokes and washes, a thin jaw line
+    and closed lips only in the rare moment). In a window the dream shows through wash blots, around a brushed enso with
+    the eye or the folded dream in it; the impossible shapes are washed panes with brushed edges. Fire is vermilion and
+    ochre washes with flame strokes rising; where Classic shows a heart a drop of red pigment blooms, where it shows
+    stars there is a flick of splatter, and sleep is slow rings of wash. Measured as above (processor slowed four
+    times): Dreamy Eyes about 20 frames a second, a dream window 4 (Classic: 36 and 8 in the same run).
+  - **Engraving** (#225) – an old engraved plate that comes alive, with the long lines of Art Nouveau. There is only
+    line – strokes that swell and thin, hatching, stipple – in bone-coloured ink with verdigris, old rose and a little
+    gold light that now and then runs along a line. The eye: the white is fine lines following the ball, the lid one
+    swelling line that ends in a tendril, single lashes; the dream itself is engraved in the iris, strokes as thick as
+    it is bright there. Around the eyes and through the windows: a fern whose crozier unrolls, a vine that draws itself
+    with leaves opening behind its tip, a seed head whose seeds leave on the air, a lily opening, a naturalist's moth
+    with hatched wings, hatched drops of dew, winged seeds circling an eye, a cloud of stipple. The faces of light are
+    *lily* (a gem on a fine chain on the brow; rarely hair in bundles ending in curls, lilies at the temples, an open
+    ticked halo), *fern* (a young crozier on the brow; rarely vines for hair, a wreath of leaves, a stippled jaw) and
+    *moth* (a moth at rest on the brow; rarely a veil of fine lines, a halo of stipple) – closed, hatched lips only in
+    the rare moment, and no nose although the design had one. In a window the dream is a rosette engraved in a ticked
+    medallion with vines growing round its frame, the third eye sits in the middle of a seed head, the impossible shapes
+    are hatched face by face and a seed climbs the stairs; the sky is stipple in the dream's colours. Fire is engraved
+    flames with gold inside. Instead of a heart there is a bud, instead of stars a seed head and drifting seeds, and
+    sleep is a poppy's head nodding and letting a few seeds go. No line is finer than about 1.2 px, so the plate holds
+    on coarse outputs. Measured as above (processor slowed four times): Dreamy Eyes about 25 frames a second, a dream
+    window 6 (Classic: 39 and 8 in the same run).
+  - **Aurora** (#226) – curtains of northern light over a field of stars: slow, luminous, cold greens and violets with a
+    warm lower edge; the calmest world. A curtain is a line with rays standing on it, their height and brightness
+    wandering along it. The eye is a piece of night sky with light standing on its lower lid, rays rising from the upper
+    lid for lashes, a thin corona around the iris; the brow is a small arc of rays. Around the eyes: a small drifting
+    curtain, a halo with its mock moons, a small corona, light pillars over ice dust, a shooting star, diamond dust, a
+    quiet arc. The faces of light are *veil*, *crown* and *pillars* (a brighter light on the forehead with the hints;
+    veils where hair would fall, a low band along the jaw and a warm breath for the mouth only in the rare moment – and
+    no pillar of light between the eyes, although the design had one). In a window the dream is seen in great curtains,
+    around an auroral corona – rays streaming out of a dark disc with the eye or the folded dream in it; the impossible
+    shapes have edges of light. Fire is a red aurora rising from the horizon; where Classic shows a heart there is a
+    small warm sun dog, where it shows stars ice dust glitters, and in sleep pillars dim one after the other while snow
+    sinks. Measured as above (processor slowed four times): Dreamy Eyes about 25 frames a second, a dream window 3 at
+    full resolution (Classic: 35 and 8 in the same run) – this world's windows are the most costly so far and rely on
+    the page lowering its resolution on a weak device.
 - **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
   come only with the hints** (see above) and show a feeling then: surprise (someone very close, waking up, a dream turning
@@ -1387,7 +1448,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart, mouth and outline 4–11 min apart and never above a breath, no jump from one picture to the next, the same for both windows of a pair, no nose at any level – and that the pages draw every line of a face through the rule (no grin, no nose in their code). `node --test tests/js/style.test.mjs` (#221) tests the style layer: the registry in Node (a world by its name, today's look for an unknown name, a part a world does not draw comes from the first world; every world of `settings.WORLDS` is a file `static/world-<name>.js` that registers itself, and the panel and Dream Control offer it), and in the same headless browser `tests/js/style.html` draws today's look through the layer with a seeded random and a clock that stands still – eyes with every look, iris world and pupil, every living thing, the six faces of light with hints and in the rare moment, the six window motifs – and compares small copies with the pictures kept in `tests/js/style-ref.json` (`STYLE_REF=write` keeps the ones drawn now, only when the look is meant to change). `node --test tests/js/brush.test.mjs` tests the shared brushes as numbers (`static/dreambrush.js`: seeded random and noise, a tile of noise that repeats, smooth lines and swelling bands, the dream's brightness, the lids, the skeleton of a face – in which nothing lies where a nose would be). **A new style world** is one file `static/world-<name>.js` that calls `DreamStyle.register('<name>', { eye, life, face, motif })` with the parts it draws (the rest comes from Classic), one name in `settings.WORLDS`, a script tag in `eyes.html` and `window.html`, an option in the two selects and its German name. `node --test tests/js/eyes-face.test.mjs` (#230) opens Dreamy Eyes in the same browser and is their Dream too: a painted face with its points comes through the pupils and moves (blink, smile, brows, a slight turn), its own eyes are what lies on the pupils, a phone that runs short gets a smaller net and no turn of the head, and a face without points stays still. `node --test tests/js/you.test.mjs` (#219, #229) draws “you in the dream” for an invented person in the same browser: the person runs out softly instead of ending in a line, in the middle of the moment the face is exactly the camera's picture with nothing over it, before and after it is soft and wavers, the room is never shown, and the picture leaves by coming apart into streaks, the face last, until nothing is left; and the drawing's code uses no network, no model, no blur filter and no loop over a large picture. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart, mouth and outline 4–11 min apart and never above a breath, no jump from one picture to the next, the same for both windows of a pair, no nose at any level – and that the pages draw every line of a face through the rule (no grin, no nose in their code). `node --test tests/js/style.test.mjs` (#221) tests the style layer: the registry in Node (a world by its name, today's look for an unknown name, a part a world does not draw comes from the first world; every world of `settings.WORLDS` is a file `static/world-<name>.js` that registers itself, and the panel and Dream Control offer it), and in the same headless browser `tests/js/style.html` draws today's look through the layer with a seeded random and a clock that stands still – eyes with every look, iris world and pupil, every living thing, the six faces of light with hints and in the rare moment, the six window motifs – and compares small copies with the pictures kept in `tests/js/style-ref.json` (`STYLE_REF=write` keeps the ones drawn now, only when the look is meant to change). It also draws what moved behind the layer with #222 (the night behind the eyes, a window's sky, flames, trance, what surrounds “you in the dream”). `node --test tests/js/worlds.test.mjs` (#222) tests every other world (`tests/js/worlds.html`, the same scenes from `tests/js/style-scenes.js`): every scene is drawn without an error and does not look like Classic; the world draws every part and every window motif itself; its faces show nothing while only the eyes show, leave the place of a nose empty at every level and ask the face rule only for parts it knows; where Classic draws a heart, a star or a letter the world draws a form of its own (nothing is borrowed from Classic, no text is drawn); and no world file talks to the network or exports a picture. `you.test.mjs` runs its checks of the face in every world. **A new world:** write `static/world-<name>.js` (take `world-deepsea.js` as the pattern; register every part), add the name to `settings.WORLDS`, an option to the two selects (`static/index.html`, `static/remote.html`) with its German in `static/i18n/de.json`, the script to `eyes.html`, `window.html` and the three test pages – the tests name whatever is missing. `node --test tests/js/brush.test.mjs` tests the shared brushes as numbers (`static/dreambrush.js`: seeded random and noise, a tile of noise that repeats, smooth lines and swelling bands, the dream's brightness, the lids, the skeleton of a face – in which nothing lies where a nose would be). **A new style world** is one file `static/world-<name>.js` that calls `DreamStyle.register('<name>', { eye, life, face, motif })` with the parts it draws (the rest comes from Classic), one name in `settings.WORLDS`, a script tag in `eyes.html` and `window.html`, an option in the two selects and its German name. `node --test tests/js/eyes-face.test.mjs` (#230) opens Dreamy Eyes in the same browser and is their Dream too: a painted face with its points comes through the pupils and moves (blink, smile, brows, a slight turn), its own eyes are what lies on the pupils, a phone that runs short gets a smaller net and no turn of the head, and a face without points stays still. `node --test tests/js/you.test.mjs` (#219, #229) draws “you in the dream” for an invented person in the same browser: the person runs out softly instead of ending in a line, in the middle of the moment the face is exactly the camera's picture with nothing over it, before and after it is soft and wavers, the room is never shown, and the picture leaves by coming apart into streaks, the face last, until nothing is left; and the drawing's code uses no network, no model, no blur filter and no loop over a large picture. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the

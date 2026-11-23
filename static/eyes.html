@@ -48,13 +48,17 @@
 <script src="/static/dreamface.js"></script>
 <script src="/static/dreamstyle.js"></script>
 <script src="/static/world-classic.js"></script>
+<script src="/static/world-deepsea.js"></script>
+<script src="/static/world-ink.js"></script>
+<script src="/static/world-etching.js"></script>
+<script src="/static/world-aurora.js"></script>
 <script src="/static/dreamfire.js"></script>
 <script>
   const T = I18N.t;
   I18N.apply();
 (() => {
   'use strict';
-  const { hueOf, softLight, stamp, tinted } = DreamBrush;   // #201, #221: the brushes shared with the dream windows and every style world
+  const { hueOf, stamp, tinted } = DreamBrush;   // #201, #221: the brushes shared with the dream windows and every style world
   const $ = id => document.getElementById(id);
   const cv = $('eyes'), main = cv.getContext('2d');
   let g = main;                                        // #160: the eyes are drawn on a layer of their own while a face takes over
@@ -153,31 +157,6 @@
     } catch (e) { /* a frame it could not read */ }
   }
 
-  // #162: while they love the fire, flames rise from the bottom of the screen and the night glows warm; #218: as high
-  // as the fire is strong (k), highest on the side the flame is on (side: 0 left – 1 right)
-  function drawFlames(t, k, side) {
-    const n = (W > H ? 11 : 7) * (perf > 30 ? 1 : 0.7) | 0, w = W / n, base = H + 8;
-    g.save(); g.globalCompositeOperation = 'lighter';
-    const glow = g.createLinearGradient(0, H, 0, H * 0.3);
-    glow.addColorStop(0, `rgba(255,80,15,${0.3 * k})`); glow.addColorStop(1, 'rgba(255,60,10,0)');
-    g.fillStyle = glow; g.fillRect(0, H * 0.3, W, H * 0.7);
-    const LAYERS = [[0.36, 0.95, 310, [255, 70, 20], [200, 30, 10]], [0.25, 0.7, 250, [255, 140, 30], [240, 80, 20]], [0.13, 0.42, 200, [255, 235, 160], [255, 180, 60]]];
-    LAYERS.forEach(([hh, ww, sp, c0, c1], li) => {
-      for (let i = -1; i <= n; i++) {
-        const s = i * 12.9898 + li * 78.233, ph = t / sp;
-        const fl = 0.62 + 0.2 * Math.sin(ph + s) + 0.18 * Math.sin(ph * 2.3 + s * 1.7);   // each tongue flickers on its own
-        const x = (i + 0.5 + li * 0.33) * w, near = (x / W - side) / 0.3;
-        const h = H * hh * fl * k * (0.6 + 0.4 * Math.sin(s * 3.1) ** 2) * (0.75 + 0.5 * Math.exp(-near * near));
-        const sw = Math.sin(ph * 1.4 + s * 2) * w * 0.45, hw = w * ww;
-        const gr = g.createLinearGradient(0, base, 0, base - h);
-        gr.addColorStop(0, `rgba(${c0},${0.5 * k})`); gr.addColorStop(0.45, `rgba(${c1},${0.3 * k})`); gr.addColorStop(1, `rgba(${c1},0)`);
-        g.fillStyle = gr; g.beginPath(); g.moveTo(x - hw, base);     // a round belly, a licking tip
-        g.bezierCurveTo(x - hw, base - h * 0.45, x - hw * 0.2 + sw * 0.5, base - h * 0.62, x + sw, base - h);
-        g.bezierCurveTo(x + hw * 0.2 + sw * 0.5, base - h * 0.62, x + hw, base - h * 0.45, x + hw, base); g.closePath(); g.fill();
-      }
-    });
-    g.restore();
-  }
   // ---------- #162, #218: Dreamy loves fire – flames on the camera: warm, bright light that flickers ----------
   // What is fire, how strong it is, where it is and what it does to them is worked out in static/dreamfire.js; here the
   // camera is sampled (about 15 times a second, so the gaze follows a flame within about 100 ms) and the eyes react.
@@ -360,7 +339,7 @@
     const style = DreamStyle.eye();
     irisAt[side] = style.draw(g, cx, cy, a, b, mirror, {
       open: st.open, blink: Math.max(st.blink, fx.wink[side]), squint: fx.squint, col: dream.col, energy: st.energy,
-      look: look.cur, brow: brow.cur[side], browAl: DreamVis.of(vis.cur, 'brows'), fib,
+      look: look.cur, brow: brow.cur[side], browAl: DreamVis.of(vis.cur, 'brows'), crease: DreamVis.of(vis.cur, 'crease'), fib,
       gx: Math.max(-1, Math.min(1, st.gx + fx.cross * (mirror ? -0.55 : 0.55))), gy: st.gy,   // #157: now and then they cross
       pupil: Math.min(0.92, (st.pupil + 0.08 * fire.awe * fire.level + 0.3 * fire.flash) * touch.pupilK), pupilMix: fx.pupilMix,   // #162: two fingers widen or narrow them; #218: a fire flaring up widens them
       pupilShape: (ix, iy, pr, R) => style.pupilShape(g, fx.pupil, ix, iy, pr, R, mirror, { hue: fire.on ? 205 : hueOf(dream.col), fire: fire.on, beat: performance.now() - dream.beatAt < 4000 ? dream.pulse : st.energy }),   // #218: what hypnotises glows like embers by a fire and moves with the music's beat (no beat heard: with the dream)
@@ -525,8 +504,6 @@
 
   // ---------- the night behind the eyes: the dream shines through drifting masks – clouds, a fractal, patterns ----------
   const back = document.createElement('canvas'), bk = back.getContext('2d');
-  const LIGHT = softLight([[0, 'rgba(255,255,255,1)'], [1, 'rgba(255,255,255,0)']], 128);   // the back masks' lights
-  const PUFF = softLight([[0.15, 'rgba(255,255,255,1)'], [0.6175, 'rgba(255,255,255,.75)'], [1, 'rgba(255,255,255,0)']], 256);   // the portal's cloud
   const BACKS = ['clouds', 'fractal', 'pattern', 'silhouette'];
   // #162: the silhouette of whoever stands in front – found on the phone (selfie segmentation), only while it is shown
   const seg = { sg: null, loading: false, at: 0, cv: document.createElement('canvas'), have: 0 };
@@ -563,40 +540,15 @@
     clouds: Array.from({ length: 13 }, () => ({ x: Math.random(), y: Math.random(), r: 0.16 + Math.random() * 0.2, v: 0.004 + Math.random() * 0.01,
       puffs: Array.from({ length: 5 }, () => [(Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.5, 0.45 + Math.random() * 0.55]) })) };
   function backMask(mode, t, w, h, al) {               // white where the dream may shine through
-    const m = Math.min(w, h);
     bk.globalAlpha = al;
-    if (mode === 'clouds') {                           // soft clouds drifting slowly sideways
-      for (const c of bs.clouds) {
-        const cx = (((c.x + t / 1000 * c.v) % 1.3) - 0.15) * w, cy = c.y * h + Math.sin(t / 4000 + c.x * 9) * m * 0.03;
-        for (const [ox, oy, rr] of c.puffs) stamp(bk, LIGHT, cx + ox * c.r * m, cy + oy * c.r * m, c.r * m * rr, al * 0.85);
-      }
-    } else if (mode === 'fractal') {                   // a huge sunflower spiral of soft lights, turning and breathing
-      const n = 260, rot = t / 9000, br = 1 + 0.06 * Math.sin(t / 1600), Rmax = Math.hypot(w, h) * 0.6;
-      for (let k = 1; k < n; k++) {
-        const ang = k * 2.39996 + rot, rr = Rmax * Math.sqrt(k / n) * br;
-        const R = m * (0.035 + 0.1 * Math.sqrt(k / n)) * (0.75 + 0.25 * Math.sin(t / 700 + k));
-        stamp(bk, LIGHT, w / 2 + Math.cos(ang) * rr, h / 2 + Math.sin(ang) * rr, R, al * 0.9);
-      }
-    } else if (mode === 'silhouette') {               // the person, as the camera sees them – mirrored, soft, a little larger
+    if (mode === 'silhouette') {                       // the person, as the camera sees them – mirrored, soft, a little larger
       if (seg.have) {
-        const v = $('cam'), s = Math.max(w / v.videoWidth, h / v.videoHeight) * 1.08 * (1 + 0.03 * Math.sin(t / 1700));
+        const m = Math.min(w, h), v = $('cam'), s = Math.max(w / v.videoWidth, h / v.videoHeight) * 1.08 * (1 + 0.03 * Math.sin(t / 1700));
         bk.save(); bk.filter = `blur(${Math.max(2, m * 0.012)}px)`; bk.translate(w / 2, h / 2); bk.scale(-1, 1);
         bk.drawImage(seg.cv, -v.videoWidth * s / 2, -v.videoHeight * s / 2, v.videoWidth * s, v.videoHeight * s);
         bk.restore(); bk.filter = 'none';
       }
-    } else {                                           // a kaleidoscopic flower of rings and petals, turning both ways
-      bk.save(); bk.translate(w / 2, h / 2);
-      for (let ring = 1; ring <= 7; ring++) {
-        const petals = 6 + ring * 2, base = m * 0.11 * ring, rot = t / 7000 * (ring % 2 ? 1 : -1);
-        bk.beginPath();
-        for (let k = 0; k <= 120; k++) {
-          const an = k / 120 * Math.PI * 2, rr = base * (1 + 0.22 * Math.sin(an * petals + rot * 3 + t / 1500));
-          bk[k ? 'lineTo' : 'moveTo'](Math.cos(an + rot) * rr, Math.sin(an + rot) * rr);
-        }
-        bk.closePath(); bk.lineWidth = m * (H > W ? 0.03 : 0.05); bk.strokeStyle = `rgba(255,255,255,${H > W ? 0.55 : 0.85})`; bk.stroke();   // finer upright
-      }
-      bk.restore();
-    }
+    } else DreamStyle.part('back').mask(bk, mode, t, w, h, al, { clouds: bs.clouds, upright: H > W });   // #222: clouds, a fractal, a pattern – the style world's
     bk.globalAlpha = 1;
   }
   // #160: faces painted by the AI on the Mac – fetched, their edge softened once, shown behind the eyes
@@ -713,19 +665,6 @@
     you.moment = portal.kind === 'you' && portal.phase !== 'off' ? 1 : 0;
     return portal.phase === 'off' ? 0 : portal.phase === 'hold' ? 1 : portal.phase === 'in' ? ease((t - portal.t0) / IN) : 1 - ease((t - portal.t0) / out);
   }
-  // the painted face inside a dream cloud: soft blobs that drift, breathe and change shape – never a hard edge
-  function cloudMask(c, cx, cy, size, t, al) {
-    c.globalCompositeOperation = 'lighter';
-    const blob = (x, y, r, a) => stamp(c, PUFF, x, y, r, a);
-    blob(cx, cy, size * (0.42 + 0.02 * Math.sin(t / 1300)), al);                // the heart of the cloud
-    const n = 12;
-    for (let k = 0; k < n; k++) {                      // a ring of puffs, each wandering on its own
-      const an = k / n * Math.PI * 2 + 0.25 * Math.sin(t / 3700 + k) + t / 21000 * (k % 2 ? 1 : -1);
-      const rr = size * (0.27 + 0.06 * Math.sin(t / 1900 + k * 1.9)), br = size * (0.17 + 0.05 * Math.sin(t / 1500 + k * 2.3));
-      blob(cx + Math.cos(an) * rr * 1.05, cy + Math.sin(an) * rr * 1.2, br, al * 0.9);
-    }
-    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-  }
   // the painted picture with soft edges, so its border never shows as a sharp line where it ends
   function feather(img) {
     const w = img.width, h = img.height, c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -784,7 +723,7 @@
       gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
       mk.fillStyle = gr; mk.fillRect(0, 0, W, H);
     }
-    cl.clearRect(0, 0, W, H); cloudMask(cl, ccx, ccy, size, t, 1);
+    cl.clearRect(0, 0, W, H); DreamStyle.part('you').cloud(cl, ccx, ccy, size, t, 1);   // #222: the cloud it comes in is the style world's
     mk.globalCompositeOperation = 'destination-in'; mk.drawImage(portal.cl, 0, 0);
     if (mine && p > 0.6) {                             // #219: the cloud never thins the person's face – it stays whole
       const gd = you.d.guard, q = S / you.d.pic.width;
@@ -812,15 +751,8 @@
       for (const [px, py] of pupils) stamp(g, tinted(hue), px, py, R * 1.2, 0.3 * mist * Math.min(1, p * 6));
       g.restore();
     }
-    const rings = () => {                              // a glowing ring at each window's edge, in the dream's colours
-      if (p >= 0.98) return;
-      g.save(); g.globalCompositeOperation = 'lighter';
-      for (const [px, py] of pupils) {
-        g.strokeStyle = `hsla(${hue + t * 0.05},90%,70%,${0.6 * (1 - p) * (1 - 0.6 * mist)})`; g.lineWidth = (2 + 6 * (1 - p)) * (1 - 0.5 * mist);
-        g.beginPath(); g.arc(px, py, Math.min(R * 0.8, size * 0.5), 0, Math.PI * 2); g.stroke();
-      }
-      g.restore();
-    };
+    // a glowing ring at each window's edge, in the dream's colours (#222: the style world's)
+    const rings = () => { if (p < 0.98) DreamStyle.part('you').rings(g, pupils, Math.min(R * 0.8, size * 0.5), t, hue, p, mist); };
     if (mine) rings();                                 // behind the person: nothing is drawn over their face
     g.globalAlpha = (mine ? 0.9 : 1) * (1 - 0.4 * mist);   // "you": a little of the night shows through – a vision, not a photograph
     g.drawImage(portal.cv, 0, 0, W, H); g.globalAlpha = 1;
@@ -829,7 +761,7 @@
   // ---------- #172: the trance – rarely, when much is intense at once, a third eye opens ----------
   const tenv = (x, a0, a1, b0, b1) => x < a0 ? 0 : x < a1 ? ease((x - a0) / (a1 - a0)) : x < b0 ? 1 : x < b1 ? 1 - ease((x - b0) / (b1 - b0)) : 0;
   const TRANCE_LEN = 18000;
-  const trance = { on: false, t0: 0, every: 12, next: performance.now() + 6 * 60000, wild: 0, lookSince: 0, avg: 0.3, livelySince: 0, cv: document.createElement('canvas'), glimNext: performance.now() + 60000 + Math.random() * 120000, glimT0: -1e9 };
+  const trance = { on: false, t0: 0, every: 12, next: performance.now() + 6 * 60000, wild: 0, lookSince: 0, avg: 0.3, livelySince: 0, glimNext: performance.now() + 60000 + Math.random() * 120000, glimT0: -1e9 };
   function tranceSchedule(t, keep) {
     const m = trance.every * 60000;
     if (!m) return;
@@ -867,81 +799,16 @@
       eo: tenv(tt, 2000, 4000, 14600, 16000), dim: tenv(tt, 0, 2000, 15500, 18000), mand: tenv(tt, 4000, 5800, 12500, 15000),
       tun: tenv(tt, 5000, 6500, 11500, 14000), view: tenv(tt, 11600, 12800, 13500, 14700), dot: tenv(tt, 15600, 16200, 16400, 18000) };
   }
+  // #222: how the trance looks is the style world's (the part `trance`); what it does to the scene stays here
+  const tranceKit = () => ({ W, H, hue: hueOf(dream.col), perf, dream: dream.cur });
   function drawTranceBack(t, p, dt) {                  // behind the closed eyes: the night dims, mandala, tunnel, the pull
-    g.fillStyle = `rgba(5,4,9,${0.55 * p.dim})`; g.fillRect(0, 0, W, H);
-    const hue = hueOf(dream.col), R = Math.hypot(W, H) * 0.55;
-    g.save(); g.globalCompositeOperation = 'lighter';
-    if (p.tun > 0.01) for (let j = 0; j < 9; j++) {    // a tunnel: rings flying towards the eye
-      const s = (t / 1500 + j / 9) % 1, r = R * (1 - s) ** 1.6 + p.A * 0.6;
-      g.strokeStyle = `hsla(${hue + j * 40 + t * 0.03},90%,65%,${0.35 * p.tun * Math.sin(s * Math.PI)})`; g.lineWidth = 1.5 + 5 * (1 - s);
-      g.beginPath(); g.ellipse(p.ex, p.ey, r, r * 0.92, t / 4000 + j, 0, Math.PI * 2); g.stroke();
-    }
-    if (p.mand > 0.01) {                               // a mandala: rings of petals turning against each other, breathing
-      const rings = perf > 45 ? 5 : 3, br = 1 + 0.05 * Math.sin(t / 900);
-      for (let i = 0; i < rings; i++) {
-        const r = p.A * (1.3 + i * 0.65) * br * (0.6 + 0.4 * p.mand), n = 8 + i * 4, rot = t / (5000 + i * 1300) * (i % 2 ? -1 : 1), pl = p.A * (0.34 + i * 0.07);
-        g.strokeStyle = `hsla(${hue + i * 30},85%,${62 + i * 3}%,${0.55 * p.mand})`; g.fillStyle = `hsla(${hue + i * 30 + 20},90%,60%,${0.12 * p.mand})`; g.lineWidth = 1.4;
-        for (let k = 0; k < n; k++) {
-          const an = rot + k / n * Math.PI * 2;
-          g.save(); g.translate(p.ex + Math.cos(an) * r, p.ey + Math.sin(an) * r); g.rotate(an);
-          g.beginPath(); g.moveTo(-pl * 0.5, 0); g.quadraticCurveTo(0, -pl * 0.32, pl * 0.5, 0); g.quadraticCurveTo(0, pl * 0.32, -pl * 0.5, 0); g.fill(); g.stroke();
-          g.restore();
-        }
-        g.strokeStyle = `hsla(${hue + i * 30},85%,70%,${0.25 * p.mand})`; g.beginPath(); g.arc(p.ex, p.ey, r - pl * 0.6, 0, Math.PI * 2); g.stroke();
-      }
-    }
-    if (p.pull > 0.01) {                               // the pull: streaks spiral into the pupil, and everything around flows in
-      for (let k = 0; k < 48; k++) {
-        const s = (t / 1300 + k / 48 * 3.7) % 1, r = R * (1 - s), an = k * 2.399 + s * 5 + t / 1500;
-        g.strokeStyle = `hsla(${hue + k * 7},90%,72%,${0.6 * p.pull * s})`; g.lineWidth = 1 + 2.5 * s;
-        g.beginPath(); g.moveTo(p.ex + Math.cos(an) * r, p.ey + Math.sin(an) * r); g.lineTo(p.ex + Math.cos(an - 0.25) * r * 0.9, p.ey + Math.sin(an - 0.25) * r * 0.9); g.stroke();
-      }
+    DreamStyle.part('trance').back(g, t, p, tranceKit());
+    if (p.pull > 0.01) {                               // the pull: everything around flows in
       const kk = 1 - Math.exp(-dt * 2.6 * p.pull);
       for (const d of decor) { d.x += (p.ex - d.x) * kk; d.y += (p.ey - d.y) * kk; d.pulled = true; }
     }
-    g.restore();
   }
-  function coverDraw(c, img, x, y, w, h) {             // an image filling a box, cropped to it
-    const s = Math.max(w / img.width, h / img.height), sw = w / s, sh = h / s;
-    c.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
-  }
-  function drawTranceEye(t, p) {                       // the third eye itself, in front of everything
-    const { ex, ey, A } = p, B = A * 0.5 * p.eo, hue = hueOf(dream.col);
-    if (p.dot > 0.01) {                                // closed: a glowing dot on the forehead that fades
-      const gr = g.createRadialGradient(ex, ey, 0, ex, ey, A * 0.35);
-      gr.addColorStop(0, `hsla(${hue + 30},90%,82%,${p.dot})`); gr.addColorStop(1, `hsla(${hue + 30},90%,60%,0)`);
-      g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gr; g.fillRect(ex - A, ey - A, A * 2, A * 2); g.restore();
-    }
-    if (p.eo > 0.01) {
-      const almond = () => { g.beginPath(); g.moveTo(ex, ey - A); g.quadraticCurveTo(ex + B * 2, ey, ex, ey + A); g.quadraticCurveTo(ex - B * 2, ey, ex, ey - A); };
-      g.save(); g.globalCompositeOperation = 'lighter';  // its glow
-      for (const [w, al] of [[16, 0.1], [7, 0.22], [2.5, 0.8]]) { g.strokeStyle = `hsla(${hue + 30},95%,72%,${al * p.eo})`; g.lineWidth = w; almond(); g.stroke(); }
-      g.restore();
-      g.save(); almond(); g.clip();
-      g.fillStyle = '#f6f0ff'; g.fillRect(ex - A, ey - A, A * 2, A * 2);
-      const ir = A * 0.4;                              // an iris of the dream, turning slowly
-      g.save(); g.beginPath(); g.arc(ex, ey, ir, 0, Math.PI * 2); g.clip();
-      g.translate(ex, ey); g.rotate(t / 6000); g.translate(-ex, -ey);
-      if (dream.cur) coverDraw(g, dream.cur, ex - ir, ey - ir, ir * 2, ir * 2); else { g.fillStyle = `hsl(${hue},70%,45%)`; g.fill(); }
-      const ring = g.createRadialGradient(ex, ey, ir * 0.55, ex, ey, ir);
-      ring.addColorStop(0, `hsla(${hue + 40},90%,60%,0)`); ring.addColorStop(1, `hsla(${hue + 40},90%,35%,.75)`);
-      g.fillStyle = ring; g.fillRect(ex - ir, ey - ir, ir * 2, ir * 2);
-      g.restore();
-      g.fillStyle = '#05040a'; g.beginPath(); g.arc(ex, ey, ir * (0.38 + 0.5 * p.pull), 0, Math.PI * 2); g.fill();
-      g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(ex + ir * 0.22, ey - ir * 0.28, ir * 0.09, 0, Math.PI * 2); g.fill();
-      g.restore();
-    }
-    if (p.view > 0.01 && dream.cur) {                  // through the wide pupil: the dream, large and clear, soft at its edge
-      const R = Math.min(W, H) * 0.46 * p.view, d = Math.ceil(R * 2);
-      if (trance.cv.width !== d || trance.cv.height !== d) { trance.cv.width = trance.cv.height = Math.max(2, d); }
-      const c = trance.cv.getContext('2d');
-      c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, d, d); coverDraw(c, dream.cur, 0, 0, d, d);
-      const m = c.createRadialGradient(d / 2, d / 2, R * 0.7, d / 2, d / 2, R);
-      m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(1, 'rgba(0,0,0,0)');
-      c.globalCompositeOperation = 'destination-in'; c.fillStyle = m; c.fillRect(0, 0, d, d);
-      g.save(); g.globalAlpha = Math.min(1, p.view * 1.2); g.drawImage(trance.cv, ex - R, ey - R, d, d); g.restore();
-    }
-  }
+  const drawTranceEye = (t, p) => DreamStyle.part('trance').eye(g, t, p, tranceKit());   // the third eye itself, in front of everything
   function drawBack(t) {
     if (!dream.cur) return;
     const q = perf > 45 ? 0.5 : 0.33;                  // the mask is drawn small and scaled up – soft anyway
@@ -1101,6 +968,8 @@
     const vd = 1 - 0.55 * bs.reveal;                   // while the dream window is open, less darkness behind the eyes
     vg.addColorStop(0, `rgba(7,6,11,${0.4 * vd})`); vg.addColorStop(0.45, `rgba(7,6,11,${0.1 * vd})`); vg.addColorStop(1, 'rgba(7,6,11,0)');
     g.fillStyle = vg; g.fillRect(0, 0, W, H);
+    const air = DreamStyle.part('air');                // #222: what fills the night of a world (today's look: nothing)
+    if (air) { air.draw(g, t, { W, H, hue: hueOf(dream.col), tier: perf > 45 ? 2 : perf > 30 ? 1 : 0, of: 'eyes' }); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
     // #157: clouds and fractals around them – fewer when the phone runs short (the camera never waits for them)
     const maxDecor = perf > 45 ? 2 : perf > 30 ? 1 : 0;   // calm: two things around the eyes at most
     const ambient = decor.filter(d => !EVENT_KINDS.has(d.kind));
@@ -1110,7 +979,7 @@
     // #218: the flames stand as high as the fire is strong, leap when it flares up and sink when they are used to it
     const glowT = fire.on ? Math.min(1.15, (0.3 + 0.7 * fire.level) * (0.4 + 0.6 * fire.awe) + 0.3 * fire.flash) : 0;
     fire.glow = lerp(fire.glow, glowT, 1 - Math.exp(-dt * (glowT > fire.glow ? 4 : fire.on ? 1 : 0.5)));
-    if (fire.glow > 0.01) drawFlames(t, fire.glow, 1 - fire.x);
+    if (fire.glow > 0.01) DreamStyle.part('fire').flames(g, t, fire.glow, 1 - fire.x, { W, H, perf });   // #222: drawn by the style world
     if (fire.flash > 0.02 && fire.from) {              // … and the night glows for a moment from where it is
       const [ox, oy] = fire.from, R = Math.max(W, H) * 0.7, gr = g.createRadialGradient(ox, oy, 0, ox, oy, R);
       gr.addColorStop(0, `rgba(255,170,70,${0.55 * fire.flash})`); gr.addColorStop(1, 'rgba(255,90,20,0)');

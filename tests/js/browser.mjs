@@ -53,7 +53,8 @@ export function runPage(chrome, page) {
         return;
       }
       const file = req.url === '/' ? path.join(ROOT, 'tests', 'js', page)
-        : /^\/static\/[\w-]+\.(js|css)$/.test(req.url) ? path.join(ROOT, req.url.slice(1)) : '';
+        : /^\/static\/[\w-]+\.(js|css)$/.test(req.url) ? path.join(ROOT, req.url.slice(1))
+        : /^\/tests\/[\w-]+\.js$/.test(req.url) ? path.join(ROOT, 'tests', 'js', req.url.slice(7)) : '';   // what test pages share
       if (!file || !existsSync(file)) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html' });
       res.end(readFileSync(file));
