@@ -774,9 +774,9 @@ eyes** that invite people to step up and play:
   zooms and wanders, a little brighter than on the stage. Every two to four minutes a **dream window** opens for 6–10
   seconds: the night opens wide and the dream shows clearly behind the eyes, then it softly withdraws behind the masks. Right behind the eyes it stays darker, so they stay clear.
 - **You in the dream:** whoever stands in front is mirrored in the iris – faintly all the time, and every two or three minutes
-  two for a few seconds very clearly, as in real eyes: then it is the person alone, cut out from the room (on the
-  phone), the face exactly as the camera sees it, and behind them the iris keeps dreaming. Now and then (every three to five minutes; not
-  or two, only while someone is there) the person appears as a **moment**: first in the two pupils, as if seen through
+  for a few seconds very clearly, as in real eyes: then it is the person alone, cut out from the room (on the
+  phone), the face exactly as the camera sees it, and behind them the iris keeps dreaming. Now and then (every three to five
+  minutes, only while someone is there) the person appears as a **moment**: first in the two pupils, as if seen through
   them, then the windows open and for about 2–3 seconds they stand in a soft cloud in the middle of the screen –
   **the real camera picture, the face unchanged and recognisable**, a little smaller and lighter than a painted face.
   Only around them is the dream: the dream's picture instead of the room, a softly glowing outline, fireflies, a
