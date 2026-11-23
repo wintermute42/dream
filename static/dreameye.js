@@ -34,7 +34,7 @@
     nymph:  { hue: 175, sat: 60, light: 50, alpha: 0.45, glitter: 16, wing: 0.5, liner: 0.7, lashes: 1.3,  curl: 1.3, lower: 1.1, arch: 1.25, brow: 0.8 },
     doll:   { hue: 340, sat: 65, light: 66, alpha: 0.4,  glitter: 5,  wing: 0,   liner: 0.9, lashes: 1.45, curl: 0.7, lower: 1.5, arch: 1.4, brow: 0.75 },
   };
-  // #157: the brows come only for a feeling – surprise, joy, sadness, doubt, a frown, curiosity – then they fade again
+  // #157: what the brows show when they come – surprise, joy, sadness, doubt, a frown, curiosity
   const EMO = {   // offsets in eye heights (negative: up) for the inner end, the peak and the outer end; [left, right]
     surprise: [{ inner: -0.55, peak: -0.6, outer: -0.4 }, { inner: -0.55, peak: -0.6, outer: -0.4 }],
     joy:      [{ inner: -0.1, peak: -0.25, outer: 0.05 }, { inner: -0.1, peak: -0.25, outer: 0.05 }],
@@ -52,13 +52,13 @@
   }
   const bez = (p0, p1, p2, p3, u) => { const m = 1 - u; return m * m * m * p0 + 3 * m * m * u * p1 + 3 * m * u * u * p2 + u * u * u * p3; };
   // One eye into g at (cx, cy), half as wide as a and half as high as b; mirror: the right one of a pair. p is what the
-  // page knows of it: open and blink (0–1), grin and squint (0–1), col (the dream's colour) and energy, look (one of
+  // page knows of it: open and blink (0–1), squint (0–1), col (the dream's colour) and energy, look (one of
   // LOOKS or between two), brow ({ inner, peak, outer } as in EMO) with browAl, gx and gy (where it looks, -1–1), pupil
   // (its radius in iris radii) with pupilMix (0: round, 1: the shape pupilShape(ix, iy, pr, R) draws), fib (fibres())
   // and iris(ix, iy, R): draws what is in the iris – clipped to it already; reflect(ix, iy, R), if given, what is mirrored
   // on the eye (#219: over iris and pupil). Returns where the iris is: [x, y].
   function draw(g, cx, cy, a, b, mirror, p) {
-    const up = Math.max(0.02, p.open * (1 - p.blink) * (1 - 0.18 * p.grin) * (1 - 0.25 * p.squint)), lo = (0.82 + 0.1 * p.open) * (1 - 0.38 * p.grin) * (1 - 0.35 * p.squint);   // #157: they smile along; #162: squint
+    const up = Math.max(0.02, p.open * (1 - p.blink) * (1 - 0.25 * p.squint)), lo = (0.82 + 0.1 * p.open) * (1 - 0.35 * p.squint);   // #162: squint
     const [r, gg, bl] = p.col;
     // feminine: the outer corner a little lifted (almond, a touch of cat-eye), the inner one soft and low
     const o = mirror ? 1 : -1, lift = b * 0.17;
@@ -78,7 +78,7 @@
     for (let k = 0; k < Math.round(L.glitter); k++) { const u = 0.15 + k * (0.7 / Math.max(1, L.glitter - 1)), sx = upX(u), sy = upY(u) - b * (0.25 + 0.15 * Math.sin(k * 2.1)), tw = 0.5 + 0.5 * Math.sin(performance.now() / 400 + k * 1.7 + o);
       g.fillStyle = `rgba(255,240,255,${0.35 * tw})`; g.beginPath(); g.arc(sx, sy, a * 0.008 * (1 + tw), 0, Math.PI * 2); g.fill(); }
     g.restore();
-    // a fine brow – only now and then, for a feeling: inner end, peak and outer end move with the emotion
+    // a fine brow – only now and then (#220: as far as the page lets it show, browAl): inner end, peak and outer end move with the emotion
     const E = p.brow;
     if (p.browAl > 0.01) {
     let by0 = cy - b * 1.6 + b * E.inner, by2 = cy - b * 1.7 + b * E.outer, bpy = cy - b * (1.95 + 0.35 * L.arch) + b * E.peak;
@@ -270,7 +270,7 @@
   function pupilShape(g, shape, x, y, pr, R, mirror, o) {
     g.fillStyle = '#05030a';
     g.beginPath();
-    if (shape === 'slit') {                            // a cat's slit – it comes with the grin
+    if (shape === 'slit') {                            // a cat's slit – it comes with the cat's face
       g.ellipse(x, y, pr * 0.3, Math.min(R * 0.92, pr * 1.6), 0, 0, Math.PI * 2);
     } else if (shape === 'heart') {
       const s = pr * 1.15, yy = y - s * 0.25;

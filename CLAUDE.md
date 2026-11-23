@@ -25,7 +25,12 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   Dreamy Eyes (`static/eyes.html`) and the dream windows (`static/window.html`) draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
-  asked over `/facemarks` – and moved by each window itself; a window never runs a model). `static/dreamyou.js` draws "you in the dream" for
+  asked over `/facemarks` – and moved by each window itself; a window never runs a model). How much of a face shows
+  is one rule for both pages (#220): `static/dreamvis.js` – mostly only the eyes, hints (brows, the sign on the
+  forehead, the outline at half strength) every minute or two, mouth, nose and hair rarely and clearly then; one face at a time – a face that
+  takes another's place while it shows waits until that one has faded out completely (`DreamVis.step`: never a cut, never two faces over each other); a drawn face has one size, the eyes' – never fitted to the screen, what has no room runs off its edge; whatever is drawn of a
+  face – a line of light, the eye's brow – asks it (`DreamVis.of(vis, part)`), and a part it does not know is not
+  drawn (`tests/js/vis.test.mjs`); the faces painted by the AI and "you in the dream" are pictures and stay whole. `static/dreamyou.js` draws "you in the dream" for
   Dreamy Eyes (#219): the person as the camera sees them, cut out on the phone, the face unchanged, the dream only around
   – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
   `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of

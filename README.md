@@ -756,23 +756,38 @@ eyes** that invite people to step up and play:
 - **They look at you:** the phone finds the face in front of its camera (MediaPipe Face Landmarker, on the phone itself –
   nothing of it is sent or kept) and the eyes follow the person; when someone steps up they open, very close they go
   wide with surprise, and interest widens the pupils. Without anyone in front they dream around by themselves.
-- **Smile at them, and they grin back:** a floating grin of its own (two rows of teeth, glowing in the dream's colours)
-  appears while someone smiles, the eyes smile along, then it fades. Now and then it comes by itself.
+- **Mostly only the eyes (#220):** how much of a face shows follows one rule, for everything face-like that is drawn in Dreamy
+  Eyes and in the dream windows (the faces painted by the AI and “you in the dream” are pictures and stay whole). Most of the time there are only the eyes. Every one to two minutes **hints** come for
+  about ten seconds: the brows, the sign on the forehead of a face drawn in light and – moderately, at about half
+  strength – **the outline of that face**. Every five to ten minutes or so,
+  inside such a moment and only while the eyes are calm, **mouth, nose and hair** join them and the outline grows fuller – clearly to be seen
+  for those few seconds (at about four fifths of full strength, never as solid as the eyes) – and leave again before the
+  hints do. There is no grin. **One face at a time:** where one face takes another's place while it is to be seen (a
+  held level changing its face, a style world changing, the person's silhouette behind the eyes), the one there fades
+  out completely (about a second) and only then the next fades in – never a hard cut, never two faces over each
+  other; a painted face that has to make way while it is still coming goes from as far as it had come. To look at a
+  level, add `?face=0`, `?face=1` or `?face=2` to the address of Dreamy Eyes or of a dream window: it is held (0: only
+  the eyes, 1: with hints and the outline, 2: with mouth, nose and hair as well; the face changes every 20 seconds).
 - **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
-  come only now and then, for a feeling** – like the grin: surprise (someone very close, waking up, a dream turning
-  wild), joy (with the grin), sadness (with the tear of light), doubt (one up, one flat, when they cross their eyes),
+  come only with the hints** (see above) and show a feeling then: surprise (someone very close, waking up, a dream turning
+  wild), joy (someone smiles at them), sadness (with the tear of light), doubt (one up, one flat, when they cross their eyes),
   a frown (rarely, in a dark wild dream) or curiosity – then they fade again. **Their look changes softly** every two minutes or so: rose, smoky (grey
   with a long wing), golden (with glitter), nymph (turquoise, long lashes) or doll (no wing, very long lashes, round
   brows).
 - **Behind the eyes the dream shines through the night** – through drifting clouds, a huge breathing spiral of soft
-  lights, a kaleidoscopic flower of rings, or a face only hinted in light around the eyes – a goddess with a diadem and
-  flowing hair, a cat with ears and twitching whiskers, Medusa with writhing snakes, a mermaid with hair drifting like
-  seaweed and a crown of shells, a forest spirit with a crown of leaves, vines framing the eyes, a leaf on the brow and glowing spores drifting up (no mouth), a moon priestess with a
-  crescent on her brow, a swaying veil and long earrings; the masks change every minute or two
+  lights or a kaleidoscopic flower of rings; the masks change every minute or two
   or so (upright a little calmer), the dream behind them slowly
   zooms and wanders, a little brighter than on the stage. Every two to four minutes a **dream window** opens for 6–10
   seconds: the night opens wide and the dream shows clearly behind the eyes, then it softly withdraws behind the masks. Right behind the eyes it stays darker, so they stay clear.
+- **Faces drawn in light, only hinted:** with the hints a face of light appears around the eyes, another one each
+  time, and the eyes become its eyes – first its sign and, more faintly, its outline: the goddess's diadem of rays, the cat's ears, the snakes
+  above Medusa's brow, the mermaid's crown of shells, the forest spirit's crown of leaves with the leaf on the brow and
+  glowing spores, the moon priestess's crescent. In the rare moments hair and a closed mouth join them and the outline grows fuller,
+  clearly (flowing hair, twitching whiskers, writhing snakes, hair like seaweed, vines, a veil and long earrings) – and
+  the goddess's line of a nose, the cat's little nose. The dream fills the lines. **A face is never squashed:** it has
+  one size, that of the eyes, upright or across; on a wide, low screen its chin and the ends of its hair run off the
+  edge instead of being pressed into the picture.
 - **You in the dream:** whoever stands in front is mirrored in the iris – faintly all the time, and every two or three minutes
   for a few seconds very clearly, as in real eyes: then it is the person alone, cut out from the room (on the
   phone), the face exactly as the camera sees it, and behind them the iris keeps dreaming. Now and then (every three to five
@@ -863,7 +878,7 @@ eyes** that invite people to step up and play:
   `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds); `DREAM_AIMASK=0`
   switches the painted faces off altogether (no fire spirit either: Dreamy Eyes never make the Mac load a model). With the cloud GPU
   there are no painted faces.
-- **The pupils change shape:** a cat's slit while the grin is there, hearts when someone keeps smiling, stars when they
+- **The pupils change shape:** a cat's slit while the cat's face of light shows, hearts when someone keeps smiling, stars when they
   are surprised, a turning spiral when they hypnotise (or are spellbound by a fire). About one time in four (#218) it is
   a soft shimmer instead of the spiral, never the same one twice in a row: lights turning like a mandala, lights sinking
   like snow, rings sinking into the depth, or a slow swirl – half transparent, in the dream's colours (like embers by a
@@ -873,8 +888,6 @@ eyes** that invite people to step up and play:
 - **Moods now and then:** they wink, cross their eyes, roll them, hypnotise, shed a tear of light that bursts into
   stars, or sparkle. Nobody there for a long while and a calm dream: they slowly fall asleep and little z's drift up –
   whoever comes wakes them with a start (star pupils, sparkles). Livelier dream: more often.
-- **The grin comes in three kinds** – with teeth, as a smile of little lights, or as glowing neon with a dreamy
-  tongue – and draws itself onto the air from one side.
 - **Around the eyes** appear clouds, blooming light spirals, mandalas, growing fractal trees of light, fluttering light
   moths, iridescent bubbles, ribbons of northern light and little moons circling an eye – all in the dream's colours,
   more often when the dream is lively. If the phone runs short, these go first (never the camera); if it is still short,
@@ -883,7 +896,7 @@ eyes** that invite people to step up and play:
   `~/.cache/dream/mediapipe`.
 - **Setting up:** Dream Control → card **“👀 Dreamy Eyes”** → “Show the code for the eyes phone” (or on the Mac: panel →
   “Output” → **👀 Dreamy Eyes**) → scan it with the eyes phone. Once on that phone: install Dream's certificate (see “Dream Control over https and as an app”) – the browser
-  gives the camera out only over https. Tap **“Open the eyes”** (fullscreen, the screen stays on). To keep it there:
+  gives the camera out only over https. Tap **“Open the eyes”** (fullscreen, the screen stays on; with `?debug` in the address the page stays a window). To keep it there:
   Android “App pinning” (Settings → Security → App pinning, then pin the browser via the app overview), the phone on
   power, in a holder at eye height.
 - **Its code may only lend the front camera** and see the dream – no settings, no commands, nothing that costs money; it
@@ -908,7 +921,8 @@ window shows **one large, living motif**, the dream drifts around it as clouds, 
 one device to another.
 
 - **One large motif per window:**
-  - a **large eye** – the very eye of Dreamy Eyes: iris fibres, lids, lashes, a brow when it feels something. It looks
+  - a **large eye** – the very eye of Dreamy Eyes: iris fibres, lids, lashes, and a brow only with the hints (#220:
+    every minute or two, by Dream's clock – both eyes of a pair raise theirs together). It looks
     around, blinks, its pupil widens in a dark dream and with the beat, and its iris is the dream – plain, folded into
     a kaleidoscope, a tunnel or a galaxy; rarely (about one time in ten, every 47 s) its pupil hypnotises for a few seconds (#218: the
     spiral or one of the soft shimmers in turn, breathing with the beat – the same in both windows of a pair);
@@ -1347,7 +1361,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart (the outline with them, at half strength), mouth, nose and hair 4–11 min apart, clearly to be seen then and never above four fifths, no jump from one picture to the next, one face at a time (stepping the clock through changes of face: the one shown fades out completely before the next fades in, no frame with a jump, never two at once), the same for both windows of a pair, a nose only at the rare level – and that the pages draw every line of a face through the rule (no grin; a nose only in the faces of light and only by the rule; no face fitted to the screen's height; no fullscreen with `?debug`). `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the
