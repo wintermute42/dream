@@ -96,5 +96,5 @@ window.StyleScenes = (() => {
     for (let i = 0; i < SW * SH; i++) { rgb[i * 3] = d[i * 4]; rgb[i * 3 + 1] = d[i * 4 + 1]; rgb[i * 3 + 2] = d[i * 4 + 2]; }
     return btoa(String.fromCharCode(...rgb));
   }
-  return { W, H, T0, NAMES: Object.keys(SCENES), LIFE, draw, small, eye, thing, geo, pic, hue };
+  return { W, H, T0, NAMES: Object.keys(SCENES), LIFE, draw, small, eye, thing, kit, geo, pic, hue };
 })();
