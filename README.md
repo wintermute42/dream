@@ -799,6 +799,23 @@ eyes** that invite people to step up and play:
     ochre washes with flame strokes rising; where Classic shows a heart a drop of red pigment blooms, where it shows
     stars there is a flick of splatter, and sleep is slow rings of wash. Measured as above (processor slowed four
     times): Dreamy Eyes about 20 frames a second, a dream window 4 (Classic: 36 and 8 in the same run).
+  - **Engraving** (#225) – an old engraved plate that comes alive, with the long lines of Art Nouveau. There is only
+    line – strokes that swell and thin, hatching, stipple – in bone-coloured ink with verdigris, old rose and a little
+    gold light that now and then runs along a line. The eye: the white is fine lines following the ball, the lid one
+    swelling line that ends in a tendril, single lashes; the dream itself is engraved in the iris, strokes as thick as
+    it is bright there. Around the eyes and through the windows: a fern whose crozier unrolls, a vine that draws itself
+    with leaves opening behind its tip, a seed head whose seeds leave on the air, a lily opening, a naturalist's moth
+    with hatched wings, hatched drops of dew, winged seeds circling an eye, a cloud of stipple. The faces of light are
+    *lily* (a gem on a fine chain on the brow; rarely hair in bundles ending in curls, lilies at the temples, an open
+    ticked halo), *fern* (a young crozier on the brow; rarely vines for hair, a wreath of leaves, a stippled jaw) and
+    *moth* (a moth at rest on the brow; rarely a veil of fine lines, a halo of stipple) – closed, hatched lips only in
+    the rare moment, and no nose although the design had one. In a window the dream is a rosette engraved in a ticked
+    medallion with vines growing round its frame, the third eye sits in the middle of a seed head, the impossible shapes
+    are hatched face by face and a seed climbs the stairs; the sky is stipple in the dream's colours. Fire is engraved
+    flames with gold inside. Instead of a heart there is a bud, instead of stars a seed head and drifting seeds, and
+    sleep is a poppy's head nodding and letting a few seeds go. No line is finer than about 1.2 px, so the plate holds
+    on coarse outputs. Measured as above (processor slowed four times): Dreamy Eyes about 25 frames a second, a dream
+    window 6 (Classic: 39 and 8 in the same run).
 - **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
   come only with the hints** (see above) and show a feeling then: surprise (someone very close, waking up, a dream turning
