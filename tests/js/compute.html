@@ -1,0 +1,57 @@
+<!doctype html>
+<!-- #238: the badge "who computes right now" (static/compute.js, static/compute.css) in a real browser;
+     tests/js/compute.test.mjs reads the report -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Computing</title>
+<link rel="stylesheet" href="/static/compute.css">
+<style>
+  :root { --accent: #c78bff; --text: #f2eefb; --muted: #b9b1cf; --line: rgba(255,255,255,.16); --warn: #ff6b7d; --ok: #7fe3a0; }
+  body { background: #141220; color: var(--text); font: 16px system-ui, sans-serif; width: 360px; }
+</style>
+</head>
+<body>
+<div id="computing" class="compute"></div>
+<script>window.T = (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => vars[k]) : text);   // as i18n.js, in English</script>
+<script src="/static/compute.js"></script>
+<script>
+(async () => {
+  const report = { error: '' };
+  try {
+    const box = document.getElementById('computing'), q = s => box.querySelector(s), shown = s => q(s).offsetHeight > 0;
+    const running = work => ({ state: 'running', type: 'runpod:RTX-4090', minutes: 3, cost_eur: 0.04, busy: false, work });
+    let taps = 0;
+    const draw = (backend, cloud, bridge) => DreamCompute.draw(box, DreamCompute.now(backend, cloud, bridge), () => taps++);
+
+    draw('local', { state: 'off' }, true);
+    report.mac = { kind: box.dataset.kind, text: q('.compute-now').textContent, role: q('.compute-now').getAttribute('role'),
+      sub: shown('.compute-sub'), steps: shown('.compute-steps'), offer: shown('.compute-offer') };
+    const nodes = [q('.compute-now'), q('.compute-sub'), q('.compute-steps'), q('.compute-offer')];
+
+    draw('cloud', running({ phase: 'download', percent: 43, eta_min: 4 }), true);
+    const dot = getComputedStyle(q('.compute-dot'));
+    const moved = new Set();
+    for (const sheet of document.styleSheets) for (const rule of sheet.cssRules) if (rule.type === CSSRule.KEYFRAMES_RULE) for (const frame of rule.cssRules) for (const prop of frame.style) moved.add(prop);
+    report.bridge = { kind: box.dataset.kind, marks: [...box.querySelectorAll('.compute-mark')].map(m => m.textContent),
+      current: [...box.querySelectorAll('[aria-current="step"]')].map(li => li.lastChild.textContent), stepsLabel: q('.compute-steps').getAttribute('aria-label'),
+      dotMoves: dot.animationName !== 'none', onlyTransformAndOpacity: [...moved].every(p => p === 'transform' || p === 'opacity') };
+    report.sameNodes = nodes.every((n, i) => n === [q('.compute-now'), q('.compute-sub'), q('.compute-steps'), q('.compute-offer')][i]);
+
+    draw('local', running({ phase: 'ready' }), true);
+    const offer = q('.compute-offer');
+    offer.click();
+    report.offer = { shown: shown('.compute-offer'), text: offer.textContent, tag: offer.tagName, taps, height: offer.offsetHeight >= 44 };
+    // contrast of the offer's text on its background (WCAG)
+    const lum = c => { const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const cs = getComputedStyle(offer), a = lum(cs.color), b = lum(cs.backgroundColor);
+    report.contrast = Math.round((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) * 10) / 10;
+
+    draw('cloud', running({ phase: 'ready' }), true);
+    report.cloud = { kind: box.dataset.kind, offer: shown('.compute-offer') };
+  } catch (e) { report.error = String(e && e.stack || e); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>

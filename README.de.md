@@ -206,7 +206,9 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   jeden Text ohne deutsche Fassung.
 - Die Handy-Fernbedienung hat Show, A−/A+ und 🌙 weiterhin; ihre Abschnitte lassen sich durch Tippen auf die Überschrift zuklappen.
 
-- **Rechnen auf:** „Lokal (Mac)“ oder „Cloud-GPU“. Umschalten geht jederzeit, ohne Neustart.
+- **Rechnen auf:** „Lokal (Mac)“ oder „Cloud-GPU“. Umschalten geht jederzeit, ohne Neustart. Das **Abzeichen** oben
+  in der Karte sagt, wer gerade rechnet – „Rechnet gerade: Mac“, „Rechnet gerade: Cloud ✓“, „Mac überbrückt – Cloud:
+  …“ – siehe „[Wer gerade rechnet](#wer-gerade-rechnet)“.
 - **Modell:** SD-Turbo (schnell) oder SDXL-Turbo (schöner, lokal sehr langsam, in der Cloud gut). Umschalten geht
   mitten in der Show: Das neue Modell lädt im Hintergrund (SD-Turbo Sekunden, SDXL-Turbo lokal etwa 20–60 s, beim
   allerersten Mal mit Download deutlich länger), das alte träumt so lange weiter, ein Chip zeigt „⏳ … wird geladen“.
@@ -1243,6 +1245,45 @@ In der App „Cloud-GPU“ wählen, GPU-Typ aussuchen, **Starten**, die Kostenab
 von Dream rechnet es zunächst wieder lokal auf dem Mac – die Cloud wird nicht gemerkt, damit sie nie versehentlich
 gewählt ist. Nach einigen
 Minuten (Maschine anlegen, Python und Modell laden) rechnet Dream in der Cloud. **Löschen** beendet sofort.
+
+#### Wer gerade rechnet
+
+Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später – und pausiert wieder, wenn sie neu übersetzt. Das
+**Abzeichen** oben in der Karte Rechnen, dasselbe in Dream Control, sagt, was in diesem Moment gilt:
+
+| Abzeichen | Bedeutung |
+|---|---|
+| **Rechnet gerade: Mac** | „Lokal“ ist gewählt. Läuft daneben eine Cloud-GPU, steht darunter, bei welchem Schritt sie ist und dass sie kostet. |
+| **Mac überbrückt – Cloud: … · noch ca. X Min. (kostet schon)** | „Cloud-GPU“ ist gewählt, die Cloud liefert aber noch keine Bilder: Solange malt der Mac. |
+| **Cloud bereitet vor: … · bis dahin keine Bilder** | Dasselbe mit ausgeschaltetem Überbrücken: Das Bild steht. |
+| **Rechnet gerade: Cloud ✓** | Die Cloud-GPU malt. |
+| **Cloud nicht erreichbar – Mac rechnet** | Eine Maschine ist da (und kostet), antwortet aber nicht. „Starten“ verbindet neu, „Löschen“ beendet die Kosten. |
+| **Keine Cloud-GPU gestartet – Mac rechnet** | „Cloud-GPU“ ist gewählt, es läuft keine. |
+
+- **Die Schritte eines Starts**, der aktuelle markiert: *GPU startet → Modell wird heruntergeladen (mit Prozent) →
+  Modell lädt → Wird optimiert → Bereit*, dazu eine grobe Restzeit, bis Bilder kommen. Eine frische Maschine lädt das
+  Modell bei jedem Start neu herunter (SD-Turbo etwa 2,6 GB, SDXL-Turbo etwa 7 GB). Eine Log-Zeile wird nirgends
+  gezeigt; was `dream-cloud` zuletzt gemeldet hat, steht im Tooltip der Zeile unter den Tasten, solange es arbeitet.
+- **„Wird optimiert“ auch später:** Ein übersetztes Modell übersetzt von selbst neu, wenn etwas Neues kommt – vor
+  allem eine andere Größe –, und liefert dann minutenlang keine Bilder. Der Renderer auf der Maschine merkt das (ein
+  Bild, das auf einem übersetzten Modell länger als 3 Sekunden braucht) und meldet es; das Abzeichen zeigt den
+  Schritt, und der Mac überbrückt.
+- **Automatisch lokal überbrücken** (Schalter in der Karte und in Dream Control, an, solange du ihn nicht ausschaltest):
+  Solange die gewählte Cloud-GPU startet, herunterlädt, lädt oder optimiert – oder nicht antwortet –, malt der Mac, und
+  die Cloud übernimmt von selbst, sobald sie Bilder liefert. Beachte: Der Mac ist **langsamer** (SDXL-Turbo sehr viel
+  langsamer), und er **lädt dafür sein eigenes Modell** (Sekunden bis eine Minute; beim allerersten Mal ein Download) –
+  es bleibt danach geladen, das nächste Überbrücken beginnt sofort. Der Look kann zwischen beiden etwas abweichen. Mit
+  ausgeschaltetem Schalter wird nichts gemalt, bis die Cloud bereit ist.
+- **Der Wechsel auf „Lokal“ stoppt die Cloud-GPU nicht:** Sie bereitet weiter vor (und kostet weiter) – nur „Löschen“
+  oder das automatische Löschen beendet sie. Die bisherigen Kosten bleiben sichtbar, auch während der Mac rechnet: in
+  der Zeile unter den Tasten und als roter Chip unter der Vorschau.
+- **Wenn die Cloud-GPU bereit ist**, meldet Dream das dreifach: als Chip und in der Statuszeile im Bedienfeld, als
+  **Mac-Benachrichtigung** mit dem Titel „Dream“ (sie kommt vom „Skripteditor“; dessen Mitteilungen einmal in den
+  Systemeinstellungen erlauben – abschalten mit `DREAM_NOTIFY=0` in `dream.env`) und in Dream Control mit der Taste
+  **„☁ Cloud bereit – wechseln?“** (auch im Bedienfeld), solange noch der Mac rechnet. Ist „Cloud-GPU“ gewählt,
+  wechselt es von selbst.
+- Eine Maschine, die mit einer früheren Dream-Version gestartet wurde, kennt diese Meldungen nicht: Sie zeigt „GPU
+  startet“, bis ihr Modell geladen ist, dann „Bereit“.
 
 - Empfohlen: RTX 4090 (etwa 0,70 $ pro Stunde; für Dream so schnell wie teurere Karten). Die Preise stehen in der
   Liste und in der Frage vor dem Start.

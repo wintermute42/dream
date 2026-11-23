@@ -18,3 +18,4 @@ CONTROLNETS = {
 }
 
 NEED_GB = {"sd-turbo": 4.0, "sdxl-turbo": 9.0}          # memory a model needs while loading (weights + working space)
+DOWNLOAD_GB = {"sd-turbo": 2.6, "sdxl-turbo": 7.0}      # #238: what a model's first load downloads, roughly (for the progress)

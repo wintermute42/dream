@@ -200,7 +200,9 @@ cost – that line also tells it for the cloud GPU, whose own parts the table do
 `~/.local/state/dream/measure/` as JSON, to compare a change before and after. While measuring, the parts are timed
 together with the GPU, which makes the run itself a little slower than usual. Only Dream Control and the Mac can start it.
 
-- **Compute on:** “Local (Mac)” or “Cloud GPU”. Switching works at any time, without a restart.
+- **Compute on:** “Local (Mac)” or “Cloud GPU”. Switching works at any time, without a restart. The **badge** at the
+  top of the card says who computes right now – “Computing now: Mac”, “Computing now: Cloud ✓”, “The Mac bridges – cloud:
+  …” – see “[Who computes right now](#who-computes-right-now)”.
 - **Model:** SD-Turbo (fast) or SDXL-Turbo (nicer; very slow locally, good in the cloud). You can switch in the middle
   of a show: the new model loads in the background (SD-Turbo seconds, SDXL-Turbo locally about 20–60 s, much longer
   the very first time with the download), the old one dreams on meanwhile, a chip says “⏳ … is loading”. The first
@@ -1181,6 +1183,43 @@ music analysis stay on the Mac.
 5090 …”** (falls back to the other RTX, 4090 ↔ 5090, each in the same kind secure or community), **“Try only RTX
 4090”** and **“Cancel”** – Cancel (or Esc) starts nothing. A running GPU is never switched, the H100 has no fallback.
 The card Computing shows what is happening; **Delete** ends it at once.
+
+### Who computes right now
+
+A cloud GPU costs from the moment it starts, but it paints only minutes later – and it pauses again when it compiles
+anew. The **badge** at the top of the card Computing, the same in Dream Control, says what is true this moment:
+
+| Badge | What it means |
+|---|---|
+| **Computing now: Mac** | “Local” is chosen. If a cloud GPU runs beside it, the line below says at which step it is and that it costs. |
+| **The Mac bridges – cloud: … · about X min left (it costs already)** | “Cloud GPU” is chosen, but the cloud sends no pictures yet: the Mac paints meanwhile. |
+| **The cloud prepares: … · no pictures until then** | The same with bridging switched off: the picture holds. |
+| **Computing now: Cloud ✓** | The cloud GPU paints. |
+| **Cloud not reachable – the Mac computes** | A machine is there (and costs), but does not answer. “Start” connects again, “Delete” ends the costs. |
+| **No cloud GPU started – the Mac computes** | “Cloud GPU” is chosen, none runs. |
+
+- **The steps of a start**, with the one it is at marked: *GPU starts → Model is downloaded (with per cent) → Model
+  loads → Is optimised → Ready*, and a rough time until pictures come. A fresh machine downloads the model on every
+  start (SD-Turbo about 2.6 GB, SDXL-Turbo about 7 GB). No line of a log is shown; what `dream-cloud` last said is in
+  the tooltip of the line under the buttons while it works.
+- **“Is optimised” also later:** a compiled model compiles again by itself when something new arrives – another size
+  above all – and sends no pictures for minutes. The renderer on the machine notices that (a picture that takes
+  longer than 3 seconds on a compiled model) and says so; the badge shows the step, and the Mac bridges.
+- **Bridge on the Mac automatically** (switch in the card and in Dream Control, on unless you switch it off): while
+  the chosen cloud GPU starts, downloads, loads or optimises – or does not answer – the Mac paints, and the cloud takes
+  over by itself as soon as it delivers pictures. Mind: the Mac is **slower** (SDXL-Turbo very much so), and it **loads
+  its own model** for it (some seconds to a minute; the very first time a download) – which then stays loaded, so the
+  next bridge starts at once. The look can differ a little between the two. With the switch off nothing is painted
+  until the cloud is ready.
+- **Switching to “Local” does not stop the cloud GPU:** it goes on preparing (and costing) – only “Delete” or the
+  automatic deletion ends it. The costs so far stay visible while the Mac computes: in the line under the buttons and
+  as a red chip below the preview.
+- **When the cloud GPU is ready** Dream says so three ways: a chip and the status line in the panel, a **notification
+  of macOS** titled “Dream” (it comes from “Script Editor”; allow its notifications in the system settings once –
+  switch them off with `DREAM_NOTIFY=0` in `dream.env`), and in Dream Control the button **“☁ Cloud ready – switch?”**
+  (also in the panel) while the Mac still computes. With “Cloud GPU” chosen it switches by itself.
+- A machine started with an earlier version of Dream has none of these words: it shows “GPU starts” until its model
+  is loaded, then “Ready”.
 
 **Compiling and the compile cache:** on the cloud GPU the model is compiled for the card before its first picture
 (torch.compile, TF32), slim in one variant. `dream-cloud` brings the compiled code to the Mac as a **cache**

@@ -10,6 +10,7 @@ PROMPT_MODEL = os.environ.get("DREAM_PROMPT_MODEL", "llama3.2:3b")
 SOURCE_URL = os.environ.get("DREAM_SOURCE_URL", "https://github.com/wintermute42/dream")   # #178: AGPL §13 – where the code is
 CLOUD = os.environ.get("DREAM_CLOUD_CMD") or os.path.join(HERE, "dream-cloud")   # the override is for tests (no real cloud)
 
+NOTIFY = os.environ.get("DREAM_NOTIFY", "1") != "0"   # #238: macOS notifications (the cloud GPU is ready); 0: none
 LAN = os.environ.get("DREAM_LAN") == "1"            # started with --lan: devices in the home network get in with a key
 PORT = int(os.environ.get("DREAM_PORT", "7860"))
 # #145: Dream Control over https. #153: never 7861 – that is the cloud GPU's SSH tunnel (dream-cloud LOCAL_PORT).

@@ -1,0 +1,28 @@
+/* #238: the badge that says who computes right now (compute.js) – in the colours of the page it stands on (the panel
+   and Dream Control). Its colour bar and dot tell the kind: the Mac, the cloud, the Mac bridging, waiting, not
+   reachable – never by colour alone, the headline says it. Only transform and opacity are animated. */
+.compute { --c: var(--accent); margin: 0 0 8px; padding: 8px 10px 8px 12px; border: 1px solid var(--line); border-left: 4px solid var(--c);
+  border-radius: 12px; background: rgba(255,255,255,.04); }
+.compute[data-kind=cloud] { --c: var(--ok); }
+.compute[data-kind=wait] { --c: var(--muted); }
+.compute[data-kind=down] { --c: var(--warn); }
+.compute p { margin: 0; }
+.compute-now { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.compute-dot { flex: none; width: .7em; height: .7em; border-radius: 50%; background: var(--c); }
+.compute[data-kind=cloud] .compute-dot { animation: compute-pop .5s ease-out; }
+.compute[data-kind=bridge] .compute-dot, .compute[data-kind=wait] .compute-dot, .compute-steps .now .compute-mark { animation: compute-breathe 1.6s ease-in-out infinite; }
+@keyframes compute-breathe { 50% { transform: scale(.6); opacity: .45; } }
+@keyframes compute-pop { 0% { transform: scale(.3); opacity: .3; } 60% { transform: scale(1.5); } 100% { transform: none; opacity: 1; } }
+.compute-sub { margin-top: 2px !important; color: var(--muted); font-size: .85em; line-height: 1.3; }
+.compute-steps { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 1px; font-size: .85em; line-height: 1.35; color: var(--muted); }
+.compute-steps li { display: flex; align-items: baseline; gap: 6px; }
+.compute-steps .done { color: var(--text); opacity: .75; }
+.compute-steps .now { color: var(--text); font-weight: 600; }
+.compute-mark { flex: none; width: 1em; text-align: center; }
+.compute-steps .done .compute-mark { color: var(--ok); }
+.compute-steps .now .compute-mark { color: var(--c); }
+.compute .compute-offer { display: block; width: 100%; margin-top: 8px; min-height: 44px; padding: 8px; border: 0; border-radius: 10px;
+  background: var(--accent); color: #140b1f; font: inherit; font-weight: 700; cursor: pointer; }
+.compute .compute-offer:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.compute [hidden] { display: none !important; }        /* a part with nothing to say takes no room */
+@media (prefers-reduced-motion: reduce) { .compute-dot, .compute-mark { animation: none !important; } }

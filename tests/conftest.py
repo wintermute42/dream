@@ -1,5 +1,5 @@
 """Shared test setup (#186): every test runs in a sandbox – its own HOME and Dream folders in a temporary folder, a
-stand-in for torch (no model, no GPU), no MIDI, no OSC port, no network, no launchd. The real home folder, the real keys
+stand-in for torch (no model, no GPU), no MIDI, no OSC port, no network, no launchd, no notifications. The real home folder, the real keys
 and a running Dream are never touched."""
 import os
 import shutil
@@ -15,7 +15,7 @@ sys.path.insert(0, ROOT)
 
 FOLDERS = {"DREAM_STATE_DIR": "state", "DREAM_CONFIG_DIR": "config", "DREAM_SAVE_DIR": "saved"}
 _session = {}
-SERVER_ENV = ("DREAM_ROLE", "DREAM_LAN", "DREAM_CLOUD_CMD", "DREAM_OLLAMA", "DREAM_PORT", "DREAM_HTTPS_PORT")
+SERVER_ENV = ("DREAM_ROLE", "DREAM_LAN", "DREAM_CLOUD_CMD", "DREAM_OLLAMA", "DREAM_PORT", "DREAM_HTTPS_PORT", "DREAM_NOTIFY")
 
 
 def _sandbox_env(base: str) -> dict:
@@ -43,6 +43,7 @@ def pytest_configure(config):
     base = tempfile.mkdtemp(prefix="dream-tests-")
     _session["base"], _session["env"] = base, {k: os.environ.get(k) for k in ("HOME", *FOLDERS, *SERVER_ENV)}
     os.environ.update(_sandbox_env(base))
+    os.environ["DREAM_NOTIFY"] = "0"                    # #238: no test ever shows a notification of macOS
     for k in ("DREAM_PRELOAD", "DREAM_ENV"):
         os.environ.pop(k, None)
     fake_torch()

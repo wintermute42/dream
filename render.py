@@ -123,6 +123,8 @@ def pipeline(key: str):
             p = AutoPipelineForImage2Image.from_pretrained(repo, torch_dtype=dtype,
                                                            variant="fp16" if dtype == torch.float16 else None)
             p.vae = AutoencoderTiny.from_pretrained(vae, torch_dtype=dtype)
+            if model_state["loading"] == key:
+                model_state["first"] = False          # #238: downloaded – from here on it is loading, not downloading
             with gpu_lock:
                 p = p.to(device)
             p.set_progress_bar_config(disable=True)
@@ -145,6 +147,21 @@ def pipeline(key: str):
 
 
 COMPILE_CACHE = os.environ.get("DREAM_COMPILE_CACHE", os.path.join(config.HERE, "compile-cache"))
+# #238: what the worker tells about compiling. A compiled model compiles again by itself, inside a picture, when
+# something it was not compiled for arrives (another size, a new style): that picture then takes minutes instead of a
+# fraction of a second – a picture of a compiled model that has been in work for RECOMPILE_AFTER seconds is that.
+compile_state = {"since": None, "cached": False}      # the compile before a model's first picture: since when, from the cache?
+_compiled: set = set()                                # the models that paint compiled
+RECOMPILE_AFTER = 3.0
+
+
+def compiling(now: float | None = None) -> float | None:
+    """Since when (time.time()) a model is being compiled, or None: nothing compiles."""
+    if compile_state["since"]:
+        return compile_state["since"]
+    key, since = _busy["key"], _busy["since"]
+    now = time.time() if now is None else now
+    return since if key in _compiled and since and now - since > RECOMPILE_AFTER else None
 
 
 def _cache_file(key, p):
@@ -182,6 +199,7 @@ def _speed_up(key, p):
         print(f"{key}: compiling for this GPU type for the first time (some minutes; later starts about one) …", flush=True)
     eager = (p.unet, p.vae.decoder)
     t0 = time.time()
+    compile_state.update(since=t0, cached=cache_hit)     # #238: /health and /stats say that it compiles, and since when
     try:
         p.unet.to(memory_format=torch.channels_last)
         p.unet = torch.compile(p.unet, fullgraph=False)
@@ -189,11 +207,14 @@ def _speed_up(key, p):
         look = {"ref": ""} if getattr(p, "_dream_ip", False) else None   # with the adapter: its one variant
         for size in (512, 384):                          # the usual sizes, compiled now and not on stage
             _render(key, Image.new("RGB", (size, size), (40, 20, 60)), "psychedelic colors", 0.5, 2, 1, look=look)
+        _compiled.add(key)
         print(f"{key}: compiled for the GPU in {time.time() - t0:.0f} s", flush=True)
     except Exception as e:                               # compiling is a bonus: without it Dream still works
         p.unet, p.vae.decoder = eager
         print(f"{key}: compiling failed, running uncompiled ({str(e).splitlines()[0][:160]})", flush=True)
         return
+    finally:
+        compile_state.update(since=None, cached=False)
     if not cache_hit:
         try:
             art = torch.compiler.save_cache_artifacts()
@@ -248,7 +269,8 @@ def edge_map(img):
     return Image.fromarray(out).convert("RGB")
 
 
-_busy = {"t": 0.0, "n": 0}     # time spent rendering and pictures made (for the load display)
+# time spent rendering and pictures made (for the load display); #238: the picture in work – its model, since when
+_busy = {"t": 0.0, "n": 0, "key": None, "since": None}
 
 # ---------- measuring (#180): where the time of a picture goes ----------
 # Off it costs nothing. During a measurement run every part of a picture is timed – synchronised with the GPU, so the
@@ -317,9 +339,11 @@ def _render(key, img, prompt, strength, steps, seed, pose=None, pose_scale=0.8, 
     {"style": key, "sa": amount, "ref": reference hash, "ra": amount}."""
     t0 = time.time()
     _perf_frame.cur = {} if _perf["on"] else None     # #180
+    _busy.update(key=key, since=t0)
     try:
         return _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2, st, prompt2, pt, edges, look)
     finally:
+        _busy.update(key=None, since=None)
         _busy["t"] += time.time() - t0
         _busy["n"] += 1
         cur, _perf_frame.cur = _perf_frame.cur, None
@@ -348,6 +372,7 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
             if look.get("ref") and not getattr(p, "_dream_ip", False):
                 styles.ip_load_later(p)                       # first reference picture: the adapter comes in the background
                 if getattr(p, "_dream_ip", False) and hasattr(p.unet, "_orig_mod"):
+                    _compiled.discard(key)
                     p.unet = p.unet._orig_mod                 # #131: with the adapter it paints uncompiled (a new
                     for (k, _), cp in _ctl_pipes.items():     # compile would hold the stage for minutes); the next
                         if k == key:                          # cloud start compiles it with the adapter
@@ -397,6 +422,7 @@ def release(key):
     with _build_lock, _load_lock, gpu_lock:
         for d in (_pipes, _t2i, _full_vae):
             d.pop(key, None)
+        _compiled.discard(key)
         for d in (_cn_models, _ctl_pipes):
             for k in [k for k in d if k[0] == key]:
                 d.pop(k, None)
@@ -445,6 +471,56 @@ def _drop_others(keep):
         release(old)
 
 
+def downloaded_gb(repo: str, cache: str | None = None) -> float | None:
+    """#238: how much of a model has arrived in the download cache (finished and unfinished files); None: not known."""
+    try:
+        if cache is None:
+            from huggingface_hub.constants import HF_HUB_CACHE as cache
+        with os.scandir(os.path.join(cache, "models--" + repo.replace("/", "--"), "blobs")) as files:
+            return round(sum(f.stat().st_size for f in files if f.is_file()) / 1e9, 2)
+    except Exception:
+        return None
+
+
+def progress(now: float | None = None) -> dict:
+    """#238: where the renderer stands, for /health and /stats – so a cloud GPU that loads or compiles says so itself
+    instead of just sending no pictures. "ready": the next picture comes at once."""
+    now = time.time() if now is None else now
+    loading, since = model_state["loading"], compiling(now)
+    out = {"model": model_state["active"], "loading": loading, "model_error": model_state["error"],
+           "first_download": bool(model_state["first"]), "compiling": since is not None}
+    if since is not None:
+        out.update(compiling_s=int(now - since), compile_cached=bool(compile_state["cached"]))
+    if loading and model_state["first"]:
+        got = downloaded_gb(models.MODELS[loading][0])
+        if got is not None:
+            out["download_gb"] = got
+    paints = _ready(model_state["active"])            # the model in use paints on while another one loads
+    out["failed"] = bool(model_state["error"]) and not _pipes and not loading   # nothing to paint with, nothing coming
+    out["ready"] = since is None and (paints or not loading) and not out["failed"]
+    return out
+
+
+def preload(keys) -> None:
+    """DREAM_PRELOAD (the cloud GPU): the models are loaded at the start – #238: beside the server, which answers
+    meanwhile and tells how far the load is (downloading, loading, compiling)."""
+    def run():
+        for key in keys:
+            model_state.update(loading=key, first=not _in_cache(models.MODELS[key][0]))
+            try:
+                pipeline(key)
+            except Exception as e:
+                print(f"loading {key} failed: {e!r}", flush=True)
+                model_state.update(error=f"{type(e).__name__}: {e}"[:300], error_key=key, error_at=time.time())
+                _pipes.pop(key, None)
+            finally:
+                model_state.update(loading=None, first=False)
+
+    if keys:
+        model_state["loading"] = keys[0]              # said before the server answers its first question
+        threading.Thread(target=run, daemon=True, name="preload").start()
+
+
 def _in_cache(repo: str) -> bool:
     """#179: whether a model is already downloaded (else its first load is a download of gigabytes)."""
     try:
@@ -468,7 +544,8 @@ def use_model(key) -> str:
             return active
         # nothing to paint with: wait for it (the stage holds its picture) – and say so (#179: on the very first start the
         # model is downloaded first, which takes minutes; the stage shows it instead of an empty "Connected")
-        model_state["loading"], model_state["first"] = key, not _in_cache(models.MODELS[key][0])
+        if model_state["loading"] != key:             # #238: else the worker loads it already and has said so
+            model_state["loading"], model_state["first"] = key, not _in_cache(models.MODELS[key][0])
         try:
             pipeline(key)
         finally:
@@ -595,8 +672,7 @@ def _jpeg(img, q=92) -> bytes:
     return buf.getvalue()
 
 
-for k in [m for m in os.environ.get("DREAM_PRELOAD", "").split(",") if m in models.MODELS]:
-    pipeline(k)
+preload([m for m in os.environ.get("DREAM_PRELOAD", "").split(",") if m in models.MODELS])
 
 
 def gpu_memory_gb() -> float | None:
