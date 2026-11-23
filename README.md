@@ -796,8 +796,8 @@ eyes** that invite people to step up and play:
     bone-coloured wash with a brushed iris ring, bare paper for its highlight and one loaded lid stroke flicked into a
     wing; the brow is a brush stroke. Around the eyes: petal washes, a bloom of pigment spreading, an enso, an ink twig
     growing leaf by leaf, a bird of two strokes, drops in wet paper, a sweep of a broad brush. The faces of light are
-    *sumi*, *willow* and *plum* (a small sign on the forehead with the hints; hair strokes and washes, a thin jaw line
-    and closed lips only in the rare moment). In a window the dream shows through wash blots, around a brushed enso with
+    *sumi*, *willow* and *plum* (a small sign on the forehead with the hints; hair strokes and washes, a thin jaw line,
+    closed lips and the nose – one loaded stroke down its side, a dry flick under its tip – only in the rare moment). In a window the dream shows through wash blots, around a brushed enso with
     the eye or the folded dream in it; the impossible shapes are washed panes with brushed edges. Fire is vermilion and
     ochre washes with flame strokes rising; where Classic shows a heart a drop of red pigment blooms, where it shows
     stars there is a flick of splatter, and sleep is slow rings of wash. Measured as above (processor slowed four

@@ -830,7 +830,7 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
     die Augen: Blütenlavierungen, eine Pigmentblüte, die sich ausbreitet, ein Ensō, ein Tuschezweig, der Blatt für Blatt
     wächst, ein Vogel aus zwei Strichen, Tropfen im nassen Papier, der Zug eines breiten Pinsels. Die Lichtgesichter
     heißen *sumi*, *willow* und *plum* (ein kleines Zeichen auf der Stirn mit den Andeutungen; Haarstriche und
-    Lavierungen, eine dünne Kieferlinie und geschlossene Lippen nur im seltenen Moment). Im Fenster scheint der Traum
+    Lavierungen, eine dünne Kieferlinie, geschlossene Lippen und die Nase – ein satter Strich an ihrer Seite, ein trockener Schwung unter der Spitze – nur im seltenen Moment). Im Fenster scheint der Traum
     durch Lavierungsflecken, um ein gepinseltes Ensō mit dem Auge oder dem gefalteten Traum darin; die unmöglichen
     Figuren sind lavierte Scheiben mit gepinselten Kanten. Feuer sind Lavierungen in Zinnober und Ocker mit
     aufsteigenden Flammenstrichen; wo Klassisch ein Herz zeigt, blüht ein Tropfen rotes Pigment, wo es Sterne zeigt, ist
