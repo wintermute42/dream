@@ -2,8 +2,8 @@
 
 Live AI dream machine for VJ work and installations: an endless image-to-image loop (SD-Turbo / SDXL-Turbo) fed by
 prompt, camera, picture, video, voice, music and movement (built-in detection in the stage).
-Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (CUDA: Scaleway or RunPod) via
-`dream-cloud`.
+Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (CUDA: RunPod; Scaleway only from the
+command line for now, #231) via `dream-cloud`.
 
 - `server.py` is the entry point (`uvicorn server:app`) and only puts the parts together (#189); role "app" (Mac: pages,
   voice, control state, cloud control, local rendering) or "worker" (cloud: rendering only – it loads `render.py`,
