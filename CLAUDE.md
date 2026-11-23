@@ -29,7 +29,7 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   `world-classic.js`: today's look, kept as it is – `tests/js/style.test.mjs` compares pictures), and what all worlds
   share is `static/dreambrush.js` (seeded random, noise, lines and bands, soft lights stamped, the dream's brightness,
   the lids, the skeleton of a face; no page or world keeps its own copy of a helper that is there). #222: a world also draws the night behind the eyes, a window's sky, the flames, the trance and what surrounds “you in the
-  dream” (never the person's picture); every world besides the first draws all parts itself, keeps the face rule and borrows none of the first world's signs (`tests/js/worlds.test.mjs`). The setting
+  dream” (frames, fireflies, sparks, the glow's colours – never the person's picture nor how #229 dreams it); every world besides the first draws all parts itself, keeps the face rule and borrows none of the first world's signs (`tests/js/worlds.test.mjs`). The setting
   `world` (`settings.WORLDS`) names the world; Dream tells it to the eyes and the windows, which never set it. They draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
@@ -38,8 +38,9 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   forehead) every minute or two, mouth and outline rarely and only as a breath, a nose never; whatever is drawn of a
   face – a line of light, the eye's brow – asks it (`DreamVis.of(vis, part)`), and a part it does not know is not
   drawn (`tests/js/vis.test.mjs`); the faces painted by the AI and "you in the dream" are pictures and stay whole. `static/dreamyou.js` draws "you in the dream" for
-  Dreamy Eyes (#219): the person as the camera sees them, cut out on the phone, the face unchanged, the dream only around
-  – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
+  Dreamy Eyes (#219, #229): the person from the camera, cut out on the phone and drawn as in a dream with plain canvas
+  drawing – wavering in strips, running out into mist, the face clear only in the middle of the moment, coming apart
+  when it leaves; never a model, no blur filter, no loop over a large picture – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
   `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).

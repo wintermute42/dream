@@ -1,6 +1,7 @@
 <!doctype html>
-<!-- #219: "you in the dream" (static/dreamyou.js) in a real browser, with an invented person drawn here: the face stays
-     exactly the camera's picture, the room is never shown, the dream is only around; tests/js/you.test.mjs reads the report -->
+<!-- #219, #229: "you in the dream" (static/dreamyou.js) in a real browser, with an invented person drawn here: dreamy as
+     it comes and goes, the face exactly the camera's picture while it is clear, the room never shown;
+     tests/js/you.test.mjs reads the report -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -58,7 +59,7 @@
     report.cutCorner = cut[3] + cut[(N - 1) * 4 + 3]; report.cutFace = cut[(mfy * N + mfx) * 4 + 3];
     report.eyes = y.eyes; report.eyesWant = { x0: (N - (FX + 26 - y.crop.x)) / N, x1: (N - (FX - 26 - y.crop.x)) / N };
 
-    const faceDiff = d => { let worst = 0; for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) if (inFace(px, py, 0.97)) { const i = (py * N + px) * 4; for (let k = 0; k < 4; k++) worst = Math.max(worst, Math.abs(d[i + k] - (k === 3 ? 255 : exp[i + k]))); } return worst; };
+    const faceDiff = d => { let worst = 0; for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) if (inFace(px, py, 0.68)) { const i = (py * N + px) * 4; for (let k = 0; k < 4; k++) worst = Math.max(worst, Math.abs(d[i + k] - (k === 3 ? 255 : exp[i + k]))); } return worst; };
     report.thrown = 0;
     const plain = {};
     // every frame of the world in use, at several moments: the face against the camera's picture, what lies over it,
@@ -68,7 +69,7 @@
       for (const frame of [null, ...DreamYou.FRAMES]) {
         let worst = 0, over = 0, drawn = 0, room = 0;
         for (const t of [0, 700, 4100, 9000, 23456]) {
-          const d = read(DreamYou.compose(y, { ...base, t, frame, level: 1 }));
+          const d = read(DreamYou.compose(y, { ...base, t, frame, level: 1, clear: 1 }));
           worst = Math.max(worst, faceDiff(d));
           const ov = read(y.over);
           for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) {
@@ -83,15 +84,34 @@
       return r;
     };
     Object.assign(report, frames(true));
+    // the person runs out softly: up from the middle of the face to above the head no step, and half gone near the edge
+    { const col = []; for (let py = mfy; py > mfy - FRY - 12; py--) col.push(cut[(py * N + mfx) * 4 + 3]);
+      let step = 0; for (let k = 1; k < col.length; k++) step = Math.max(step, Math.abs(col[k] - col[k - 1]));
+      report.edge = { step, near: col[FRY - 8], past: col[FRY + 6] }; }
+    // dreamy (not clear): the face is no longer the camera's picture, and it wavers – another moment, another picture
+    { const a = read(DreamYou.compose(y, { ...base, t: 700, frame: null, level: 1, clear: 0 })), b = read(DreamYou.compose(y, { ...base, t: 1100, frame: null, level: 1, clear: 0 }));
+      let moved = 0, room = 0;
+      for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) {
+        const i = (py * N + px) * 4;
+        if (inFace(px, py, 0.68) && Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 12) moved++;
+        if (a[i + 1] > 150 && a[i] < 90 && a[i + 2] < 90) room++;
+      }
+      report.dreamy = { face: faceDiff(a), moved, room }; }
+    report.peak = [0, 0.5, 1].map(DreamYou.peak);
+    // the outline is made once per mask, not once per picture
+    { const y2 = DreamYou.create(), was = y2.tx.getImageData.bind(y2.tx); let made = 0;
+      y2.tx.getImageData = (...a) => { made++; return was(...a); };
+      for (const stamp of [7, 7, 7, 8]) DreamYou.compose(y2, { ...base, stamp, t: 700, level: 1 });
+      report.outlines = made; }
     // the dream is the background, the outline glows: brighter just outside the shoulder than far from the person
     const d0 = plain[700], lum = (px, py) => { const i = (py * N + px) * 4; return d0[i] + d0[i + 1] + d0[i + 2]; };
     report.corner = [d0[(8 * N + 8) * 4], d0[(8 * N + 8) * 4 + 1], d0[(8 * N + 8) * 4 + 2]];
     report.glow = lum(mfx + FRX + 5, mfy) - lum(8, 8);
-    // only the edge shimmers: nothing in front of the person's middle either
+    // mist and shimmer lie at the person's edge, not in front of their middle
     DreamYou.compose(y, { ...base, t: 700, frame: null, level: 1, sparks: 0 });
-    const ov = read(y.over); report.overChest = ov[((mfy + 126) * N + mfx) * 4 + 3];
+    const ov = read(y.over); report.overChest = ov[((mfy + 150) * N + mfx) * 4 + 3]; report.overEdge = ov[((mfy + 112) * N + mfx + 80) * 4 + 3];
     // a mask with a hole in the middle of the face (segmentation gone wrong): the face is the camera's picture all the same
-    const holed = read(DreamYou.compose(y, { ...base, mask: maskOf(true), t: 700, frame: 'blossom', level: 1 }));
+    const holed = read(DreamYou.compose(y, { ...base, mask: maskOf(true), t: 700, frame: 'blossom', level: 1, clear: 1 }));
     let core = 0; for (let py = mfy - 30; py < mfy + 30; py++) for (let px = mfx - 22; px < mfx + 22; px++) { const i = (py * N + px) * 4; for (let k = 0; k < 3; k++) core = Math.max(core, Math.abs(holed[i + k] - exp[i + k])); }
     report.holedCore = core;
     // leaving: the picture comes apart – the outside first, the face last
@@ -100,10 +120,14 @@
     const when = new Set(); { const pts = [[20, 20], [340, 30], [60, 300], [300, 320], [120, 90], [250, 200], [mfx, mfy], [mfx + 40, mfy + 60]];
       for (const [px, py] of pts) { let at = 0; for (let k = 0; k <= 20; k++) if (al(gone(k / 20), px, py) > 128) at = k; when.add(at); } }
     const end = read(DreamYou.compose(y, { ...base, t: 700, frame: null, level: 1, leave: 1 })); let left = 0;
-    for (let i = 0; i < end.length; i += 4) if (end[i + 3] > 0 && Math.abs(end[i] - exp[i]) + Math.abs(end[i + 1] - exp[i + 1]) + Math.abs(end[i + 2] - exp[i + 2]) < 12 && inFace(i / 4 % N, i / 4 / N | 0, 0.9)) left = Math.max(left, end[i + 3]);
-    report.leave = { start: al(gone(0), mfx, mfy), cornerMid: al(gone(0.7), 12, 12), faceMid: mid[mi + 3], faceMidDiff: Math.max(Math.abs(mid[mi] - exp[mi]), Math.abs(mid[mi + 1] - exp[mi + 1]), Math.abs(mid[mi + 2] - exp[mi + 2])), end: left, steps: when.size };
+    for (let i = 3; i < end.length; i += 4) left = Math.max(left, end[i]);
+    // on its way out it is torn into streaks: what is still there has been drawn aside, more and more
+    const whole = read(DreamYou.compose(y, { ...base, t: 700, frame: null, level: 1 }));
+    const torn = k => { const d = read(DreamYou.compose(y, { ...base, t: 700, frame: null, level: 1, leave: k })); let c = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 250 && Math.abs(d[i] - whole[i]) + Math.abs(d[i + 1] - whole[i + 1]) + Math.abs(d[i + 2] - whole[i + 2]) > 40) c++; return c; };
+    report.leave = { start: al(gone(0), mfx, mfy), cornerMid: al(gone(0.7), 12, 12), faceMid: mid[mi + 3], end: left, steps: when.size, torn: [torn(0.03), torn(0.3)] };
     // nobody found, no dream yet, other sizes: it draws all the same
-    for (const o of [{ face: { size: 0 } }, { face: null, dream: null }, { n: 256 }, { n: 200, sparks: 8, frame: 'mist' }, { level: 0 }, { face: { ...face, size: 0.5, h: 0.9 }, frame: 'blossom' }]) {
+    for (const o of [{ face: { size: 0 } }, { face: null, dream: null }, { n: 256 }, { n: 200, sparks: 8, strips: 44, frame: 'mist' }, { level: 0 }, { clear: 1, leave: 0.5 }, { clear: 0.5, strips: 500 }, { face: { ...face, size: 0.5, h: 0.9 }, frame: 'blossom' }]) {
       try { const c = DreamYou.compose(DreamYou.create(), { ...base, t: 1000, ...o }); if (c.width !== (o.n || N)) report.thrown++; } catch (e) { report.thrown++; report.error += String(e); }
     }
     const t0 = performance.now(); for (let k = 0; k < 30; k++) DreamYou.compose(y, { ...base, t: k * 33, frame: 'blossom', level: 1 });
@@ -115,6 +139,7 @@
       DreamStyle.use(w);
       report.worlds[w] = frames(false);
       const c = mk(N, N); c.getContext('2d').drawImage(DreamYou.compose(y, { ...base, t: 700, frame: DreamYou.FRAMES[0], level: 1 }), 0, 0); c.title = w; document.body.append(c);
+      for (const leave of [0.3, 0.7]) DreamYou.compose(y, { ...base, t: 700, frame: DreamYou.FRAMES[0], level: 1, leave });   // its sparks as the picture comes apart
     }
     DreamStyle.use('classic');
   } catch (e) { report.error += String(e && e.stack || e); }
