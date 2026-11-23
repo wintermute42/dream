@@ -38,6 +38,16 @@ test('you in the dream, drawn in a browser', { skip: chrome ? false : 'no Chrome
     assert.ok(r.holedCore <= 1, `a hole in the mask shows in the face (${r.holedCore})`);
   });
 
+  await t.test('in every other style world too: the face unchanged, nothing over it, the room never shown, its frames show', () => {
+    assert.ok(Object.keys(r.worlds).length > 0);
+    for (const [w, x] of Object.entries(r.worlds)) for (const f of Object.keys(x.face)) {
+      assert.ok(x.face[f] <= 1, `${w}, frame ${f}: a pixel of the face differs by ${x.face[f]}`);
+      assert.equal(x.overFace[f], 0, `${w}, frame ${f}: something is drawn over the face`);
+      assert.equal(x.room[f], 0, `${w}, frame ${f}: ${x.room[f]} pixels of the room are shown`);
+      if (f !== 'null') assert.ok(x.frameDrawn[f] > 2000, `${w}, frame ${f} shows (${x.frameDrawn[f]} pixels)`);
+    }
+  });
+
   await t.test('the dream only around: its picture as the background, a glowing outline, now and then a frame', () => {
     for (const f of FRAMES) assert.equal(r.room[f], 0, `frame ${f}: ${r.room[f]} pixels of the room are shown`);
     assert.ok(r.corner[2] > r.corner[0] && r.corner[2] > r.corner[1], `the dream behind the person (${r.corner})`);

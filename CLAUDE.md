@@ -28,7 +28,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   registers the parts it draws (the rest, and everything for an unknown name, comes from the first world,
   `world-classic.js`: today's look, kept as it is – `tests/js/style.test.mjs` compares pictures), and what all worlds
   share is `static/dreambrush.js` (seeded random, noise, lines and bands, soft lights stamped, the dream's brightness,
-  the lids, the skeleton of a face; no page or world keeps its own copy of a helper that is there). The setting
+  the lids, the skeleton of a face; no page or world keeps its own copy of a helper that is there). #222: a world also draws the night behind the eyes, a window's sky, the flames, the trance and what surrounds “you in the
+  dream” (never the person's picture); every world besides the first draws all parts itself, keeps the face rule and borrows none of the first world's signs (`tests/js/worlds.test.mjs`). The setting
   `world` (`settings.WORLDS`) names the world; Dream tells it to the eyes and the windows, which never set it. They draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,

@@ -178,12 +178,22 @@
         g.closePath();
       } };
   }
+  // Where a point of the face behind a pair of eyes is on the screen: faceFrame(cx, ey, half, h)(x, y), x and y in the
+  // face's own unit (`.u` pixels; the eyes are 1.95 of them from the middle, at y = 0). With the screen's height h the face stays on the screen:
+  // what lies above the brows and below the eyes is pressed together as far as the room there needs (#222).
+  function faceFrame(cx, ey, half, h) {
+    const u = half / 1.95, UP = 2.2, DOWN = 1.2;
+    const ku = h ? clamp((ey - h * 0.02 - UP * u) / (2.5 * u), 0.2, 1) : 1, kd = h ? clamp((h - ey - h * 0.04 - DOWN * u) / (4.7 * u), 0.2, 1) : 1;
+    const F = (x, y) => [cx + x * u, ey + u * (y < -UP ? -UP + (y + UP) * ku : y > DOWN ? DOWN + (y - DOWN) * kd : y)];
+    F.u = u;
+    return F;
+  }
   // The face behind a pair of eyes as bare curves, for a world to draw in its own material. `cx`, `ey`: the middle
   // between the eyes; `half`: half the distance between them; t (ms): hair sways a little. Every curve is a list of
   // screen points and belongs to a part of the face rule (static/dreamvis.js, #220) – a world draws it as visible as
-  // `DreamVis.of(vis, part)` says. There is no nose: the rule has no level for one.
-  function skeleton(cx, ey, half, t = 0) {
-    const u = half / 1.95, F = p => [cx + p[0] * u, ey + p[1] * u], sway = k => Math.sin(t / 2000 + k) * 0.12, out = [];
+  // `DreamVis.of(vis, part)` says. There is no nose: the rule has no level for one. h: the screen's height (see faceFrame).
+  function skeleton(cx, ey, half, t = 0, h = 0) {
+    const frame = faceFrame(cx, ey, half, h), F = p => frame(p[0], p[1]), sway = k => Math.sin(t / 2000 + k) * 0.12, out = [];
     const add = (part, name, pts, n) => out.push({ part, name, pts: curve(pts.map(F), n) });
     for (const o of [-1, 1]) {
       add('brows', 'brow', [[0.6 * o, -1.25], [1.4 * o, -1.85], [2.3 * o, -2.0], [3.5 * o, -1.35]]);
@@ -201,7 +211,7 @@
   }
 
   const api = { TAU, clamp, lerp, smooth, canvas, rng, hash, noise2, fbm, noiseTile, field, clouds, tile, bez, curve, band, trace, ribbon, sprite, softLight, stamp, tinted,
-    night, hueOf, brightness, cover, kaleido, lids, skeleton };
+    night, hueOf, brightness, cover, kaleido, lids, faceFrame, skeleton };
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.DreamBrush = api;
 })(typeof window !== 'undefined' ? window : globalThis);

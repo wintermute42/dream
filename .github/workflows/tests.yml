@@ -62,6 +62,8 @@ jobs:
         run: node --test tests/js/brush.test.mjs
       - name: Style layer (today's look stays today's look; in the runner's Chrome)
         run: node --test tests/js/style.test.mjs
+      - name: The other style worlds (full vocabulary, face rule, no borrowed signs; in the runner's Chrome)
+        run: node --test tests/js/worlds.test.mjs
       - name: Picture chain (WebGL 2 against Canvas 2D)
         run: node --test tests/js/gl-stage.test.mjs
       - name: You in the dream (the face stays the camera's picture; in the runner's Chrome)
