@@ -43,6 +43,27 @@ test('the cloud computes once it is ready', () => {
   }
 });
 
+test('a cloud that paints uncompiled computes – the Mac never steps in, with bridging on or off', () => {
+  for (const bridge of [true, false]) {
+    const info = now('cloud', running({ phase: 'ready', unoptimized: true }), bridge);
+    assert.deepEqual([info.paints, info.kind, info.steps, info.offer], ['cloud', 'cloud', null, false]);
+    assert.equal(info.text, 'Computing now: Cloud · not optimised (a little slower)');
+    assert.equal(info.sub, 'This kind of picture was not prepared at the start – the cloud paints on without a pause.');
+  }
+  const local = now('local', running({ phase: 'ready', unoptimized: true }), true);      // "Local" chosen: the Mac, as ever
+  assert.deepEqual([local.paints, local.text, local.offer], ['mac', 'Computing now: Mac', true]);
+  const de = JSON.parse(read('i18n/de.json'));
+  assert.equal(de['Computing now: Cloud · not optimised (a little slower)'], 'Rechnet gerade: Cloud · unoptimiert (etwas langsamer)');
+  assert.match(de['This kind of picture was not prepared at the start – the cloud paints on without a pause.'], /ohne Pause/);
+});
+
+test('the Mac bridges only while the cloud cannot paint', () => {
+  const paints = work => now('cloud', work ? running(work) : OFF, true).paints;
+  assert.deepEqual(['machine', 'download', 'loading', 'compiling', 'unreachable'].map(phase => paints({ phase })), ['mac', 'mac', 'mac', 'mac', 'mac']);
+  assert.equal(paints(null), 'mac');                                    // "Cloud GPU" chosen, none started
+  assert.deepEqual([paints({ phase: 'ready' }), paints({ phase: 'ready', unoptimized: true })], ['cloud', 'cloud']);
+});
+
 test('while the cloud prepares, the Mac bridges – and says at which step the cloud is', () => {
   for (const [phase, step] of PREPARING) {
     const info = now('cloud', running({ phase, eta_min: 2, percent: 43 }), true);

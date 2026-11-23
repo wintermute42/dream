@@ -43,8 +43,9 @@ def cloud_failure(log: str) -> dict | None:
 #   machine      the GPU starts and is set up (no renderer answers yet)
 #   download     the renderer downloads the model (a fresh machine does that on every start)
 #   loading      the model is read and brought onto the GPU
-#   compiling    the model is compiled for the GPU – before its first picture, and again by itself after a new size or style
-#   ready        the next picture comes at once
+#   compiling    the model is compiled for the GPU before its first picture: it does not paint yet
+#   ready        the next picture comes at once – "unoptimized": painted uncompiled, because the model was not compiled
+#                for this kind of picture (a new size or format, pose, outlines, a model switched on stage): slower, no pause
 #   unreachable  a machine is there (and costs), but its renderer does not answer or has no model
 #   stopping     the machine is being deleted
 PREPARING = ("machine", "download", "loading", "compiling")
@@ -68,7 +69,7 @@ def work_phase(st: dict) -> str | None:
         return "ready" if st.get("ready") else "machine" if busy else "unreachable"
     if w.get("failed"):
         return "unreachable"
-    if w.get("compiling"):
+    if w.get("compiling") and not w.get("painting"):   # a renderer that paints on while something compiles is ready
         return "compiling"
     if w.get("ready", st.get("ready")):                # a renderer of an earlier version: it answers once it is ready
         return "ready"
@@ -108,6 +109,8 @@ def cloud_work(st: dict, now: float | None = None) -> dict | None:
         out["eta_min"] = max(1, math.ceil(left))
     if w.get("loading") in models.MODELS:
         out["model"] = w["loading"]
+    if phase == "ready" and (w.get("unoptimized") or w.get("compiling")):
+        out["unoptimized"] = True
     return out
 
 

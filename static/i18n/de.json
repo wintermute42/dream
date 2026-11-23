@@ -993,6 +993,8 @@
  "it costs already": "kostet schon",
  "Computing now: Mac": "Rechnet gerade: Mac",
  "Computing now: Cloud ✓": "Rechnet gerade: Cloud ✓",
+ "Computing now: Cloud · not optimised (a little slower)": "Rechnet gerade: Cloud · unoptimiert (etwas langsamer)",
+ "This kind of picture was not prepared at the start – the cloud paints on without a pause.": "Diese Art Bild wurde beim Start nicht vorbereitet – die Cloud malt ohne Pause weiter.",
  "The cloud prepares: {step} · {left}": "Cloud bereitet vor: {step} · {left}",
  "The Mac bridges – cloud: {step} …": "Mac überbrückt – Cloud: {step} …",
  "{left} · the cloud takes over by itself": "{left} · die Cloud übernimmt von selbst",

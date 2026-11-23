@@ -1,5 +1,5 @@
-"""#238: who computes right now. The renderer says itself where it stands (loading, downloading, compiling, ready),
-dream-cloud passes that on, the server makes one step of it for the pages and tells the owner when the cloud GPU is
+"""#238: who computes right now. The renderer says itself where it stands (loading, downloading, compiling, ready,
+painting uncompiled) and compiles only before a model's first picture, never on stage; dream-cloud passes that on, the server makes one step of it for the pages and tells the owner when the cloud GPU is
 ready. No GPU, no cloud, no notification: the states are made up here. (What the pages make of a step:
 tests/js/compute.test.mjs.)"""
 import asyncio
@@ -8,7 +8,9 @@ import os
 import re
 import stat
 import subprocess
+import sys
 import threading
+import types
 from pathlib import Path
 
 import pytest
@@ -32,8 +34,10 @@ def render(server, monkeypatch):
     r = server.render
     monkeypatch.setattr(r, "model_state", {"active": None, "loading": None, "error": None, "error_key": None, "error_at": 0.0, "first": False})
     monkeypatch.setattr(r, "_pipes", {})
-    monkeypatch.setattr(r, "_compiled", set())
-    monkeypatch.setattr(r, "compile_state", {"since": None, "cached": False})
+    monkeypatch.setattr(r, "_compiled", {})
+    monkeypatch.setattr(r, "compile_state", {"since": None, "cached": False, "shapes": None})
+    monkeypatch.setattr(r, "_plain", {"key": None})
+    monkeypatch.setattr(r, "_run_only", {"on": False})
     monkeypatch.setattr(r, "_busy", {"t": 0.0, "n": 0, "key": None, "since": None})
     monkeypatch.setattr(r, "downloaded_gb", lambda repo, cache=None: None)
     return r
@@ -43,7 +47,8 @@ def render(server, monkeypatch):
 
 def test_a_renderer_without_a_model_is_ready_to_load_one(render):
     assert render.progress() == {"model": None, "loading": None, "model_error": None, "first_download": False,
-                                 "compiling": False, "failed": False, "ready": True}
+                                 "compiling": False, "failed": False, "ready": True, "painting": False,
+                                 "unoptimized": False}
 
 
 def test_the_first_download_is_told_with_what_has_arrived(render, monkeypatch):
@@ -70,16 +75,146 @@ def test_the_compile_before_the_first_picture_is_told_with_its_time(render):
     render.compile_state.update(since=1000.0, cached=True)
     p = render.progress(now=1042.5)
     assert (p["compiling"], p["compiling_s"], p["compile_cached"], p["ready"]) == (True, 42, True, False)
+    assert p["painting"] is False                                       # it cannot paint yet: the Mac bridges this
 
 
-def test_a_compiled_model_whose_picture_takes_long_is_compiling_again(render):
+class Picture:
+    def __init__(self, w, h):
+        self.size = (w, h)
+
+
+@pytest.fixture
+def gpu(render, monkeypatch):
+    """A cloud GPU made up: render.py believes it is on CUDA, and a stand-in for torch.compile notes every compile and
+    every change of the stance (may PyTorch compile, or only run what is compiled). No model, no GPU."""
+    log = types.SimpleNamespace(stance=["default"], compiles=[], pictures=[])
+    torch = types.SimpleNamespace(
+        backends=types.SimpleNamespace(cuda=types.SimpleNamespace(matmul=types.SimpleNamespace()), cudnn=types.SimpleNamespace()),
+        channels_last="channels_last", float16="float16", __version__="2.15.0",
+        cuda=types.SimpleNamespace(get_device_name=lambda i: "Made-up GPU"),
+        compile=lambda module, **kw: log.compiles.append(module) or types.SimpleNamespace(_orig_mod=module),
+        compiler=types.SimpleNamespace(set_stance=log.stance.append, save_cache_artifacts=lambda: None))
+    monkeypatch.setattr(render, "torch", torch)
+    monkeypatch.setattr(render, "device", "cuda")
+    monkeypatch.delenv("DREAM_COMPILE", raising=False)
+    monkeypatch.setattr(render, "COMPILE_CACHE", "/nonexistent/compile-cache")
+
+    def paint(key, img, *a, look=None, **k):                            # what _render does for the compile's pictures
+        log.pictures.append((img.size, log.stance[-1], render.progress()))
+        render._note_shape(key, img, False, bool(look))
+    monkeypatch.setattr(render, "_render", paint)
+    monkeypatch.setattr(render.Image, "new", lambda mode, size, colour: Picture(*size))
+    log.pipe = types.SimpleNamespace(unet=types.SimpleNamespace(to=lambda **k: None), vae=types.SimpleNamespace(decoder=object()))
+    return log
+
+
+def test_the_model_is_compiled_before_its_first_picture_and_then_nothing_compiles_any_more(render, gpu):
+    render.model_state.update(loading="sdxl-turbo")
+    render._speed_up("sdxl-turbo", gpu.pipe)
+    assert len(gpu.compiles) == 2                                       # the UNet and the decoder, once
+    assert [(size, stance) for size, stance, _ in gpu.pictures] == [((512, 512), "default"), ((384, 384), "default")]
+    assert all(p["compiling"] and not p["painting"] and not p["ready"] for _, _, p in gpu.pictures)
+    assert render._compiled == {"sdxl-turbo": {(512, 512, False, False), (384, 384, False, False)}}
+    assert gpu.stance[-1] == "eager_on_recompile" and render._run_only["on"] is True
+    assert render.compile_state == {"since": None, "cached": False, "shapes": None}
+
+
+def test_a_compile_that_fails_leaves_the_model_uncompiled_and_still_compiles_nothing_on_stage(render, gpu, monkeypatch):
+    unet, decoder = gpu.pipe.unet, gpu.pipe.vae.decoder
+
+    def broken(*a, **k):
+        raise RuntimeError("no compiler here")
+    monkeypatch.setattr(render, "_render", broken)
+    render._speed_up("sdxl-turbo", gpu.pipe)
+    assert gpu.pipe.unet is unet and gpu.pipe.vae.decoder is decoder and render._compiled == {}
+    assert gpu.stance[-1] == "eager_on_recompile" and render.compile_state["since"] is None
+
+
+def _painting(render, key="sdxl-turbo"):
+    render._pipes[key] = object()
+    render.model_state.update(active=key, loading=None)
+
+
+def test_a_picture_the_model_was_not_compiled_for_is_painted_uncompiled_without_a_compile(render, gpu):
+    """Another size, pose or outlines, the reference adapter: the cloud paints on (no compile, no pause) and says that
+    it does so uncompiled – until a picture it was compiled for comes again."""
+    render._speed_up("sdxl-turbo", gpu.pipe)
+    _painting(render)
+    compiles, stances = len(gpu.compiles), len(gpu.stance)
+    for w, h, control, ref in [(896, 512, False, False), (512, 512, True, False), (512, 512, False, True)]:
+        shape = (w, h, control, ref)
+        render._note_shape("sdxl-turbo", Picture(w, h), control, ref)
+        p = render.progress()
+        assert (p["painting"], p["unoptimized"], p["compiling"], p["ready"]) == (True, True, False, True), shape
+        render._note_shape("sdxl-turbo", Picture(512, 512), False, False)
+        assert render.progress()["unoptimized"] is False
+    assert len(gpu.compiles) == compiles and len(gpu.stance) == stances   # nothing was compiled, PyTorch still may not
+    assert render._compiled["sdxl-turbo"] == {(512, 512, False, False), (384, 384, False, False)}
+
+
+def test_the_shape_of_a_picture_is_its_size_what_leads_it_and_the_reference_adapter(render):
+    assert render._shape(Picture(896, 512), False, False) == (896, 512, False, False)
+    assert render._shape(Picture(512, 512), ("pose",), {}) == (512, 512, True, False)
+
+
+def test_a_model_switched_to_on_stage_is_loaded_beside_the_painting_one_and_never_compiled(render, gpu, monkeypatch):
+    """Compiling beside a model that paints gave 0.2–0.4 pictures/s and broken pictures (cloud test 2026-11-17)."""
+    sped_up = []
+    loaded = types.SimpleNamespace(to=lambda device: loaded, set_progress_bar_config=lambda **k: None, vae=None)
+    monkeypatch.setitem(sys.modules, "diffusers", types.SimpleNamespace(
+        AutoencoderTiny=types.SimpleNamespace(from_pretrained=lambda *a, **k: object()),
+        AutoPipelineForImage2Image=types.SimpleNamespace(from_pretrained=lambda *a, **k: loaded)))
+    monkeypatch.setattr(render, "_speed_up", lambda key, p: sped_up.append(key))
+    _painting(render, "sdxl-turbo")
+    render.pipeline("sd-turbo")                                         # the stage switches the model: sdxl-turbo paints on
+    assert sped_up == [] and "sd-turbo" in render._pipes
+    render.model_state.update(active="sd-turbo")
+    render._note_shape("sd-turbo", Picture(512, 512), False, False)
+    assert render.progress()["unoptimized"] is True                     # it paints, uncompiled
+    render._pipes.clear()
+    render.model_state.update(active=None)
+    render.pipeline("sd-turbo")                                         # the start: nothing paints yet
+    assert sped_up == ["sd-turbo"]
+
+
+def test_the_mac_never_says_unoptimized(render):
+    _painting(render, "sd-turbo")
+    render._note_shape("sd-turbo", Picture(640, 640), False, False)     # not CUDA: nothing is ever compiled there
+    p = render.progress()
+    assert (p["painting"], p["unoptimized"]) == (True, False)
+
+
+def test_compiling_switched_off_is_not_told_as_unoptimized(render, gpu, monkeypatch):
+    monkeypatch.setenv("DREAM_COMPILE", "0")
+    render._speed_up("sdxl-turbo", gpu.pipe)
+    assert gpu.compiles == [] and gpu.stance == ["default"]
+    _painting(render)
+    render._note_shape("sdxl-turbo", Picture(512, 512), False, False)
+    assert render.progress()["unoptimized"] is False
+
+
+def test_with_the_stance_a_long_picture_of_a_compiled_model_is_just_a_long_picture(render):
+    _painting(render)
+    render._compiled["sdxl-turbo"] = set()
+    render._run_only["on"] = True
+    render._busy.update(key="sdxl-turbo", since=1000.0)
+    p = render.progress(now=1090.0)
+    assert (p["compiling"], p["painting"], p["ready"]) == (False, True, True)
+
+
+def test_without_stances_a_compiled_model_whose_picture_takes_long_is_compiling_again(render, monkeypatch):
+    """An older PyTorch has no stance: there a compiled model still compiles inside a picture – told, and not painting."""
+    monkeypatch.setattr(render, "torch", types.SimpleNamespace())
+    render._stance(run_only=True)
+    assert render._run_only["on"] is False
     render._pipes["sdxl-turbo"] = object()
     render.model_state.update(active="sdxl-turbo")
-    render._compiled.add("sdxl-turbo")
+    render._compiled["sdxl-turbo"] = set()
     render._busy.update(key="sdxl-turbo", since=1000.0)
     assert render.progress(now=1001.0)["compiling"] is False           # a picture in work: nothing to tell
     p = render.progress(now=1000.0 + render.RECOMPILE_AFTER + 60)
     assert (p["compiling"], p["compiling_s"], p["compile_cached"], p["ready"]) == (True, 63, False, False)
+    assert p["painting"] is False
     render._busy.update(key=None, since=None)                           # the picture is through
     assert render.progress(now=1100.0)["ready"] is True
 
@@ -156,6 +291,7 @@ def test_health_and_stats_carry_it(render, server):
     render.compile_state.update(since=1.0)
     health, stats = server.render_api.health(), server.render_api.stats()
     assert health["compiling"] is True and health["ready"] is False and health["loading"] == "sd-turbo"
+    assert health["painting"] is False and stats["painting"] is False and stats["unoptimized"] is False
     assert "model_error" not in health                                  # on the Mac a guest may ask /health
     assert stats["compiling"] is True and stats["model_error"].startswith("OSError") and "ai_fps" in stats
 
@@ -173,6 +309,8 @@ def _functions(*names) -> str:
     ('{"ready":false,"loading":"sdxl-turbo","first_download":true,"download_gb":1.2}', "download"),
     ('{"ready":false,"loading":"sdxl-turbo","first_download":false}', "loading"),
     ('{"ready":false,"compiling":true,"compiling_s":12}', "compiling"),
+    ('{"ready":true,"compiling":true,"painting":true}', "ready"),      # it paints on: not a step to wait for
+    ('{"ready":true,"painting":true,"unoptimized":true}', "ready"),
     ('{"ready":false,"failed":true}', "failed"),
     ("", ""), ("<html>502</html>", ""),
 ])
@@ -208,7 +346,10 @@ def test_dream_cloud_shows_no_line_of_the_machines_log():
     ({**RUNNING, "busy": True, "worker": {"ready": False, "loading": "sdxl-turbo", "first_download": False}}, "start", "loading"),
     ({**RUNNING, "busy": True, "worker": {"ready": False, "loading": "sdxl-turbo", "compiling": True}}, "start", "compiling"),
     ({**RUNNING, "worker": {"ready": True, "compiling": False}}, "start", "ready"),
-    ({**RUNNING, "worker": {"ready": False, "compiling": True, "model": "sdxl-turbo"}}, "start", "compiling"),   # a new size, later
+    ({**RUNNING, "worker": {"ready": False, "compiling": True, "painting": False}}, "start", "compiling"),
+    ({**RUNNING, "worker": {"ready": False, "compiling": True, "model": "sdxl-turbo"}}, "start", "compiling"),   # an earlier renderer, a new size
+    ({**RUNNING, "worker": {"ready": True, "painting": True, "unoptimized": True}}, "start", "ready"),           # it paints, uncompiled
+    ({**RUNNING, "worker": {"ready": True, "painting": True, "compiling": True}}, "start", "ready"),             # it paints on
     ({**RUNNING, "worker": {"ready": False, "failed": True}}, "start", "unreachable"),
     ({**RUNNING, "worker": None}, "start", "unreachable"),
     ({**RUNNING, "ready": True, "worker": {"role": "worker", "models": ["sd-turbo"]}}, "start", "ready"),      # an earlier renderer
@@ -218,6 +359,17 @@ def test_dream_cloud_shows_no_line_of_the_machines_log():
 def test_the_step_of_a_status(cloud, status, action, phase):
     cloud._job["action"] = action
     assert cloud.work_phase(status) == phase
+
+
+def test_a_cloud_that_paints_uncompiled_is_ready_and_says_so(cloud):
+    """The Mac bridges only while the cloud cannot paint: uncompiled pictures are pictures."""
+    def work(**w):
+        return cloud.cloud_work({**RUNNING, "worker": {"ready": True, "painting": True, **w}}, now=1000.0)
+    assert work() == {"phase": "ready"}
+    assert work(unoptimized=True) == {"phase": "ready", "unoptimized": True}
+    assert work(compiling=True, compiling_s=20) == {"phase": "ready", "unoptimized": True}
+    cannot = cloud.cloud_work({**RUNNING, "worker": {"ready": False, "painting": False, "compiling": True, "unoptimized": False}}, now=1001.0)
+    assert cannot["phase"] == "compiling" and "unoptimized" not in cannot
 
 
 def test_a_start_counts_down_roughly(cloud):
