@@ -591,7 +591,7 @@
     <label>MIDI controller <span class="val" id="v-master"></span></label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
-      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option></select>
+      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
@@ -680,6 +680,7 @@
       <button class="btn" id="guestnew" title="The phones of the guests lose access and need the new QR code">↻ New guest code</button>
       <button class="btn" id="trancego" title="Dreamy Eyes go into trance – a third eye opens (key E)">👁 Trance now</button>
       <select id="trancefreqm" aria-label="How often the trance of Dreamy Eyes may come by itself" title="How often the trance of Dreamy Eyes may come by itself"><option value="0">Trance: only by hand</option><option value="25">Trance: rarely</option><option value="12">Trance: now and then</option><option value="5">Trance: often</option></select>
+      <select id="world" aria-label="Style world: how Dreamy Eyes and the dream windows are drawn" title="Style world: how Dreamy Eyes and the dream windows are drawn"><option value="classic">Style world: Classic</option></select>
     </div>
     <div id="guestnewq" class="btns" hidden role="group" aria-label="New guest code?">
       <span class="muted">All guests lose access and need the new QR code. Renew it?</span>
@@ -701,10 +702,7 @@
   </div>
   <div class="row" id="cloudbox">
     <div class="btns cloudrow">
-      <select id="gpu" aria-label="Cloud GPU">
-        <optgroup label="Scaleway (Paris)"><option value="L4-1-24G">Scaleway · L4 · about €0.79/h</option><option value="L40S-1-48G">Scaleway · L40S · about €1.47/h</option><option value="H100-1-80G">Scaleway · H100 · about €2.87/h</option></optgroup>
-        <optgroup label="RunPod (Europe, own data centres)"><option value="runpod:RTX-4090">RunPod · RTX 4090 · about $0.70/h</option><option value="runpod:RTX-5090">RunPod · RTX 5090 · about $1.39/h</option><option value="runpod:H100">RunPod · H100 · about $4.39/h</option></optgroup><optgroup label="RunPod Community – private computers, cheaper (pictures at the outside provider)"><option value="runpod:RTX-4090-community">RunPod Community · RTX 4090 · from about $0.35/h</option><option value="runpod:RTX-5090-community">RunPod Community · RTX 5090 · from about $0.70/h</option><option value="runpod:H100-community">RunPod Community · H100 · from about $2.70/h</option></optgroup>
-      </select>
+      <select id="gpu" aria-label="Cloud GPU"></select><!-- #231: filled by DreamCommon.fillGpus -->
       <button class="btn" id="cloudstart">Start</button>
       <button class="btn" id="cloudstop">Delete</button>
     </div>
@@ -744,6 +742,7 @@
   const T = I18N.t;
   const num = (v, d) => { const s = (+v).toFixed(d); return I18N.lang === 'de' ? s.replace('.', ',') : s; };
   I18N.apply();
+  DreamCommon.fillGpus(document.getElementById('gpu'));   // #231: the cloud GPUs on offer, the default chosen
   document.documentElement.style.setProperty('--off-label', JSON.stringify(T('off')));   // the badge on idle cards
   document.querySelectorAll('.langsw button').forEach(b => {          // the header switch: the page reloads in it
     b.setAttribute('aria-pressed', b.dataset.lang === I18N.lang); b.onclick = () => I18N.setLang(b.dataset.lang); });
@@ -898,7 +897,7 @@
   }
 
   // ---------- connection ----------
-  // ---------- backend: local (this server) or a cloud GPU – Scaleway or RunPod (SSH tunnel on port 7861) ----------
+  // ---------- backend: local (this server) or a cloud GPU – RunPod or Scaleway (SSH tunnel on port 7861) ----------
   let backend = 'local', cloud = { state: 'off' }, cloudPort = 7861;
   function wsUrl() { return backend === 'cloud' ? `ws://127.0.0.1:${cloudPort}/ws` : `ws://${location.host}/ws`; }
   function connect() {
@@ -1821,7 +1820,7 @@
   document.querySelectorAll('#backends button').forEach(x => x.onclick = () => switchBackend(x.dataset.b));
 
   function fmtCloud(c) {
-    if (c.state === 'setup') return T('No cloud provider set up: Scaleway (“scw init”) or RunPod (key in the keychain, see README).');
+    if (c.state === 'setup') return T('No cloud provider set up: RunPod needs its key in the keychain (see README).');
     if (c.state === 'off' && c.fail) return cloudFailText(c.fail);
     if (c.state === 'off') return c.busy ? T('Working … {l}', { l: lastLine(c.log) }) : T('Off – nothing costs.');
     if (c.state === 'error') return T('Error: {e}', { e: (c.error || '') + (c.log ? ' · ' + lastLine(c.log) : '') });
@@ -1831,7 +1830,7 @@
     return T('Starting ({state}) · {money}', { state: c.state, money }) + (c.busy ? ' · ' + lastLine(c.log) : '');
   }
   const lastLine = t => ((t || '').trim().split('\n').pop() || '').slice(0, 140);
-  // #98: a failed start says why – most often the GPU quota at Scaleway is still 0
+  // #98: a failed start says why – at Scaleway most often the GPU quota is still 0
   const cloudFailText = f => f.kind === 'quota'
     ? T('Start failed: no GPU quota for {type} – ask the support in the Scaleway console under Organization → Quotas. Nothing costs.', { type: f.type + (f.zone ? ' in ' + f.zone : '') })
     : T('Start failed: {e}', { e: f.text });
@@ -1883,7 +1882,7 @@
     motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
-    fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
+    fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt', world: 'world' };
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
   let ctl = null, applying = false;
   const sendCtl = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };

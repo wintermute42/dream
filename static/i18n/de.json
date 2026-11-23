@@ -1,5 +1,5 @@
 {
- "  start   creates a GPU at Scaleway or RunPod (costs from then on, deletes itself after {0} min at the latest)": "  start   legt eine GPU bei Scaleway bzw. RunPod an (kostet ab dann, löscht sich nach spätestens {0} min selbst)",
+ "  start   creates a GPU at RunPod or Scaleway (costs from then on, deletes itself after {0} min at the latest)": "  start   legt eine GPU bei RunPod bzw. Scaleway an (kostet ab dann, löscht sich nach spätestens {0} min selbst)",
  "  status  shows whether a Dream GPU runs and what it has cost so far": "  status  zeigt, ob eine Dream-GPU läuft und was sie bisher gekostet hat",
  "  stop    deletes machine and disk – nothing costs afterwards": "  stop    löscht Maschine und Festplatte – danach kostet nichts mehr",
  " (general – Ollama off)": " (allgemein – Ollama aus)",
@@ -351,9 +351,9 @@
  "No camera – allow access or connect a camera.": "Keine Kamera – Zugriff erlauben oder Kamera anschließen.",
  "No camera – switch on movement.": "Keine Kamera – Bewegung einschalten.",
  "No cloud GPU is running – nothing to delete.": "Es läuft keine Cloud-GPU – nichts zu löschen.",
- "No cloud provider set up (Scaleway or RunPod, see README).": "Kein Cloud-Anbieter eingerichtet (Scaleway oder RunPod, siehe README).",
- "No cloud provider set up (scw init or RunPod key).": "Kein Cloud-Anbieter eingerichtet (scw init oder RunPod-Schlüssel).",
- "No cloud provider set up: Scaleway (“scw init”) or RunPod (key in the keychain, see README).": "Kein Cloud-Anbieter eingerichtet: Scaleway („scw init“) oder RunPod (Schlüssel im Schlüsselbund, siehe README).",
+ "No cloud provider set up (RunPod, see README).": "Kein Cloud-Anbieter eingerichtet (RunPod, siehe README).",
+ "No cloud provider set up (RunPod key in the keychain, see README).": "Kein Cloud-Anbieter eingerichtet (RunPod-Schlüssel im Schlüsselbund, siehe README).",
+ "No cloud provider set up: RunPod needs its key in the keychain (see README).": "Kein Cloud-Anbieter eingerichtet: RunPod braucht seinen Schlüssel im Schlüsselbund (siehe README).",
  "No connection to the computer.": "Keine Verbindung zum Rechner.",
  "No credit at RunPod – top it up in the RunPod console under Billing → Load credits.": "Kein Guthaben bei RunPod – in der RunPod-Konsole unter Billing → Load credits aufladen.",
  "No fitting GPU free in Europe right now – choose another GPU or try again in a few minutes.": "Gerade keine passende GPU in Europa frei – andere GPU wählen oder in ein paar Minuten nochmal.",
@@ -693,7 +693,7 @@
  "unknown option {0}": "unbekannte Option {0}",
  "uploading …": "lade hoch …",
  "usage: cloud_runpod.py find | create GPU | delete ID | check": "Aufruf: cloud_runpod.py find | create GPU | delete ID | check",
- "usage: {0} start [--fallback TYPE] [--type L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]": "Aufruf: {0} start [--fallback TYP] [--type L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]",
+ "usage: {0} start [--fallback TYPE] [--type runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community|L4-1-24G|L40S-1-48G|H100-1-80G] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]": "Aufruf: {0} start [--fallback TYP] [--type runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community|L4-1-24G|L40S-1-48G|H100-1-80G] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]",
  "usage: {0} start [--type …] [--model sd-turbo|sdxl-turbo] | stop | status [--json]  (more: {0} --help)": "Aufruf: {0} start [--type …] [--model sd-turbo|sdxl-turbo] | stop | status [--json]  (mehr: {0} --help)",
  "uv is missing (brew install uv).": "uv fehlt (brew install uv).",
  "values/s": "Werte/s",
@@ -978,5 +978,10 @@
  "{name}: set to 0": "{name}: auf 0 stellen",
  "Set to 0": "Auf 0 stellen",
  "strongly changed": "stark verändert",
- "Character of the picture: change {a} %, motion {b} %, colour {c} %, music {d} %": "Bildcharakter: Wandel {a} %, Bewegung {b} %, Farbe {c} %, Musik {d} %"
+ "Character of the picture: change {a} %, motion {b} %, colour {c} %, music {d} %": "Bildcharakter: Wandel {a} %, Bewegung {b} %, Farbe {c} %, Musik {d} %",
+ "Style world: how Dreamy Eyes and the dream windows are drawn": "Stilwelt: wie die Dreamy Eyes und die Traum-Fenster gezeichnet werden",
+ "Style world: Classic": "Stilwelt: Klassisch",
+ "Button: next style world": "Taste: nächste Stilwelt",
+ "Style world – how Dreamy Eyes and the dream windows are drawn": "Stilwelt – wie die Dreamy Eyes und die Traum-Fenster gezeichnet werden",
+ "Classic – glowing lines and soft light": "Klassisch – leuchtende Linien und weiches Licht"
 }

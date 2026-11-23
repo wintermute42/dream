@@ -69,11 +69,16 @@ with contextlib.suppress(Exception):
         eyes_cfg["trance_every"] = _te
 
 
+def eyes_socks() -> list:
+    """The control lines of the Dreamy Eyes pages: those with the eyes' key, and those opened as the eyes (#166)."""
+    return [c for c, r in list(hub.roles.items()) if rights.can(r, "eyes_only") or c in eyes_pages]
+
+
 async def eyes_send(msg: dict, also_control: bool = False) -> None:
     """A word to every Dreamy Eyes page (and, if asked, to Dream Control and this Mac)."""
-    for c, r in list(hub.roles.items()):
-        if rights.can(r, "eyes_only") or c in eyes_pages or (also_control and rights.can(r, "control")):
-            outbox.post(c, json.dumps(msg))
+    there = eyes_socks()
+    for c in there + [c for c, r in list(hub.roles.items()) if also_control and rights.can(r, "control") and c not in there]:
+        outbox.post(c, json.dumps(msg))
 
 
 FIRE_HOLD = 12                                     # #162: seconds a fire seen by the eyes keeps their faces burning
@@ -87,6 +92,21 @@ def eyes_note(msg: dict) -> None:
 
 
 eyes_pages: set = set()     # #166: control sockets of Dreamy Eyes pages, whichever key they signed in with
+
+
+def world_msg() -> dict:
+    """#221: the style world to draw in – the one setting Dreamy Eyes and the dream windows are told (they never set it)."""
+    return {"world": hub.state["world"]}
+
+
+def world_tell() -> None:
+    """The style world changed: every Dreamy Eyes page and every dream window hears it."""
+    text = json.dumps(world_msg())
+    for c in [c for c, r in hub.roles.items() if rights.can(r, "eyes_only") or c in eyes_pages] + list(hub.windows):
+        outbox.post(c, text)
+
+
+hub.on_change("world", world_tell)
 
 
 def aimask_msg() -> dict:
@@ -106,7 +126,7 @@ async def aimask_step() -> None:
     """One look at whether a face is due, and its painting: from words only (`AIMASK_PROMPTS`, the dream's mood) –
     #219: never from a picture."""
     loop = asyncio.get_running_loop()
-    eyes = [c for c, r in hub.roles.items() if rights.can(r, "eyes_only") or c in eyes_pages] + list(hub.windows)   # #166, #201: the windows too
+    eyes = eyes_socks() + list(hub.windows)        # #166, #201: the windows too
     now = time.time()
     if (not eyes or hub.state["backend"] != "local" or not hub.state.get("running", True) or render.model_state.get("loading")):
         return

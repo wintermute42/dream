@@ -9,7 +9,7 @@
 
 Dream ist ein endloser, sich ständig verwandelnder Bilderstrom: Ein schnelles Bildmodell (SD-Turbo bzw. SDXL-Turbo)
 verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im Browser, nur unter
-`127.0.0.1`. Gerechnet wird wahlweise **lokal** auf der Apple-GPU oder auf einer **Scaleway-GPU** in Paris.
+`127.0.0.1`. Gerechnet wird wahlweise **lokal** auf der Apple-GPU oder auf einer gemieteten **Cloud-GPU** (RunPod, Rechenzentren in Europa).
 
 <p align="center"><img src="docs/images/stage-de.webp" alt="Ein Traum auf der Bühne – SD-Turbo macht aus jedem Bild das nächste" width="420"></p>
 
@@ -53,10 +53,10 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 
 **Cloud-GPU**
 
-- [Scaleway-GPU](#scaleway-gpu)
-  - [Einmal einrichten](#einmal-einrichten)
+- [Cloud-GPU](#cloud-gpu)
   - [Benutzen](#benutzen)
-- [RunPod-GPU (zweiter Cloud-Anbieter)](#runpod-gpu-zweiter-cloud-anbieter)
+- [RunPod-GPU](#runpod-gpu)
+- [Scaleway-GPU (zurzeit nicht verfügbar)](#scaleway-gpu-zurzeit-nicht-verfügbar)
 
 **Hilfe und mehr**
 
@@ -79,7 +79,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 | Handy verbinden | auf der Bühne **Q** → QR-Code scannen (siehe unten) |
 | Alle Optionen | `./dream.sh --help` |
 | Beenden | Strg+C im Terminal |
-| Scaleway-GPU prüfen | `./dream-cloud status` |
+| Cloud-GPU prüfen | `./dream-cloud status` |
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -95,7 +95,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 | Chrome (oder ein anderer aktueller Browser) | ja | Bedienfeld und Bühne; Chrome für `--beamer` und die installierbaren Apps |
 | [Ollama](https://ollama.com) mit `llama3.2:3b` | optional | Prompt-Ideen und erzeugte Playlists |
 | `ffmpeg` (`brew install ffmpeg`) | optional | Clips als Video speichern |
-| [Scaleway CLI](https://www.scaleway.com/de/cli/) oder ein RunPod-Konto | optional | eine Cloud-GPU statt der des Macs |
+| Ein [RunPod](https://www.runpod.io/)-Konto | optional | eine Cloud-GPU statt der des Macs |
 
 Auf dem Mac:
 
@@ -178,7 +178,7 @@ länger, scrollt der Kartenbereich statt umzubauen.
   Entsperren holt nach, was sich in der Zwischenzeit geändert hat.
 
 **Unter der Vorschau** stehen immer **Pause, Neu, Vollbild, Speichern**, die farbigen **Statusanzeigen** (Pause,
-Scaleway-GPU läuft, Bewegung ohne Kamera, Playlist, Musik, Syphon) und die **Auslastung**, jede Sekunde neu:
+Cloud-GPU läuft, Bewegung ohne Kamera, Playlist, Musik, Syphon) und die **Auslastung**, jede Sekunde neu:
 KI-Bilder pro Sekunde, GPU-Zeit pro Bild, wie viel Prozent der Zeit die KI rechnet, Anzeige-fps, Bildgröße und
 Modell, CPU von Dream und dem ganzen Mac, Speicher von Dream, GPU-Speicher und Speicher gesamt (sowie
 Bewegungs-Werte pro Sekunde, wenn die Bewegung an ist). Rot heißt: am Anschlag. Bleibt unter der Vorschau Platz (vor
@@ -206,7 +206,7 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   jeden Text ohne deutsche Fassung.
 - Die Handy-Fernbedienung hat Show, A−/A+ und 🌙 weiterhin; ihre Abschnitte lassen sich durch Tippen auf die Überschrift zuklappen.
 
-- **Rechnen auf:** „Lokal (Mac)“ oder „Scaleway-GPU“. Umschalten geht jederzeit, ohne Neustart.
+- **Rechnen auf:** „Lokal (Mac)“ oder „Cloud-GPU“. Umschalten geht jederzeit, ohne Neustart.
 - **Modell:** SD-Turbo (schnell) oder SDXL-Turbo (schöner, lokal sehr langsam, in der Cloud gut). Umschalten geht
   mitten in der Show: Das neue Modell lädt im Hintergrund (SD-Turbo Sekunden, SDXL-Turbo lokal etwa 20–60 s, beim
   allerersten Mal mit Download deutlich länger), das alte träumt so lange weiter, ein Chip zeigt „⏳ … wird geladen“.
@@ -523,12 +523,12 @@ Statt eigene Bilder vorzubereiten, lässt du Dream gezielt ein Bild oder einen k
   dem aktuellen Bild weiter. Mit 💾 gespeicherte Kopien in `~/Pictures/Dream/` bleiben.
 
 Gut zu wissen:
-- Gerechnet wird dort, wo auch der Traum rechnet (Mac oder Scaleway-GPU). Der Traum ruckelt währenddessen etwas,
+- Gerechnet wird dort, wo auch der Traum rechnet (Mac oder Cloud-GPU). Der Traum ruckelt währenddessen etwas,
   weil sich beide die GPU teilen.
 - Die Bühne bzw. das Bedienfeld muss offen sein, auch wenn du am Handy auf „Erzeugen“ tippst.
 - Clips brauchen **ffmpeg** auf dem Mac (`brew install ffmpeg`); fehlt es, sagt Dream das in der Karte.
 - Es ist kein echtes Videomodell: Die Bewegung ist eine Kamerafahrt durch den Traum. Clips mit echter, erfundener
-  Bewegung (Stable Video Diffusion) stehen als eigenes Ticket im Backlog (#57), sinnvoll auf der Scaleway-GPU.
+  Bewegung (Stable Video Diffusion) stehen als eigenes Ticket im Backlog (#57), sinnvoll auf der Cloud-GPU.
 
 ## Playlists und Autostart
 
@@ -786,43 +786,74 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   – davon wird nichts gesendet oder gespeichert), und die Augen folgen der Person; tritt jemand heran, öffnen sie sich,
   ganz nah werden sie groß vor Staunen, und Interesse weitet die Pupillen. Ohne jemanden davor träumen sie für sich
   herum.
-- **Lächle sie an, und sie grinsen zurück:** Ein schwebendes Grinsen eigener Gestaltung (zwei Zahnreihen, leuchtend in
-  den Farben des Traums) erscheint, solange jemand lächelt, die Augen lächeln mit, dann verblasst es. Ab und zu kommt es
-  auch von selbst.
+- **Meist nur die Augen (#220):** Wie viel von einem Gesicht zu sehen ist, folgt einer einzigen Regel – für alles
+  Gesichtsartige, das in den Dreamy Eyes und in den Traum-Fenstern gezeichnet wird (die von der KI gemalten Gesichter
+  und „Du im Traum“ sind Bilder und bleiben ganz). Die meiste Zeit gibt es nur die Augen. Alle ein bis zwei
+  Minuten kommen für etwa zehn Sekunden **Andeutungen**: die Brauen, das Stirnzeichen eines Gesichts aus Licht und – zurückhaltend, mit etwa halber
+  Stärke – **der Umriss dieses Gesichts**. Etwa
+  alle fünf bis zehn Minuten, innerhalb eines solchen Moments und nur, wenn die Augen ruhig sind, kommen **Mund, Nase und
+  Haar** dazu, und der Umriss wird kräftiger – für diese wenigen Sekunden deutlich zu sehen (mit etwa vier Fünfteln der vollen Stärke, nie so fest
+  wie die Augen) – und gehen wieder, bevor die Andeutungen gehen. Ein Grinsen gibt es nicht. **Immer nur ein Gesicht:**
+  Wo ein Gesicht ein anderes ablöst, während es zu sehen ist (eine gehaltene Stufe wechselt ihr Gesicht, die Stilwelt
+  wechselt, die Silhouette der Person hinter den Augen), blendet das alte erst ganz aus (etwa eine Sekunde), und erst
+  dann blendet das nächste ein – nie ein harter Schnitt, nie zwei Gesichter übereinander; ein gemaltes Gesicht, das
+  weichen muss, während es noch kommt, geht von dort, wo es gerade war. Zum Anschauen einer Stufe `?face=0`, `?face=1` oder `?face=2` an
+  die Adresse der Dreamy Eyes oder eines Traum-Fensters hängen: Sie wird gehalten (0: nur die Augen, 1: mit
+  Andeutungen und Umriss, 2: dazu Mund, Nase und Haar; das Gesicht wechselt alle 20 Sekunden).
+- **Stilwelten (#221):** Wie das alles gezeichnet wird, ist eine *Stilwelt*. Die Dreamy Eyes und die Traum-Fenster
+  bestimmen die Szene – was erscheint, wann und wo; eine Welt bestimmt das Material: das Auge, alles, was um die Augen
+  lebt und durch die Fenster treibt, die Gesichter aus Licht, die großen Motive der Fenster. Die erste Welt,
+  **Klassisch**, ist der bisherige Look von Dream (leuchtende Linien, weiches Licht), unverändert. Die Welt wählst du
+  im Bedienfeld (neben „Trance: …“: **Stilwelt**) oder in Dream Control (Karte „👀 Dreamy Eyes“); eine MIDI-Taste kann
+  zur nächsten weiterschalten („Taste: nächste Stilwelt“). Dream sagt es sofort jeder Dreamy-Eyes-Seite und jedem
+  Traum-Fenster – sie hören es nur, mit ihren Codes lässt es sich nicht setzen. Feuer, Trance und „Du im Traum“ laufen
+  in jeder Welt. Vorerst ist Klassisch die einzige Welt; weitere folgen, jede als eine Datei (wie eine Welt eingebaut
+  wird, steht unter „Tests“).
 - **Weibliche Augen:** eine Mandelform mit leicht angehobenem äußerem Augenwinkel, ein zarter rosé-violetter Lidschatten
   mit etwas Schimmer, ein Lidstrich mit kleinem Flügel, volle Wimpern, die zum äußeren Winkel hin länger und geschwungener
-  werden (unten ein paar feine). **Die Brauen kommen nur ab und zu, für ein Gefühl** – wie das Grinsen: Staunen (jemand ganz
-  nah, Aufwachen, ein Traum, der wild wird), Freude (mit dem Grinsen), Traurigkeit (mit der Lichtträne), Zweifel (eine
+  werden (unten ein paar feine). **Die Brauen kommen nur mit den Andeutungen** (siehe oben) und zeigen dann ein Gefühl: Staunen (jemand ganz
+  nah, Aufwachen, ein Traum, der wild wird), Freude (jemand lächelt sie an), Traurigkeit (mit der Lichtträne), Zweifel (eine
   hoch, eine flach, beim Schielen), ein grimmiger Blick (selten, in einem dunklen, wilden Traum) oder Neugier – dann
   verblassen sie wieder. **Ihr Look wechselt
   sanft** etwa jede Minute: Rosé, Smoky (grau mit langem Flügel), Golden (mit Glitzer), Nymphe (türkis, lange Wimpern)
   oder Puppe (ohne Flügel, sehr lange Wimpern, runde Brauen).
 - **Hinter den Augen scheint der Traum durch die Nacht** – durch treibende Wolken, eine riesige atmende Spirale aus
-  weichen Lichtern, eine kaleidoskopische Blume aus Ringen oder ein nur angedeutetes Gesicht aus Licht um die Augen – eine
-  Göttin mit Diadem und wallendem Haar, eine Katze mit Ohren und zuckenden Schnurrhaaren, Medusa mit sich windenden
-  Schlangen, eine Meerjungfrau mit Haar, das wie Seetang treibt, und einer Krone aus Muscheln, ein Waldgeist mit einer Krone aus Blättern,
-  Ranken um die Augen, einem Blatt auf der Stirn und aufsteigenden leuchtenden Sporen (ohne Mund), eine Mondpriesterin mit Sichel auf der Stirn, wehendem Schleier und langen
-  Ohrringen; die Masken wechseln alle ein, zwei Minuten (hochkant etwas ruhiger), der Traum
+  weichen Lichtern oder eine kaleidoskopische Blume aus Ringen; die Masken wechseln alle ein, zwei Minuten (hochkant etwas ruhiger), der Traum
   dahinter zoomt und wandert langsam, etwas heller als auf der Bühne. Alle zwei bis vier Minuten öffnet sich für 6–10
   Sekunden ein **Traumfenster**: Die Nacht geht weit auf und der Traum ist deutlich hinter den Augen zu sehen, dann zieht er
   sich weich wieder hinter die Masken zurück. Direkt hinter den Augen bleibt es dunkler, damit sie
   klar bleiben.
+- **Gesichter aus Licht, nur angedeutet:** Mit den Andeutungen erscheint um die Augen ein Gesicht aus Licht, jedes Mal
+  ein anderes, und die Augen werden seine Augen – zuerst sein Zeichen und, zarter, sein Umriss: das Strahlendiadem der Göttin, die Ohren der
+  Katze, die Schlangen über Medusas Stirn, die Muschelkrone der Meerjungfrau, die Blätterkrone des Waldgeists mit dem
+  Blatt auf der Stirn und leuchtenden Sporen, die Sichel der Mondpriesterin. In den seltenen Momenten kommen Haar
+  und ein geschlossener Mund deutlich dazu, und der Umriss wird kräftiger (wallendes Haar, zuckende Schnurrhaare, sich windende Schlangen, Haar
+  wie Seetang, Ranken, ein Schleier und lange Ohrringe) – und die Nasenlinie der Göttin, das Näschen der Katze. Der
+  Traum füllt die Linien. **Ein Gesicht ist nie gestaucht:** Es hat eine einzige Größe, die der Augen, hochkant wie
+  quer; auf einem breiten, niedrigen Bildschirm laufen Kinn und Haarenden über den Rand, statt ins Bild gedrückt zu
+  werden.
 - **Du im Traum:** Wer davorsteht, spiegelt sich in der Iris – schwach die ganze Zeit, und alle zwei, drei Minuten für
   ein paar Sekunden ganz deutlich, wie in echten Augen: dann ist es die Person allein, vom Raum freigestellt (auf dem
-  Handy), das Gesicht genau so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle drei bis fünf
+  Handy) und am Rand weich auslaufend, das Gesicht so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle vier bis acht
   Minuten, nur solange jemand da ist) erscheint die Person als **Moment**: zuerst in den beiden Pupillen, wie durch sie
-  hindurch gesehen, dann öffnen sich die Fenster und sie steht für etwa 2–3 Sekunden in einer weichen Wolke in der
-  Bildmitte – **das echte Kamerabild, das Gesicht unverändert und erkennbar**, etwas kleiner und leichter als ein
-  gemaltes Gesicht. Nur drumherum ist der Traum: das Traumbild statt des Raums, ein weicher Leuchtrand,
-  Glühwürmchen, ein Farbschimmer in der Farbe des Traums an ihrem Rand, und manchmal ein Kranz aus Blüten, ein
-  Mandala hinter dem Kopf oder Nebelschleier. Über dem Gesicht wird nie etwas gezeichnet. Danach blendet das Bild
-  nicht einfach aus: In ein, zwei Sekunden **löst es sich in den Traum auf** – seine Stücke treiben davon, die
-  äußeren zuerst, das Gesicht zuletzt, die Glühwürmchen fliegen fort –, während die Augen zurückkehren (insgesamt etwa
-  7 Sekunden). **Wer gerade kommt** (nachdem eine Weile niemand da war), wird sofort begrüßt – ganz deutlich in der
+  hindurch gesehen, dann öffnen sich die Fenster und sie steht für 3–4 Sekunden in einer weichen Wolke in der
+  Bildmitte, etwas kleiner und leichter als ein gemaltes Gesicht – **wie im Traum gesehen, nicht wie ein Foto** (#229):
+  Das ganze Bild wabert leicht wie durch Wasser oder Hitzeflimmern (das Gesicht schwächer als das Drumherum), die
+  Person hat keine Kontur, sondern **verläuft in Nebel**, mit einem zarten Farbsaum in den Farben des Traums, und sie
+  kommt weich und verschwommen. **In der Mitte des Moments ist das Gesicht etwa eine Sekunde lang klar – das echte
+  Kamerabild, man erkennt sich** –, dann verschwimmt es wieder. Drumherum ist der Traum: das Traumbild statt des
+  Raums, ein weiches Leuchten, Glühwürmchen, und manchmal ein Kranz aus Blüten, ein Mandala hinter dem Kopf oder
+  Nebelschleier. Danach blendet das Bild nicht einfach aus: In zwei, drei Sekunden **löst es sich von außen nach
+  innen in den Traum auf** – seine Stücke ziehen sich zu treibenden Schlieren und hinterlassen Funken, das Gesicht
+  zuletzt, die Glühwürmchen fliegen fort, und am Ende verweht der Nebel, der übrig ist –, während die Augen
+  zurückkehren (insgesamt etwa 9 Sekunden). Auf einem schwachen Handy wird das Bild kleiner gezeichnet und wabert in
+  gröberen Streifen; es bleibt flüssig. **Wer gerade kommt** (nachdem eine Weile niemand da war), wird sofort begrüßt – ganz deutlich in der
   Iris oder mit diesem Moment, im Wechsel.
   **Was mit dem Kamerabild passiert:** All das zeichnet das Handy selbst, aus der Live-Kamera und einer dort
   gefundenen Maske der Person (Selfie-Segmentierung, etwa 250 KB); dafür wird kein Bild und kein Wort darüber, wer
-  davorsteht, gesendet, und nichts wird aufbewahrt. Die KI malt Menschen **nicht** um: Das Traum-Porträt, das der Mac
+  davorsteht, gesendet, und nichts wird aufbewahrt. Auch der Traum-Look ist gezeichnet, nicht berechnet: einfaches
+  Zeichnen auf dem Handy (Streifen, leicht versetzt; eine kleine Kopie, groß gezogen, für die Weichheit), kein Modell
+  und keine KI. Die KI malt Menschen **nicht** um: Das Traum-Porträt, das der Mac
   früher aus dem Kamerabild der Augen gemalt hat, gibt es nicht mehr (und `DREAM_YOU_EVERY` auch nicht) – der Mac malt
   nur noch die Fantasie-Gesichter unten, aus Worten. Das Einzige, was das Handy verlässt, ist das, wofür Dreamy Eyes da
   sind: die Frontkamera, die du dem Traum leihst (unten, „Immer nur eine Kamera“), unverändert an die Bühne
@@ -899,12 +930,22 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   kaum etwas). Alle vier bis acht Minuten kommt eines davon durch die Pupillen: Es taucht in ihnen wie durch Nebel auf (weich, blass, verschleiert, ohne Rand), als sähe man
   hindurch, die beiden Fenster wachsen mit leuchtendem Rand, drehen sich ein wenig und öffnen sich zu einer **Traumwolke** – das
   Gesicht in weichen Bällchen, die treiben und ihre Form ändern, ringsum ein Schimmer in der Traumfarbe, dahinter weiter der
-  Traum –, bleibt dort drei bis fünf Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
-  und die Augen sind wieder da. Die Bilder bleiben nur im Speicher und kommen nie in die Galerie; nur die Augen
+  Traum –, bleibt dort einige Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
+  und die Augen sind wieder da. **Das Gesicht lebt** (wie in den Traum-Fenstern, siehe „Lebendige Gesichter“ unten):
+  Es blinzelt, zwinkert ab und zu, schaut deutlich zur Seite (die Lider gehen mit), hebt oder runzelt die Brauen,
+  lächelt breit mit Mund und Wangen, dreht den Kopf und nickt – alle paar Sekunden ein neuer Ausdruck – und lächelt
+  mit, solange die Augen gestreichelt werden. Dafür findet die Bühne auf dem Mac (Dream oder Dream Control
+  dort offen) einmal pro gemaltem Gesicht, wo Augen, Brauen, Mund und Umriss sind, und Dream gibt diese Punkte an die
+  Dreamy Eyes weiter; das Handy bewegt sie nur – es lädt dafür kein Modell, und der Mac malt nichts zusätzlich. Mit
+  den Punkten liegen die Augen des gemalten Gesichts beim Aufgehen genau auf den Pupillen (in den Pupillen schaut es
+  gerade heraus), und es bleibt fünf bis sieben Sekunden statt drei bis fünf. Ohne Punkte – keine Bühne auf dem Mac
+  offen oder ein Bild, in dem kein Gesicht gefunden wird (eine Katze, eine Maske) – ist das Gesicht das Standbild von
+  früher. Ein Handy, dem die Luft ausgeht, bewegt ein kleineres Bild des Gesichts seltener, und die schwächsten
+  lassen den Kopf still. Die Bilder bleiben nur im Speicher und kommen nie in die Galerie; nur die Augen
   (und Dream Control) dürfen sie abholen. `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` ändert, wie oft eines
   gemalt wird (Sekunden); `DREAM_AIMASK=0` schaltet die gemalten Gesichter ganz ab (auch kein Feuergeist:
   die Dreamy Eyes lassen den Mac dann nie ein Modell laden). Mit der Cloud-GPU gibt es keine gemalten Gesichter.
-- **Die Pupillen verwandeln sich:** ein Katzenschlitz, solange das Grinsen da ist, Herzen, wenn jemand weiter lächelt,
+- **Die Pupillen verwandeln sich:** ein Katzenschlitz, solange das Katzengesicht aus Licht zu sehen ist, Herzen, wenn jemand weiter lächelt,
   Sterne, wenn sie staunen, eine drehende Spirale, wenn sie hypnotisieren (oder von einem Feuer gebannt sind). Etwa
   jedes vierte Mal (#218) ist es statt der Spirale ein weicher Schimmer, nie zweimal derselbe hintereinander: Lichter,
   die sich wie ein Mandala drehen, Lichter, die wie Schnee sinken, Ringe, die in die Tiefe sinken, oder ein langsamer
@@ -915,8 +956,6 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 - **Launen ab und zu:** Sie zwinkern, schielen, rollen die Augen, hypnotisieren, weinen eine Träne aus Licht, die zu
   Sternen zerplatzt, oder funkeln. Lange niemand da und ein ruhiger Traum: Sie schlafen langsam ein, kleine z's steigen
   auf – wer kommt, weckt sie mit einem Schreck (Sternpupillen, Funkeln). Lebhafter Traum: öfter.
-- **Das Grinsen gibt es in drei Arten** – mit Zähnen, als Lächeln aus kleinen Lichtern oder als leuchtendes Neon mit
-  verträumter Zunge – und es zeichnet sich von einer Seite her in die Luft.
 - **Um die Augen** entstehen Wölkchen, aufblühende Lichtspiralen, Mandalas, wachsende Fraktal-Bäume aus Licht,
   flatternde Licht-Motten, schillernde Blasen, Polarlicht-Bänder und kleine Monde, die ein Auge umkreisen – alles in den
   Farben des Traums, öfter, wenn der Traum lebhaft ist. Wird das Handy knapp, fallen sie zuerst weg (nie die Kamera);
@@ -925,13 +964,14 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   `~/.cache/dream/mediapipe` ab.
 - **Einrichten:** Dream Control → Karte **„👀 Dreamy Eyes“** → „Code fürs Augen-Handy zeigen“ (oder am Mac: Bedienfeld →
   „Ausgabe“ → **👀 Dreamy Eyes**) → mit dem Augen-Handy scannen. Einmal auf diesem Handy: Dreams Zertifikat installieren (siehe „Dream Control über https und als App“) – der
-  Browser gibt die Kamera nur über https heraus. **„Augen öffnen“** tippen (Vollbild, der Bildschirm bleibt an). Damit es
+  Browser gibt die Kamera nur über https heraus. **„Augen öffnen“** tippen (Vollbild, der Bildschirm bleibt an; mit `?debug` in der Adresse bleibt die Seite ein Fenster). Damit es
   dort bleibt: Android „Bildschirmfixierung“ (Einstellungen → Sicherheit → App anpinnen, dann den Browser über die
   App-Übersicht anpinnen), das Handy am Strom, in einer Halterung auf Augenhöhe.
 - **Sein Code darf nur die Frontkamera leihen** und den Traum sehen – keine Einstellungen, keine Befehle, nichts, was Geld
   kostet; es erfährt nicht einmal den Prompt. Neben dem kleinen Bild des Traums bekommt es zwei Zahlen gesagt: die
   Master-Helligkeit und (#218) den Takt der Musik, einen Puls zwischen 0 und 1 – nie das, was die Bühne ihren
-  Ausgabefenstern sagt (Effekte, Überblendungen, Prompts); die Vorschau eines Gasts hört keinen Takt. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
+  Ausgabefenstern sagt (Effekte, Überblendungen, Prompts); die Vorschau eines Gasts hört keinen Takt. Von den gemalten Gesichtern bekommt es
+  die Bilder und (#230), wo jedes Augen, Brauen, Mund und Umriss hat – sonst nichts. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
   eigenem Cookie – die Augen auf dem eigenen Handy auszuprobieren, ersetzt also nie Dream Control.
 - **Immer nur eine Kamera:** Die Bühne zeigt „👀 Live-Kamera: Dreamy Eyes“. In Dream Control sagt die Karte „Dieses Gerät“,
   wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp), und die eigene
@@ -950,8 +990,8 @@ Fenster zeigt **ein großes, lebendiges Motiv**, der Traum umwabert es als Wolke
 einem Gerät zum anderen.
 
 - **Ein großes Motiv pro Fenster:**
-  - ein **großes Auge** – genau das Auge der Dreamy Eyes: Iris-Fasern, Lider, Wimpern, eine Braue, wenn es etwas
-    fühlt. Es schaut umher, blinzelt, seine Pupille weitet sich im dunklen Traum und mit dem Takt, und seine Iris ist
+  - ein **großes Auge** – genau das Auge der Dreamy Eyes: Iris-Fasern, Lider, Wimpern und eine Braue nur mit den
+    Andeutungen (#220: alle ein, zwei Minuten, nach Dreams Uhr – beide Augen eines Paars heben ihre gemeinsam). Es schaut umher, blinzelt, seine Pupille weitet sich im dunklen Traum und mit dem Takt, und seine Iris ist
     der Traum – pur, zum Kaleidoskop gefaltet, als Tunnel oder als Galaxie; selten (etwa jedes zehnte Mal, alle 47 s) hypnotisiert seine
     Pupille für ein paar Sekunden (#218: die Spirale oder einer der weichen Schimmer reihum, atmend im Takt – in beiden
     Fenstern eines Paars dieselbe);
@@ -976,8 +1016,9 @@ einem Gerät zum anderen.
   Gesicht auf dem Mac** bestimmt – von der Bühne, in einem Hintergrund-Worker, mit dem Gesichtsmodell, das Dream
   ohnehin hat (deutlich unter einer Sekunde pro Gesicht; das Zeichnen der Bühne wartet nie darauf) – nie von einem
   Fenster und nicht noch einmal für ein weiteres Fenster. Die 82 Punkte reisen mit dem Gesicht (unter 1 kB). Jedes
-  Fenster bewegt sie selbst über ein Dreiecksnetz: Es blinzelt, lässt den Blick wandern, lächelt, hebt eine Braue,
-  atmet und neigt und dreht den Kopf ein wenig – dezent, wie ein Gemälde, das lebt. Ein Bild, in dem kein Gesicht
+  Fenster bewegt sie selbst über ein Dreiecksnetz: Es blinzelt, lässt den Blick wandern, lächelt, hebt oder runzelt die
+  Brauen, atmet und neigt und dreht den Kopf – gut zu sehen, aber natürlich, wie ein Gemälde, das lebt (dieselben
+  Ausdrücke wie in den Dreamy Eyes, #230). Ein Bild, in dem kein Gesicht
   gefunden wird (eine Katze, eine Maske), oder eines, das gemalt wurde, während keine Bühne offen war, bleibt still
   sichtbar.
 - **Ein Organismus:** Alle Fenster atmen gemeinsam und pulsieren im Takt, und ab und zu läuft eine Lichtwelle der
@@ -1188,7 +1229,7 @@ ein Preset wählen und dabei bleiben.
 - **Regler-Ziele:** Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion, Bewegung,
   Pose-Stärke, **Master-Helligkeit** (0 = schwarz; wirkt auf Bühne, Ausgabefenster und Syphon) und Effekt-Stärke.
 - **Tasten-Ziele:** Pause/Start, nächste Szene, Neu, neuer Seed, **Blackout an/aus** (Master auf 0 und zurück),
-  Tap-Tempo, Muster weiter, jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus.
+  Tap-Tempo, Muster weiter, nächste Stilwelt (#221), jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus.
 - Regler gleiten weich zum neuen Wert (keine Sprünge) und bewegen sich im Bedienfeld und am Handy mit.
   Endlos-Drehregler (die nur „mehr/weniger“ senden) erkennt Dream nach wenigen Rasten selbst.
 - Vorschlag für 8 Fader + Master: Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion,
@@ -1226,39 +1267,26 @@ Schlag → Blitz. Das geplante Armband und der Finger-Handschuh (Tickets #38, #3
 
 ---
 
-## Scaleway-GPU
+## Cloud-GPU
+
+Eine gemietete GPU rechnet viel schneller als der Mac, vor allem SDXL-Turbo und die Stil-Modelle. Dream mietet sie bei
+**RunPod** (Rechenzentren in Europa, Abrechnung in $ pro Sekunde): Unter „Rechnen“ → **Cloud-GPU** stehen in der Liste
+die GPUs von RunPod, die RTX 4090 ist vorgewählt. Einrichten: siehe „[RunPod-GPU](#runpod-gpu)“. **Scaleway** (Paris,
+in €) ist zurzeit nicht verfügbar – Scaleway nimmt vorübergehend keine neuen GPU-Instanzen an – und steht nicht in der
+Liste; auf der Kommandozeile geht es weiter, siehe
+„[Scaleway-GPU (zurzeit nicht verfügbar)](#scaleway-gpu-zurzeit-nicht-verfügbar)“.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
-### Einmal einrichten
-
-```bash
-brew install scw
-scw init
-```
-
-`scw init` fragt Access Key und Secret Key ab (sie bleiben in `~/.config/scw/config.yaml` auf dem Mac),
-Standard-Zone **fr-par-2** wählen, Telemetrie **no**, den lokalen SSH-Schlüssel **hinzufügen**. `dream-cloud`
-legt Instanzen nur im Standard-Projekt dieser Konfiguration an (`scw config get default-project-id`).
-
-**SSH-Schlüssel:** Scaleway-Konsole → IAM → SSH-Schlüssel – dort muss der Schlüssel aus `~/.ssh/id_rsa.pub` stehen,
-sonst kommt Dream nicht auf die Instanz (sie kostet dann trotzdem, bis `dream-cloud stop`).
-
-**GPU-Kontingent (Quota):** Neue Konten dürfen oft keine GPU anlegen („quota exceeded … 0/0“). Prüfen unter
-Scaleway-Konsole → Organisation → Organization Dashboard → Reiter **Quotas**, Produkt „Instances“, Suche „L4“:
-steht bei L4-1-24G mindestens 1, geht es. Sonst freischalten lassen: oben **„Verify ID“** (Ausweis) oder
-**„Contact support“** mit „Instances, L4-1-24G, fr-par-2, Quota 1“.
-
 ### Benutzen
 
-In der App „Scaleway-GPU“ wählen, GPU-Typ aussuchen, **Starten**, die Kostenabfrage bestätigen. Nach jedem Neustart
-von Dream rechnet es zunächst wieder lokal auf dem Mac – Scaleway wird nicht gemerkt, damit nie versehentlich die
-Cloud gewählt ist. Nach einigen
-Minuten (Instanz anlegen, Python und Modell laden) rechnet Dream in der Cloud. **Löschen** beendet sofort.
+In der App „Cloud-GPU“ wählen, GPU-Typ aussuchen, **Starten**, die Kostenabfrage bestätigen. Nach jedem Neustart
+von Dream rechnet es zunächst wieder lokal auf dem Mac – die Cloud wird nicht gemerkt, damit sie nie versehentlich
+gewählt ist. Nach einigen
+Minuten (Maschine anlegen, Python und Modell laden) rechnet Dream in der Cloud. **Löschen** beendet sofort.
 
-- L4 (24 GB): etwa 0,79 € pro Stunde, mit Festplatte und IP rund 0,80 €. L40S (48 GB): etwa 1,47 € pro Stunde.
-  H100 (80 GB): etwa 2,87 € pro Stunde – die schnellste, für einen Auftritt mit möglichst vielen Bildern pro Sekunde.
-  Jeder Typ braucht bei Scaleway ein eigenes GPU-Kontingent.
+- Empfohlen: RTX 4090 (etwa 0,70 $ pro Stunde; für Dream so schnell wie teurere Karten). Die Preise stehen in der
+  Liste und in der Frage vor dem Start.
 - **Turbo (#100, #131):** Auf der Cloud-GPU wird das Modell vor dem ersten Bild für die Karte übersetzt
   (torch.compile, TF32), schlank in einer Variante. Den übersetzten Code bringt `dream-cloud` als **Cache** auf den Mac
   (`~/.cache/dream/compile`, je GPU-Typ, PyTorch-Version und Modell) und beim nächsten Start wieder mit: Der **erste**
@@ -1273,31 +1301,30 @@ Minuten (Instanz anlegen, Python und Modell laden) rechnet Dream in der Cloud. *
   Vorschau steht „… Bilder/s · GPU … ms · Weg … ms · überlappend“: GPU = Rechenzeit pro Bild, Weg = Übertragung.
   Lokal auf dem Mac bringt das Überlappen kaum etwas (die Mac-GPU ist schon voll ausgelastet, der Weg nur ~5 ms);
   bei 150 ms Weg (simuliert) hielt es die Bildrate von 4,9 statt 2,9 Bildern/s.
-- Die Instanz wird **spätestens nach 2 Stunden automatisch gelöscht** (lokaler Zeitgeber auf dem Mac;
-  zusätzlich schaltet sich die Instanz selbst ab). Ist der Mac in der Zeit ausgeschaltet, bitte selbst
+- Die Maschine wird **spätestens nach 2 Stunden automatisch gelöscht** (lokaler Zeitgeber auf dem Mac;
+  zusätzlich schaltet sie sich selbst ab). Ist der Mac in der Zeit ausgeschaltet, bitte selbst
   prüfen: `./dream-cloud status`.
 - Bedienfeld und Dream Control zeigen den Zustand der GPU, ohne ständig nachzufragen (#176): Dream schaut selbst nach –
   alle paar Sekunden, solange eine GPU startet, stoppt oder in Gebrauch ist, sonst alle halbe Minute, ohne eingerichteten
   Anbieter nur selten – und sagt es ihnen. Gäste sehen von der Cloud nichts.
-- Kamera-, Bild- und Videobilder und der Prompt gehen dann an die eigene Instanz bei Scaleway (Paris). Sprache
+- Kamera-, Bild- und Videobilder und der Prompt gehen dann an die eigene Maschine beim Anbieter. Sprache
   und Musik-Analyse bleiben auf dem Mac.
 
 Auch im Terminal:
 
 ```bash
 ./dream-cloud status
-./dream-cloud start --type L4-1-24G --model sd-turbo
+./dream-cloud start --type runpod:RTX-4090 --model sdxl-turbo
 ./dream-cloud stop
 ```
 
-`stop` löscht Instanz, Festplatte und IP. Danach kostet nichts mehr.
+`stop` löscht Maschine, Festplatte und IP. Danach kostet nichts mehr.
 
-## RunPod-GPU (zweiter Cloud-Anbieter)
+## RunPod-GPU
 
-Wenn Scaleway kein Kontingent gibt: **RunPod** vermietet GPUs (RTX 4090, RTX 5090, H100) pro Sekunde – empfohlen RTX 4090 (für Dream so schnell wie teurere Karten, siehe unten), Dream nimmt
-Rechenzentren in **Europa** (kurzer Weg). Unter „Rechnen“ → **Cloud-GPU** stehen in der Liste beide Anbieter
-(„Scaleway (Paris)“ in €, „RunPod (Europa)“ in $); Starten, Löschen, Kostenanzeige und das automatische Löschen nach
-2 Stunden funktionieren genau wie bei Scaleway. Der Pod löscht sich zusätzlich selbst, falls der Mac aus ist.
+**RunPod** vermietet GPUs (RTX 4090, RTX 5090, H100) pro Sekunde – empfohlen RTX 4090 (für Dream so schnell wie teurere Karten, siehe unten), Dream nimmt
+Rechenzentren in **Europa** (kurzer Weg). Unter „Rechnen“ → **Cloud-GPU** stehen in der Liste „RunPod (Europa,
+eigene Rechenzentren)“ und die günstigere „RunPod Community“ (private Rechner), beide in $. Der Pod löscht sich zusätzlich selbst, falls der Mac aus ist.
 
 **Einmal einrichten:**
 1. Konto auf runpod.io, unter **Billing** Guthaben aufladen (ab 10 $ für viele Stunden). Ohne Guthaben startet nichts.
@@ -1334,6 +1361,34 @@ Größe; zurück kommt das Bild in voller Größe, der Beamer bleibt scharf. „
 von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorschau steht „↑ … KB ↓ … KB“.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
+
+## Scaleway-GPU (zurzeit nicht verfügbar)
+
+Scaleway nimmt vorübergehend keine neuen GPU-Instanzen an; deshalb bieten Bedienfeld und Dream Control seine GPUs
+zurzeit nicht an. Der Weg bleibt in `dream-cloud` und geht weiter auf der Kommandozeile:
+`./dream-cloud start --type L4-1-24G` (auch `L40S-1-48G`, `H100-1-80G`); Status, `stop`, Kostenanzeige und das
+automatische Löschen funktionieren wie bei RunPod. Ohne `--type` nimmt `dream-cloud start` die RTX 4090 von RunPod.
+Preise: L4 (24 GB) etwa 0,79 € pro Stunde, L40S (48 GB) etwa 1,47 €, H100 (80 GB) etwa 2,87 €; jeder Typ braucht bei
+Scaleway ein eigenes GPU-Kontingent.
+
+**Einmal einrichten:**
+
+```bash
+brew install scw
+scw init
+```
+
+`scw init` fragt Access Key und Secret Key ab (sie bleiben in `~/.config/scw/config.yaml` auf dem Mac),
+Standard-Zone **fr-par-2** wählen, Telemetrie **no**, den lokalen SSH-Schlüssel **hinzufügen**. `dream-cloud`
+legt Instanzen nur im Standard-Projekt dieser Konfiguration an (`scw config get default-project-id`).
+
+**SSH-Schlüssel:** Scaleway-Konsole → IAM → SSH-Schlüssel – dort muss der Schlüssel aus `~/.ssh/id_rsa.pub` stehen,
+sonst kommt Dream nicht auf die Instanz (sie kostet dann trotzdem, bis `dream-cloud stop`).
+
+**GPU-Kontingent (Quota):** Neue Konten dürfen oft keine GPU anlegen („quota exceeded … 0/0“). Prüfen unter
+Scaleway-Konsole → Organisation → Organization Dashboard → Reiter **Quotas**, Produkt „Instances“, Suche „L4“:
+steht bei L4-1-24G mindestens 1, geht es. Sonst freischalten lassen: oben **„Verify ID“** (Ausweis) oder
+**„Contact support“** mit „Instances, L4-1-24G, fr-par-2, Quota 1“.
 
 ---
 
@@ -1378,12 +1433,13 @@ von etwa 57 auf 25 KB pro Bild, der Download von 79 auf 46 KB. Unter der Vorscha
 - **„Seit einer Weile keine Antwort von der KI – verbinde neu …“** (#177): Die Bühne bekam 10 s keine Antwort (beim
   ersten Bild einer Verbindung 3 Minuten) und baut die Leitung selbst neu auf; ein einzelnes kaputtes Bild hält sie nie an.
 - **Spracheingabe zeigt einen Fehler:** Dream neu starten; Taste V wirklich gedrückt halten (zu kurz → „Zu kurz“).
-- **Scaleway „quota exceeded“:** GPU-Kontingent fehlt, siehe „Scaleway-GPU → Einmal einrichten“. Dream sagt das in
+- **Scaleway „quota exceeded“** (zurzeit nur Kommandozeile): GPU-Kontingent fehlt, siehe „Scaleway-GPU (zurzeit nicht
+  verfügbar)“. Dream sagt das in
   der Karte Rechnen („Start fehlgeschlagen: kein GPU-Kontingent für … – … Quotas“) und schaltet von selbst auf
   „Lokal“ zurück; es entstehen keine Kosten. Die Freigabe der Ausweis-Prüfung allein reicht nicht – das Kontingent
   muss zusätzlich beim Support angefragt werden.
-- **Anzeige „☁ Scaleway“ unter der Vorschau:** rot heißt, eine GPU läuft oder startet (kostet Geld); neutral
-  „nicht gestartet“ heißt, Scaleway ist nur als Rechner gewählt. „Löschen“ ist nur aktiv, wenn etwas läuft, und
+- **Anzeige „☁ …“ unter der Vorschau:** rot heißt, eine GPU läuft oder startet (kostet Geld); neutral
+  „nicht gestartet“ heißt, die Cloud ist nur als Rechner gewählt. „Löschen“ ist nur aktiv, wenn etwas läuft, und
   zeigt „Wird gelöscht …“ und „Gelöscht ✓“.
 - **Bewegungs-Warnung oben rot:** Keine Kamera (Zugriff im Browser erlauben, Kamera anschließen) oder das KI-Modell
   ließ sich nicht laden (beim allerersten Einschalten von „Hände (KI)“ ist Internet nötig). Taste D zeigt, was die
@@ -1438,7 +1494,7 @@ Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebenei
 je ein großes Motiv, der Traum als Wolken mit Dunkel dazwischen, das Augenpaar, das gemeinsam schaut, ein gemaltes
 Gesicht, das sich über seine Punkte bewegt, und eines ohne Punkte, das still bleibt, ein Motiv, das von einem Fenster ins
 andere wandert, Welle, Streicheln und Trance, und ein schwaches Gerät, das weniger Pixel zeichnet; mit `KEEP=1` bleiben
-die Fenster offen. `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Das Gesicht muss mit jedem Rahmen und in jedem Moment genau das Kamerabild sein, der Raum ist nie zu sehen, und das Bild geht, indem es sich auflöst, das Gesicht zuletzt. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+die Fenster offen. `node --test tests/js/vis.test.mjs` (#220) prüft die Regel selbst als reine Zahlen (`static/dreamvis.js`): mehr als vier Fünftel der Zeit nur die Augen, Andeutungen im Abstand von 60–120 s (der Umriss mit ihnen, mit halber Stärke), Mund, Nase und Haar im Abstand von 4–11 min, dann deutlich zu sehen und nie über vier Fünftel, kein Sprung von einem Bild zum nächsten, immer nur ein Gesicht (die Uhr läuft durch Gesichtswechsel: das gezeigte blendet ganz aus, bevor das nächste einblendet, kein Bild mit einem Sprung, nie zwei zugleich), dasselbe für beide Fenster eines Paars, eine Nase nur auf der seltenen Stufe – und dass die Seiten jede Linie eines Gesichts durch die Regel zeichnen (kein Grinsen; eine Nase nur in den Gesichtern aus Licht und nur nach der Regel; kein Gesicht wird an die Bildschirmhöhe angepasst; kein Vollbild mit `?debug`). `node --test tests/js/style.test.mjs` (#221) prüft die Stil-Schicht: die Registrierung in Node (eine Welt über ihren Namen, der heutige Look bei unbekanntem Namen, ein Teil, den eine Welt nicht selbst zeichnet, kommt aus der ersten Welt; jede Welt aus `settings.WORLDS` ist eine Datei `static/world-<name>.js`, die sich selbst anmeldet, und Bedienfeld und Dream Control bieten sie an), und im selben Browser ohne Fenster zeichnet `tests/js/style.html` den heutigen Look durch die Schicht, mit festem Zufall und stehender Uhr – Augen mit jedem Look, jeder Iris-Welt und Pupille, alles Lebendige, die sechs Gesichter aus Licht mit Andeutungen und im seltenen Moment, die sechs Fenster-Motive – und vergleicht kleine Kopien mit den Bildern in `tests/js/style-ref.json` (`STYLE_REF=write` behält die jetzt gezeichneten, nur wenn sich der Look ändern soll). `node --test tests/js/brush.test.mjs` prüft die gemeinsamen Pinsel als Zahlen (`static/dreambrush.js`: Zufall und Rauschen aus einem Startwert, eine Rausch-Kachel, die sich wiederholt, glatte Linien und anschwellende Bänder, die Helligkeit des Traums, die Lider, das Skelett eines Gesichts – eine einzige Größe, die der Augen, nie an einen Bildschirm angepasst; zwischen Augen und Mund liegt seine Nase und sonst nichts, und die Nase gehört zur seltenen Stufe). **Eine neue Stilwelt** ist eine Datei `static/world-<name>.js`, die `DreamStyle.register('<name>', { eye, life, face, motif })` mit den Teilen aufruft, die sie zeichnet (der Rest kommt aus Klassisch), ein Name in `settings.WORLDS`, ein Script-Tag in `eyes.html` und `window.html`, eine Option in den beiden Auswahllisten und ihr deutscher Name. `node --test tests/js/eyes-face.test.mjs` (#230) öffnet die Dreamy Eyes im selben Browser und ist auch ihr Dream: Ein gemaltes Gesicht mit seinen Punkten kommt durch die Pupillen und bewegt sich (Blinzeln, Lächeln, Brauen, leichtes Kopfdrehen), seine eigenen Augen liegen auf den Pupillen, ein Handy, dem die Luft ausgeht, bekommt ein kleineres Netz und kein Kopfdrehen, und ein Gesicht ohne Punkte bleibt still. `node --test tests/js/you.test.mjs` (#219, #229) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Die Person läuft weich aus, statt in einer Linie zu enden, in der Mitte des Moments ist das Gesicht genau das Kamerabild und nichts liegt darüber, davor und danach ist es weich und wabert, der Raum ist nie zu sehen, und das Bild geht, indem es sich in Schlieren auflöst, das Gesicht zuletzt, bis nichts mehr übrig ist; und der Code der Zeichnung benutzt kein Netz, kein Modell, keinen Weichzeichner-Filter und keine Schleife über ein großes Bild. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und

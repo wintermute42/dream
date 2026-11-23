@@ -1,28 +1,12 @@
 /* Dream – the dream's living things, drawn the same way by Dreamy Eyes (eyes.html) and the dream windows (window.html).
    #201: moved here from eyes.html so that both speak one visual language. No DOM besides canvases; a global `DreamLife`.
-   #214: the eye itself is in dreameye.js, the painted faces' life in dreamface.js. */
+   #214: the eye itself is in dreameye.js, the painted faces' life in dreamface.js.
+   #221: `draw` is how today's look – the first style world (world-classic.js) – draws them; the pages ask the style
+   layer (dreamstyle.js). What is the scene and the same in every world stays here: how big a kind is, its puffs, the
+   impossible shapes. Needs dreambrush.js. */
 (function (root) {
   'use strict';
-  const hueOf = ([r, gg, b]) => {                      // the hue of an RGB colour, 0–360
-    const mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), d = mx - mn || 1;
-    const h = mx === r ? ((gg - b) / d) % 6 : mx === gg ? (b - r) / d + 2 : (r - gg) / d + 4;
-    return (h * 60 + 360) % 360;
-  };
-  // #188: a soft light is drawn once and stamped (scaled, with its alpha) – the same look as a gradient per light, far cheaper
-  function softLight(stops, size) {
-    const c = document.createElement('canvas'); c.width = c.height = size;
-    const x = c.getContext('2d'), r = size / 2, gr = x.createRadialGradient(r, r, 0, r, r, r);
-    for (const [at, col] of stops) gr.addColorStop(at, col);
-    x.fillStyle = gr; x.fillRect(0, 0, size, size);
-    return c;
-  }
-  const stamp = (c, img, x, y, r, al) => { c.globalAlpha = al; c.drawImage(img, x - r, y - r, r * 2, r * 2); };
-  const tints = new Map();                             // coloured puffs, one light per 10° of hue
-  const tinted = hue => {
-    const k = ((Math.round(hue / 10) % 36) + 36) % 36;
-    if (!tints.has(k)) tints.set(k, softLight([[0, `hsla(${k * 10},70%,72%,1)`], [1, `hsla(${k * 10 + 30},70%,60%,0)`]], 128));
-    return tints.get(k);
-  };
+  const { hueOf, softLight, stamp, tinted } = root.DreamBrush;   // #221: the brushes all style worlds share
   // how big a kind is drawn, relative to its size
   const SCALE = { tree: 1.7, moth: 1.5, bubbles: 1.6, orbit: 1, tear: 1.4 };
   const puffs = () => Array.from({ length: 7 }, () => [Math.random() - 0.5, Math.random() - 0.5, 0.35 + Math.random() * 0.45]);
@@ -253,5 +237,5 @@
   }
   const IMPOSSIBLE = ['penrose', 'stairs', 'fork', 'cube'];
 
-  root.DreamLife = { hueOf, softLight, stamp, tinted, draw, puffs, SCALE, SYMBOLS, impossible, IMPOSSIBLE };
+  root.DreamLife = { draw, puffs, SCALE, SYMBOLS, impossible, IMPOSSIBLE };
 })(typeof window !== 'undefined' ? window : globalThis);
