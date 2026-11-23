@@ -817,19 +817,21 @@ eyes** that invite people to step up and play:
   they go their own way again.
 - **Your silhouette as a mask:** now and then, only while someone is there, the dream shines through the outline of
   the person in front (selfie segmentation on the phone, about 250 KB, nothing is sent or kept).
-- **Dreamy loves fire ❤️‍🔥 (#162, #218):** when the camera sees flames, the eyes are enchanted. What counts as a flame is
+- **Dreamy loves fire ❤️‍🔥 (#162, #218, #233):** when the camera sees flames, the eyes are enchanted. What counts as a flame is
   strict, so that a warm room is no fire: very bright, saturated orange-to-yellow light (close to the rule of #162) with
   a core as bright as the camera can show, that **flickers the way a flame does** – its size and its shape both keep
-  changing, irregularly – for most of a second (about 0.8 s) before the eyes believe it. Found on the phone, about 15
+  changing, irregularly, and in a larger flame its outline too (taller, wider, leaning) – for most of a second (about
+  0.85 s) before the eyes believe it. Found on the phone, about 15
   times a second. No fire are: a still orange lamp, a lamp while the phone is touched or carried, a lamp being dimmed,
   warm walls and a dim warm room in a noisy camera, the camera hunting for its exposure, warm LEDs beating with the
   camera's shutter (they go up and down evenly and keep their shape), a screen with warm moving pictures, a face or a
-  hand in warm light. A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
+  hand in warm light, even when it moves or waves (its light goes up and down evenly), a warm light pulsing with music
+  and a lamp that flickers a little in a phone held in the hand (both keep their outline). A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
   does not flicker at all, is no more than a lamp.
   **To see what the eyes take for fire in your room:** open Dreamy Eyes with `?debug` at the end of its address (after
   an existing `?…`: `&debug`). A corner then shows the camera sample in grey, warm light in yellow (its bright core
   white) and what counts as fire in red, with the numbers beside it: how sure they are (fire from 0.70), the strength,
-  and for the liveliest patch its size, the share of its core and its jumps (fire above 4).
+  and for the liveliest patch its size, the share of its core and its jumps (fire above 4.1).
   - **They follow the fire at once.** Their gaze goes where the flame is in the picture (within about a tenth of a
     second) and stays on it while it moves. Everything follows its **strength** without steps: how wide they open, how
     high the flames stand at the bottom of the screen (highest on the flame's side), how many embers rise, how deep the
