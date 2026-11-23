@@ -72,7 +72,7 @@
       });
     });
     // 4, 5: the faces of light, with the hints and in the rare moment – drawn around a pair of eyes
-    const geo = { cx: W / 4, ey: H / 2, A: 48, half: 58, h: H, q: 1 };
+    const geo = { cx: W / 4, ey: H / 2, A: 48, half: 58, q: 1 };
     for (const [name, level] of [['faces-hints', 1], ['faces-rare', 2]]) scene(name, g => {
       DreamStyle.face().MODES.forEach((mode, i) => {
         g.save(); g.translate((i % 3) * (W / 3) - W / 12, (i / 3 | 0) * (H / 2) - H / 4 + 40); g.scale(0.62, 0.62);

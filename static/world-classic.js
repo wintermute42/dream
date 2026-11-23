@@ -12,66 +12,66 @@
   // ---------- the faces of light (Dreamy Eyes) ----------
   // #157: faces only hinted, drawn in light around the eyes – the eyes become theirs; the dream fills the lines.
   // #220: every line belongs to a part of the face and shows as far as the rule lets that part show (v): the sign on
-  // the forehead with the hints, hair, outline and mouth rarely and faintly, a nose never
+  // the forehead with the hints; hair, outline, mouth and nose rarely, and clearly then. A face has one size – the
+  // eyes' (A, half): it is never pressed into the screen, and what has no room on a wide, low screen runs off its edge
   // geo: where the eyes are, in c's pixels – cx, ey (the middle between them), A (half an eye's width), half (half the
-  // distance between them), h (the screen's height) and q (c's pixels per pixel of the screen)
+  // distance between them) and q (c's pixels per pixel of the screen)
   function face(c, mode, t, geo, v, ink = 'rgba(255,255,255,', inkAl = 1) {
-    const mark = DreamVis.of(v, 'mark'), hair = DreamVis.of(v, 'hair'), outline = DreamVis.of(v, 'outline'), mouth = DreamVis.of(v, 'mouth');
-    const { cx, ey, A, half, h, q } = geo;
+    const mark = DreamVis.of(v, 'mark'), hair = DreamVis.of(v, 'hair'), outline = DreamVis.of(v, 'outline'), mouth = DreamVis.of(v, 'mouth'), nose = DreamVis.of(v, 'nose');
+    const { cx, ey, A, half, q } = geo;
     const line = (draw, wd, al) => {                   // every line twice: a wide soft glow and a fine bright core
       if (al > 0.004) for (const [k, aa] of [[3.2, al * 0.3], [1, al]]) { c.lineWidth = wd * k; c.strokeStyle = `${ink}${aa * inkAl})`; c.beginPath(); draw(); c.stroke(); }
     };
     c.lineCap = 'round'; c.lineJoin = 'round';
     const wd = Math.max(A * 0.07, 4.5 * q), sway = Math.sin(t / 1800);   // never hair-thin on a small upright screen
-    const fit = (want, top, bottom) => Math.max(A * 1.2, Math.min(want, top, bottom));   // the face stays on the screen
-    // Nothing of a face lies on the eyes: above `lid` the lids, lashes and brows are clear. The head's upper half is as
-    // tall as that needs (`up`), whatever the screen leaves for its lower half; what sits on the head over the eyes rests
-    // on that line at the lowest (`over`); and a crown is as tall as the room above it allows (`tall`: 0.4–1).
+    // Nothing of a face lies on the eyes: above `lid` the lids, lashes and brows are clear; what sits on the head over
+    // the eyes rests on that line at the lowest (`over`); and what stands on the head – ears, a crown – is as large as
+    // the room above it allows (`tall`: 0.4–1), smaller as a whole, never flatter.
     const lid = ey - A * 1.12;
-    const up = (fy, ry) => Math.max(A, Math.min(fy - 4, Math.max(ry, fy - lid + A * 0.1)));
     const over = (x, y) => Math.abs(x - cx) < half + A * 1.2 ? Math.min(y, lid) : y;
     const tall = y => Math.max(0.4, Math.min(1, (y - 4) / (A * 1.25)));
     const dot = (x, y, r, al) => {                     // a small light with a soft halo – spores, sparkles, drops
       if (al > 0.004) for (const [k, aa] of [[2.6, al * 0.28], [1, al]]) { c.fillStyle = `${ink}${aa * inkAl})`; c.beginPath(); c.arc(x, y, r * k, 0, Math.PI * 2); c.fill(); }
     };
     if (mode === 'goddess') {                          // a beautiful goddess: face, flowing hair, a diadem of light, lips
-      const fy = ey + A * 0.75, rx = half + A * 1.45, ry = fit(A * 2.7, (fy - 4) / 1.24, (h - fy - 4) / 0.95);
+      const fy = ey + A * 0.75, rx = half + A * 1.45, ry = A * 2.7;
       line(() => c.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.12, Math.PI * 0.88), wd, 0.85 * outline);   // jaw and cheeks
-      const rt = up(fy, ry);
       for (const sd of [-1, 1]) for (let k = 0; k < 6; k++) {                                         // hair falling in waves
-        const sx = cx + sd * (rx * 0.35 + k * A * 0.22), sy = over(sx, fy - rt * 0.95 + k * A * 0.08);
+        const sx = cx + sd * (rx * 0.35 + k * A * 0.22), sy = over(sx, fy - ry * 0.95 + k * A * 0.08);
         line(() => { c.moveTo(sx, sy); c.bezierCurveTo(sx + sd * rx * 0.9, sy + A * 0.05, sx + sd * rx * (0.6 + 0.15 * Math.sin(t / 1500 + k)), sy + ry * 1.1, sx + sd * rx * (1.05 + 0.1 * sway), sy + ry * 1.9); }, wd * 0.7, 0.6 * hair);
       }
       for (let k = -4; k <= 4; k++) {                  // a diadem: rays of light above the brow
-        const an = -Math.PI / 2 + k * 0.17, ix = cx + Math.cos(an) * rt * 0.78, iy = over(ix, fy + Math.sin(an) * rt * 1.02) - A * 0.08;
+        const an = -Math.PI / 2 + k * 0.17, ix = cx + Math.cos(an) * ry * 0.78, iy = over(ix, fy + Math.sin(an) * ry * 1.02) - A * 0.08;
         const len = A * (0.6 + 0.12 * Math.sin(t / 600 + k) - Math.abs(k) * 0.05) * tall(iy);
         line(() => { c.moveTo(ix, iy); c.lineTo(ix + Math.cos(an) * len, iy + Math.sin(an) * len); }, wd * 0.8, 0.9 * mark);
       }
       const ly = ey + A * 1.55, lw = A * 0.55;        // lips, closed
       line(() => { c.moveTo(cx - lw, ly); c.quadraticCurveTo(cx - lw * 0.4, ly - A * 0.18, cx, ly - A * 0.05); c.quadraticCurveTo(cx + lw * 0.4, ly - A * 0.18, cx + lw, ly); c.quadraticCurveTo(cx, ly + A * 0.32, cx - lw, ly); }, wd * 0.8, 0.7 * mouth);
-    } else if (mode === 'cat') {                       // a cat: ears, a wide soft face, whiskers that twitch
-      const fy = ey + A * 0.45, rx = half + A * 1.6, ry = fit(A * 2.1, (fy - A * 1.3 - 4) / 0.78, (h - fy - 4) / 0.98);
+      line(() => { c.moveTo(cx, ey + A * 0.15); c.quadraticCurveTo(cx - A * 0.1, ey + A * 0.75, cx - A * 0.16, ey + A * 0.95); }, wd * 0.6, 0.6 * nose);   // the line of the nose
+    } else if (mode === 'cat') {                       // a cat: ears, a wide soft face, nose, whiskers that twitch
+      const fy = ey + A * 0.45, rx = half + A * 1.6, ry = A * 2.1;
       line(() => c.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.05, Math.PI * 0.95), wd, 0.85 * outline);
       for (const sd of [-1, 1]) {
-        const bx = cx + sd * rx * 0.62, by = over(bx, fy - up(fy, ry) * 0.78) - A * 0.05, eh = tall(by), tip = Math.sin(t / 2200 + sd) * A * 0.12;   // the ears stand on the brow line
-        line(() => { c.moveTo(bx - sd * A * 0.75, by); c.lineTo(bx + sd * A * 0.25 + tip, by - A * 1.25 * eh); c.lineTo(bx + sd * A * 0.95, by + A * 0.1); }, wd, 0.85 * mark);
-        line(() => { c.moveTo(bx - sd * A * 0.35, by - A * 0.08 * eh); c.lineTo(bx + sd * A * 0.22 + tip, by - A * 0.8 * eh); c.lineTo(bx + sd * A * 0.6, by - A * 0.02); }, wd * 0.6, 0.65 * mark);
+        const bx = cx + sd * rx * 0.62, by = over(bx, fy - ry * 0.78) - A * 0.05, E = A * tall(by), tip = Math.sin(t / 2200 + sd) * E * 0.12;   // the ears stand on the brow line
+        line(() => { c.moveTo(bx - sd * E * 0.75, by); c.lineTo(bx + sd * E * 0.25 + tip, by - E * 1.25); c.lineTo(bx + sd * E * 0.95, by + E * 0.1); }, wd, 0.85 * mark);
+        line(() => { c.moveTo(bx - sd * E * 0.35, by - E * 0.08); c.lineTo(bx + sd * E * 0.22 + tip, by - E * 0.8); c.lineTo(bx + sd * E * 0.6, by - E * 0.02); }, wd * 0.6, 0.65 * mark);
         for (let k = 0; k < 3; k++) {                  // whiskers
           const wy = ey + A * (1.0 + k * 0.18), tw = Math.sin(t / 300 + k * 2 + sd) * A * 0.06;
           line(() => { c.moveTo(cx + sd * A * 0.45, wy); c.quadraticCurveTo(cx + sd * A * 1.6, wy - A * 0.1 + tw, cx + sd * A * (2.6 + k * 0.2), wy + (k - 1) * A * 0.35 + tw); }, wd * 0.45, 0.7 * outline);
         }
       }
-      const ny = ey + A * 0.85;                        // the little ω of the mouth
+      const ny = ey + A * 0.85;                        // nose and the little ω of the mouth
+      line(() => { c.moveTo(cx - A * 0.18, ny); c.lineTo(cx + A * 0.18, ny); c.lineTo(cx, ny + A * 0.2); c.closePath(); }, wd * 0.7, 0.8 * nose);
       line(() => { c.moveTo(cx, ny + A * 0.2); c.quadraticCurveTo(cx - A * 0.1, ny + A * 0.45, cx - A * 0.32, ny + A * 0.35); c.moveTo(cx, ny + A * 0.2); c.quadraticCurveTo(cx + A * 0.1, ny + A * 0.45, cx + A * 0.32, ny + A * 0.35); }, wd * 0.6, 0.7 * mouth);
     } else if (mode === 'mermaid') {                   // a mermaid: hair flowing like waves, a crown of shells, scales on her cheeks
-      const fy = ey + A * 0.7, rx = half + A * 1.35, ry = fit(A * 2.5, (fy - 4) / 1.15, (h - fy - 4) / 0.95);
+      const fy = ey + A * 0.7, rx = half + A * 1.35, ry = A * 2.5;
       line(() => c.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.12, Math.PI * 0.88), wd, 0.85 * outline);
       for (const sd of [-1, 1]) for (let k = 0; k < 5; k++) {   // hair drifting like seaweed in a current
-        const sx = cx + sd * rx * (0.3 + k * 0.12), sy = over(sx, fy - up(fy, ry) * 0.9) - k * A * 0.05;
+        const sx = cx + sd * rx * (0.3 + k * 0.12), sy = over(sx, fy - ry * 0.9) - k * A * 0.05;
         line(() => { c.moveTo(sx, sy); for (let j = 1; j <= 16; j++) { const u = j / 16; c.lineTo(sx + sd * (rx * 0.5 + rx * 0.9 * u), sy + ry * 2.1 * u + Math.sin(t / 700 + u * 7 + k) * A * 0.3 * u); } }, wd * 0.7, 0.6 * hair);
       }
       for (let k = -3; k <= 3; k++) {                  // a crown of shells: little fans above the brow
-        const an = -Math.PI / 2 + k * 0.2, bx = cx + Math.cos(an) * rx * 0.72, by = over(bx, fy + Math.sin(an) * up(fy, ry) * 1.02) - A * 0.3, r = A * (0.3 - Math.abs(k) * 0.03);
+        const an = -Math.PI / 2 + k * 0.2, bx = cx + Math.cos(an) * rx * 0.72, by = over(bx, fy + Math.sin(an) * ry * 1.02) - A * 0.3, r = A * (0.3 - Math.abs(k) * 0.03);
         line(() => { for (let j = 0; j <= 4; j++) { const a2 = Math.PI * (1.1 + j * 0.2); c.moveTo(bx, by); c.lineTo(bx + Math.cos(a2) * r, by + Math.sin(a2) * r); } c.moveTo(bx - r, by); c.arc(bx, by, r, Math.PI, Math.PI * 2); }, wd * 0.55, 0.9 * mark);
       }
       for (const sd of [-1, 1]) for (let k = 0; k < 4; k++) {   // scales on the cheekbones
@@ -81,21 +81,20 @@
       const ly = ey + A * 1.55, lw = A * 0.5;
       line(() => { c.moveTo(cx - lw, ly); c.quadraticCurveTo(cx, ly - A * 0.2, cx + lw, ly); c.quadraticCurveTo(cx, ly + A * 0.3, cx - lw, ly); }, wd * 0.8, 0.7 * mouth);
     } else if (mode === 'forest') {                    // a forest spirit: a crown of leaves, vines framing the eyes, a leaf on the brow, spores – no mouth
-      const fy = ey + A * 0.75, rx = half + A * 1.25, ry = fit(A * 2.4, (fy - A * 0.9 - 4) / 1.05, (h - fy - 4) / 0.95);
+      const fy = ey + A * 0.75, rx = half + A * 1.25, ry = A * 2.4;
       for (const [a0, a1] of [[0.12, 0.36], [0.64, 0.88]]) line(() => c.ellipse(cx, fy, rx, ry, 0, Math.PI * a0, Math.PI * a1), wd, 0.8 * outline);   // only the cheeks: no chin line that could read as a mouth
-      const rt = up(fy, ry);
       const leaf = (bx, by, an, len, wide, w, al) => {   // one leaf: two curves and its rib
         const tx = bx + Math.cos(an) * len, ty = by + Math.sin(an) * len, mx = (bx + tx) / 2, my = (by + ty) / 2, nx = -Math.sin(an) * wide, ny = Math.cos(an) * wide;
         line(() => { c.moveTo(bx, by); c.quadraticCurveTo(mx + nx, my + ny, tx, ty); c.quadraticCurveTo(mx - nx, my - ny, bx, by); c.moveTo(bx, by); c.lineTo(bx + (tx - bx) * 0.8, by + (ty - by) * 0.8); }, w, al);
       };
       for (let k = -4; k <= 4; k++) {                  // the crown: leaves fanning out above the brow, stirring as in a breeze
-        const an = -Math.PI / 2 + k * 0.24, bx = cx + Math.cos(an) * rx * 0.8, by = over(bx, fy + Math.sin(an) * rt * 0.98) - A * 0.06, th = tall(by);
-        leaf(bx, by, an + k * 0.07 + 0.1 * Math.sin(t / 1400 + k * 1.3), A * (1.15 - Math.abs(k) * 0.09) * (k % 2 ? 0.8 : 1) * th, A * 0.42 * Math.max(0.6, th), wd * 0.6, 0.9 * mark);
+        const an = -Math.PI / 2 + k * 0.24, bx = cx + Math.cos(an) * rx * 0.8, by = over(bx, fy + Math.sin(an) * ry * 0.98) - A * 0.06, th = tall(by);
+        leaf(bx, by, an + k * 0.07 + 0.1 * Math.sin(t / 1400 + k * 1.3), A * (1.15 - Math.abs(k) * 0.09) * (k % 2 ? 0.8 : 1) * th, A * 0.42 * th, wd * 0.6, 0.9 * mark);
       }
       leaf(cx, ey - A * 0.12, -Math.PI / 2 + 0.06 * sway, A * 0.46, A * 0.2, wd * 0.55, (0.7 + 0.2 * Math.sin(t / 1100)) * mark);   // a leaf on the brow, softly glowing
       for (const sd of [-1, 1]) {                       // vines down both sides of the eyes, ending in a curl, a few leaves on them
         const vx = cx + sd * (half + A * 1.35), vy = ey - A * 0.55, wv = k => Math.sin(t / 1700 + k * 1.9 + sd) * A * 0.07;
-        const at = u => [vx + sd * (A * 0.5 * Math.sin(u * Math.PI) + A * 0.14 * Math.sin(u * 9)) + wv(u * 3) * u, vy + Math.min(ry * 1.25, h - 6 - A * 0.3 - vy) * u];
+        const at = u => [vx + sd * (A * 0.5 * Math.sin(u * Math.PI) + A * 0.14 * Math.sin(u * 9)) + wv(u * 3) * u, vy + ry * 1.25 * u];
         line(() => { c.moveTo(vx, vy); for (let j = 1; j <= 14; j++) { const [px, py] = at(j / 14); c.lineTo(px, py); } }, wd * 0.6, 0.65 * hair);
         const [ex, eY] = at(1);
         line(() => { for (let j = 0; j <= 12; j++) { const an = j / 12 * Math.PI * 2.6, rr = A * 0.26 * (1 - j / 14); c.lineTo(ex - sd * (A * 0.26 - Math.cos(an) * rr), eY + Math.sin(an) * rr); } }, wd * 0.5, 0.6 * hair);
@@ -106,14 +105,14 @@
         dot(sx, sy, A * (0.06 + 0.035 * (k % 3)), Math.sin(u * Math.PI) * (0.75 + 0.25 * Math.sin(t / 350 + k)) * mark);
       }
     } else if (mode === 'priestess') {                 // a moon priestess: a crescent on her brow, a veil of light, long earrings
-      const fy = ey + A * 0.75, rx = half + A * 1.3, ry = fit(A * 2.5, (fy - 4) / 1.25, (h - fy - 4) / 0.95);
+      const fy = ey + A * 0.75, rx = half + A * 1.3, ry = A * 2.5;
       line(() => c.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.12, Math.PI * 0.88), wd, 0.85 * outline);
-      const rt = up(fy, ry), mr = A * 0.34 * tall(lid), my = Math.min(fy - rt * 0.72, lid - mr * 0.6);   // the crescent, gently glowing, above the brows
+      const mr = A * 0.34 * tall(lid), my = Math.min(fy - ry * 0.72, lid - mr * 0.6);   // the crescent, gently glowing, above the brows
       line(() => { c.arc(cx, my, mr, Math.PI * 0.15, Math.PI * 0.85, true); c.arc(cx, my - mr * 0.35, mr * 0.8, Math.PI * 0.8, Math.PI * 0.2); }, wd * 0.8, (0.8 + 0.2 * Math.sin(t / 900)) * mark);
       for (let k = 0; k < 7; k++) {                    // the veil: arcs falling from her brow to her shoulders, swaying
         const u = k / 6, sw = Math.sin(t / 1600 + k * 0.6) * A * 0.15;
-        const vx = rx * (0.2 + u * 0.95), vy = over(cx + vx, fy - rt * (0.95 - u * 0.1)) - A * 0.04;
-        line(() => { c.moveTo(cx - vx, vy); c.quadraticCurveTo(cx + sw, Math.max(4 - vy * 0.5, vy - A * (1.3 - u * 0.5) * tall(vy)), cx + vx, vy); }, wd * 0.5, 0.55 * hair);
+        const vx = rx * (0.2 + u * 0.95), vy = over(cx + vx, fy - ry * (0.95 - u * 0.1)) - A * 0.04;
+        line(() => { c.moveTo(cx - vx, vy); c.quadraticCurveTo(cx + sw, vy - A * (1.3 - u * 0.5), cx + vx, vy); }, wd * 0.5, 0.55 * hair);
         for (const sd of [-1, 1]) line(() => { const x0 = cx + sd * rx * (0.95 + u * 0.15); c.moveTo(x0, fy - ry * 0.5 + u * ry * 0.3); c.quadraticCurveTo(x0 + sd * A * 0.4 + sw, fy + ry * 0.4, x0 + sd * A * 0.2, fy + ry * (0.9 + u * 0.4)); }, wd * 0.5, 0.55 * hair);
       }
       for (const sd of [-1, 1]) {                       // long earrings: a chain and a drop, swinging
@@ -124,13 +123,13 @@
       const ly = ey + A * 1.55, lw = A * 0.5;
       line(() => { c.moveTo(cx - lw, ly); c.quadraticCurveTo(cx - lw * 0.4, ly - A * 0.18, cx, ly - A * 0.05); c.quadraticCurveTo(cx + lw * 0.4, ly - A * 0.18, cx + lw, ly); c.quadraticCurveTo(cx, ly + A * 0.3, cx - lw, ly); }, wd * 0.8, 0.7 * mouth);
     } else {                                           // Medusa: a face and snakes of light writhing from her head
-      const fy = ey + A * 0.7, rx = half + A * 1.3, ry = fit(A * 2.4, fy / 0.9, (h - fy - 4) / 0.95);
+      const fy = ey + A * 0.7, rx = half + A * 1.3, ry = A * 2.4;
       line(() => c.ellipse(cx, fy, rx, ry, 0, Math.PI * 0.1, Math.PI * 0.9), wd, 0.85 * outline);
       for (let k = 0; k < 13; k++) {
         const part = k > 3 && k < 9 ? mark : hair;     // the snakes above the brow are her sign, those at the sides her hair
         if (part <= 0.004) continue;
-        const an = Math.PI * (1.05 + k / 12 * 0.9), bx = cx + Math.cos(an) * rx * 0.85, by = over(bx, fy + Math.sin(an) * up(fy, ry) * 0.85);
-        const len = ry * (0.9 + 0.35 * Math.sin(k * 1.7)) * (1 - (1 - tall(by)) * Math.abs(Math.sin(an))), ph = t / 420 + k * 1.3;   // those reaching up: as long as the room above
+        const an = Math.PI * (1.05 + k / 12 * 0.9), bx = cx + Math.cos(an) * rx * 0.85, by = over(bx, fy + Math.sin(an) * ry * 0.85);
+        const len = Math.min(ry * (0.9 + 0.35 * Math.sin(k * 1.7)), (by - 4) / Math.max(0.05, -Math.sin(an)) * 0.92), ph = t / 420 + k * 1.3;   // those reaching up: no longer than the room above
         let hx = bx, hy = by, px = bx, py = by;
         line(() => {
           c.moveTo(bx, by);

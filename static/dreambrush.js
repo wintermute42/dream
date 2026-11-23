@@ -165,21 +165,26 @@
   // The face behind a pair of eyes as bare curves, for a world to draw in its own material. `cx`, `ey`: the middle
   // between the eyes; `half`: half the distance between them; t (ms): hair sways a little. Every curve is a list of
   // screen points and belongs to a part of the face rule (static/dreamvis.js, #220) – a world draws it as visible as
-  // `DreamVis.of(vis, part)` says. There is no nose: the rule has no level for one.
+  // `DreamVis.of(vis, part)` says. The face has one size, the eyes' (one unit: `half / 1.95`), whatever the screen:
+  // it is never pressed into it. The eyes are large in it, so it is a short face – nose and mouth close below the
+  // eyes, where even a wide, low screen still shows them; the chin and the ends of the hair may run off its edge.
   function skeleton(cx, ey, half, t = 0) {
     const u = half / 1.95, F = p => [cx + p[0] * u, ey + p[1] * u], sway = k => Math.sin(t / 2000 + k) * 0.12, out = [];
     const add = (part, name, pts, n) => out.push({ part, name, pts: curve(pts.map(F), n) });
     for (const o of [-1, 1]) {
       add('brows', 'brow', [[0.6 * o, -1.25], [1.4 * o, -1.85], [2.3 * o, -2.0], [3.5 * o, -1.35]]);
-      add('outline', 'jaw', [[3.75 * o, -1.8], [3.9 * o, 0.4], [3.5 * o, 2.4], [2.4 * o, 4.3], [1.0 * o, 5.55], [0, 5.85]]);
+      add('outline', 'jaw', [[3.75 * o, -1.8], [3.9 * o, 0.4], [3.5 * o, 2.0], [2.5 * o, 3.4], [1.05 * o, 4.35], [0, 4.6]]);
+      add('nose', 'nose side', [[0.22 * o, 0.55], [0.2 * o, 1.0], [0.32 * o, 1.35], [0.56 * o, 1.62]], 5);   // from beside the bridge out to the wing
       for (let i = 0; i < 5; i++) {
         add('hair', 'strand', [[0.15 * o, -3.45 - i * 0.12], [(1.6 + i * 0.35) * o, -3.8 - i * 0.1], [(3.5 + i * 0.42) * o, -2.4 + i * 0.1], [(4.2 + i * 0.45 + sway(i)) * o, 0.5],
           [(3.9 + i * 0.5 + sway(i + 1) * 2) * o, 3.0 + i * 0.2], [(4.2 + i * 0.5 + sway(i + 2) * 3) * o, 5.4 + i * 0.25]], 7);
       }
     }
-    add('mouth', 'upper lip', [[-1.05, 3.78], [-0.45, 3.52], [-0.12, 3.5], [0, 3.6], [0.12, 3.5], [0.45, 3.52], [1.05, 3.78]], 5);
-    add('mouth', 'lips', [[-1.05, 3.78], [-0.4, 3.86], [0, 3.8], [0.4, 3.86], [1.05, 3.78]], 5);   // closed, always
-    add('mouth', 'lower lip', [[-0.88, 3.9], [-0.4, 4.28], [0, 4.38], [0.4, 4.28], [0.88, 3.9]], 5);
+    add('nose', 'nose base', [[-0.56, 1.62], [-0.3, 1.8], [0, 1.72], [0.3, 1.8], [0.56, 1.62]], 5);   // under the tip, from wing to wing
+    out.push({ part: 'nose', name: 'nose tip', pts: [F([0, 1.45])] });
+    add('mouth', 'upper lip', [[-1.05, 2.58], [-0.45, 2.32], [-0.12, 2.3], [0, 2.4], [0.12, 2.3], [0.45, 2.32], [1.05, 2.58]], 5);
+    add('mouth', 'lips', [[-1.05, 2.58], [-0.4, 2.66], [0, 2.6], [0.4, 2.66], [1.05, 2.58]], 5);   // closed, always
+    add('mouth', 'lower lip', [[-0.88, 2.7], [-0.4, 3.08], [0, 3.18], [0.4, 3.08], [0.88, 2.7]], 5);
     out.push({ part: 'mark', name: 'mark', pts: [F([0, -2.6])] });   // where a sign on the forehead sits
     return out;
   }

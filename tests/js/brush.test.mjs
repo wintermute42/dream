@@ -1,6 +1,6 @@
 // #221: the brushes the style worlds share (static/dreambrush.js) – the numbers behind them, in Node: random numbers
 // and noise from a seed, smooth lines and swelling bands, how bright the dream is where, the lids of an eye and the
-// skeleton of a face (which has no nose).
+// skeleton of a face (one size, the eyes'; its nose belongs to the rare level of the face rule).
 // Run: node --test tests/js/brush.test.mjs   (the CI runs it too)
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -84,23 +84,28 @@ test('the lids of an eye: the same opening for every world', () => {
   assert.equal(calls.join(''), 'bmccz');
 });
 
-test('the skeleton of a face: every curve belongs to a part of the face rule – and there is no nose', () => {
+test('the skeleton of a face: every curve belongs to a part of the face rule – the nose to its rare level', () => {
   const S = B.skeleton(400, 300, 100, 0);
   assert.ok(S.length > 10);
   for (const c of S) {
     assert.ok(c.part in V.PARTS && V.PARTS[c.part] > 0, `${c.name} belongs to a part that is not always there (${c.part})`);
-    assert.ok(!/nose|nostril|grin|teeth/i.test(c.name + c.part));
+    assert.ok(!/grin|teeth/i.test(c.name + c.part));
+    assert.equal(/nose|nostril/i.test(c.name), c.part === 'nose', `${c.name}: a nose is of the part 'nose', and nothing else is`);
     assert.ok(c.pts.length >= 1 && c.pts.every(p => Number.isFinite(p[0]) && Number.isFinite(p[1])));
   }
-  assert.deepEqual([...new Set(S.map(c => c.part))].sort(), ['brows', 'hair', 'mark', 'mouth', 'outline']);
-  // nothing of it lies where a nose would be: between the eyes, from their height down to above the mouth
-  const u = 100 / 1.95;
-  for (const c of S) for (const [x, y] of c.pts) assert.ok(!(Math.abs(x - 400) < 0.9 * u && y > 300 - 0.5 * u && y < 300 + 3.3 * u), `${c.name} at (${x | 0}, ${y | 0}) is in the middle of the face`);
+  assert.deepEqual([...new Set(S.map(c => c.part))].sort(), ['brows', 'hair', 'mark', 'mouth', 'nose', 'outline']);
+  assert.equal(V.PARTS.nose, 2, 'the nose shows only at the rare level');
+  // between the eyes, from their height down to above the mouth, lies the nose and nothing else – and the nose nowhere else
+  const u = 100 / 1.95, middle = (x, y) => Math.abs(x - 400) < 0.9 * u && y > 300 - 0.5 * u && y < 300 + 2.1 * u;
+  for (const c of S) for (const [x, y] of c.pts) assert.equal(middle(x, y), c.part === 'nose', `${c.name} at (${x | 0}, ${y | 0}): only the nose is in the middle of the face`);
+  assert.deepEqual(S.filter(c => c.part === 'nose').map(c => c.name).sort(), ['nose base', 'nose side', 'nose side', 'nose tip']);
   // … and nothing lies on the eyes
   for (const c of S) for (const [x, y] of c.pts) for (const ex of [300, 500]) assert.ok(Math.hypot((x - ex) / (1.4 * u), (y - 300) / (0.9 * u)) > 1, `${c.name} lies on an eye`);
   const brows = S.filter(c => c.part === 'brows'), mouth = S.filter(c => c.part === 'mouth');
   assert.equal(brows.length, 2);
-  assert.ok(brows.every(c => c.pts.every(p => p[1] < 300)) && mouth.every(c => c.pts.every(p => p[1] > 300 + 3 * u)));
+  assert.ok(brows.every(c => c.pts.every(p => p[1] < 300)) && mouth.every(c => c.pts.every(p => p[1] > 300 + 2.1 * u && p[1] < 300 + 3.3 * u)));
+  // one size, the eyes': the screen is not asked (a wide, low one still shows nose and mouth; the chin may run off its edge)
+  assert.equal(B.skeleton.length, 3, 'cx, ey, half (and t): no screen height to fit the face into');
   const xs = S.flatMap(c => c.pts.map(p => p[0] - 400));
   assert.ok(Math.abs(Math.min(...xs) + Math.max(...xs)) < 1e-6, 'the same on both sides at rest');
   assert.notDeepEqual(B.skeleton(400, 300, 100, 3000).find(c => c.part === 'hair').pts, S.find(c => c.part === 'hair').pts, 'hair sways');

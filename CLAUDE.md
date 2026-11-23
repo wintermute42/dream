@@ -34,7 +34,7 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
   asked over `/facemarks` – and moved by each window itself; a window never runs a model). How much of a face shows
   is one rule for both pages (#220): `static/dreamvis.js` – mostly only the eyes, hints (brows, the sign on the
-  forehead) every minute or two, mouth and outline rarely and only as a breath, a nose never; whatever is drawn of a
+  forehead) every minute or two, mouth, nose and outline rarely and clearly then; a drawn face has one size, the eyes' – never fitted to the screen, what has no room runs off its edge; whatever is drawn of a
   face – a line of light, the eye's brow – asks it (`DreamVis.of(vis, part)`), and a part it does not know is not
   drawn (`tests/js/vis.test.mjs`); the faces painted by the AI and "you in the dream" are pictures and stay whole. `static/dreamyou.js` draws "you in the dream" for
   Dreamy Eyes (#219): the person as the camera sees them, cut out on the phone, the face unchanged, the dream only around
