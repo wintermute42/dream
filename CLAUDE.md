@@ -26,8 +26,9 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
   asked over `/facemarks` – and moved by each window itself; a window never runs a model). `static/dreamyou.js` draws "you in the dream" for
-  Dreamy Eyes (#219): the person as the camera sees them, cut out on the phone, the face unchanged, the dream only around
-  – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
+  Dreamy Eyes (#219, #229): the person from the camera, cut out on the phone and drawn as in a dream with plain canvas
+  drawing – wavering in strips, running out into mist, the face clear only in the middle of the moment, coming apart
+  when it leaves; never a model, no blur filter, no loop over a large picture – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
   `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).

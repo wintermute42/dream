@@ -809,20 +809,26 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   klar bleiben.
 - **Du im Traum:** Wer davorsteht, spiegelt sich in der Iris – schwach die ganze Zeit, und alle zwei, drei Minuten für
   ein paar Sekunden ganz deutlich, wie in echten Augen: dann ist es die Person allein, vom Raum freigestellt (auf dem
-  Handy), das Gesicht genau so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle drei bis fünf
+  Handy) und am Rand weich auslaufend, das Gesicht so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle drei bis fünf
   Minuten, nur solange jemand da ist) erscheint die Person als **Moment**: zuerst in den beiden Pupillen, wie durch sie
-  hindurch gesehen, dann öffnen sich die Fenster und sie steht für etwa 2–3 Sekunden in einer weichen Wolke in der
-  Bildmitte – **das echte Kamerabild, das Gesicht unverändert und erkennbar**, etwas kleiner und leichter als ein
-  gemaltes Gesicht. Nur drumherum ist der Traum: das Traumbild statt des Raums, ein weicher Leuchtrand,
-  Glühwürmchen, ein Farbschimmer in der Farbe des Traums an ihrem Rand, und manchmal ein Kranz aus Blüten, ein
-  Mandala hinter dem Kopf oder Nebelschleier. Über dem Gesicht wird nie etwas gezeichnet. Danach blendet das Bild
-  nicht einfach aus: In ein, zwei Sekunden **löst es sich in den Traum auf** – seine Stücke treiben davon, die
-  äußeren zuerst, das Gesicht zuletzt, die Glühwürmchen fliegen fort –, während die Augen zurückkehren (insgesamt etwa
-  7 Sekunden). **Wer gerade kommt** (nachdem eine Weile niemand da war), wird sofort begrüßt – ganz deutlich in der
+  hindurch gesehen, dann öffnen sich die Fenster und sie steht für 3–4 Sekunden in einer weichen Wolke in der
+  Bildmitte, etwas kleiner und leichter als ein gemaltes Gesicht – **wie im Traum gesehen, nicht wie ein Foto** (#229):
+  Das ganze Bild wabert leicht wie durch Wasser oder Hitzeflimmern (das Gesicht schwächer als das Drumherum), die
+  Person hat keine Kontur, sondern **verläuft in Nebel**, mit einem zarten Farbsaum in den Farben des Traums, und sie
+  kommt weich und verschwommen. **In der Mitte des Moments ist das Gesicht etwa eine Sekunde lang klar – das echte
+  Kamerabild, man erkennt sich** –, dann verschwimmt es wieder. Drumherum ist der Traum: das Traumbild statt des
+  Raums, ein weiches Leuchten, Glühwürmchen, und manchmal ein Kranz aus Blüten, ein Mandala hinter dem Kopf oder
+  Nebelschleier. Danach blendet das Bild nicht einfach aus: In zwei, drei Sekunden **löst es sich von außen nach
+  innen in den Traum auf** – seine Stücke ziehen sich zu treibenden Schlieren und hinterlassen Funken, das Gesicht
+  zuletzt, die Glühwürmchen fliegen fort, und am Ende verweht der Nebel, der übrig ist –, während die Augen
+  zurückkehren (insgesamt etwa 9 Sekunden). Auf einem schwachen Handy wird das Bild kleiner gezeichnet und wabert in
+  gröberen Streifen; es bleibt flüssig. **Wer gerade kommt** (nachdem eine Weile niemand da war), wird sofort begrüßt – ganz deutlich in der
   Iris oder mit diesem Moment, im Wechsel.
   **Was mit dem Kamerabild passiert:** All das zeichnet das Handy selbst, aus der Live-Kamera und einer dort
   gefundenen Maske der Person (Selfie-Segmentierung, etwa 250 KB); dafür wird kein Bild und kein Wort darüber, wer
-  davorsteht, gesendet, und nichts wird aufbewahrt. Die KI malt Menschen **nicht** um: Das Traum-Porträt, das der Mac
+  davorsteht, gesendet, und nichts wird aufbewahrt. Auch der Traum-Look ist gezeichnet, nicht berechnet: einfaches
+  Zeichnen auf dem Handy (Streifen, leicht versetzt; eine kleine Kopie, groß gezogen, für die Weichheit), kein Modell
+  und keine KI. Die KI malt Menschen **nicht** um: Das Traum-Porträt, das der Mac
   früher aus dem Kamerabild der Augen gemalt hat, gibt es nicht mehr (und `DREAM_YOU_EVERY` auch nicht) – der Mac malt
   nur noch die Fantasie-Gesichter unten, aus Worten. Das Einzige, was das Handy verlässt, ist das, wofür Dreamy Eyes da
   sind: die Frontkamera, die du dem Traum leihst (unten, „Immer nur eine Kamera“), unverändert an die Bühne
@@ -1438,7 +1444,7 @@ Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebenei
 je ein großes Motiv, der Traum als Wolken mit Dunkel dazwischen, das Augenpaar, das gemeinsam schaut, ein gemaltes
 Gesicht, das sich über seine Punkte bewegt, und eines ohne Punkte, das still bleibt, ein Motiv, das von einem Fenster ins
 andere wandert, Welle, Streicheln und Trance, und ein schwaches Gerät, das weniger Pixel zeichnet; mit `KEEP=1` bleiben
-die Fenster offen. `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Das Gesicht muss mit jedem Rahmen und in jedem Moment genau das Kamerabild sein, der Raum ist nie zu sehen, und das Bild geht, indem es sich auflöst, das Gesicht zuletzt. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+die Fenster offen. `node --test tests/js/you.test.mjs` (#219, #229) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Die Person läuft weich aus, statt in einer Linie zu enden, in der Mitte des Moments ist das Gesicht genau das Kamerabild und nichts liegt darüber, davor und danach ist es weich und wabert, der Raum ist nie zu sehen, und das Bild geht, indem es sich in Schlieren auflöst, das Gesicht zuletzt, bis nichts mehr übrig ist; und der Code der Zeichnung benutzt kein Netz, kein Modell, keinen Weichzeichner-Filter und keine Schleife über ein großes Bild. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und
