@@ -825,8 +825,8 @@ eyes** that invite people to step up and play:
     lid for lashes, a thin corona around the iris; the brow is a small arc of rays. Around the eyes: a small drifting
     curtain, a halo with its mock moons, a small corona, light pillars over ice dust, a shooting star, diamond dust, a
     quiet arc. The faces of light are *veil*, *crown* and *pillars* (a brighter light on the forehead with the hints;
-    veils where hair would fall, a low band along the jaw and a warm breath for the mouth only in the rare moment – and
-    no pillar of light between the eyes, although the design had one). In a window the dream is seen in great curtains,
+    veils where hair would fall, a low band along the jaw, a warm light for the mouth and the nose – a slim pillar
+    of light with a star on its tip – only in the rare moment). In a window the dream is seen in great curtains,
     around an auroral corona – rays streaming out of a dark disc with the eye or the folded dream in it; the impossible
     shapes have edges of light. Fire is a red aurora rising from the horizon; where Classic shows a heart there is a
     small warm sun dog, where it shows stars ice dust glitters, and in sleep pillars dim one after the other while snow

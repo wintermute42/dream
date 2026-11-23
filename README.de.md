@@ -864,8 +864,8 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
     Bogen aus Strahlen. Um die Augen: ein kleiner treibender Vorhang, ein Halo mit Nebenmonden, eine kleine Korona,
     Lichtsäulen über Eisstaub, eine Sternschnuppe, Diamantstaub, ein stiller Bogen. Die Lichtgesichter heißen *veil*,
     *crown* und *pillars* (ein helleres Licht auf der Stirn mit den Andeutungen; Schleier, wo Haar fiele, ein niedriges
-    Band am Kiefer und ein warmer Hauch als Mund nur im seltenen Moment – und keine Lichtsäule zwischen den Augen,
-    obwohl der Entwurf eine hatte). Im Fenster sieht man den Traum in großen Vorhängen, um eine Polarlicht-Korona –
+    Band am Kiefer, ein warmes Licht als Mund und die Nase – eine schlanke Lichtsäule mit einem Stern auf der Spitze –
+    nur im seltenen Moment). Im Fenster sieht man den Traum in großen Vorhängen, um eine Polarlicht-Korona –
     Strahlen strömen aus einer dunklen Scheibe mit dem Auge oder dem gefalteten Traum darin; die unmöglichen Figuren
     haben Kanten aus Licht. Feuer ist ein rotes Polarlicht, das vom Horizont aufsteigt; wo Klassisch ein Herz zeigt,
     steht eine kleine warme Nebensonne, wo es Sterne zeigt, glitzert Eisstaub, und im Schlaf verlöschen Lichtsäulen
