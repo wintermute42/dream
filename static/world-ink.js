@@ -396,7 +396,7 @@
 
   // ---------- the faces of light ----------
   // Three ways a brush hints at whose eyes these are. v is the face rule's word: the sign on the forehead comes with
-  // the hints; hair, the jaw, the nose and the closed mouth only in the rare moment, clearly then – a few strokes painted in one
+  // the hints, and fainter the jaw (the outline); hair, the nose and the closed mouth only in the rare moment, clearly then – a few strokes painted in one
   // after the other. The brow is the eye's own. Drawn twice by the page: without `ink` into the mask the dream shines
   // through (so: white), with it as the world's own pigment over that.
   const FACES = ['sumi', 'willow', 'plum'];
@@ -409,6 +409,7 @@
     const T = t / 1000, F = faceFrame(geo.cx, geo.ey, geo.half), a = F.u, sk = skeleton(geo.cx, geo.ey, geo.half, t), bf = boil(t);
     const strands = sk.filter(k => k.name === 'strand').map(k => k.pts), jaws = sk.filter(k => k.name === 'jaw').map(k => k.pts), lip = n => sk.find(k => k.name === n).pts, M = sk.find(k => k.name === 'mark').pts[0];
     const pr = (s, e) => smooth(seg(v.fullForm, s, e)), pH = (s, e) => smooth(seg(v.hintForm, s, e));
+    const po = (s, e) => smooth(seg(Math.max(v.fullForm, v.hintForm), s, e));   // the outline is painted in with the hints already
     const tone = col => mono ? PIG.white : col, wash = (i, col, q, size, al, rot, sy) => blot(c, i, tone(col), q[0], q[1], size, al, rot, sy);
     const stroke = (P, wf, o) => brush(c, P, wf, { ...o, color: tone(o.color) });
     const press = (list, col, al) => { if (al > 0.004 && list.length) { c.fillStyle = tone(col); c.globalAlpha = Math.min(1, al); ribbons(c, list); c.globalAlpha = 1; } };
@@ -418,9 +419,9 @@
       // hair as broad dry strokes over washes of indigo and violet, the jaw one stroke each side, an ochre enso on the forehead
       const wa = hair * pr(0.1, 0.8);
       strands.forEach((P, k) => { const i = k % 5; if (i % 2 === 0) for (const [u, col, sz] of [[0.3, PIG.indigo, 3.6], [0.62, PIG.violet, 4.2], [0.88, PIG.viridian, 3.2]]) wash(k + (u * 10 | 0), col, P[Math.floor(u * (P.length - 1))], a * sz, 0.5 * wa, i + u * 5); });
-      for (const sd of [-1, 1]) wash(sd > 0 ? 1 : 4, PIG.madder, F(2.45 * sd, 2.1), a * 2.5, 0.45 * outline * pr(0.3, 0.9), sd);
+      for (const sd of [-1, 1]) wash(sd > 0 ? 1 : 4, PIG.madder, F(2.45 * sd, 2.1), a * 2.5, 0.45 * outline * po(0.3, 0.9), sd);
       strands.forEach((P, k) => { const i = k % 5; if (i !== 3) stroke(wob(P, a * 0.012, bf + k), u => a * (0.3 - 0.03 * i) * Math.pow(Math.sin(PI * u), 0.5), { seed: 40 + k, color: i % 2 ? '#aab4ea' : PIG.bone, alpha: (i % 2 ? 0.65 : 0.5) * hair, dry: 0.62, nb: 8, prog: pr(i * 0.07, 0.5 + i * 0.08) }); });
-      jaws.forEach((P, k) => stroke(wob(P, a * 0.008, bf + 20 + k), u => a * 0.04 * Math.pow(Math.sin(PI * u), 0.6), { seed: 60 + k, color: PIG.bone, alpha: outline, dry: 0.45, nb: 5, prog: pr(0.1 + k * 0.1, 0.6 + k * 0.1) }));
+      jaws.forEach((P, k) => stroke(wob(P, a * 0.008, bf + 20 + k), u => a * 0.04 * Math.pow(Math.sin(PI * u), 0.6), { seed: 60 + k, color: PIG.bone, alpha: outline, dry: 0.45, nb: 5, prog: po(0.1 + k * 0.1, 0.6 + k * 0.1) }));
       const la = mark * pH(0.2, 0.9);
       wash(3, PIG.ochre, M, a * 1.5, 0.5 * la, 1);
       stroke(wob(circ(M[0], M[1], a * 0.3, 24, -2, -2 + TAU * 0.92), a * 0.006, bf), u => a * 0.045 * Math.sin(PI * Math.pow(u, 0.8)), { seed: 84, color: PIG.ochre, alpha: 0.95 * mark, dry: 0.35, nb: 4, prog: pH(0.2, 0.9) });
@@ -440,10 +441,10 @@
         }
       });
       press(green, PIG.viridian, 0.8 * hair); press(gold, PIG.ochre, 0.8 * hair);
-      jaws.forEach((P, k) => stroke(wob(P, a * 0.008, bf + 20 + k), u => a * 0.022 * Math.pow(Math.sin(PI * u), 0.6), { seed: 66 + k, color: PIG.bone, alpha: 0.8 * outline, dry: 0.6, nb: 3, prog: pr(0.2 + k * 0.1, 0.8 + k * 0.1) }));
+      jaws.forEach((P, k) => stroke(wob(P, a * 0.008, bf + 20 + k), u => a * 0.022 * Math.pow(Math.sin(PI * u), 0.6), { seed: 66 + k, color: PIG.bone, alpha: 0.8 * outline, dry: 0.6, nb: 3, prog: po(0.2 + k * 0.1, 0.8 + k * 0.1) }));
       const fallen = [];                               // a few leaves let go, sinking past the cheeks
       for (let k = 0; k < 6; k++) { const sd = k % 2 ? 1 : -1, u = (T * 0.05 + hash(5, k)) % 1, q = F(sd * (2.7 + 0.9 * hash(6, k)) + Math.sin(T * 0.7 + k) * 0.15, 1.1 + u * 3.0); fallen.push(leaf(q[0], q[1], PI / 2 + Math.sin(T * 0.9 + k * 2) * 0.9, a * 0.36 * Math.sin(PI * u), 0.1)); }
-      press(fallen, PIG.viridian, 0.7 * outline * pr(0.4, 1));
+      press(fallen, PIG.viridian, 0.7 * outline * po(0.4, 1));
     } else {
       // a plum branch in blossom: dry knotted strokes for the boughs, blossoms dabbed along them, petals falling; a drop
       // of red on the forehead
@@ -465,11 +466,11 @@
       drops(centres, PIG.ochre, 0.9 * hair * pr(0.5, 1));
       for (let k = 0; k < 9; k++) { const sd = k % 2 ? 1 : -1, u = (T * 0.045 + hash(15, k)) % 1, q = F(sd * (3.0 + 1.6 * hash(16, k)) + Math.sin(T * 0.6 + k) * 0.2, -1.5 + u * 6.5); petals.push(leaf(q[0], q[1], Math.sin(T * 0.8 + k * 2) * 1.4 + 1, a * 0.26 * Math.sin(PI * u), 0.16)); }
       press(petals, '#f6b3c0', 0.75 * hair * pr(0.5, 1));
-      for (const sd of [-1, 1]) wash(sd > 0 ? 6 : 2, PIG.madder, F(2.5 * sd, 2.0), a * 2.3, 0.4 * outline * pr(0.3, 0.9), sd * 2);
-      const oa = outline * pr(0.2, 1), jd = [];        // the jaw: a dry line, and drops where the brush was shaken
+      for (const sd of [-1, 1]) wash(sd > 0 ? 6 : 2, PIG.madder, F(2.5 * sd, 2.0), a * 2.3, 0.4 * outline * po(0.3, 0.9), sd * 2);
+      const oa = outline * po(0.2, 1), jd = [];        // the jaw: a dry line, and drops where the brush was shaken
       jaws.forEach((P, k) => {
-        stroke(wob(P, a * 0.008, bf + 20 + k), u => a * 0.02 * Math.pow(Math.sin(PI * u), 0.6), { seed: 68 + k, color: PIG.bone, alpha: 0.6 * oa, dry: 0.75, nb: 2, prog: pr(0.2 + k * 0.1, 0.8 + k * 0.1) });
-        for (let j = 3; j < P.length * pr(0.2, 0.9); j += 3) jd.push([P[j][0] + (hash(k + 30, j) - 0.5) * a * 0.2, P[j][1] + (hash(k + 40, j) - 0.5) * a * 0.2, a * (0.02 + 0.05 * hash(k + 50, j) ** 2)]);
+        stroke(wob(P, a * 0.008, bf + 20 + k), u => a * 0.02 * Math.pow(Math.sin(PI * u), 0.6), { seed: 68 + k, color: PIG.bone, alpha: 0.6 * oa, dry: 0.75, nb: 2, prog: po(0.2 + k * 0.1, 0.8 + k * 0.1) });
+        for (let j = 3; j < P.length * po(0.2, 0.9); j += 3) jd.push([P[j][0] + (hash(k + 30, j) - 0.5) * a * 0.2, P[j][1] + (hash(k + 40, j) - 0.5) * a * 0.2, a * (0.02 + 0.05 * hash(k + 50, j) ** 2)]);
       });
       drops(jd, PIG.bone, 0.9 * oa);
     }
