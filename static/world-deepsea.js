@@ -334,12 +334,14 @@
       jaws.forEach((P, k) => beads(c, P, 190, a * 0.075, 0.8 * fa, T, { step: 2, freq: 0.3, speed: 1.6, ph: k * 3, m: pr(0.3, 0.8) }, mono));
       for (const o of [-1, 1]) for (let j = 0; j < 3; j++) for (let q = 0; q < 6; q++) light(175 + j * 25, F(o * (1.5 + q * 0.3 + j * 0.1), 1.2 + j * 0.33 + q * q * 0.018), a * (0.085 - j * 0.012), fa * (0.25 + 0.6 * Math.pow(0.5 + 0.5 * Math.sin(T * 1.7 - q * 0.9 + j * 2 + o), 2)) * (0.6 + 0.4 * rr()));
     }
-    const na = nose * pr(0.3, 1);                      // the nose: two fine rows of lights down its sides, a few under it, a glow on its tip
+    const na = nose * pr(0.3, 1);                      // the nose: two fine filaments with rows of lights down its sides, a few under it, a glow on its tip
     if (na > 0.004) {
       const hue = mode === 'angler' ? 200 : mode === 'anemone' ? 300 : 185;
-      S.filter(k => k.name === 'nose side').forEach((k, i) => beads(c, k.pts, hue, a * 0.06, 0.9 * na, T, { step: 3, freq: 0.5, speed: 1.4, ph: i * 2, m: pr(0.3, 0.9) }, mono));
-      beads(c, lip('nose base'), hue + 20, a * 0.04, 0.6 * na, T, { step: 4, freq: 0.5, speed: -1.2, ph: 1 }, mono);
-      light(hue, lip('nose tip')[0], a * 0.5, 0.32 * na);
+      const sides = S.filter(k => k.name === 'nose side').map(k => k.pts);
+      fils(c, sides.concat([lip('nose base')]), hue, a * 0.007, 0.5 * na, pr(0.3, 0.9), mono);
+      sides.forEach((P, i) => beads(c, P, hue, a * 0.07, na, T, { step: 2, freq: 0.5, speed: 1.4, ph: i * 2, m: pr(0.3, 0.9) }, mono));
+      beads(c, lip('nose base'), hue + 20, a * 0.05, 0.75 * na, T, { step: 3, freq: 0.5, speed: -1.2, ph: 1 }, mono);
+      light(hue, lip('nose tip')[0], a * 0.55, 0.4 * na);
     }
     const ma = mouth * pr(0.4, 1);                     // the mouth: closed, a soft membrane with a faint light behind it
     if (ma > 0.004) {
