@@ -20,6 +20,7 @@
 <script src="/static/common.js" data-hide-key></script><!-- #175: the key stays in the cookie, not in the address bar; and what the pages share -->
 <script src="/static/i18n.js"></script>
 <script src="/static/dreamlife.js"></script>
+<script src="/static/dreamvis.js"></script>
 <script src="/static/dreameye.js"></script>
 <script src="/static/dreamface.js"></script>
 </head>
@@ -71,6 +72,11 @@
       u: [r(), r(), r(), r()], spin: (r() < 0.5 ? -1 : 1) * (0.5 + r()), puffs: Array.from({ length: 7 }, () => [r() - 0.5, r() - 0.5, 0.35 + r() * 0.45]),
       wob: r() * 6.28 });
   }
+  // #220: how much of a drawn face shows (static/dreamvis.js) – of the large eye: its brow only with the hints; by
+  // Dream's clock and the motif's seed, so the two eyes of a pair raise their brows together. `?face=0|1|2` holds a
+  // level, to look at it. A face painted by the AI stays whole.
+  const faceHold = DreamVis.asked(location.search);
+  const visOf = seed => faceHold >= 0 ? DreamVis.held(faceHold) : DreamVis.at(now(), seed);
   const FACE_URL = /^\/eyes\/mask\/[0-9a-f]{12}\.jpg$/;
   function show(m, t) {                                // Dream says what this window shows: the old motif dissolves, then this one forms
     if (!m || !MOTIFS.has(m.kind)) return;
@@ -281,15 +287,14 @@
     e.iris = IRIS[hash(s, w + 41000) * 4 | 0]; e.irisPrev = IRIS[hash(s, w + 40999) * 4 | 0]; e.irisMix = Math.min(1, (clk - w * 28000) / 2500);
     const h = Math.floor(clk / 47000), hp = (clk - h * 47000) / 5000;   // #218: rarely (one slot in ten) the pupil hypnotises for a moment
     e.hyp = DreamEye.hypnoAt(h, s); e.hypMix = hash(s, h + 61000) < 0.1 && hp < 1 ? clamp(Math.min(hp, 1 - hp) * 9, 0, 1) : 0; e.clk = clk;
-    const f = Math.floor(clk / 19000), feels = hash(s, f + 51000) < 0.5 && clk - f * 19000 < 3600;   // a feeling: the brow comes
-    const want = feels ? FEEL[hash(s, f + 52000) * FEEL.length | 0][m.mirror ? 1 : 0] : null;
-    e.browAl = lerp(e.browAl, feels ? 1 : 0, 1 - Math.exp(-dt * (feels ? 7 : 2.5)));
-    for (const key in e.brow) e.brow[key] = lerp(e.brow[key], want ? want[key] : 0, 1 - Math.exp(-dt * 8));
+    const v = visOf(s), want = FEEL[hash(s, v.round + 52000) * FEEL.length | 0][m.mirror ? 1 : 0];   // #220: the brow comes with the hints, each time with a feeling
+    e.browAl = DreamVis.of(v, 'brows');
+    for (const key in e.brow) e.brow[key] = lerp(e.brow[key], v.level ? want[key] : 0, 1 - Math.exp(-dt * 8));
     return e;
   }
   function eyeDraw(c, m, e, cx, cy, a, look) {
     const o = { rot: e.rot, hue: hueOf(dream.col), stars: irisStars, pic: (x, y, n, al) => { c.globalAlpha = al; c.drawImage(pic, x - n / 2, y - n / 2, n, n); } };
-    DreamEye.draw(c, cx, cy, a, a * 0.56, m.mirror, { open: e.open, blink: e.blink, grin: 0, squint: 0, col: dream.col, energy: 0.3 + 0.5 * st.pulse,
+    DreamEye.draw(c, cx, cy, a, a * 0.56, m.mirror, { open: e.open, blink: e.blink, squint: 0, col: dream.col, energy: 0.3 + 0.5 * st.pulse,
       look, brow: e.brow, browAl: e.browAl, fib, gx: e.gx, gy: e.gy, pupil: e.pupil, pupilMix: e.hypMix,
       pupilShape: (ix, iy, pr, R) => DreamEye.pupilShape(c, e.hyp, ix, iy, pr, R, m.mirror, { hue: o.hue, beat: st.pulse, now: e.clk }),
       iris: (ix, iy, R) => {

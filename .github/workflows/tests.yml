@@ -56,6 +56,8 @@ jobs:
         run: node --test tests/js/fire.test.mjs
       - name: Hypnotic pupils take turns
         run: node --test tests/js/eye.test.mjs
+      - name: How much of a face shows (mostly only the eyes, never a nose)
+        run: node --test tests/js/vis.test.mjs
       - name: Picture chain (WebGL 2 against Canvas 2D)
         run: node --test tests/js/gl-stage.test.mjs
       - name: You in the dream (the face stays the camera's picture; in the runner's Chrome)
