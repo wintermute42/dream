@@ -32,7 +32,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   `world` (`settings.WORLDS`) names the world; Dream tells it to the eyes and the windows, which never set it. They draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
-  asked over `/facemarks` – and moved by each window itself; a window never runs a model). How much of a face shows
+  asked over `/facemarks` – and moved by each window itself, and by Dreamy Eyes for the face that opens out of their pupils (#230:
+  `windows.lookers` get the points, `DreamFace.life` is what a face does next); neither ever runs a model for it). How much of a face shows
   is one rule for both pages (#220): `static/dreamvis.js` – mostly only the eyes, hints (brows, the sign on the
   forehead) every minute or two, mouth and outline rarely and only as a breath, a nose never; whatever is drawn of a
   face – a line of light, the eye's brow – asks it (`DreamVis.of(vis, part)`), and a part it does not know is not
