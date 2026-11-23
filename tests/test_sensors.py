@@ -176,3 +176,63 @@ def test_an_angle_does_not_jump_at_a_full_turn():
         s.on_osc("/device/orientation", [a, 0.0, 0.0], now=1 + i * 0.03)
     c = s.ch["/device/orientation:0"]
     assert c.hi - c.lo < 20, (c.lo, c.hi)               # 350° … 366°, not 2° … 359°
+
+
+def resting(s, seconds, start=0.0, seed=7):
+    """A phone lying on the table: every reading carries the sensor's own noise (as a phone reports it)."""
+    import random
+    rnd = random.Random(seed)
+    for i in range(int(seconds * 30)):
+        t = start + i / 30
+        s.on_osc("/device/accelerometer", [rnd.gauss(0, 0.08), rnd.gauss(0, 0.08), 9.81 + rnd.gauss(0, 0.08)], now=t)
+        s.on_osc("/device/linear_acceleration", [rnd.gauss(0, 0.08), rnd.gauss(0, 0.08), rnd.gauss(0, 0.08)], now=t)
+        s.on_osc("/device/gyroscope", [rnd.gauss(0, 0.5), rnd.gauss(0, 0.5), rnd.gauss(0, 0.5)], now=t)
+        s.on_osc("/device/orientation", [10 + rnd.gauss(0, 0.2), rnd.gauss(0, 0.2), rnd.gauss(0, 0.2)], now=t)
+        yield t
+
+
+def test_a_resting_phone_leaves_an_earlier_mapping_still(sandbox):
+    """The mapping an earlier version learned (acceleration without gravity, no range): on the table the auto-range
+    shrank onto the noise and master went up and down as if it heard music."""
+    for seed in range(8):
+        s = sensors.Sensors()
+        s.mapping = {"/device/linear_acceleration:0": {"target": "master", "invert": False}}
+        seen = [s.values(midi.TARGETS)["master"] for t in resting(s, 40, seed=seed) if t > 20]
+        assert max(seen) - min(seen) < 0.05, (seed, min(seen), max(seen))
+
+
+def test_a_small_learning_movement_does_not_make_noise_steer(sandbox):
+    """Learned from a tiny tilt: the range is widened to the channel's floor, the phone at rest keeps master still."""
+    s = sensors.Sensors()
+    list(resting(s, 2))
+    s.start_learning("master", now=2.0)
+    for i in range(90):                                  # a tilt of barely 3 degrees
+        phone(s, 2.0 + i / 30, 3.0 * (i / 90))
+    key = [e for e in s.events if e[0] == "learned"][-1][1]
+    assert key and s.mapping[key]["hi"] - s.mapping[key]["lo"] >= sensors.min_span(key) * 0.99
+    seen = [s.values(midi.TARGETS)["master"] for t in resting(s, 30, start=6.0) if t > 16]
+    assert max(seen) - min(seen) < 0.05, (min(seen), max(seen))
+
+
+def test_a_resting_phone_strikes_nothing_even_at_full_sensitivity(sandbox):
+    """A phone on a table that hums a little (σ 0.6 m/s²), strike sensitivity at its top: no flash pumping."""
+    import random
+    rnd = random.Random(3)
+    s = sensors.Sensors()
+    s.sensitivity = 3.0
+    for i in range(30 * 60):
+        t = i / 30
+        n = [rnd.gauss(0, 0.6) for _ in range(3)]
+        s.on_osc("/device/accelerometer", [n[0], n[1], 9.81 + n[2]], now=t)
+        s.on_osc("/device/linear_acceleration", n, now=t)
+    assert not [e for e in s.events if e[0] == "impulse"] and s.strikes == 0
+
+
+def test_strikes_are_counted_once_per_message_from_dream_control():
+    """Dream Control sends the acceleration with and without gravity: one strike is one, not two."""
+    s = sensors.Sensors()
+    for i in range(30):
+        phone(s, i / 30, 0.0)
+    phone(s, 1.0, 0.0, strike=25.0)
+    phone(s, 1.5, 0.0, strike=25.0)
+    assert s.strikes == 2 and s.live()["strikes"] == 2

@@ -588,14 +588,15 @@
   <details class="sec" data-sec="control">
     <summary>Control (MIDI, sensors, master)</summary>
   <div class="row">
-    <label>MIDI controller <span class="val" id="v-master"></span></label>
+    <label>MIDI controller</label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
       <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
-    <input type="range" id="master" min="0" max="1" step="0.01" value="1" aria-label="Master brightness" style="margin-top:4px">
+    <label for="master" style="margin-top:6px">Master brightness <span class="val" id="v-master">100 %</span></label>
+    <input type="range" id="master" min="0" max="1" step="0.01" value="1">
   </div>
 
   <div class="row">
@@ -1931,7 +1932,7 @@
         if (k === 'flow_color' || k === 'flow_short') lightSync();
         if (k === 'style_ref' || k === 'model') lookSync();
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
-        if (k === 'master') { look.master = +v; $('v-master').textContent = 'Master ' + Math.round(v * 100) + ' %'; }
+        if (k === 'master') { look.master = +v; $('v-master').textContent = Math.round(v * 100) + ' %'; }
       }
       show();
     } finally { applying = false; }
@@ -2717,7 +2718,7 @@
       row.append(t, x); box.append(row);
     }
   }
-  $('master').addEventListener('input', () => { look.master = +$('master').value; $('v-master').textContent = 'Master ' + Math.round($('master').value * 100) + ' %'; });
+  $('master').addEventListener('input', () => { look.master = +$('master').value; $('v-master').textContent = Math.round($('master').value * 100) + ' %'; });
   $('midilearn').onclick = () => {
     sendCtl({ midi_learn: $('miditarget').value }); $('midilearn').classList.add('rec');
     status(T('MIDI: now turn or press on the controller …'));
@@ -2726,7 +2727,8 @@
   const SENS_NAMES = Object.fromEntries([...$('senstarget').options].map(o => [o.value, o.textContent]));
   function showSensors(m) {
     if ('rate' in m) {
-      sensLive = !!m.rate; $('sensstate').textContent = m.rate ? T('{n} values/s from {s}', { n: m.rate, s: m.source }) + (m.swing != null ? T(' · swing {p} %', { p: Math.round(m.swing * 100) }) : '') : T('no sensor data (OSC port 7020)');
+      sensLive = !!m.rate; $('sensstate').textContent = m.rate ? T('{n} values/s from {s}', { n: m.rate, s: m.source }) + (m.swing != null ? T(' · swing {p} %', { p: Math.round(m.swing * 100) }) : '')
+        + (m.strikes ? T(' · strikes {n}', { n: m.strikes }) : '') : T('no sensor data (OSC port 7020)');   // #240: what set off a flash
       const bars = $('sensbars'); bars.textContent = '';
       for (const [k, v] of Object.entries(m.channels || {})) {
         const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:6px;align-items:center';

@@ -320,8 +320,9 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   Bildern 100 %, Musik- und Bewegungs-Reaktion 1×, Direktheit, Umriss- und Pose-Stärke, Effekt-Stärke –, die Effekte
   blenden aus, und der Autopilot geht aus. Auch der **Stil** geht – kein Stil-Modell, kein Stil-Referenzbild, beide
   Stärken auf Standard –, und zwar in einem Schritt am Anfang statt gleitend, damit das Modell nur einmal umgebaut
-  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. **Es bleiben:** Prompt, Modell, Qualität,
-  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud, Master-Helligkeit,
+  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. Die **Master-Helligkeit** steht sofort wieder auf
+  100 % (eine gedimmte oder schwarze Bühne leuchtet wieder). **Es bleiben:** Prompt, Modell, Qualität,
+  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud,
   die Schlüssel und alle anderen Schalter (Berührungs-Optionen, im Takt pulsieren, Wechsel einrasten, Umrisse und Pose
   an oder aus …). 10 Sekunden lang steht auf dem Knopf **„Zurückgesetzt · ↶ Rückgängig“** (darunter läuft ein Balken
   ab): ein Tipp, und alles gleitet genau auf die Werte von vorher zurück (Stil und Muster kommen ebenfalls in einem
@@ -1219,14 +1220,18 @@ es steuern soll (z. B. Arm hoch/runter oder das Handy neigen). Dream nimmt den M
 bewegt als im Moment davor – ein Gerät, das kurz vorher geschwungen oder gedreht wurde, lernt genauso. Ein gleichmäßiges
 Drehen oder Neigen (Ausrichtung) gewinnt vor einem Schütteln, ein Winkel vor dem Beschleunigungssensor, den jeder Schlag
 durchrüttelt; Drehrate und Beschleunigung ohne Schwerkraft nimmt Dream nur, wenn sich sonst nichts bewegt hat, denn sie
-springen um null. Die gezeigte Bewegung ist der ganze Bereich des Reglers, so bleibt der Regler eines abgelegten Geräts
-stehen. Ein Ziel neu lernen ersetzt seinen Messwert (ein Messwert je Ziel). ⇅ kehrt die Richtung um, ✕ löscht.
+springen um null. Die gezeigte Bewegung ist der ganze Bereich des Reglers (mindestens etwa 10° Neigung, damit bei einer
+winzigen Lernbewegung nicht das Rauschen des Sensors steuert), und eine kleine tote Zone hält den Regler still, solange
+das Gerät ruht – auf den Tisch gelegt, bleibt er stehen. Ein Ziel neu lernen ersetzt seinen Messwert (ein Messwert je Ziel). ⇅ kehrt die Richtung um, ✕ löscht.
 Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository); mit einer früheren Version gelernte Zuordnungen
-behalten den alten, selbst angepassten Bereich – zittert der Regler, neu lernen.
+behalten den alten, selbst angepassten Bereich (jetzt nie enger als das Rauschen des Sensors) – für das ruhigste
+Ergebnis neu lernen.
 
 **Schlag (Peitschenschlag):** Eine kräftige, ruckartige Bewegung ist ein Impuls (höchstens alle 0,25 s). Unter
 „Schlag →“ festlegen, was er auslöst: Blitz, Dreh-Ruck, neues Motiv, nächste Szene oder Blackout;
-„Schlag-Empfindlichkeit“ regelt, wie kräftig er sein muss. **Schwung** (wie schnell sich das Handgelenk dreht)
+„Schlag-Empfindlichkeit“ regelt, wie kräftig er sein muss – auch ganz oben muss ein Schlag deutlich über dem eigenen
+Zittern des Geräts liegen, ein Handy auf dem Tisch löst also nichts aus. Das Bedienfeld zählt die Schläge neben den
+Werten/s („· Schläge 3“): blitzt die Bühne ohne Schlag, zeigt die Zahl, ob es vom Sensor kam. **Schwung** (wie schnell sich das Handgelenk dreht)
 steht im Bedienfeld. Die Werte laufen über dasselbe weiche Gleiten wie beim MIDI-Controller.
 
 Ideen: Armhöhe → Zoom-Sog oder Master-Helligkeit, Handgelenk drehen (Rollen) → Drehung, Kippen → Farbdrift,

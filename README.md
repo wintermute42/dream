@@ -309,8 +309,9 @@ together with the GPU, which makes the run itself a little slower than usual. On
   100 %, music and movement reaction 1×, directness, outline and pose strength, effect strength –, the effects fade
   out and the autopilot goes off. The **style** goes too – no style model, no style reference picture, both strengths
   at their defaults – in one step at the start, not gliding, so the model is rebuilt only once; and the music
-  **pattern** goes back to “Automatic”. **What stays:** prompt, model, quality, resolution, format, input and cameras,
-  MIDI and sensor assignments, playlist, outputs, cloud, master brightness, the keys, and every other switch (touch
+  **pattern** goes back to “Automatic”. The **master brightness** is back at 100 % at once (a dimmed or blacked-out
+  stage is lit again). **What stays:** prompt, model, quality, resolution, format, input and cameras,
+  MIDI and sensor assignments, playlist, outputs, cloud, the keys, and every other switch (touch
   options, pulse on the beat, snap to the beat, outlines and pose on or off …). For 10 seconds the button reads
   **“Reset · ↶ Undo”** (a bar runs out underneath): one tap and everything glides back to exactly what it was (style
   and pattern come back in one step as well). No question is asked. A slider you move yourself during the glide is
@@ -1161,13 +1162,18 @@ devices in the home network. Without an extra app: the Dream Control device itse
 before – a device that was swung or turned a while earlier learns just as well. A steady turn or tilt (orientation)
 wins over a shake, and an angle over the accelerometer, which every strike shakes; rotation rate and acceleration
 without gravity are only taken when nothing else moved, as they jump around zero. The movement you showed is the
-whole range of the slider, so a device put down keeps its slider where it is. Learning a target again replaces its
+whole range of the slider (at least about 10° of tilt, so a tiny learning movement does not let the sensor's noise
+steer), and a small dead zone keeps the slider still while the device rests – put down on the table, it stays where it
+is. Learning a target again replaces its
 reading (one reading per target). ⇅ reverses the direction, ✕ deletes. Saved in `~/.config/dream/sensors.json` (not
-in the repository); assignments learned with an earlier version keep the old self-adapting range – learn them again if
-the slider jitters.
+in the repository); assignments learned with an earlier version keep the old self-adapting range (now never narrower
+than the sensor's noise) – learn them again for the steadiest result.
 
 **Hit (whip):** a strong, jerky movement is an impulse (at most every 0.25 s). Under “Hit →” set what it triggers:
-flash, spin jolt, new motif, next scene or blackout; “Hit sensitivity” sets how strong it must be. **Swing** (how
+flash, spin jolt, new motif, next scene or blackout; “Hit sensitivity” sets how strong it must be – even at the top a
+hit has to stand clearly above the device's own trembling, so a phone on the table sets off nothing. The panel counts
+the hits beside the values/s (“· strikes 3”): if the stage flashes without a hit, that number shows whether it came
+from the sensor. **Swing** (how
 fast the wrist turns) shows in the panel. The values run through the same soft gliding as with the MIDI controller.
 
 Ideas: arm height → zoom pull or master brightness, turning the wrist (roll) → rotation, tilting → colour drift,
