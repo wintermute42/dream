@@ -54,16 +54,16 @@ const watch = { parts: new Set(), life: [], pupils: [], letters: 0 };
         r.ms = Date.now() - t0;
         // the faces of light: a face in the middle of a screen, each of its ways, at each level of the rule – as the page
         // draws it (once without ink: where the dream shines through; once as its own glow)
-        const W = 960, H = 900, geo = { cx: W / 2, ey: H * 0.42, A: 90, half: 110, h: H, q: 1 }, F = DreamBrush.faceFrame(geo.cx, geo.ey, geo.half, geo.h);
-        const [nx0, ny0] = F(-0.7, 0.2), [nx1, ny1] = F(0.7, 2.6);   // where a nose would be: between the eyes and the mouth
+        const W = 960, H = 900, geo = { cx: W / 2, ey: H * 0.42, A: 90, half: 110, q: 1 }, F = DreamBrush.faceFrame(geo.cx, geo.ey, geo.half);
+        const [nx0, ny0] = F(-0.7, 0.45), [nx1, ny1] = F(0.7, 1.75);   // where the nose is: between the eyes and the mouth
         const faceAt = (mode, vis, t) => { const c = canvas(W, H), g = c.getContext('2d');
           DreamStyle.face().draw(g, mode, t, geo, vis); g.globalCompositeOperation = 'lighter'; DreamStyle.face().draw(g, mode, t, geo, vis, 'hsla(200,80%,70%,', 0.22); return c; };
         const inBox = c => { const d = c.getContext('2d').getImageData(nx0, ny0, nx1 - nx0, ny1 - ny0).data; let m = 0; for (let i = 3; i < d.length; i += 4) m = Math.max(m, d[i]); return m; };
         r.faces = {};
         for (const mode of r.modes) {
-          const f = r.faces[mode] = { nose: 0 };
+          const f = r.faces[mode] = { nose: 0, noseRare: 255 };   // the nose: the most of it with the hints alone, the least in the rare moment
           f.eyesOnly = lit(faceAt(mode, DreamVis.EYES_ONLY, S.T0)) + lit(faceAt(mode, DreamVis.held(0), S.T0));
-          for (const t of [S.T0, 3000, 91234]) for (const level of [1, 2]) f.nose = Math.max(f.nose, inBox(faceAt(mode, DreamVis.held(level), t)));
+          for (const t of [S.T0, 3000, 91234]) { f.nose = Math.max(f.nose, inBox(faceAt(mode, DreamVis.held(1), t))); f.noseRare = Math.min(f.noseRare, inBox(faceAt(mode, DreamVis.held(2), t))); }
           const hints = faceAt(mode, DreamVis.held(1), S.T0), rare = faceAt(mode, DreamVis.held(2), S.T0);
           f.hints = lit(hints); f.rare = lit(rare);
           if (mode === r.modes[0]) { hints.title = `${world}: ${mode}, hints`; rare.title = `${world}: ${mode}, rare`; document.body.append(hints, rare); }
