@@ -36,7 +36,7 @@ command line for now, #231) via `dream-cloud`.
   asked over `/facemarks` – and moved by each window itself, and by Dreamy Eyes for the face that opens out of their pupils (#230:
   `windows.lookers` get the points, `DreamFace.life` is what a face does next); neither ever runs a model for it). How much of a face shows
   is one rule for both pages (#220): `static/dreamvis.js` – mostly only the eyes, hints (brows, the sign on the
-  forehead) every minute or two, mouth and outline rarely and only as a breath, a nose never; whatever is drawn of a
+  forehead) every minute or two, mouth, nose and outline rarely and clearly then; a drawn face has one size, the eyes' – never fitted to the screen, what has no room runs off its edge; whatever is drawn of a
   face – a line of light, the eye's brow – asks it (`DreamVis.of(vis, part)`), and a part it does not know is not
   drawn (`tests/js/vis.test.mjs`); the faces painted by the AI and "you in the dream" are pictures and stay whole. `static/dreamyou.js` draws "you in the dream" for
   Dreamy Eyes (#219, #229): the person from the camera, cut out on the phone and drawn as in a dream with plain canvas
