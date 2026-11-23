@@ -279,8 +279,8 @@
     e.rot = (clk % 1e8) / 14000;
     const w = Math.floor(clk / 28000);                 // the iris is a world of its own that changes now and then
     e.iris = IRIS[hash(s, w + 41000) * 4 | 0]; e.irisPrev = IRIS[hash(s, w + 40999) * 4 | 0]; e.irisMix = Math.min(1, (clk - w * 28000) / 2500);
-    const h = Math.floor(clk / 47000), hp = (clk - h * 47000) / 7000;   // #218: now and then the pupil hypnotises – a shape in its turn
-    e.hyp = DreamEye.hypnoAt(h, s); e.hypMix = hash(s, h + 61000) < 0.4 && hp < 1 ? clamp(Math.min(hp, 1 - hp) * 9, 0, 1) : 0; e.clk = clk;
+    const h = Math.floor(clk / 47000), hp = (clk - h * 47000) / 5000;   // #218: rarely (one slot in ten) the pupil hypnotises for a moment
+    e.hyp = DreamEye.hypnoAt(h, s); e.hypMix = hash(s, h + 61000) < 0.1 && hp < 1 ? clamp(Math.min(hp, 1 - hp) * 9, 0, 1) : 0; e.clk = clk;
     const f = Math.floor(clk / 19000), feels = hash(s, f + 51000) < 0.5 && clk - f * 19000 < 3600;   // a feeling: the brow comes
     const want = feels ? FEEL[hash(s, f + 52000) * FEEL.length | 0][m.mirror ? 1 : 0] : null;
     e.browAl = lerp(e.browAl, feels ? 1 : 0, 1 - Math.exp(-dt * (feels ? 7 : 2.5)));

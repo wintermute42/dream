@@ -15,7 +15,8 @@ const flameRgb = q => [255 * ramp(q, 0.1, 0.45), 235 * ramp(q, 0.3, 0.9), 180 * 
 // A scene is a list of things; each thing is (x, y, i) -> [r, g, b, alpha] or null, in sample pixels (x right, y down),
 // i the picture's number. The picture is drawn three times finer and averaged, as a camera's lens and a browser's
 // scaling do, plus sensor noise.
-export function scene({ back = [12, 12, 18], noise = 3, seed = 1, things = [], face = null }) {
+// gain(i): the camera's exposure, a factor on the whole picture
+export function scene({ back = [12, 12, 18], noise = 3, seed = 1, things = [], face = null, gain = null }) {
   const prep = things.map(t => t.prep ? t : { prep: () => {}, at: t });
   return {
     face: i => face ? face(i) : null,
@@ -30,7 +31,7 @@ export function scene({ back = [12, 12, 18], noise = 3, seed = 1, things = [], f
           for (const t of prep) { const q = t.at(px, py, i); if (q) { const a = q[3]; c = [c[0] + (q[0] - c[0]) * a, c[1] + (q[1] - c[1]) * a, c[2] + (q[2] - c[2]) * a]; } }
           r += c[0]; g += c[1]; b += c[2];
         }
-        const o = (y * w + x) * 4, k = 1 / (S * S), nz = () => (rnd() + rnd() + rnd() - 1.5) * 2 * noise;
+        const o = (y * w + x) * 4, k = (gain ? gain(i) : 1) / (S * S), nz = () => (rnd() + rnd() + rnd() - 1.5) * 2 * noise;
         d[o] = r * k + nz(); d[o + 1] = g * k + nz(); d[o + 2] = b * k + nz(); d[o + 3] = 255;
       }
       return d;
@@ -85,6 +86,21 @@ export function blob({ cx = 48, cy = 36, rx = 8, ry = rx, rgb = [255, 160, 50], 
 }
 
 const TAU = Math.PI * 2, sec = i => i / FPS;
+// a thing whose brightness changes: lit(x, y, i) -> factor (a dimmer, an LED's beat with the camera's shutter)
+const glowing = (thing, lit) => { let n = 0; return { prep(i) { thing.prep(i); n = i; }, at(x, y) { const q = thing.at(x, y); if (!q) return null; const k = lit(x, y, n); return [Math.min(255, q[0] * k), Math.min(255, q[1] * k), Math.min(255, q[2] * k), q[3]]; } }; };
+// a screen showing something warm that moves: a sunset panning, two bright things drifting, a cut every 2.5 s
+function screen({ x0 = 28, y0 = 20, w = 44, h = 26, seed = 3 }) {
+  let n = 0, cut = 0, bright = 1; const r = rng(seed), looks = Array.from({ length: 40 }, () => [0.75 + 0.3 * r(), r(), r()]);
+  return { prep(i) { n = i; cut = Math.floor(sec(i) / 2.5) % 40; bright = looks[cut][0]; },
+    at(x, y) {
+      if (x < x0 || x > x0 + w || y < y0 || y > y0 + h) return null;
+      const t = sec(n), u = (x - x0) / w, v = (y - y0) / h, [, a, b] = looks[cut];
+      const sun = Math.exp(-(((u - (0.2 + 0.6 * a + 0.05 * t) % 1) / 0.18) ** 2) - ((v - 0.3 - 0.3 * b) / 0.3) ** 2);
+      const drift = Math.exp(-(((u - (0.7 * b + 0.08 * t) % 1) / 0.12) ** 2) - ((v - 0.7) / 0.2) ** 2);
+      const k = bright * (0.75 + 0.2 * Math.sin(u * 5 + t * 0.6));
+      return [Math.min(255, (225 + 30 * sun) * k), Math.min(255, (120 + 110 * sun + 60 * drift) * k), Math.min(255, (45 + 60 * sun) * k), 1];
+    } };
+}
 // skin in warm, bright light, from pale to dark – as a camera may well show it
 export const SKIN = { pale: [255, 224, 189], light: [241, 194, 125], tan: [224, 172, 105], brown: [198, 134, 66], dark: [141, 85, 36], rosy: [234, 160, 130] };
 const LAMP = [255, 165, 55], ROOM = [58, 52, 48];
@@ -99,11 +115,26 @@ export const SCENES = {
   'three candles': { fire: true, make: () => scene({ seed: 14, things: [20, 48, 76].map((x, k) => flame({ cx: x, cy: 46, wd: 3, ht: 7, lively: 0.8, seed: 20 + k })) }) },
   // a small flame far away, swung in a circle (poi): about two sample pixels wide
   poi: { fire: true, moving: true, make: () => scene({ seed: 15, things: [flame({ wd: 2.6, ht: 5, seed: 7, path: i => [48 + 24 * Math.cos(TAU * 0.9 * sec(i)), 38 + 20 * Math.sin(TAU * 0.9 * sec(i))] })] }) },
-  'distant flame': { fire: true, at: [0.2, 0.3], make: () => scene({ seed: 16, things: [flame({ cx: 19, cy: 23, wd: 2.2, ht: 4.5, lively: 0.8, seed: 8 })] }) },
+  'distant flame': { fire: null, at: [0.2, 0.3], make: () => scene({ seed: 16, things: [flame({ cx: 19, cy: 23, wd: 2.2, ht: 4.5, lively: 0.8, seed: 8 })] }) },
   'flame in a lit room': { fire: true, at: [0.6, 0.51], make: () => scene({ seed: 17, back: ROOM, noise: 2, things: [flame({ cx: 58, cy: 40, wd: 8, ht: 16, seed: 9 })] }) },
   'flame beside a face': { fire: true, at: [0.78, 0.57], face: () => ({ x: 0.33, y: 0.45, w: 0.27, h: 0.5 }),
     make() { return scene({ seed: 18, back: ROOM, things: [blob({ cx: 32, cy: 32, rx: 12, ry: 17, rgb: SKIN.tan, shade: 0.25, path: i => [32 + 3 * Math.sin(TAU * 0.3 * sec(i)), 32] }), flame({ cx: 75, cy: 44, wd: 7, ht: 15, seed: 10 })], face: this.face }); } },
+  'candle close by': { fire: true, at: [0.4, 0.57], make: () => scene({ seed: 19, back: [30, 26, 24], things: [flame({ cx: 38, cy: 50, wd: 6, ht: 15, lively: 0.6, seed: 13 })] }) },
+  lighter: { fire: true, at: [0.55, 0.5], make: () => scene({ seed: 20, back: ROOM, things: [flame({ cx: 53, cy: 40, wd: 3.6, ht: 9, lively: 0.9, seed: 14 })] }) },
   // ---- no fire ----
+  // what a real room showed (#218, the owner's test): warm light everywhere, a camera that hunts for its exposure
+  'dim warm room, noisy camera': { fire: false, make: () => scene({ seed: 70, back: [150, 112, 74], noise: 7, things: [blob({ cx: 66, cy: 24, rx: 16, ry: 12, rgb: [236, 184, 112], edge: 9 }), blob({ cx: 20, cy: 50, rx: 12, ry: 16, rgb: [205, 150, 96], edge: 6 })] }) },
+  'warm wall in dim light': { fire: false, make: () => { const wall = { prep() {}, at: (x, y) => [150 + 0.95 * x, 100 + 0.6 * x, 52 + 0.3 * x + 0.1 * y, 1] }; return scene({ seed: 71, noise: 7, things: [wall] }); } },
+  'warm wall, lamp-lit spot': { fire: false, make: () => scene({ seed: 72, back: [170, 118, 70], noise: 6, things: [blob({ cx: 40, cy: 30, rx: 22, ry: 18, rgb: [255, 196, 96], edge: 16 })] }) },
+  'exposure pumping': { fire: false, make: () => scene({ seed: 73, back: [140, 104, 70], noise: 4, gain: i => 1 + 0.16 * Math.sin(TAU * 0.8 * sec(i)) + 0.05 * Math.sign(Math.sin(TAU * 2.3 * sec(i))),
+    things: [blob({ cx: 60, cy: 28, rx: 13, rgb: [250, 170, 70], edge: 6 }), blob({ cx: 22, cy: 50, rx: 7, rgb: [240, 150, 60], edge: 3 })] }) },
+  'exposure pumping, dark room with a lamp': { fire: false, make: () => scene({ seed: 74, noise: 5, gain: i => 1 + 0.2 * Math.sin(TAU * 1.1 * sec(i)), things: [blob({ cx: 60, cy: 26, rx: 9, rgb: [235, 150, 50], edge: 3 })] }) },
+  'warm LED, slow beat': { fire: false, make: () => scene({ seed: 75, things: [glowing(blob({ cx: 50, cy: 30, rx: 10, rgb: [235, 150, 50], edge: 4 }), (x, y, i) => 1 + 0.22 * Math.sin(TAU * 3.3 * sec(i)))] }) },
+  'warm LED, fast beat': { fire: false, make: () => scene({ seed: 76, things: [glowing(blob({ cx: 50, cy: 30, rx: 10, rgb: [235, 150, 50], edge: 4 }), (x, y, i) => 1 + 0.22 * Math.sin(TAU * 6.7 * sec(i)))] }) },
+  'warm LED, bands running through': { fire: false, make: () => scene({ seed: 77, things: [glowing(blob({ cx: 50, cy: 34, rx: 16, ry: 20, rgb: [235, 150, 50], edge: 5 }), (x, y, i) => 1 + 0.25 * Math.sin(TAU * (y / 14 - 2.7 * sec(i))))] }) },
+  'string of warm LEDs, beating': { fire: false, make: () => scene({ seed: 78, noise: 4, things: [10, 25, 40, 55, 70, 85].map((x, k) => glowing(blob({ cx: x, cy: 14 + (x % 20) / 4, rx: 2.2, rgb: [250, 160, 50], edge: 1 }), (xx, yy, i) => 1 + 0.25 * Math.sin(TAU * 4.1 * sec(i) + k))) }) },
+  'screen with warm moving pictures': { fire: false, make: () => scene({ seed: 79, back: [20, 18, 22], things: [screen({})] }) },
+  'screen in a lit room': { fire: false, make: () => scene({ seed: 80, back: ROOM, noise: 4, things: [screen({ x0: 8, y0: 30, w: 34, h: 22, seed: 9 })] }) },
   'orange lamp': { fire: false, make: () => scene({ seed: 31, things: [blob({ cx: 60, cy: 26, rx: 9, rgb: LAMP, edge: 3 })] }) },
   'large orange lamp': { fire: false, make: () => scene({ seed: 32, things: [blob({ cx: 40, cy: 34, rx: 24, ry: 20, rgb: LAMP, edge: 6 })] }) },
   'small lamp, noisy camera': { fire: false, make: () => scene({ seed: 33, noise: 4, things: [blob({ cx: 70, cy: 20, rx: 2.4, rgb: LAMP, edge: 1.2 })] }) },
