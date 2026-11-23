@@ -832,20 +832,23 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   oder gesenkte Brauen –, dann gehen sie wieder ihre eigenen Wege.
 - **Deine Silhouette als Maske:** Ab und zu, nur wenn jemand da ist, scheint der Traum durch die Umrisse der Person
   davor (Selfie-Segmentierung auf dem Handy, etwa 250 KB, nichts wird gesendet oder gespeichert).
-- **Dreamy liebt Feuer ❤️‍🔥 (#162, #218):** Sieht die Kamera Flammen, sind die Augen verzaubert. Was als Flamme zählt, ist
+- **Dreamy liebt Feuer ❤️‍🔥 (#162, #218, #233):** Sieht die Kamera Flammen, sind die Augen verzaubert. Was als Flamme zählt, ist
   streng, damit ein warmes Zimmer kein Feuer ist: sehr helles, sattes Orange bis Gelb (nah an der Regel von #162) mit
   einem Kern, so hell, wie die Kamera es zeigen kann, das **flackert wie eine Flamme** – Größe und Form ändern sich
-  beide ständig und unregelmäßig –, und das fast eine Sekunde lang (etwa 0,8 s), bevor die Augen es glauben. Erkannt auf
+  beide ständig und unregelmäßig, bei einer größeren Flamme auch ihr Umriss (höher, breiter, geneigt) –, und das fast
+  eine Sekunde lang (etwa 0,85 s), bevor die Augen es glauben. Erkannt auf
   dem Handy, etwa 15-mal pro Sekunde. Kein Feuer sind: eine ruhige orange Lampe, eine Lampe, während das Handy berührt
   oder getragen wird, eine Lampe, die gedimmt wird, warme Wände und ein schummriges warmes Zimmer in einer rauschenden
   Kamera, die Kamera, die ihre Belichtung sucht, warme LEDs, die mit dem Verschluss der Kamera pulsieren (sie werden
   gleichmäßig heller und dunkler und behalten ihre Form), ein Bildschirm mit warmen bewegten Bildern, ein Gesicht oder
-  eine Hand in warmem Licht. Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
+  eine Hand in warmem Licht, auch wenn sie sich bewegt oder winkt (ihr Licht geht gleichmäßig auf und ab), ein warmes
+  Licht, das mit der Musik pulsiert, und eine Lampe, die in einem Handy in der Hand leicht flackert (beide behalten ihren
+  Umriss). Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
   weg steht, oder eine Flamme, die gar nicht flackert, ist nicht mehr als eine Lampe.
   **Sehen, was die Augen im eigenen Raum für Feuer halten:** Dreamy Eyes mit `?debug` am Ende der Adresse öffnen (nach
   einem vorhandenen `?…`: `&debug`). Eine Ecke zeigt dann die Kamera-Probe in Grau, warmes Licht in Gelb (sein heller
   Kern weiß) und das, was als Feuer zählt, in Rot, daneben die Zahlen: wie sicher sie sind (Feuer ab 0,70), die Stärke
-  und für den lebhaftesten Fleck seine Größe, den Anteil seines Kerns und seine Sprünge (Feuer über 4).
+  und für den lebhaftesten Fleck seine Größe, den Anteil seines Kerns und seine Sprünge (Feuer über 4,1).
   - **Sie folgen dem Feuer sofort.** Der Blick geht dorthin, wo die Flamme im Bild ist (innerhalb von etwa einer
     Zehntelsekunde), und bleibt an ihr, wenn sie sich bewegt. Alles folgt stufenlos seiner **Stärke**: wie weit sie sich
     öffnen, wie hoch die Flammen am unteren Bildrand stehen (am höchsten auf der Seite der Flamme), wie viel Glut

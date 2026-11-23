@@ -151,6 +151,19 @@ export const SCENES = {
     blob({ rx: 6, ry: 8, rgb: SKIN.tan, shade: 0.2, edge: 2, path: i => [76 + 8 * Math.sin(TAU * 0.8 * sec(i)), 52 + 6 * Math.cos(TAU * 0.6 * sec(i))] })] }) },
   'face found by the phone': { fire: false, face: i => ({ x: (48 + 12 * Math.sin(TAU * 0.4 * sec(i))) / W, y: 0.5, w: 0.3, h: 0.55 }),
     make() { return scene({ seed: 62, back: ROOM, things: [blob({ rx: 15, ry: 20, rgb: SKIN.light, shade: 0.25, edge: 3, path: i => [48 + 12 * Math.sin(TAU * 0.4 * sec(i)), 36] })], face: this.face }); } },
+  // #233: what passed for fire now and then – skin in very warm light that moves (a face, a waving hand), an LED pulsing
+  // with music – and two more to keep it so: a lamp that flickers a little (a poor dimmer) in a phone held in the hand, an
+  // LED candle on the table
+  'warm lamp, slight flicker, phone in the hand': { fire: false, make: () => { const p = shake(42, 1.1), r = rng(43);
+    return scene({ seed: 81, things: [glowing(blob({ rx: 8, ry: 10, rgb: LAMP, edge: 3, path: i => [56 + p(i)[0], 30 + p(i)[1]] }), () => 0.82 + 0.26 * r())] }); } },
+  'LED candle flickering': { fire: false, make: () => { const p = shake(44, 0.5), r = rng(45); let n = -1, k = 1;
+    return scene({ seed: 82, back: [24, 20, 20], things: [glowing(blob({ rx: 2.6, ry: 4.2, rgb: [255, 170, 60], edge: 1.5, path: i => [40 + p(i)[0], 40 + p(i)[1]] }), (x, y, i) => { while (n < i) { n++; k = 0.3 * k + 0.7 * (0.75 + 0.3 * r()); } return k; })] }); } },
+  'skin in very warm light, moving': { fire: false, make: () => scene({ seed: 83, back: ROOM, noise: 4, things: [
+    blob({ rx: 14, ry: 19, rgb: [255, 178, 104], shade: 0.3, edge: 3, path: i => [46 + 10 * Math.sin(TAU * 0.5 * sec(i)), 36 + 3 * Math.sin(TAU * 1.3 * sec(i))], grow: i => 1 + 0.08 * Math.sin(TAU * 0.9 * sec(i)) }),
+    blob({ rx: 5, ry: 7, rgb: [255, 172, 98], shade: 0.2, edge: 2, path: i => [78 + 9 * Math.sin(TAU * 1.4 * sec(i)), 50 + 7 * Math.cos(TAU * 1.1 * sec(i))], grow: i => 1 + 0.25 * Math.sin(TAU * 1.7 * sec(i)) })] }) },
+  'LED pulsing with music': { fire: false, make: () => { const r = rng(46), beat = []; const p = shake(47, 0.6);
+    const at = i => { while (beat.length <= i) beat.push(r() < 0.35 ? 1 : 0); let k = 0; for (let j = Math.max(0, i - 4); j <= i; j++) k = Math.max(k, beat[j] * Math.pow(0.6, i - j)); return k; };
+    return scene({ seed: 84, things: [glowing(blob({ rx: 7, rgb: [240, 150, 50], edge: 3, path: i => [50 + p(i)[0], 32 + p(i)[1]], grow: i => 1 + 0.15 * at(i) }), (x, y, i) => 0.8 + 0.35 * at(i))] }); } },
   'nothing warm': { fire: false, make: () => scene({ seed: 63, back: [70, 80, 110], noise: 6, things: [blob({ rx: 14, rgb: [230, 235, 255], edge: 4 })] }) },
 };
 
