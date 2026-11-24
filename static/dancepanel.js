@@ -27,7 +27,8 @@
   const FROM = { pose: () => T('camera'), marker: () => T('marker'), light: () => T('light'), sensor: () => T('sensor'), hand: () => T('hand AI') };
   // a source's or a target's name as a person reads it; one nobody named yet (a taught gesture): as it is
   // the name a table has for a key, or null: only the table's own entries, whatever the key says
-  const named = (table, key) => { const f = has(table, key) ? table[key] : null; return typeof f === 'function' ? f() : null; };
+  const texts = new Map([SRC, DST, HAND, FROM].map(t => [t, new Map(Object.entries(t))]));
+  const named = (table, key) => { const f = texts.get(table).get(key); return f ? f() : null; };
   function label(name, fxNames = {}) {
     const own = named(SRC, name) || named(DST, name);
     if (own) return own;
