@@ -12,6 +12,8 @@
   'use strict';
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
   const CURVES = { lin: x => x, soft: x => Math.sqrt(x), hard: x => x * x, s: x => x * x * (3 - 2 * x) };
+  // a curve by its name – only one of the table above, whatever a row says
+  const curve = name => (Object.prototype.hasOwnProperty.call(CURVES, name) && typeof CURVES[name] === 'function' ? CURVES[name] : CURVES.lin);
   const AI = ['strength', 'mix', 'zoom', 'rot', 'hue'];
   const BIPOLAR = new Set(['fx.spin', 'ai.rot', 'ai.zoom']);     // targets that go both ways around their rest at 0
   const SLOW_MIN = 0.5;                                // seconds: an AI slider is never moved faster than the AI paints
@@ -27,7 +29,7 @@
     if (!(conf >= 0.25) || !Number.isFinite(value)) return 0;
     const [lo, hi] = row.in, [a, b] = row.out;
     const n = hi === lo ? (value >= hi ? 1 : 0) : clamp((value - lo) / (hi - lo), 0, 1);
-    return a + (b - a) * (CURVES[row.curve] || CURVES.lin)(n);
+    return a + (b - a) * curve(row.curve)(n);
   }
 
   function create() {
