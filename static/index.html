@@ -230,6 +230,10 @@
   #panel [style*="font-size:12px"], #panel [style*="font-size:11px"] { font-size: .82em !important; }
   .only { display: none; }
   .btns.compact { gap: 4px; } .btns.compact .btn { padding: 5px 7px; flex: 1 1 auto; }
+  /* #241: the master fader and its Blackout – pressed while the picture is black, as in Dream Control */
+  .masterrow #blackout { flex: 0 0 auto; font-weight: 600; }
+  .masterrow #blackout[aria-pressed="true"] { background: var(--accent); color: #140b1f; border-color: transparent; }
+  .labbtns { margin-top: 6px; }
   #prompt.resting { opacity: .7; filter: grayscale(1); }
   .patauto.pale { filter: grayscale(1); opacity: .74; }
   .srchint { font-size: .85em; color: var(--muted); margin-top: 6px; line-height: 1.3; height: 2.6em; overflow: hidden;
@@ -389,6 +393,11 @@
     </div>
     <label for="cam_device" style="margin-top:6px">Camera</label>
     <select id="cam_device" class="camsel"><option value="">Default camera</option><option value="device">📱 Live camera of a phone</option></select>
+    <!-- #241: a camera another device lends (Dream Control, Dreamy Eyes) can be ended here too -->
+    <div class="btns compact" id="feedother" hidden style="margin-top:4px;align-items:center">
+      <span id="feedothertext" role="status" style="flex:1;min-width:0;font-size:12px;color:var(--muted)"></span>
+      <button class="btn" id="feedend" title="Ends the live camera this device lends – the input goes back to the Mac">■ End</button>
+    </div>
   </div>
   <div class="row">
     <label>Own file · or made by the AI</label>
@@ -579,6 +588,12 @@
           <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
           <input type="checkbox" id="clutch" hidden aria-hidden="true">
           <select id="dance_set" aria-label="Movement set" title="A movement set: a named table of what your movements do. Choosing one makes it the table in use; tune and keep your own on the page."><option value="">Set: your table</option></select>
+          <!-- #241: while the lab is open on its page, "good"/"bad" and recording are at hand here too -->
+          <div class="btns compact labbtns" id="labbtns" role="group" aria-label="Dance lab" hidden>
+            <button type="button" class="btn" id="labgood" title="Keeps the last seconds as good (key G)">👍 Good</button>
+            <button type="button" class="btn" id="labbad" title="Keeps the last seconds as bad (key B)">👎 Bad</button>
+            <button type="button" class="btn" id="labrec" aria-pressed="false" title="Records a session of the dance (key R)">● Record</button>
+          </div>
           <select id="dance_kind" class="movekind" aria-label="What Dream Dance detects" title="What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice."><option value="hand">Dance: Hands (AI)</option><option value="marker">Dance: LED markers (2 colours)</option></select>
         </div>
       </div>
@@ -634,7 +649,7 @@
     </details>
   </details>
   <details class="sec" data-sec="control">
-    <summary>Control (MIDI, sensors, master)</summary>
+    <summary>Control (MIDI, sensors)</summary>
   <div class="row">
     <label>MIDI controller</label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
@@ -643,8 +658,6 @@
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
-    <label for="master" style="margin-top:6px">Master brightness <span class="val" id="v-master">100 %</span></label>
-    <input type="range" id="master" min="0" max="1" step="0.01" value="1">
   </div>
 
   <div class="row">
@@ -701,7 +714,15 @@
 
   </details>
   <details class="sec" data-sec="out">
-    <summary>Output (format, projector, Syphon)</summary>
+    <summary>Output (master brightness, format, projector, Syphon)</summary>
+  <!-- #241: the master fader of the show – it acts only on what the audience, the projector and Syphon see -->
+  <div class="row keep masterrow">
+    <label for="master">Master brightness <span class="val" id="v-master">100 %</span></label>
+    <div class="btns compact" style="align-items:center">
+      <input type="range" id="master" min="0" max="1" step="0.01" value="1" style="flex:1 1 60%;min-width:0">
+      <button class="btn" id="blackout" aria-pressed="false" title="Master to black and back to the brightness before (a MIDI button can do it too)">■ Blackout</button>
+    </div>
+  </div>
   <div class="row">
     <label>Format · resolution · seed</label>
     <div class="btns" style="margin-bottom:6px">
@@ -2067,7 +2088,7 @@
         if (k === 'dance_fb_secs') { danceFbSecs = +v; danceLab.secs(+v); }
         if (k === 'style_ref' || k === 'model') lookSync();
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
-        if (k === 'master') { look.master = +v; $('v-master').textContent = Math.round(v * 100) + ' %'; }
+        if (k === 'master') { look.master = +v; masterShow(); }
       }
       if (['move_mode', 'move_off', 'move_cam', 'flow_kind', 'dance_kind'].some(k => k in st)) { moveSync(); lightSync(); }   // #249: once, with all of them in place
       show();
@@ -2968,7 +2989,9 @@
       row.append(t, x); box.append(row);
     }
   }
-  $('master').addEventListener('input', () => { look.master = +$('master').value; $('v-master').textContent = Math.round($('master').value * 100) + ' %'; });
+  function masterShow() { $('v-master').textContent = Math.round($('master').value * 100) + ' %'; $('blackout').setAttribute('aria-pressed', String(+$('master').value <= 0.05)); }
+  $('master').addEventListener('input', () => { look.master = +$('master').value; masterShow(); });
+  $('blackout').onclick = () => sendCtl({ cmd: 'blackout' });   // #241: the server keeps the brightness before, like a MIDI button
   $('midilearn').onclick = () => {
     sendCtl({ midi_learn: $('miditarget').value }); $('midilearn').classList.add('rec');
     status(T('MIDI: now turn or press on the controller …'));
@@ -3300,9 +3323,19 @@
       detect: () => ({ kind: flowOn() ? tracker.kind : 'off', camera: flowOn() ? tracker.status.code : 'off', status: flowOn() ? tracker.status.text || FLOW_STATE[tracker.status.code] || '' : T('Movement off'),
         fingers: $('flow_fingers').checked, ready: tracker.fingersReady }),
       setFingers: on => { $('flow_fingers').checked = !!on; $('flow_fingers').dispatchEvent(new Event('change', { bubbles: true })); },
-      state: st => sendCtl({ dance_lab: st }),
+      state: st => { sendCtl({ dance_lab: st }); labBtnsSync(); },
       voice: on => (on ? startVoice(null, 'feedback') : stopVoice()) };
-  const labLink = { attach(api) { labApi = api; sendCtl({ dance_lab: labState() }); }, detach() { labApi = null; dancePlay = null; sendCtl({ dance_lab: labState() }); } };
+  const labLink = { attach(api) { labApi = api; sendCtl({ dance_lab: labState() }); labBtnsSync(); }, detach() { labApi = null; dancePlay = null; sendCtl({ dance_lab: labState() }); labBtnsSync(); } };
+  // #241: "good", "bad" and recording in the dance's part of the card – shown while the lab is open on its page
+  function labBtnsSync() {
+    const st = labState();
+    $('labbtns').hidden = !(st.open || st.rec);
+    $('labgood').disabled = $('labbad').disabled = st.play;
+    $('labrec').setAttribute('aria-pressed', String(st.rec)); $('labrec').textContent = st.rec ? T('■ Stop') : T('● Record');
+  }
+  $('labgood').onclick = () => danceLab.feedback('good', 'panel');
+  $('labbad').onclick = () => danceLab.feedback('bad', 'panel');
+  $('labrec').onclick = () => danceLab.record();
   window.DreamBridge = { dance: {
     lab: labOpts, ...labLink,
     // what the page shows beside the lab: the mode, the clutch (and how far the dance is in), the sets, the two clocks
@@ -3367,8 +3400,8 @@
     const k = e.key.toLowerCase();
     if (k === 'l') (moveMode() === 'flowtrack' ? openFlowPage : openDancePage)();
     else if (k === 'k' && moveMode() === 'dance') setClutch(!clutchOn());   // #251: the clutch
-    else if (danceLab.active && k === 'g') danceLab.feedback('good', 'key');
-    else if (danceLab.active && k === 'b') danceLab.feedback('bad', 'key');
+    else if (danceLab.active && k === 'g') danceLab.feedback('good', 'panel');
+    else if (danceLab.active && k === 'b') danceLab.feedback('bad', 'panel');
     else if (danceLab.open && k === 'r') danceLab.record();
   });
   const fxMine = () => $('fx').value.split('+').filter(e => FX_NAMES[e]);
@@ -3773,13 +3806,20 @@
   }
   // #216: "↺ Reset" – the server glides the picture's settings to their defaults and takes it back for a few seconds
   const resetMsg = DreamSliders.resetButton($('reset'), sendCtl, t => { status(t); notice = t; noticeUntil = performance.now() + 5000; chips(); });
+  // #241: a live camera another device lends – who it is, and "End", as in Dream Control
+  function feedShow() {
+    const cam = feedsNow.cam;
+    $('feedother').hidden = !cam;
+    if (cam) $('feedothertext').textContent = T('The live camera comes from: {by}', { by: cam.by });
+  }
+  $('feedend').onclick = () => sendCtl({ feed_end: 'cam' });
   function ctlConnect() {
     ctl = new WebSocket(`ws://${location.host}/ctl?role=stage`);
     ctl.onmessage = ev => {
       if (typeof ev.data !== 'string') { devFrameIn(ev.data); return; }   // #146: a picture of the live camera
       const m = JSON.parse(ev.data);
       measureMe(m); if (m.measure) measureShow(null, m.measure.ms); if (m.measure_result) measureShow(m.measure_result);   // #180
-      if (m.feeds) { feedsNow = m.feeds; if (!m.feeds.cam && devFrame) { devFrame.close(); devFrame = null; } chips(); }
+      if (m.feeds) { feedsNow = m.feeds; if (!m.feeds.cam && devFrame) { devFrame.close(); devFrame = null; } chips(); feedShow(); }
       if (m.playlists) fillPlaylists(m.playlists);
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server
       if (m.eyes_cfg) $('trancefreqm').value = String(m.eyes_cfg.trance_every);
