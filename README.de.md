@@ -1466,7 +1466,8 @@ schauen lassen.
 
 **Die Seite.** Im Modus Flowtrack öffnet **Seite ↗** in der Karte Bewegung (oder Taste **L**) die Seite von Flowtrack
 in einem eigenen Fenster – nur an diesem Mac, für einen zweiten Bildschirm, und eine Zusatzansicht wie die Seite von
-Dream Dance (sie liest die Bühne, die sie geöffnet hat; keine eigene Steuerleitung, keine eigene Kamera). Darauf:
+Dream Dance (sie liest die Bühne, die sie geöffnet hat; keine eigene Steuerleitung, keine eigene Kamera – und wie
+diese bittet sie, ein Bühnenfenster neu zu laden, das vor einem Update von Dream geladen wurde). Darauf:
 - **Automatik** – der Schalter und die vier Entscheidungen mit ihren Begründungen.
 - **Wirkung** – eine Zeile je Ziel der Flowtrack-Tabelle mit Schalter, Stärke und einem Licht, solange sie wirkt:
   Malen, Anfassen, Impulse, Licht im Dunkeln, Bewegung formt die Effekte, Inhalt nach Energie, Bewegung schiebt die
@@ -1628,9 +1629,19 @@ Ziffern, Leerzeichen und `. + -`, höchstens 24 Zeichen, bis zu 24 Sets); **Dies
 eigenes. Deine Sets liegen mit den Tabellen in `~/.config/dream/dance.json`.
 
 **Erkennung.** Die Karte „Erkennung“ auf der Seite wählt, womit Dream Dance erkennt – **Tanz: Hände (KI)** oder
-**Tanz: Leucht-Marker (2 Farben)** – und die Kamera, und sagt, was gerade läuft. Es ist die eigene Wahl des Tanzes
+**Tanz: Leucht-Marker (2 Farben)** – und, unabhängig davon, die **Kamera** (die Kameras, die die Bühne kennt; die benutzte ist gewählt), und sagt, was
+gerade läuft. Es ist die eigene Wahl des Tanzes
 (dieselbe wie in der Karte Bewegung); womit Flowtrack erkennt, bleibt Flowtracks Sache. Nur du änderst die Erkennung:
-nicht der Autopilot, nicht „Entlasten“, nicht ein Wechsel des Modus.
+nicht der Autopilot, nicht „Entlasten“, nicht ein Wechsel des Modus. Läuft nichts, sagt die Karte, warum und was zu
+tun ist: ein anderer Bewegungsmodus oder Bewegung aus (auf Dream Dance schalten), die Kamera öffnet noch, das
+KI-Modell für die Hände lädt oder ließ sich nicht laden, keine Kamera oder keine Erlaubnis, die Kamera des Macs ist
+unter „Quellen“ in der Karte Bewegung ausgeschaltet. Solange der Browser noch keine Kamera genannt hat (das tut er,
+sobald die Kamera erlaubt wurde), steht in der Liste nur „Kamera: wie Bild“, und eine Zeile darunter sagt das.
+
+**Nach einem Update von Dream: die Bühne neu laden.** Die Seite liest das Bühnenfenster, das sie geöffnet hat. Ein
+Bühnenfenster, das vor dem Update geladen wurde, läuft noch mit dem alten Skript und kann der Seite nicht alles
+sagen, was sie zeigt; die Seite zeigt dann einen Hinweis mit dem Knopf **Bühne neu laden** statt halb
+funktionierender Bedienelemente (das Bild setzt kurz aus, die Seite kommt von selbst wieder).
 
 **Takt.** Die Seite zeigt deinen Takt (das Tempo deiner Wiederholung) und den Musik-Takt
 nebeneinander, je mit einem Punkt, der mitschlägt, und sagt, wer den Takt gibt: dein Tanz, die Musik, beide

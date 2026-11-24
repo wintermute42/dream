@@ -65,7 +65,10 @@ command line for now, #231) via `dream-cloud`.
   (`tests/test_movecard.py`).
   A mode's page (#251: `/dance`, `static/dance.html`) is a window of its own on this Mac (`rights.LOCAL_ONLY`) that
   reads the stage through `window.opener.DreamBridge.<name>` (`static/movepage.js`) – it has no control line and no
-  camera of its own (only the lab's sessions go to and from Dream directly, `/dance/sessions`), and everything that steers the show is in the panel too. The dance lab (#243) is part of that page.
+  camera of its own (only the lab's sessions go to and from Dream directly, `/dance/sessions`), and everything that steers the show is in the panel too. The page lists what it calls and reads
+  of the bridge (`NEEDS`, kept complete by `tests/js/movepage.test.mjs`): a stage window loaded before an update lacks
+  some of it and is asked to reload (`MovePage.link`'s `old`), never shown half; a choice of the stage is written into a
+  select of the page only by `MovePage.pick`/`fillCams`. The dance lab (#243) is part of that page.
   The dance acts on top of what hands and controllers set (`DreamMove.onTop`) and only while its clutch is engaged (the
   setting `clutch`: released after every start – `hub.py` – and shown as such by `MoveCard.clutchShow`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
   Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –

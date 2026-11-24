@@ -20,6 +20,10 @@
 <div class="mp-note" id="nostage">
   <span>This page shows the dance of the stage that opened it. Open it from the panel: card “Movement” → Dream Dance → “Page ↗” (or key L on the stage).</span>
 </div>
+<div class="mp-note mp-old" id="oldstage" role="alert" hidden>
+  <span>The stage window is from before an update of Dream – this page needs the new one. Reload the stage (the picture pauses for a moment); this page comes back by itself.</span>
+  <button type="button" class="btn" id="stagereload">Reload the stage</button>
+</div>
 <main id="page" hidden>
   <div class="mp-note" id="nomode" hidden>
     <span id="nomode-text"></span>
@@ -35,8 +39,11 @@
     </div>
     <div class="mp-card">
       <h2>Detection</h2>
-      <select id="dance_kind" aria-label="What Dream Dance detects" title="What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice."><option value="hand">Dance: Hands (AI)</option><option value="marker">Dance: LED markers (2 colours)</option></select>
-      <select id="flow_device" aria-label="Camera for movement" title="Camera for movement, e.g. an infrared camera"></select>
+      <label for="dance_kind">Detects</label>
+      <select id="dance_kind" title="What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice."><option value="hand">Dance: Hands (AI)</option><option value="marker">Dance: LED markers (2 colours)</option></select>
+      <label for="flow_device">Camera</label>
+      <select id="flow_device" title="Camera for movement, e.g. an infrared camera" aria-describedby="camnote"><option value="">Camera: as picture</option></select>
+      <div class="hint mp-camnote" id="camnote" hidden>The browser has not named a camera yet: allow the camera for Dream (it asks when the camera starts), then they are listed here.</div>
       <div class="mp-detect" id="detectstate" role="status"></div>
       <div class="hint">Dream Dance has its own detection – what Flowtrack detects with (fire/LED too) stays Flowtrack’s. Only you change it: here or in the Movement card. The fingers’ switch is at the finger view below.</div>
     </div>
@@ -75,17 +82,24 @@
   let bridge = null, lab = null, shown = {};
   const say = (id, text) => { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } };
 
+  // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
+  // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
+  const NEEDS = { calls: ['attach', 'detach', 'state', 'setClutch', 'setSet', 'setMode', 'setKind', 'setCam', 'saveSet', 'deleteSet', 'lab.detect'],
+    state: ['mode', 'clutch', 'hold', 'set', 'sets', 'own', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams'] };
   MovePage.link('dance', {
+    needs: NEEDS,
+    old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },
     on(b) {                                            // the stage is there: the lab reads it from now on
-      bridge = b; $('nostage').hidden = true; $('page').hidden = false;
+      bridge = b; $('nostage').hidden = true; $('oldstage').hidden = true; $('page').hidden = false;
       lab = DanceLab.mount($('dancelab'), b.lab); lab.show(true); b.attach(lab);
     },
-    lost() { bridge = null; $('nostage').hidden = false; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
+    lost() { bridge = null; $('nostage').hidden = false; $('oldstage').hidden = true; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
   });
   addEventListener('pagehide', () => { try { if (bridge) bridge.detach(); } catch (e) { /* the stage is gone already */ } });
 
   $('clutchbtn').onclick = () => bridge && bridge.setClutch($('clutchbtn').getAttribute('aria-pressed') !== 'true');
   $('dance_set').onchange = () => bridge && bridge.setSet($('dance_set').value);
+  $('stagereload').onclick = () => { if (MovePage.reloadStage()) say('pagestate', T('The stage is loading anew …')); };
   $('tomode').onclick = () => bridge && bridge.setMode('dance');
   $('dance_kind').onchange = () => bridge && bridge.setKind($('dance_kind').value);
   $('flow_device').onchange = () => bridge && bridge.setCam($('flow_device').value);
@@ -108,7 +122,6 @@
     else if (lab && k === 'r') lab.record();
   });
 
-  let camsShown = '';
   // what the stage is at, with every frame: the clutch, how far the dance is in, the detection, the set, the two beats
   (function tick() {
     requestAnimationFrame(tick);
@@ -123,16 +136,16 @@
     say('bpm-move', MovePage.clockText(st.move)); say('bpm-music', MovePage.clockText(st.music));
     say('clockstate', MovePage.agreeText(st.move, st.music));
     const dancing = st.mode === 'dance';
-    // the detection: the dance's own choice, the camera, and what really runs right now
-    if (document.activeElement !== $('dance_kind') && $('dance_kind').value !== st.kind) $('dance_kind').value = st.kind;
-    const camsKey = JSON.stringify(st.cams);
-    if (camsKey !== camsShown) { camsShown = camsKey; $('flow_device').textContent = ''; for (const [v, t] of st.cams) { const o = document.createElement('option'); o.value = v; o.textContent = t; $('flow_device').append(o); } }
-    if (document.activeElement !== $('flow_device') && $('flow_device').value !== st.cam) $('flow_device').value = st.cam;
-    const runs = st.tracking === 'hand' ? T('Hands (AI)') : st.tracking === 'marker' ? T('LED markers') : st.tracking === 'on' ? T('Fire/LED') : T('nothing');
-    say('detectstate', !dancing ? T('Not in the mode Dream Dance – the choice is kept for it.') : st.camera !== 'running' ? T('The camera is not running yet.') : T('Running now: {k}', { k: runs }));
+    // the detection: the dance's own choice and the camera – two choices that know nothing of each other, each shown
+    // as the stage has it – and why it runs or does not
+    MovePage.pick($('dance_kind'), st.kind);
+    $('camnote').hidden = MovePage.fillCams($('flow_device'), st.cams, st.cam) > 0;
+    let status = ''; try { status = bridge.lab.detect().status; } catch (e) { /* the stage is reloading */ }
+    const det = MovePage.detectText(st, status, MoveCard.name(st.mode));
+    say('detectstate', det.text); $('detectstate').classList.toggle('off', !det.on);
     $('nomode').hidden = dancing;
     if (!dancing) say('nomode-text', T('The movement mode is “{m}” – the dance acts only in the mode Dream Dance.', { m: MoveCard.name(st.mode) }));
-    say('pagestate', !dancing ? '' : st.camera === 'running' ? (st.clutch ? T('The dance steers the dream.') : T('Clutch released – your dance does nothing, only sliders and controllers steer.')) : T('The camera is not running yet.'));
+    say('pagestate', !dancing ? '' : det.on ? (st.clutch ? T('The dance steers the dream.') : T('Clutch released – your dance does nothing, only sliders and controllers steer.')) : T('The detection is not running – see “Detection”.'));
   })();
 })();
 </script>

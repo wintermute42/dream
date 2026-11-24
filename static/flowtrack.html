@@ -20,6 +20,10 @@
 <div class="mp-note" id="nostage">
   <span>This page shows the movement of the stage that opened it. Open it from the panel: card “Movement” → Flowtrack → “Page ↗” (or key L on the stage).</span>
 </div>
+<div class="mp-note mp-old" id="oldstage" role="alert" hidden>
+  <span>The stage window is from before an update of Dream – this page needs the new one. Reload the stage (the picture pauses for a moment); this page comes back by itself.</span>
+  <button type="button" class="btn" id="stagereload">Reload the stage</button>
+</div>
 <main id="page" hidden>
   <div class="mp-note" id="nomode" hidden>
     <span id="nomode-text"></span>
@@ -79,16 +83,23 @@
   const say = (id, text) => { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } };
   const KIND = { on: T('Fire/LED'), marker: T('LED markers'), hand: T('Hands (AI)') };
 
+  // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
+  // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
+  const NEEDS = { calls: ['attach', 'detach', 'state', 'setAuto', 'setMode', 'setKind', 'setShort', 'setPerson', 'release', 'calibrate', 'setUnproject', 'setRows'],
+    state: ['mode', 'auto', 'kind', 'short', 'person', 'calib', 'rows', 'held', 'camera', 'status', 'rate', 'present'] };
   MovePage.link('flowtrack', {
+    needs: NEEDS,
+    old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },
     on(b) {
-      bridge = b; $('nostage').hidden = true; $('page').hidden = false;
+      bridge = b; $('nostage').hidden = true; $('oldstage').hidden = true; $('page').hidden = false;
       lab = DanceLab.mount($('dancelab'), b.lab); lab.show(true); b.attach(lab);
     },
-    lost() { bridge = null; $('nostage').hidden = false; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
+    lost() { bridge = null; $('nostage').hidden = false; $('oldstage').hidden = true; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
   });
   addEventListener('pagehide', () => { try { if (bridge) bridge.detach(); } catch (e) { /* the stage is gone already */ } });
 
   $('autobtn').onclick = () => bridge && bridge.setAuto($('autobtn').getAttribute('aria-pressed') !== 'true');
+  $('stagereload').onclick = () => { if (MovePage.reloadStage()) say('pagestate', T('The stage is loading anew …')); };
   $('tomode').onclick = () => bridge && bridge.setMode('flowtrack');
   $('kind-by').onchange = () => bridge && bridge.setKind($('kind-by').value);
   $('short-by').onchange = () => bridge && bridge.setShort($('short-by').value === '1');
@@ -140,7 +151,7 @@
     if (b.getAttribute('aria-pressed') !== String(st.auto)) { b.setAttribute('aria-pressed', String(st.auto)); b.classList.toggle('on', st.auto); b.textContent = st.auto ? T('Automatic: ON') : T('Automatic: OFF'); }
     const flowing = st.mode === 'flowtrack', auto = st.auto && flowing;
     choice('kind', st.kind, KIND[st.kind.value] || st.kind.value, auto);
-    if (document.activeElement !== $('kind-by')) $('kind-by').value = st.kind.value;
+    MovePage.pick($('kind-by'), st.kind.value);
     choice('short', st.short, st.short.supported === false ? T('fixed by the camera') : st.short.value ? T('short') : T('normal'), auto);
     if (document.activeElement !== $('short-by')) $('short-by').value = st.short.value ? '1' : '0';
     $('short-by').disabled = st.short.supported === false;
