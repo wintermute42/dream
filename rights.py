@@ -44,7 +44,7 @@ CAPABILITIES = {
     "feed": "lend its camera to the stage (Dream Control: its motion sensors too)",
     "eyes": "may be a Dreamy Eyes page: the painted faces, how often the trance comes",
     "eyes_only": "is nothing but Dreamy Eyes: learns nothing of the shared state, says nothing but lending its front camera",
-    "faces": "the faces painted for Dreamy Eyes (/eyes/mask)",
+    "faces": "the faces painted for Dreamy Eyes (/eyes/mask), and where each has its eyes, brows and mouth (#230)",
     "beat": "as a Dreamy Eyes page, hears the music's beat beside its small preview of the dream (/view): one number "
             "between 0 and 1, now and then – nothing else of what the stage tells its output windows (#218)",
     "pair_eyes": "gets the links and QR codes that pair Dreamy Eyes and dream windows",

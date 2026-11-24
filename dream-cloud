@@ -1,14 +1,16 @@
 #!/bin/bash
 # dream-cloud – runs the Dream renderer on a cloud GPU and tunnels it to 127.0.0.1:7861 on this Mac.
 #
-#   dream-cloud start [--type L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community]
-#                     [--model sd-turbo|sdxl-turbo]
+#   dream-cloud start [--type runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community|L4-1-24G|L40S-1-48G|H100-1-80G]
+#                     [--model sd-turbo|sdxl-turbo]      (--type: runpod:RTX-4090 unless given)
 #   dream-cloud stop          deletes the instance/pod together with its disk (nothing left that costs)
 #   dream-cloud status [--json]
 #
-# Two providers (#104): Scaleway (Paris; the CLI configured once with `scw init`, the local SSH key registered there)
-# and RunPod (pods in European data centers; the API key in the macOS keychain, see cloud_runpod.py – the Mac's
-# public key goes into the pod, nothing needs registering). The renderer listens on 127.0.0.1; only SSH is used.
+# Two providers (#104): RunPod (pods in European data centers; the API key in the macOS keychain, see cloud_runpod.py –
+# the Mac's public key goes into the pod, nothing needs registering) and Scaleway (Paris; the CLI configured once with
+# `scw init`, the local SSH key registered there). #231: Scaleway accepts no new GPU instances for the time being, so
+# RunPod is the default and the pages offer only RunPod; the Scaleway types stay usable here with --type.
+# The renderer listens on 127.0.0.1; only SSH is used.
 # Cost guard: the instance is deleted automatically after DREAM_AUTO_OFF_MIN minutes (default 120) by a local
 # timer, and halts itself on the instance as a fallback.
 set -euo pipefail
@@ -94,7 +96,7 @@ cmd_status() {
   local json=0; [ "${1:-}" = "--json" ] && json=1
   local line prov id st type ip port p cur
   if ! scw_ok && ! runpod_ok; then
-    if [ "$json" = 1 ]; then echo '{"state":"setup"}'; else tx "No cloud provider set up (scw init or RunPod key)."; fi
+    if [ "$json" = 1 ]; then echo '{"state":"setup"}'; else tx "No cloud provider set up (RunPod key in the keychain, see README)."; fi
     return 0
   fi
   line="$(find_server)"
@@ -177,7 +179,7 @@ REMOTE
 }
 
 cmd_start() {
-  local type="L4-1-24G" model="sd-turbo" fallback="" withref=0
+  local type="runpod:RTX-4090" model="sd-turbo" fallback="" withref=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --type) type="$2"; shift 2 ;;
@@ -187,7 +189,7 @@ cmd_start() {
       *) die "$(tx "unknown option {0}" "$1")" ;;
     esac
   done
-  case "$type" in L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community) ;; *) die "$(tx "unknown GPU type {0}" "$type")" ;; esac
+  case "$type" in runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community|L4-1-24G|L40S-1-48G|H100-1-80G) ;; *) die "$(tx "unknown GPU type {0}" "$type")" ;; esac
   case "$model" in sd-turbo|sdxl-turbo) ;; *) die "$(tx "unknown model {0}" "$model")" ;; esac
   local prov; prov="$(provider_of "$type")"
   if [ "$prov" = scaleway ]; then scw_ok || die "$(tx "Scaleway is not set up: brew install scw, then scw init.")"
@@ -302,8 +304,8 @@ case "${1:-}" in
   start) shift; cmd_start "$@" ;;
   stop) shift; cmd_stop "$@" ;;
   status) shift; cmd_status "$@" ;;
-  -h|--help) tx "usage: {0} start [--fallback TYPE] [--type L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]" "$0"
-     tx "  start   creates a GPU at Scaleway or RunPod (costs from then on, deletes itself after {0} min at the latest)" "$AUTO_OFF_MIN"
+  -h|--help) tx "usage: {0} start [--fallback TYPE] [--type runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community|L4-1-24G|L40S-1-48G|H100-1-80G] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]" "$0"
+     tx "  start   creates a GPU at RunPod or Scaleway (costs from then on, deletes itself after {0} min at the latest)" "$AUTO_OFF_MIN"
      tx "  stop    deletes machine and disk – nothing costs afterwards"
      tx "  status  shows whether a Dream GPU runs and what it has cost so far" ;;
   *) tx "usage: {0} start [--type …] [--model sd-turbo|sdxl-turbo] | stop | status [--json]  (more: {0} --help)" "$0"; exit 2 ;;
