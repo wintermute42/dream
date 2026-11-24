@@ -8,6 +8,7 @@ and Dream Control may list, read, add or delete them (rights.CONTROL_ONLY), and 
 
 What comes in is checked before it is kept: the format, the sizes, and that it holds nothing but numbers, short names
 and structure – a session cannot carry a picture."""
+import asyncio
 import json
 import math
 import os
@@ -16,7 +17,7 @@ import secrets
 import time
 
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 import dance
 import hub
@@ -27,11 +28,11 @@ import rights
 from web import app
 
 DIR = os.path.join(paths.state_dir(), "dance")
-MAX_BYTES = 24 * 1024 * 1024               # a full recording (five minutes) is about 8 MB
+MAX_BYTES = 24 * 1024 * 1024               # a full recording (five minutes, both hands' fingers) is about 12 MB
 MAX_FRAMES = 9500                          # five minutes at 30 a second, and a little
 MAX_SESSIONS = 500
 FORMAT, VERSION = "dream-dance", 1
-ID = re.compile(r"\d{8}-\d{6}-[0-9a-f]{4}")
+ID = re.compile(r"[0-9]{8}-[0-9]{6}-[0-9a-f]{4}")
 NAME = re.compile(r"[a-z][a-z0-9_.+]{0,39}")
 
 
@@ -59,6 +60,10 @@ def _plain(x, depth: int = 0):
             raise ValueError("table")
         return {k: _plain(v, depth + 1) for k, v in x.items()}
     raise ValueError("type")
+
+
+def _number(x) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
 
 
 def _mark(m) -> dict:
@@ -90,7 +95,16 @@ def clean(s) -> dict | None:
             f = _plain(f)
             if not isinstance(f.get("t"), (int, float)) or isinstance(f["t"], bool) or f["t"] < 0:
                 return None
-            if not all(isinstance(f.get(k), list) and len(f[k]) == len(keys) for k in ("v", "c")):
+            if not all(isinstance(f.get(k), list) and len(f[k]) == len(keys) and all(_number(x) for x in f[k]) for k in ("v", "c")):
+                return None
+            if out and f["t"] < out[-1]["t"]:           # time runs forward: the player looks frames up by it
+                return None
+            i, p = f.get("i"), f.get("p")               # what the detector was fed, and the points to draw
+            if not isinstance(i, dict) or not isinstance(p, dict) or not isinstance(i.get("f"), dict):
+                return None
+            if not isinstance(i.get("h"), dict) or not all(isinstance(i["h"].get(h), list) for h in ("l", "r")):
+                return None
+            if not all(p.get(k) is None or (isinstance(p[k], list) and all(_number(x) for x in p[k])) for k in ("b", "l", "r")):
                 return None
             out.append(f)
         return {"format": FORMAT, "version": VERSION, "kind": s["kind"], "rate": float(_plain(s.get("rate", 30))),
@@ -174,24 +188,32 @@ async def sessions_list():
     return {"sessions": listing(), "folder": paths.shown(DIR)}
 
 
-@app.post("/dance/sessions")
-async def sessions_add(request: Request):
+def _take(body: bytes) -> dict | None:
+    """The session in a request's body, checked and kept – or None. Run beside the event loop: a long session takes
+    half a second to check, and nothing else of Dream waits for it."""
     try:
-        if int(request.headers.get("content-length") or 0) > MAX_BYTES:
-            raise ValueError
-        body = b""
-        async for chunk in request.stream():           # never more than a session can be, whatever the header said
-            body += chunk
-            if len(body) > MAX_BYTES:
-                raise ValueError
         s = clean(json.loads(body, parse_constant=lambda _: (_ for _ in ()).throw(ValueError())))
     except (ValueError, RecursionError, UnicodeDecodeError):
-        s = None
-    if s is None:
+        return None
+    return save(s) if s else None
+
+
+@app.post("/dance/sessions")
+async def sessions_add(request: Request):
+    chunks, size = [], 0
+    if int(request.headers.get("content-length") or 0) <= MAX_BYTES:
+        async for chunk in request.stream():           # never more than a session can be, whatever the header said
+            chunks.append(chunk)
+            size += len(chunk)
+            if size > MAX_BYTES:
+                break
+    if not chunks or size > MAX_BYTES:
         return JSONResponse({"error": i18n.t("That is not a dance session.")}, status_code=422)
     if len(listing()) >= MAX_SESSIONS:
         return JSONResponse({"error": i18n.t("Too many dance sessions are kept – delete some first.")}, status_code=409)
-    meta = save(s)
+    meta = await asyncio.to_thread(_take, b"".join(chunks))
+    if meta is None:
+        return JSONResponse({"error": i18n.t("That is not a dance session.")}, status_code=422)
     _tell({"saved": meta})
     return meta
 
@@ -200,8 +222,7 @@ async def sessions_add(request: Request):
 async def sessions_get(sid: str):
     if not ID.fullmatch(sid) or not os.path.isfile(_path(sid)):
         return JSONResponse({"error": i18n.t("This dance session does not exist.")}, status_code=404)
-    with open(_path(sid)) as f:
-        return JSONResponse(json.load(f), headers={"Cache-Control": "no-store"})
+    return FileResponse(_path(sid), media_type="application/json", headers={"Cache-Control": "no-store"})
 
 
 @app.delete("/dance/sessions/{sid}")

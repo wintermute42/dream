@@ -60,6 +60,9 @@ PICTURE = "data:image/jpeg;base64," + "A" * 5000
     lambda s: s.update(marks=[{"t": 1, "mark": "meh"}]), lambda s: s.update(marks=[{"t": float("nan"), "mark": "good"}]),
     lambda s: s["frames"].__setitem__(3, "frame"), lambda s: s["frames"][3].update(t=-1), lambda s: s["frames"][3].update(t="soon"),
     lambda s: s["frames"][3].update(v=[0.1]), lambda s: s["frames"][3].update(c=None),
+    lambda s: s["frames"][3].update(v=[0.1, "x", 0]), lambda s: s["frames"][3].update(t=0.0),       # time runs forward
+    lambda s: s["frames"][3].pop("i"), lambda s: s["frames"][3].pop("p"), lambda s: s["frames"][3]["i"].pop("h"),
+    lambda s: s["frames"][3]["i"]["h"].update(l=None), lambda s: s["frames"][3]["p"].update(l=[0.1, "x"]),
     lambda s: s["frames"][3].update(v=[0.1, float("inf"), 0]), lambda s: s["frames"][3].update(v=[0.1, 10 ** 400, 0]),
     # a picture has no way in: not as a field of its own, not as a text anywhere inside a frame
     lambda s: s["frames"][3].update(jpeg=PICTURE), lambda s: s["frames"][3].update(g=PICTURE),
@@ -121,7 +124,7 @@ def test_the_routes_keep_and_give_back_a_session(server, store):
 
 
 @pytest.mark.parametrize("body", [b"", b"{not json", b"[]", b'{"format": "dream-dance"}', b"[" * 200000,
-                                  json.dumps({**session(), "frames": [{"t": 0, "v": [float("nan")] * 3, "c": [0] * 3}]}).encode(),
+                                  json.dumps({**session(), "frames": [{**frame(0.0), "v": [float("nan")] * 3}]}).encode(),
                                   b"\xff\xfe\x00"])
 def test_the_route_refuses_what_is_no_session_and_writes_nothing(server, store, body):
     r = client(server, "local").post("/dance/sessions", content=body)

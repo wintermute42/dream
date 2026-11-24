@@ -185,7 +185,7 @@
     const buf = () => ({ ul: [], vl: [], ur: [], vr: [], sg: [], wl: [], wr: [] });
     function reset() {
       st = { t: null, grid: null, tick: 0, centre: null, S: 0, reach: 0, hand: { l: null, r: null }, b: buf(),
-        seen: { l: [], r: [] }, ok: { l: 0, r: 0 }, rad: { l: 0, r: 0 }, bodySeen: false, still: 0, eCam: 0, eSens: 0,
+        seen: { l: [], r: [] }, ok: { l: 0, r: 0 }, rad: { l: 0, r: 0 }, bodyAt: -1e9, still: 0, eCam: 0, eSens: 0,
         clock: { period: 0, phase: 0, c: 0, agree: 0, beatAt: -1e9, lost: 0 }, g: Object.fromEntries(GESTURES.map(g => [g, 0])),
         active: null, below: 0, size: 0, turn: 0, impulse: 0, sens: { at: -1e9, axis: 0, level: [0, 0, 0] },
         fing: Object.fromEntries(HANDS.map(h => [h, { palm: 0, spread: 0, pinch: 0, snap: 0, on: false, was: [], snapAt: -1e9, c: 0 }])) };
@@ -194,19 +194,22 @@
     const push = (a, v) => { a.push(v); if (a.length > N) a.shift(); };
 
     // body units: u to the picture's right, v up, measured from the middle of the shoulders in shoulder widths
-    function units(body, hands, dt) {
-      if (body && body.c >= 0.3 && body.s > 0.01) {
+    function units(body, hands, dt, t) {
+      if (body && body.c >= 0.3 && body.s > 0.01 && Number.isFinite(body.x + body.y + body.s)) {
         // the middle follows the body almost at once: hands that only go along with a swaying body do not move
         const k = st.centre ? Math.min(1, dt / 0.04) : 1, ks = st.S ? Math.min(1, dt / 1.0) : 1;
         st.centre = st.centre ? [st.centre[0] + (body.x * aspect - st.centre[0]) * k, st.centre[1] + (body.y - st.centre[1]) * k] : [body.x * aspect, body.y];
-        st.S += (body.s - st.S) * ks; st.bodySeen = true;
+        st.S += (body.s - st.S) * ks; st.bodyAt = t;
         return;
       }
-      // no skeleton (markers, light): the middle is where the hands are on average, the size what they reached lately
-      const pts = HANDS.map(h => hands[h]).filter(Boolean);
+      // the skeleton drops out for a moment (a slow model, a blurred frame): the body is where it was
+      if (st.centre && t - st.bodyAt < 0.5) return;
+      // no skeleton (markers, light): the middle is where the hands are on average, the size what they reached lately –
+      // both glide there, so losing the skeleton never looks like a movement
+      const pts = HANDS.map(h => hands[h]).filter(p => p && Number.isFinite(p.x + p.y));
       if (!pts.length) return;
       const mx = pts.reduce((a, p) => a + p.x * aspect, 0) / pts.length, my = pts.reduce((a, p) => a + p.y, 0) / pts.length;
-      if (st.bodySeen || !st.centre) { st.centre = [mx, my]; st.bodySeen = false; if (!st.S) st.S = 0.12; return; }
+      if (!st.centre) { st.centre = [mx, my]; if (!st.S) st.S = 0.12; return; }
       const k = Math.min(1, dt / 2.5); st.centre = [st.centre[0] + (mx - st.centre[0]) * k, st.centre[1] + (my - st.centre[1]) * k];
       const far = Math.max(...pts.map(p => Math.hypot(p.x * aspect - st.centre[0], p.y - st.centre[1])));
       st.reach = Math.max(far, st.reach * Math.exp(-dt / 20));
@@ -308,7 +311,7 @@
         const c = input.hands && input.hands[h];
         fused[h] = fuseHand(Array.isArray(c) ? c : c ? [c] : [], { fast: !!(st.hand[h] && st.hand[h].sp > 4), dark: !!input.dark });
       }
-      units(input.body, fused, dt);
+      units(input.body, fused, dt, t);
       let e2 = 0, ec = 0, eN = 0;
       for (const h of HANDS) {
         const f = fused[h], was = st.hand[h];

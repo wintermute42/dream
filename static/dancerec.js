@@ -68,7 +68,8 @@
 
   const session = (kind, frames, marks, map, keys, aspect = 16 / 9) => ({ format: FORMAT, version: VERSION, kind, rate: RATE, aspect: r4(aspect),
     seconds: frames.length ? frames[frames.length - 1].t : 0, keys, frames, marks, map });
-  const good = s => !!s && s.format === FORMAT && s.version === VERSION && Array.isArray(s.frames) && Array.isArray(s.keys) && Array.isArray(s.marks);
+  const good = s => !!s && s.format === FORMAT && s.version === VERSION && Array.isArray(s.frames) && Array.isArray(s.keys) && Array.isArray(s.marks)
+    && s.frames.every(f => f && Array.isArray(f.v) && Array.isArray(f.c) && f.i && f.i.h && Array.isArray(f.i.h.l) && Array.isArray(f.i.h.r) && f.i.f && f.p);
 
   // The last seconds, always: what a "good"/"bad" cuts its moment from. Frames come in with their own clock (seconds).
   function ring(seconds = 30) {
@@ -192,8 +193,8 @@
     const w = String(text || '').toLowerCase().replace(/[^\p{L} ]/gu, ' ').trim().split(/\s+/).filter(Boolean);
     if (!w.length || w.length > 3) return null;
     const bad = w.some(x => words.bad.includes(x)), good = w.some(x => words.good.includes(x));
-    if (good && w.some(x => words.not.includes(x))) return 'bad';
-    if (bad !== good) return bad ? 'bad' : 'good';
+    if (bad === good) return null;
+    return bad !== w.some(x => words.not.includes(x)) ? 'bad' : 'good';        // "not good" is bad, "not bad" is good
     return null;
   }
   // A wristband's one button: one press is "good", two presses right after each other are "bad". press(now) answers

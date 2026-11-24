@@ -185,6 +185,8 @@ test('tuning a row in the lab: target, curve, ranges and smoothing – each insi
 test('feedback without hands: a spoken word, and the wristband’s one button', () => {
   for (const w of ['good', 'Good.', ' Super! ', 'yes', 'Great!', 'very good', 'nice']) assert.equal(R.verdict(w), 'good', w);
   for (const w of ['bad', 'Bad.', 'No!', 'not good', 'wrong', 'nope']) assert.equal(R.verdict(w), 'bad', w);
+  assert.equal(R.verdict('not bad'), 'good');
+  assert.ok(!R.good({ format: 'dream-dance', version: 1, keys: [], marks: [], frames: [{ t: 0, v: [], c: [] }] }), 'a frame without its input and points is no session');
   for (const w of ['', null, 'a glowing forest at night', 'goodness', 'that was really good this time', '123', 'good bad']) assert.equal(R.verdict(w), null, String(w));
   // the page's language beside it: the German words come from the translations (static/i18n/de.json)
   const de = JSON.parse(readFileSync(new URL('../../static/i18n/de.json', import.meta.url), 'utf8'));

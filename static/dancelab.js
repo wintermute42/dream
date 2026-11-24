@@ -122,7 +122,7 @@
     const toast = el('div', 'dl-toast'); toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); document.body.append(toast);
 
     // ---------- state ----------
-    const rng = R.ring(30), press = R.clutch(0.5), undo = [];
+    const rng = R.ring(30), press = R.clutch(0.5), undo = []; let spans = [];
     let open = false, rec = null, player = null, raf = 0, lastT = 0, lastPack = 0, lastDraw = 0, lastOut = 0, lastVals = 0, shown = null, toastTimer = 0, undoAt = 0, undoKey = '', tuneId = null, drawnRows = '';
     const active = () => open || !!rec;
     const state = () => opts.state({ open, rec: !!rec, play: !!player });
@@ -259,7 +259,7 @@
     function drawBand() {
       const g = ctxOf(band); if (!g || !player) return; const [c, w, h] = g, s = player.session, X = t => t / Math.max(0.01, s.seconds) * w;
       c.clearRect(0, 0, w, h); c.fillStyle = C.line; c.fillRect(0, h / 2 - 1, w, 2);
-      c.fillStyle = C.accent; c.globalAlpha = 0.5; for (const sp of R.gestures(s)) c.fillRect(X(sp.t0), 4, Math.max(2, X(sp.t1) - X(sp.t0)), h - 8); c.globalAlpha = 1;
+      c.fillStyle = C.accent; c.globalAlpha = 0.5; for (const sp of spans) c.fillRect(X(sp.t0), 4, Math.max(2, X(sp.t1) - X(sp.t0)), h - 8); c.globalAlpha = 1;
       if (player.loop) { c.strokeStyle = C.text; c.lineWidth = 2; c.strokeRect(X(player.loop[0]) + 1, 1, X(player.loop[1]) - X(player.loop[0]) - 2, h - 2); }
       for (const m of s.marks) { c.fillStyle = m.mark === 'good' ? C.ok : C.warn; c.fillRect(X(m.t) - 1.5, 0, 3, h); }
       c.fillStyle = C.text; c.fillRect(X(player.pos) - 1, 0, 2, h);
@@ -355,18 +355,23 @@
     // mark: 'good' | 'bad'; by: who said it ('panel', 'key', 'button', 'voice', 'control', 'midi')
     function feedback(mark, by) {
       if (!SPOKEN[mark]) return false;
-      if (!active() || player) { say(T('Feedback needs the dance lab open on the live dance, or a recording.')); return false; }
+      if (!active() || player) {                        // said so only to a hand at this Mac – never onto the audience's picture for a pedal
+        if (by === 'panel' || by === 'key' || by === 'voice') say(T('Feedback needs the dance lab open on the live dance, or a recording.'));
+        return false;
+      }
       const secs = opts.secs(), m = R.moment(rng, mark, by, secs, rowsNow(), keys, 16 / 9);
       if (rec) rec.mark(performance.now() / 1000, mark, by, secs);
       if (m.frames.length < 5) { say(T('{m} – but nothing was detected in the last seconds', { m: SPOKEN[mark]() })); return true; }
       keep(m, T('{m} – the last {n} s are kept', { m: SPOKEN[mark](), n: Math.round(m.seconds) }));
       return true;
     }
+    let asked = 0;
     async function playback(id) {
-      const s = await api.get(id);
+      const mine = ++asked; let s; try { s = await api.get(id); } catch (e) { s = null; }
+      if (!open || mine !== asked) return;             // closed meanwhile, or another one was asked for
       if (!R.good(s) || !s.frames.length) { say(T('This session cannot be played.')); return; }
       if (rec) record(false);
-      player = R.player(s); seek.max = s.seconds; time.hidden = false; marksBox.hidden = false; rng.clear();
+      player = R.player(s); spans = R.gestures(s); seek.max = s.seconds; time.hidden = false; marksBox.hidden = false; rng.clear();
       marksList.textContent = '';
       const rv = R.review(s);
       if (!rv.length) marksList.append(el('li', 'dl-what', T('No feedback in this session.')));
@@ -395,22 +400,29 @@
     liveBtn.onclick = live;
     recBtn.onclick = () => record(); goodBtn.onclick = () => feedback('good', 'panel'); badBtn.onclick = () => feedback('bad', 'panel'); closeBtn.onclick = () => show(false);
     secsIn.oninput = () => { opts.setSecs(+secsIn.value); secsVal.textContent = T('{n} s', { n: secsIn.value }); };
-    voiceBtn.addEventListener('mousedown', () => opts.voice(true)); voiceBtn.addEventListener('mouseup', () => opts.voice(false)); voiceBtn.addEventListener('mouseleave', () => opts.voice(false));
+    voiceBtn.addEventListener('mousedown', () => opts.voice(true)); voiceBtn.addEventListener('mouseup', () => opts.voice(false)); voiceBtn.addEventListener('mouseleave', () => opts.voice(false)); voiceBtn.addEventListener('blur', () => opts.voice(false));
     voiceBtn.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); opts.voice(true); } });
     voiceBtn.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') opts.voice(false); });
 
     // ---------- the loop: only while the lab is open or records ----------
     function loop() { if (!raf && active()) { lastT = performance.now(); raf = requestAnimationFrame(tick); } }
+    // whatever goes wrong in a frame (a session that is not what it says): the lab lets go of the stage and goes on live
     function tick(now) {
       raf = 0; if (!active()) return;
+      try { frame(now); } catch (e) { console.error('[dance lab]', e); if (player) { live(); say(T('This session cannot be played.')); } }
+      if (active()) raf = requestAnimationFrame(tick);
+    }
+    function frame(now) {
       const dt = Math.min(0.25, (now - lastT) / 1000); lastT = now;
       const due = press.due(now / 1000); if (due) feedback(due, 'button');
       let frames, cursor = null, t1, marks = [];
       if (player) {
         const f = player.tick(dt), s = player.session;
         opts.play(f ? R.unpack(f, s.keys) : null);
-        frames = s.frames.filter(x => Math.abs(x.t - player.pos) <= WINDOW / 2 + 1 && (x.t <= player.pos + WINDOW / 2)); cursor = player.pos; t1 = player.pos + WINDOW / 2; marks = s.marks;
-        shown = frames.filter(x => x.t <= player.pos + 1e-9);
+        // the stretch in view, cut out by its places in the session (never a pass over all of it)
+        const a = player.at(player.pos - WINDOW / 2 - 1), here = player.index, b = player.at(player.pos + WINDOW / 2);
+        frames = s.frames.slice(a, b + 1); cursor = player.pos; t1 = player.pos + WINDOW / 2; marks = s.marks;
+        shown = s.frames.slice(a, here + 1);
       } else {
         const s = opts.live();
         if (s && now - lastPack >= 1000 / R.RATE - 2) {
@@ -438,7 +450,6 @@
           timeTxt.textContent = `${clock(player.pos)} / ${clock(player.seconds)}`; playBtn.textContent = player.playing ? '⏸' : '▶'; drawBand();
         }
       }
-      raf = requestAnimationFrame(tick);
     }
     function show(on = !open) {
       if (on === open) return;

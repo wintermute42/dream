@@ -3110,7 +3110,7 @@
     pixel: '👾', raster: '▦', rgb: '🌈', glitch: '⚡', hue: '🎨' };
   const FX_LIST = Object.keys(FX_NAMES);
   // #235: the dance card – what Dream sees, and the mapping table (a hand's change goes to Dream, which keeps the table)
-  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => sendCtl({ dance_map: rows }), fxNames: FX_NAMES,
+  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (Array.isArray(rows)) danceRows = rows; sendCtl({ dance_map: rows }); }, fxNames: FX_NAMES,
     sources: DreamDance.SOURCES, targets: DreamDanceMap.targets(DreamFx.ALL) });
   const danceCard = document.querySelector('details.sec[data-sec="dance"]');
   setInterval(() => {                                  // the display, a dozen times a second while its card is open and in view
@@ -3125,7 +3125,7 @@
     video: tracker.video, snapshot: (c, w, h) => view.snapshot(c, w, h),
     live: () => (danceOn() && danceFrame && performance.now() - danceAt < 300 ? { rec: danceFrame, input: danceInput, landmarks: tracker.frame.landmarks, out: danceOut } : null),
     rows: () => danceRows,
-    setRows: rows => { danceRows = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => sendCtl({ dance_map: danceRows }), 200); },
+    setRows: rows => { danceRows = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: danceRows }); }, 200); },
     play: rec => { dancePlay = rec; },
     secs: () => danceFbSecs, setSecs: v => { danceFbSecs = v; sendCtl({ set: { dance_fb_secs: v } }); },
     colours: () => ({ l: $('marker_l').value, r: $('marker_r').value }),
@@ -3571,7 +3571,7 @@
       if (m.sensors) showSensors(m.sensors);
       if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
       if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
-      if (m.dance && m.dance.map) { danceRows = m.dance.map; dancePanel.map(danceRows); }
+      if (m.dance && m.dance.map && !dancePanel.busy && !danceMapTimer) { danceRows = m.dance.map; dancePanel.map(danceRows); }
       if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad
       if (m.scene) {
         const sc = m.scene;
@@ -3586,6 +3586,7 @@
       }
       if (m.live && 'viewers' in m.live) { outViewers = m.live.viewers || 0; outPreviews = m.live.previews || 0; outBeats = m.live.beats || 0; showOutCount(outViewers, m.live.windows || 0); }
     };
+    ctl.onopen = () => sendCtl({ dance_lab: { open: danceLab.open, rec: danceLab.recording, play: danceLab.playing } });   // #243: after a reconnect Dream Control knows again
     ctl.onclose = () => setTimeout(ctlConnect, 1500);
   }
   renderGallery([]);                                  // five empty places right away (the row never grows later)

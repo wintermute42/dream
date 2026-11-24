@@ -218,7 +218,8 @@ window.DreamMotion = (() => {
       poseEvery = clamp(Math.max(camFps > 45 ? 2 : 1, Math.ceil(poseMs / 14)), 1, 4);
       const person = r.landmarks && r.landmarks[0];
       st.landmarks = person || null; poseAt = now;
-      if (hands21.on && hands21.model && frameNo % (poseEvery * 2) === 0) fingers(person, ts);
+      // a hand model that stumbles never costs the frame its body
+      if (hands21.on && hands21.model && frameNo % (poseEvery * 2) === 0) { try { fingers(person, ts); } catch (e) { Object.assign(hands21, { l: null, r: null }); } }
       if (!person) return [];
       const out = [];
       HANDS.forEach((idx, rank) => {

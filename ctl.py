@@ -183,9 +183,9 @@ async def ctl(sock: WebSocket):
     except (WebSocketDisconnect, RuntimeError, ValueError):
         pass
     finally:
-        if kind == "stage":
-            hub.live.pop("dance_lab", None)        # #243: the lab is the stage's – gone with it
         hub.clients.pop(sock, None)
+        if kind == "stage" and hub.live.pop("dance_lab", None):   # #243: the lab is the stage's – gone with it
+            await hub.broadcast({"dance": {"lab": {}}})
         hub.roles.pop(sock, None)
         hub.key_roles.pop(sock, None)
         eyes.eyes_pages.discard(sock)
