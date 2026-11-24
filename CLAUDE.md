@@ -2,8 +2,8 @@
 
 Live AI dream machine for VJ work and installations: an endless image-to-image loop (SD-Turbo / SDXL-Turbo) fed by
 prompt, camera, picture, video, voice, music and movement (built-in detection in the stage).
-Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (CUDA: Scaleway or RunPod) via
-`dream-cloud`.
+Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (CUDA: RunPod; Scaleway only from the
+command line for now, #231) via `dream-cloud`.
 
 - `server.py` is the entry point (`uvicorn server:app`) and only puts the parts together (#189); role "app" (Mac: pages,
   voice, control state, cloud control, local rendering) or "worker" (cloud: rendering only – it loads `render.py`,
@@ -33,7 +33,8 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   `world` (`settings.WORLDS`) names the world; Dream tells it to the eyes and the windows, which never set it. #224: two worlds can be crossfaded (`world_to`, `world_mix`; `world_auto`: Dream drifts from world to world by itself – `eyes.world_step`, on by default, a hand on the worlds makes it wait): a page asks the style layer what to draw (`DreamStyle.plan` → one or two worlds with weights), draws the whole frame once per world (`DreamStyle.paint(name)`; the second pass moves nothing on) and adds the pictures up; a device that does not keep up shows one world at a time (a short fade, the weakest through black) – whatever a page caches between frames must know which world it was drawn in (`tests/js/blend.test.mjs`). A face of light is never mixed: of two worlds drawn at once only one draws it (`DreamStyle.lead`), and it goes completely before the other world's comes (`DreamVis.step`). The worlds are chosen in the panel and in Dream Control with the band of worlds (`static/worldband.js` and `worldband.css`: a picture per world of `settings.WORLDS`, drawn by the world itself; a tap, the drift's switch and pace, a status line fed by `eyes.drift_msg`) – a new world gets its name there. They draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
-  asked over `/facemarks` – and moved by each window itself; a window never runs a model). How much of a face shows
+  asked over `/facemarks` – and moved by each window itself, and by Dreamy Eyes for the face that opens out of their pupils (#230:
+  `windows.lookers` get the points, `DreamFace.life` is what a face does next); neither ever runs a model for it). How much of a face shows
   is one rule for both pages (#220): `static/dreamvis.js` – mostly only the eyes, hints (brows, the sign on the
   forehead, the outline at half strength) every minute or two, mouth, nose and hair rarely and clearly then; one face at a time – a face that
   takes another's place while it shows waits until that one has faded out completely (`DreamVis.step`: never a cut, never two faces over each other); a drawn face has one size, the eyes' – never fitted to the screen, what has no room runs off its edge; whatever is drawn of a
@@ -42,7 +43,7 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   Dreamy Eyes (#219, #229): the person from the camera, cut out on the phone and drawn as in a dream with plain canvas
   drawing – wavering in strips, running out into mist, the face clear only in the middle of the moment, coming apart
   when it leaves; never a model, no blur filter, no loop over a large picture – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
-  `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
+  `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. Who computes right now (#238) is `static/compute.js` and `compute.css`: from the owner's choice, the cloud's status (`cloud.py` makes one step of what `dream-cloud status` and the renderer's `/health` report: `render.progress`) and the bridge switch it tells where the stage's pictures are painted and draws the badge of the panel and of Dream Control – no page shows a line of a log (`tests/test_compute.py`, `tests/js/compute.test.mjs`). `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,

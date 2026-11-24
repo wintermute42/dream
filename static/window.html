@@ -205,7 +205,7 @@
   // from its seed and Dream's clock, so the two eyes of a pair in two windows look and blink together
   const fib = DreamEye.fibres(), irisStars = DreamEye.stars();
   const LOOKS = Object.values(DreamEye.LOOKS), FEEL = Object.values(DreamEye.EMO), IRIS = ['dream', 'kaleido', 'vortex', 'galaxy'];
-  const flick = p => p < 0 || p >= 1 ? 0 : p < 0.45 ? p / 0.45 : 1 - (p - 0.45) / 0.55;   // a lid closing and opening
+  const flick = DreamFace.flick;                       // a lid closing and opening
   function eyeLife(m, dt, calm) {
     const e = m.e || (m.e = { gx: 0, gy: 0, open: 0.1, pupil: 0.4, blink: 0, browAl: 0, brow: { inner: 0, peak: 0, outer: 0 } });
     const clk = now(), s = m.seed, k = Math.floor(clk / 2600);
@@ -256,30 +256,9 @@
     return fringe;
   }
   function faceLife(m, t, dt) {                        // what the face does next: by itself, with the beat, with Dreamy Eyes
-    const f = m.f || (m.f = { blink: 0, blinkAt: t + 1500, wink: -1, look: [0, 0], want: [0, 0], lookAt: 0, smile: 0, smileUntil: 0, smileNext: t + 4000 + Math.random() * 6000,
-      brow: [0, 0], browWant: [0, 0], kind: 0, kindWant: 0, browUntil: 0, browNext: t + 7000 + Math.random() * 6000, ph: Math.random() * 6 });
-    if (t > f.blinkAt) {
-      const p = (t - f.blinkAt) / 200;
-      f.blink = flick(p);
-      if (p >= 1) { f.blink = 0; f.blinkAt = t + (Math.random() < 0.15 ? 280 : 2200 + Math.random() * 4500); f.wink = Math.random() < 0.07 ? (Math.random() < 0.5 ? 0 : 1) : -1; }
-    }
-    if (t > f.lookAt) { f.want = Math.random() < 0.35 ? [0, 0] : [Math.random() * 2 - 1, (Math.random() * 2 - 1) * 0.7]; f.lookAt = t + 900 + Math.random() * 2800; }
-    const kl = 1 - Math.exp(-dt * 8);
-    f.look = [lerp(f.look[0], f.want[0], kl), lerp(f.look[1], f.want[1], kl)];
-    if (t > f.smileNext) { f.smileUntil = t + 3500 + Math.random() * 3500; f.smileNext = f.smileUntil + 8000 + Math.random() * 14000; }
-    const petted = t > st.blush && t - st.blush < 5000;   // Dreamy Eyes are petted: the faces smile along
-    f.smile = lerp(f.smile, petted ? 1 : t < f.smileUntil ? 0.75 : 0.06, 1 - Math.exp(-dt * 1.8));
-    if (t > f.browNext) {
-      const pick = Math.random() * 4 | 0;                // both up, one up, kind (the inner ends up), a little frown
-      f.browWant = pick === 0 ? [1, 1] : pick === 1 ? (Math.random() < 0.5 ? [1, 0] : [0, 1]) : pick === 2 ? [0.2, 0.2] : [-0.6, -0.6];
-      f.kindWant = pick === 2 ? 1 : 0; f.browUntil = t + 1600 + Math.random() * 2200; f.browNext = f.browUntil + 6000 + Math.random() * 12000;
-    }
-    const on = t < f.browUntil, kb = 1 - Math.exp(-dt * 6);
-    for (const k of [0, 1]) f.brow[k] = lerp(f.brow[k], on ? f.browWant[k] : 0.5 * st.pulse, kb);   // and they lift a little with the beat
-    f.kind = lerp(f.kind, on ? f.kindWant : 0, kb);
-    const closed = trance() > 0.3 ? 1 : 0;             // in trance the eyes close
-    return { blink: [Math.max(closed, f.wink === 1 ? 0 : f.blink), Math.max(closed, f.wink === 0 ? 0 : f.blink)], look: f.look, smile: f.smile, brow: f.brow, kind: f.kind,
-      turn: 0.7 * Math.sin(t / 4700 + f.ph) + 0.25 * Math.sin(t / 1900), nod: 0.6 * Math.sin(t / 6100 + f.ph * 2) };
+    const f = m.f || (m.f = DreamFace.alive(t));
+    // Dreamy Eyes are petted: the faces smile along; in trance their eyes close
+    return DreamFace.life(f, t, dt, { petted: t > st.blush && t - st.blush < 5000, pulse: st.pulse, closed: trance() > 0.3 });
   }
   function faceOf(url) {
     let f = faces.set[url];

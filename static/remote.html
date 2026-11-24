@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="/static/sliders.css">
 <link rel="stylesheet" href="/static/worldband.css">
 <link rel="stylesheet" href="/static/signs.css">
+<link rel="stylesheet" href="/static/compute.css">
 <style>
   :root { --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --card: #17141f; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 18px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -355,10 +356,12 @@
 
   <section data-sec="computing" data-only="control">
     <h2>Computing</h2>
+    <div id="computing" class="compute"></div><!-- #238: who computes right now, drawn by DreamCompute -->
     <div class="seg" id="backends" style="--n:2"><button data-b="local">Local (Mac)</button><button data-b="cloud">Cloud GPU</button></div>
+    <label class="check"><input type="checkbox" id="cloud_bridge"> Bridge on the Mac automatically (while the cloud prepares or does not answer)</label>
     <div id="cloudstate" class="hint"></div>
     <div class="row" style="margin-top:8px">
-      <select id="gpu" aria-label="Cloud GPU"><optgroup label="Scaleway (Paris)"><option value="L4-1-24G">Scaleway · L4 · about €0.79/h</option><option value="L40S-1-48G">Scaleway · L40S · about €1.47/h</option><option value="H100-1-80G">Scaleway · H100 · about €2.87/h</option></optgroup><optgroup label="RunPod (Europe, own data centres)"><option value="runpod:RTX-4090">RunPod · RTX 4090 · about $0.70/h</option><option value="runpod:RTX-5090">RunPod · RTX 5090 · about $1.39/h</option><option value="runpod:H100">RunPod · H100 · about $4.39/h</option></optgroup><optgroup label="RunPod Community – private computers, cheaper (pictures at the outside provider)"><option value="runpod:RTX-4090-community">RunPod Community · RTX 4090 · from about $0.35/h</option><option value="runpod:RTX-5090-community">RunPod Community · RTX 5090 · from about $0.70/h</option><option value="runpod:H100-community">RunPod Community · H100 · from about $2.70/h</option></optgroup></select>
+      <select id="gpu" aria-label="Cloud GPU"></select><!-- #231: filled by DreamCommon.fillGpus -->
       <button id="cloudstart">Start</button><button id="cloudstop">Delete</button>
     </div>
     <label>Model</label>
@@ -379,10 +382,12 @@
 <script src="/static/sliders.js"></script>
 <script src="/static/worldband.js"></script>
 <script src="/static/signs.js"></script>
+<script src="/static/compute.js"></script>
 <script>
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
   I18N.apply();
+  DreamCommon.fillGpus(document.getElementById('gpu'));   // #231: the cloud GPUs on offer, the default chosen
   document.documentElement.style.setProperty('--off-label', JSON.stringify(' · ' + T('off')));
   document.querySelectorAll('.langsw button').forEach(b => {
     b.setAttribute('aria-pressed', b.dataset.lang === I18N.lang); b.onclick = () => I18N.setLang(b.dataset.lang); });
@@ -419,7 +424,7 @@
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master']);
-  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast'];
+  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast'];
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount(document.getElementById('worldband'), { send: set => { Object.assign(state, set); send({ set }); } });   // (one word for all of them)
   let ws = null, state = {}, applying = false;
@@ -443,7 +448,7 @@
     const c = [];
     if (state.running === false) c.push(['warn', '⏸ Pause']);
     if (state.auto) c.push(['ok', '🤖 Autopilot']);
-    if (state.backend === 'cloud') c.push(['warn', T('☁ Cloud GPU')]);
+    if (cloudNow.busy || cloudNow.work || state.backend === 'cloud') c.push(['warn', T('☁ Cloud GPU')]);   // #238: it costs, whoever computes
     if (state.playlist) c.push(['', '▶ ' + I18N.name(state.playlist)]);
     if (state.music && state.music !== 'off') c.push(['ok', T('♪ Music')]);
     if (state.flowtrack && state.flowtrack !== 'off') c.push(['ok', 'flowtrack']);
@@ -503,6 +508,7 @@
     if ('mode' in st) { seg('modes', 'm', st.mode); $('flowmode').classList.toggle('on', st.mode === 'flow'); }
     if ('music' in st) seg('musics', 'v', st.music);
     if ('backend' in st) seg('backends', 'b', st.backend);
+    if ('backend' in st || 'cloud_bridge' in st) showComputing();
     if ('running' in st) $('run').textContent = st.running ? '⏸ Pause' : T('▶ Go on');
     show(); applying = false;
   }
@@ -524,7 +530,9 @@
   $('next').onclick = () => send({ cmd: 'next' });
   document.querySelectorAll('#modes button, #flowmode').forEach(b => b.onclick = () => { seg('modes', 'm', b.dataset.m); $('flowmode').classList.toggle('on', b.dataset.m === 'flow'); setKey('mode', b.dataset.m); });
   document.querySelectorAll('#musics button').forEach(b => b.onclick = () => { seg('musics', 'v', b.dataset.v); setKey('music', b.dataset.v); });
-  document.querySelectorAll('#backends button').forEach(b => b.onclick = () => { seg('backends', 'b', b.dataset.b); setKey('backend', b.dataset.b); });
+  const chooseBackend = b => { setKey('backend', b); apply({ backend: b }); };
+  document.querySelectorAll('#backends button').forEach(b => b.onclick = () => chooseBackend(b.dataset.b));
+  $('cloud_bridge').addEventListener('change', () => { state.cloud_bridge = $('cloud_bridge').checked; showComputing(); });
   $('run').onclick = () => { setKey('running', !state.running); apply({ running: state.running }); };
   $('restart').onclick = () => send({ cmd: 'restart' });
   $('reseed').onclick = () => setKey('seed', Math.floor(Math.random() * 99999));
@@ -586,7 +594,7 @@
 
   $('midilearn').onclick = () => { send({ midi_learn: $('miditarget').value }); $('midistate').textContent = T('Now turn or press on the controller …'); };
 
-  // the cloud GPU (Scaleway or RunPod)
+  // the cloud GPU (RunPod; Scaleway only from the command line for now, #231)
   async function cloud(path, body) {
     const r = await fetch(path, body ? { method: 'POST', body } : {});
     return r.json();
@@ -596,11 +604,22 @@
     if (role && !can('control')) return;              // a guest has no cloud
     try { showCloud(await cloud('/cloud')); } catch (e) { $('cloudstate').textContent = ''; }
   }
+  // #238: who computes right now – the same badge as in the panel; the tap on "Cloud ready – switch?" chooses the cloud
+  let cloudNow = { state: 'off' };
+  function showComputing() {
+    DreamCompute.draw($('computing'), DreamCompute.now(state.backend, cloudNow, !!state.cloud_bridge), () => chooseBackend('cloud'));
+  }
   function showCloud(c) {
+    cloudNow = c;
+    showComputing();
     const money = c.minutes !== undefined ? ` · ${c.minutes} min · ≈ ${(+c.cost_eur).toLocaleString(I18N.lang, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c.currency === 'USD' ? '$' : '€'}` : '';   // #179: the device's number format
-    $('cloudstate').textContent = c.state === 'setup' ? T('No cloud provider set up (Scaleway or RunPod, see README).')
-      : c.state === 'off' ? (c.busy ? T('working …') : c.fail ? T('Start failed – details in the panel on the Mac.') : T('Off – no costs.')) : (c.ready ? T('Running: {type}', { type: c.type }) + money : T('Starting …') + money);
-    $('cloudstart').disabled = c.busy || c.ready || c.state === 'setup';
+    const phase = c.work && c.work.phase;
+    $('cloudstate').textContent = c.state === 'setup' ? T('No cloud provider set up (RunPod, see README).')
+      : c.state === 'off' ? (c.busy ? T('working …') : c.fail ? T('Start failed – details in the panel on the Mac.') : T('Off – no costs.'))
+      : c.state === 'error' ? T('The cloud’s status cannot be read right now – trying again.')
+      : (phase === 'ready' ? T('Running: {type}', { type: c.type }) : phase === 'unreachable' ? T('Not reachable: {type}', { type: c.type })
+        : phase === 'stopping' ? T('Deleting …') : T('Preparing: {type}', { type: c.type })) + money;
+    $('cloudstart').disabled = !DreamCompute.canStart(c);
     $('cloudstop').disabled = c.state === 'off' && !c.busy;
   }
   $('cloudstart').onclick = async () => {
@@ -613,7 +632,7 @@
   };
   $('cloudstop').onclick = async () => {
     if (!confirm(T('Delete the cloud GPU now?'))) return;
-    await cloud('/cloud/stop', new FormData()); setKey('backend', 'local'); apply({ backend: 'local' }); pollCloud();
+    await cloud('/cloud/stop', new FormData()); chooseBackend('local'); pollCloud();
   };
 
 

@@ -1,14 +1,16 @@
 #!/bin/bash
 # dream-cloud – runs the Dream renderer on a cloud GPU and tunnels it to 127.0.0.1:7861 on this Mac.
 #
-#   dream-cloud start [--type L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community]
-#                     [--model sd-turbo|sdxl-turbo]
+#   dream-cloud start [--type runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community|L4-1-24G|L40S-1-48G|H100-1-80G]
+#                     [--model sd-turbo|sdxl-turbo]      (--type: runpod:RTX-4090 unless given)
 #   dream-cloud stop          deletes the instance/pod together with its disk (nothing left that costs)
 #   dream-cloud status [--json]
 #
-# Two providers (#104): Scaleway (Paris; the CLI configured once with `scw init`, the local SSH key registered there)
-# and RunPod (pods in European data centers; the API key in the macOS keychain, see cloud_runpod.py – the Mac's
-# public key goes into the pod, nothing needs registering). The renderer listens on 127.0.0.1; only SSH is used.
+# Two providers (#104): RunPod (pods in European data centers; the API key in the macOS keychain, see cloud_runpod.py –
+# the Mac's public key goes into the pod, nothing needs registering) and Scaleway (Paris; the CLI configured once with
+# `scw init`, the local SSH key registered there). #231: Scaleway accepts no new GPU instances for the time being, so
+# RunPod is the default and the pages offer only RunPod; the Scaleway types stay usable here with --type.
+# The renderer listens on 127.0.0.1; only SSH is used.
 # Cost guard: the instance is deleted automatically after DREAM_AUTO_OFF_MIN minutes (default 120) by a local
 # timer, and halts itself on the instance as a fallback.
 set -euo pipefail
@@ -79,7 +81,32 @@ find_server() {
 runpod_ok() { [ -n "${DREAM_RUNPOD_KEY:-}" ] || security find-generic-password -a dream -s runpod-api-key >/dev/null 2>&1; }
 
 tunnel_pid() { pgrep -f "ssh .*-L 127.0.0.1:$LOCAL_PORT:127.0.0.1:$REMOTE_PORT" | head -n1 || true; }
-ready() { curl -fsS -m 3 "http://127.0.0.1:$LOCAL_PORT/health" >/dev/null 2>&1; }
+# #238: the worker says itself where it stands (its /health, through the tunnel): the answer as one line of JSON, or
+# nothing while it does not answer – and from it one word: ready | failed | compiling | download | loading
+worker_json() {
+  { curl -fsS -m 3 "http://127.0.0.1:$LOCAL_PORT/health" 2>/dev/null || true; } | python3 -I -c '
+import json, sys
+try:
+    h = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+if isinstance(h, dict):
+    print(json.dumps(h, separators=(",", ":")))'
+}
+step_of() {
+  printf '%s' "$1" | python3 -I -c '
+import json, sys
+try:
+    h = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+if h.get("failed"): print("failed")
+elif h.get("compiling"): print("compiling")
+elif h.get("ready", True): print("ready")          # a worker of an earlier version answers once its model is loaded
+elif h.get("first_download"): print("download")
+else: print("loading")'
+}
+ready() { [ "$(step_of "$(worker_json)")" = ready ]; }
 state_get() { [ -f "$STATE" ] && sed -n "s/^$1=//p" "$STATE" | tail -n1 || true; }
 
 open_tunnel() {
@@ -94,7 +121,7 @@ cmd_status() {
   local json=0; [ "${1:-}" = "--json" ] && json=1
   local line prov id st type ip port p cur
   if ! scw_ok && ! runpod_ok; then
-    if [ "$json" = 1 ]; then echo '{"state":"setup"}'; else tx "No cloud provider set up (scw init or RunPod key)."; fi
+    if [ "$json" = 1 ]; then echo '{"state":"setup"}'; else tx "No cloud provider set up (RunPod key in the keychain, see README)."; fi
     return 0
   fi
   line="$(find_server)"
@@ -103,18 +130,20 @@ cmd_status() {
     return 0
   fi
   read -r prov id st type ip port p cur <<<"$line"
-  local started now mins cost tun rdy sym
+  local started now mins cost tun rdy sym wk
   started="$(state_get STARTED)"; now="$(date +%s)"
   [ -n "$started" ] || started="$now"
   mins=$(( (now - started) / 60 ))
   cost="$(awk -v m="$mins" -v p="$p" 'BEGIN { printf "%.2f", m / 60 * p }')"
   tun=false; [ -n "$(tunnel_pid)" ] && tun=true
-  rdy=false; ready && rdy=true
+  wk="$(worker_json)"
+  rdy=false; [ "$(step_of "$wk")" = ready ] && rdy=true
   sym="€"; [ "$cur" = USD ] && sym='$'
   if [ "$json" = 1 ]; then
     # price_eur_h/cost_eur keep their names for the panel; "currency" says what they are in
-    printf '{"state":"%s","provider":"%s","type":"%s","ip":"%s","minutes":%d,"price_eur_h":%s,"cost_eur":%s,"currency":"%s","tunnel":%s,"ready":%s,"auto_off_min":%d,"port":%d}\n' \
-      "$st" "$prov" "$type" "$ip" "$mins" "$p" "$cost" "$cur" "$tun" "$rdy" "$AUTO_OFF_MIN" "$LOCAL_PORT"
+    # "worker" (#238): what the renderer on the machine says about itself, null while it does not answer
+    printf '{"state":"%s","provider":"%s","type":"%s","ip":"%s","minutes":%d,"price_eur_h":%s,"cost_eur":%s,"currency":"%s","tunnel":%s,"ready":%s,"auto_off_min":%d,"port":%d,"worker":%s}\n' \
+      "$st" "$prov" "$type" "$ip" "$mins" "$p" "$cost" "$cur" "$tun" "$rdy" "$AUTO_OFF_MIN" "$LOCAL_PORT" "${wk:-null}"
   else
     tx "Dream GPU ({0}): {1}, state {2}, for {3} min (about {4} {5}, {6} {5}/h), tunnel {7}, ready {8}." "$prov" "$type" "$st" "$mins" "$cost" "$sym" "$p" "$tun" "$rdy"
     tx "Automatic deletion after {0} min. Delete now: {1} stop" "$AUTO_OFF_MIN" "$0"
@@ -177,7 +206,7 @@ REMOTE
 }
 
 cmd_start() {
-  local type="L4-1-24G" model="sd-turbo" fallback="" withref=0
+  local type="runpod:RTX-4090" model="sd-turbo" fallback="" withref=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --type) type="$2"; shift 2 ;;
@@ -187,7 +216,7 @@ cmd_start() {
       *) die "$(tx "unknown option {0}" "$1")" ;;
     esac
   done
-  case "$type" in L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community) ;; *) die "$(tx "unknown GPU type {0}" "$type")" ;; esac
+  case "$type" in runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community|L4-1-24G|L40S-1-48G|H100-1-80G) ;; *) die "$(tx "unknown GPU type {0}" "$type")" ;; esac
   case "$model" in sd-turbo|sdxl-turbo) ;; *) die "$(tx "unknown model {0}" "$model")" ;; esac
   local prov; prov="$(provider_of "$type")"
   if [ "$prov" = scaleway ]; then scw_ok || die "$(tx "Scaleway is not set up: brew install scw, then scw init.")"
@@ -246,9 +275,20 @@ cmd_start() {
   remote_setup "$ip" "$model" "$withref"
   open_tunnel "$ip"
   say "$(tx "Waiting until the model is loaded …")"
+  # #238: the steps in words (the worker tells them), never a line of the machine's log
+  local step last=""
   for i in $(seq 1 180); do
-    ready && break
-    [ $((i % 6)) -eq 0 ] && ssh "${SSH_OPTS[@]}" "root@$ip" "tail -n1 /var/log/dream.log" 2>/dev/null | tr '\r' '\n' | tail -n1 | cut -c1-120 || true
+    step="$(step_of "$(worker_json)")"
+    [ "$step" = ready ] && break
+    [ "$step" = failed ] && die "$(tx "The model could not be loaded on the machine (log: {0})." "ssh -p $port root@$ip tail /var/log/dream.log")"
+    if [ -n "$step" ] && [ "$step" != "$last" ]; then
+      last="$step"
+      case "$step" in
+        download) say "$(tx "The machine downloads the model …")" ;;
+        loading) say "$(tx "The machine loads the model …")" ;;
+        compiling) say "$(tx "The machine optimises the model for its GPU …")" ;;
+      esac
+    fi
     sleep 5
   done
   ready || die "$(tx "Dream does not answer on the machine (log: {0})." "ssh -p $port root@$ip tail /var/log/dream.log")"
@@ -302,8 +342,8 @@ case "${1:-}" in
   start) shift; cmd_start "$@" ;;
   stop) shift; cmd_stop "$@" ;;
   status) shift; cmd_status "$@" ;;
-  -h|--help) tx "usage: {0} start [--fallback TYPE] [--type L4-1-24G|L40S-1-48G|H100-1-80G|runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]" "$0"
-     tx "  start   creates a GPU at Scaleway or RunPod (costs from then on, deletes itself after {0} min at the latest)" "$AUTO_OFF_MIN"
+  -h|--help) tx "usage: {0} start [--fallback TYPE] [--type runpod:RTX-4090|runpod:RTX-5090|runpod:H100|runpod:RTX-4090-community|runpod:RTX-5090-community|runpod:H100-community|L4-1-24G|L40S-1-48G|H100-1-80G] [--model sd-turbo|sdxl-turbo] [--with-ref] | stop | status [--json]" "$0"
+     tx "  start   creates a GPU at RunPod or Scaleway (costs from then on, deletes itself after {0} min at the latest)" "$AUTO_OFF_MIN"
      tx "  stop    deletes machine and disk – nothing costs afterwards"
      tx "  status  shows whether a Dream GPU runs and what it has cost so far" ;;
   *) tx "usage: {0} start [--type …] [--model sd-turbo|sdxl-turbo] | stop | status [--json]  (more: {0} --help)" "$0"; exit 2 ;;
