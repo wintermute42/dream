@@ -1468,9 +1468,9 @@ Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später. Das **Abzeic
 - **Turbo (#100, #131):** Auf der Cloud-GPU wird das Modell vor dem ersten Bild für die Karte übersetzt
   (torch.compile, TF32), schlank in einer Variante. Den übersetzten Code bringt `dream-cloud` als **Cache** auf den Mac
   (`~/.cache/dream/compile`, je GPU-Typ, PyTorch-Version und Modell) und beim nächsten Start wieder mit: Der **erste**
-  Start auf einem GPU-Typ dauert gut 6 Minuten bis zum ersten Bild, jeder weitere etwa 4 (gemessen RTX 4090, 2026-11-17, nur mit den quadratischen Bildern; seit auch die 16:9-Bilder beim
-  Start übersetzt werden, dauert beides länger – noch nicht gemessen, das Abzeichen rechnet für „Wird optimiert“ mit etwa
-  8 bzw. 2,5 Minuten; der erste Start nach dieser Änderung übersetzt neu, der frühere Cache enthält die 16:9-Bilder
+  Start auf einem GPU-Typ dauert etwa 7 Minuten bis zum ersten Bild, jeder weitere etwa 1,5 (gemessen RTX 4090,
+  2026-11-24, SDXL-Turbo, quadratisch und 16:9 mit 512 und 384 px: „Wird optimiert“ dauerte ohne Cache etwa 5 Minuten,
+  mit Cache eine halbe; der erste Start nach dieser Änderung übersetzt neu, der frühere Cache enthält die 16:9-Bilder
   nicht). Die Karte
   Rechnen zeigt, was gerade läuft. **Stil-Referenzbild in der Cloud:** Die Technik dafür kommt erst mit dem ersten
   Referenzbild; danach malt die Cloud unübersetzt weiter (gemessen etwa 4,5 statt 5 Bilder/s) – ist beim nächsten Start ein

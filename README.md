@@ -1382,9 +1382,10 @@ A cloud GPU costs from the moment it starts, but it paints only minutes later. T
 **Compiling and the compile cache:** on the cloud GPU the model is compiled for the card before its first picture
 (torch.compile, TF32), slim in one variant. `dream-cloud` brings the compiled code to the Mac as a **cache**
 (`~/.cache/dream/compile`, per GPU type, PyTorch version and model) and takes it to the next machine: the **first**
-start on a GPU type takes a good 6 minutes until the first picture, later ones about 4 (measured on an RTX 4090 with the square pictures alone; since the 16:9 pictures are compiled at the
-start too, both take longer – not measured yet, the badge reckons with about 8 and 2.5 minutes for the step “Is
-optimised”; the first start after this change compiles anew, the earlier cache does not hold the 16:9 pictures). With
+start on a GPU type takes about 7 minutes until the first picture, later ones about 1.5 (measured on an RTX 4090 with
+SDXL-Turbo, square and 16:9 at 512 and 384 px: the step “Is optimised” took about 5 minutes without the cache and
+half a minute with it; the first start after this change compiles anew, the earlier cache does not hold the 16:9
+pictures). With
 a style reference picture in the cloud, its technique comes with the first reference picture; the cloud then paints
 uncompiled (measured about 4.5 instead of 5 pictures/s) – if a reference picture is chosen at the next start, it is
 compiled in at once. If compiling fails, the model simply runs normally (switch it off: `DREAM_COMPILE=0`). After
