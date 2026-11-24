@@ -3,6 +3,9 @@ change it over /ctl – and what the motion sensor hands to the stage's dance de
 import asyncio
 import json
 import os
+import re
+import subprocess
+import sys
 
 import pytest
 
@@ -293,9 +296,36 @@ def test_marker_colours_are_never_fire_colours():
 
 
 # ---------- #251: the clutch and the movement sets ----------
-def test_the_clutch_is_engaged_by_default_and_never_a_guests():
-    assert settings.DEFAULT_STATE["clutch"] is True and settings.DEFAULT_STATE["dance_set"] == ""
+def test_the_clutch_is_released_by_default_and_never_a_guests():
+    assert settings.DEFAULT_STATE["clutch"] is False and settings.DEFAULT_STATE["dance_set"] == ""
     assert not {"clutch", "dance_set"} & settings.GUEST_KEYS
+
+
+def test_every_start_has_the_clutch_released(tmp_path):
+    """Dream starts with the dance's clutch released, whatever the last run left: it is engaged only on purpose."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env = {**os.environ, "DREAM_STATE_DIR": str(tmp_path / "state"), "DREAM_CONFIG_DIR": str(tmp_path / "config"),
+           "DREAM_SAVE_DIR": str(tmp_path / "save")}
+    os.makedirs(env["DREAM_STATE_DIR"])
+    with open(os.path.join(env["DREAM_STATE_DIR"], "state.json"), "w") as f:
+        json.dump({"clutch": True, "move_mode": "dance", "dance_set": "fire"}, f)
+    out = subprocess.run([sys.executable, "-c", "import hub; print(hub.state['clutch'], hub.state['move_mode'], hub.state['dance_set'])"],
+                         cwd=root, env=env, capture_output=True, text=True, timeout=60)
+    assert out.stdout.split() == ["False", "dance", "fire"], out.stderr      # the mode and the set are remembered, the clutch is not
+
+
+def test_the_pages_start_with_the_clutch_released_and_say_so():
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for page in ("index.html", "remote.html", "dance.html"):
+        with open(os.path.join(root, "static", page), encoding="utf-8") as f:
+            html = f.read()
+        (button,) = re.findall(r'<button[^>]*id="clutchbtn"[^>]*>[^<]*</button>', html)
+        assert 'aria-pressed="false"' in button and button.endswith(">Clutch: released</button>") and "clutchbtn on" not in button, page
+        assert re.search(r'</button>\s*<div class="clutchnote" id="clutchnote" role="status"[^>]*>Released: your dance does nothing yet', html), page
+        assert not re.search(r'id="clutch"[^>]*checked', html), page
+        assert "MoveCard.clutchShow(" in html, page
+    with open(os.path.join(root, "static", "movecard.css"), encoding="utf-8") as f:
+        assert '.clutchbtn[aria-pressed="false"]' in f.read()                # released looks different, not just reads different
 
 
 @pytest.mark.parametrize("name,ok", [("waves", True), ("My set 1", True), ("Fire+Water", True), ("a.b-c", True), ("Élan 2", True),
@@ -364,7 +394,7 @@ def test_only_control_and_this_mac_keep_remove_and_choose_sets(server, table, sa
         assert ws.receive_json()["role"] == role
         ws.send_text(json.dumps({"dance_map": [GOOD]}))
         ws.send_text(json.dumps({"dance_set_save": "Mine"}))
-        ws.send_text(json.dumps({"set": {"dance_set": "fire", "clutch": False}}))
+        ws.send_text(json.dumps({"set": {"dance_set": "fire", "clutch": True}}))
         ws.send_text(json.dumps({"set": {"prompt": "after the sets"}}))
         if role != "eyes":
             wait_until(lambda: server.hub.state["prompt"] == "after the sets")
@@ -373,10 +403,10 @@ def test_only_control_and_this_mac_keep_remove_and_choose_sets(server, table, sa
     if may:
         assert server.dance.sets == {"Mine": [{**GOOD, "out": [0.0, 0.8]}]}
         assert server.dance.tables["dance"] == table.builtin_sets()["fire"]            # choosing the set made it the table
-        assert server.hub.state["dance_set"] == "fire" and server.hub.state["clutch"] is False
+        assert server.hub.state["dance_set"] == "fire" and server.hub.state["clutch"] is True
     else:
         assert server.dance.sets == {} and server.dance.tables == table.default_tables()
-        assert server.hub.state["dance_set"] == "" and server.hub.state["clutch"] is True
+        assert server.hub.state["dance_set"] == "" and server.hub.state["clutch"] is False
 
 
 def test_a_device_is_told_the_sets(server, table):

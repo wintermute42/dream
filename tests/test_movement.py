@@ -3,6 +3,8 @@ stage (movement.py), what Dreamy Eyes may say of the movement in front of them (
 as sources (sensors.py, inputs.py), and the settings of earlier versions carried over (settings.moved)."""
 import asyncio
 import json
+import os
+import time
 
 import pytest
 
@@ -184,22 +186,101 @@ def test_the_senders_have_an_end():
     assert len(sens.by) == 8
 
 
-def test_presence_and_rules_count_only_while_the_camera_runs(server, monkeypatch, saved_state):
-    seen = []
+def test_rules_count_only_while_the_camera_runs_and_the_camera_never_says_who_is_there(server, monkeypatch, saved_state):
+    seen, here = [], []
 
     async def note(*a):
         seen.append(a)
-    monkeypatch.setattr(server.inputs, "on_presence", note)
+
+    async def presence(*a):
+        here.append(a)
+    monkeypatch.setattr(server.inputs, "on_presence", presence)
     monkeypatch.setattr(server.inputs, "on_rule", note)
-    for mode, cam, counts in (("off", False, 0), ("mood", False, 0), ("mood", True, 2), ("dance", False, 2), ("flowtrack", False, 2)):
+    for mode, cam, counts in (("off", False, 0), ("mood", False, 0), ("mood", True, 1), ("dance", False, 1), ("flowtrack", False, 1)):
         seen.clear()
         server.hub.state.update(move_mode=mode, move_cam=cam, move_off="", prompt="")
         with client(server, "local").websocket_connect(ws_url(server, "/ctl", "local") + "?role=stage") as ws:
             assert ws.receive_json()["role"] == "local"
             ws.send_text(json.dumps({"moved": True, "rule": "Fire on"}))
+            ws.send_text(json.dumps({"moved": False}))
             ws.send_text(json.dumps({"set": {"prompt": "mark"}}))
             wait_until(lambda: server.hub.state["prompt"] == "mark")
         assert len(seen) == counts, (mode, cam)
+        assert here == [], (mode, cam)             # the stage's camera: neither "nobody there" nor "someone came"
+    for page in ("index.html", "motion.js"):       # … and the page does not even report it
+        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", page), encoding="utf-8") as f:
+            assert "onPresence" not in f.read(), page
+
+
+# ---------- nobody there, someone comes: Dreamy Eyes' alone ----------
+def eyes_src(energy, **more):
+    return {"kind": "eyes", "active": True, "used": True, "conf": 0.8, "energy": energy, **more}
+
+
+def test_nobody_in_front_of_the_eyes_calms_the_dream_and_someone_coming_wakes_it():
+    p, quiet, lively = movement.Presence(), [eyes_src(0.0), eyes_src(0.02)], [eyes_src(0.0), eyes_src(0.4)]
+    assert p.step(lively, 0.0) is None and not p.calm                            # someone is there: nothing to say
+    assert p.step(quiet, 1.0) is None and p.step(quiet, 1.0 + movement.EMPTY - 0.1) is None   # a moment of rest is not "nobody"
+    assert p.step(lively, 8.0) is None and p.step(quiet, 9.0) is None            # … and it counts anew after a move
+    assert p.step(quiet, 9.0 + movement.EMPTY) == "calm" and p.calm
+    assert p.step(quiet, 60.0) is None                                           # said once
+    assert p.step(lively, 61.0) == "wake" and not p.calm                         # one pair of eyes with someone is enough
+    assert p.step(lively, 62.0) is None
+
+
+def test_only_dreamy_eyes_the_mode_listens_to_say_who_is_there():
+    still = {"active": True, "used": True, "conf": 0.9, "energy": 0.0}
+    for other in ([], [{**still, "kind": "camera"}], [{**still, "kind": "phone"}, {**still, "kind": "band"}],
+                  [eyes_src(0.0, used=False)], [eyes_src(0.0, active=False)], [eyes_src(0.0, conf=0.0)]):
+        p = movement.Presence()
+        assert p.step(other, 0.0) is None and p.step(other, 1000.0) is None and not p.calm, other
+    # the calm of the eyes ends quietly – no impulse – when they go or the mode stops listening to them
+    p = movement.Presence()
+    p.step([eyes_src(0.0)], 0.0)
+    assert p.step([eyes_src(0.0)], movement.EMPTY) == "calm"
+    assert p.step([{**still, "kind": "camera", "energy": 1.0}], movement.EMPTY + 1) == "rest" and not p.calm
+    assert p.step([eyes_src(0.0)], movement.EMPTY + 2) is None                   # back: the wait starts anew
+    assert p.step([eyes_src(0.0)], 2 * movement.EMPTY + 2) == "calm"
+    assert p.step([eyes_src(0.0, used=False)], 2 * movement.EMPTY + 3) == "rest"
+
+
+def test_the_stage_is_told_when_the_eyes_are_alone(server, register, monkeypatch):
+    monkeypatch.setattr(server.movement, "presence", movement.Presence())
+    monkeypatch.setattr(server.inputs, "sources_told", {"msg": None})
+    monkeypatch.setattr(server.inputs.sens, "by", {})
+    monkeypatch.setitem(server.hub.state, "move_off", "")
+    monkeypatch.setattr(server.movement, "EMPTY", 0.05)
+    sent = []
+
+    async def broadcast(msg, exclude=None, only=None):
+        sent.append(msg)
+    monkeypatch.setattr(server.hub, "broadcast", broadcast)
+
+    def tell(mode, energy, wait=0.0):
+        time.sleep(wait)
+        monkeypatch.setitem(server.hub.state, "move_mode", mode)
+        register.report("eyes:1", "eyes", "Dreamy Eyes 1", energy, 0.8)
+        asyncio.run(server.inputs.sources_tell())
+        return [m["cmd"] for m in sent if "cmd" in m]
+
+    assert tell("mood", 0.0) == [] and tell("mood", 0.0, 0.08) == ["calm"]
+    assert tell("mood", 0.5) == ["calm", "wake"]
+    assert tell("mood", 0.0) == ["calm", "wake"] and tell("mood", 0.0, 0.08) == ["calm", "wake", "calm"]
+    assert tell("dance", 0.0)[3:] == ["rest"]                                     # the dance does not listen to the eyes
+    assert tell("dance", 0.0, 0.08)[3:] == ["rest"]                              # … however long they are alone
+    assert tell("flowtrack", 0.9)[3:] == ["rest"] and tell("off", 0.0, 0.08)[3:] == ["rest"]
+
+
+def test_a_stage_that_comes_while_the_eyes_are_alone_is_calm_too(server, monkeypatch, saved_state):
+    for calm in (False, True):
+        p = movement.Presence()
+        p.calm = calm
+        monkeypatch.setattr(server.movement, "presence", p)
+        with client(server, "local").websocket_connect(ws_url(server, "/ctl", "local") + "?role=stage") as ws:
+            got = []
+            while not got or "state" not in got[-1]:
+                got.append(ws.receive_json())
+        assert [m["cmd"] for m in got if "cmd" in m] == (["calm"] if calm else [])
 
 
 # ---------- settings of earlier versions ----------

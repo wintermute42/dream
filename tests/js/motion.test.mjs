@@ -1,4 +1,4 @@
-// #240: "Hands (AI)" (static/motion.js) – which detected hand is followed, and presence as the server hears it. No
+// #240: "Hands (AI)" (static/motion.js) – which detected hand is followed. No
 // browser, no model: the pose results are played in as numbers.
 // Run: node --test tests/js/motion.test.mjs   (the CI runs it too)
 import assert from 'node:assert/strict';
@@ -39,16 +39,4 @@ test('a single guessed point far away is not followed, a hand that really is the
   assert.deepEqual(follow(frames)[10], [0.7, 0.5]);       // one frame somewhere else: ignored
   const moved = [...Array(10).fill([R(0.7)]), ...Array(5).fill([[0.2, 0.4, 2]])];
   assert.deepEqual(follow(moved).at(-1), [0.2, 0.4]);    // there twice in a row: followed
-});
-
-test('presence does not flicker when the hand is lost for a few frames', () => {
-  const p = new M.Presence(), changes = [];
-  let was = false;
-  for (let i = 0; i < 90; i++) {                         // 3 s: seen, but every third frame missed
-    const now = p.update(i % 3 !== 2, i / 30);
-    if (now !== was) { changes.push([i, now]); was = now; }
-  }
-  assert.deepEqual(changes.map(c => c[1]), [true]);
-  for (let i = 90; i < 150; i++) p.update(false, i / 30);   // then 2 s nobody
-  assert.equal(p.state, false);
 });
