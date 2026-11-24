@@ -1225,8 +1225,10 @@ Interaktion“):
 - Darunter eingeklappt: **Kamera und Erkennung** (Art der Erkennung, Kamera, Licht- und Marker-Farben, Finger,
   ⚡ Schnell, Kalibrieren, Projektion abziehen, Diagnose, Pose) und **Was eine Bewegung bewirkt** (was Dream sieht, die
   Tabelle des gewählten Modus, das Tanz-Labor, die Direktheit der Hände und „Spiegeln“).
-- **Dream Control** hat die vier Modus-Knöpfe und die Stärke der Stimmung („Stimmung – Stärke“); die Seiten gehören
-  dem Mac. Was Dream Control an Bewegung anbietet, bietet auch das Bedienfeld (ein Test prüft das).
+- **Dream Control** hat nur die vier Modus-Knöpfe und die Stärke der Stimmung („Stimmung – Stärke“). Die Art der
+  Erkennung, die Kamera für Bewegung, ⚡ Schnell, die Direktheit, „Spiegeln“ und die Pose stellst du im Bedienfeld am
+  Mac ein (es ist die Hauptsteuerung), und die Seiten gehören dem Mac. Was Dream Control an Bewegung anbietet, bietet
+  auch das Bedienfeld (ein Test prüft das).
 
 
 | Modus | Wofür | Hört auf | Mac-Kamera |
@@ -1260,6 +1262,13 @@ stiller Raum beruhigt den Traum. **Stärke** in der Karte bestimmt, wie viel dav
 MIDI-Controller kann sie drehen: Ziel „Stimmung: Stärke“). Sie braucht keine Kamera am Mac: Dreamy Eyes oder ein
 Handy reichen.
 
+**Niemand da, jemand kommt** – das gehört allein den Dreamy Eyes, und nur in der Stimmung (dem Modus, der auf sie
+hört): Hat sich etwa 12 Sekunden lang vor keinem Augenpaar etwas bewegt, wird der Traum ruhig (langsamer, weicher),
+und kommt jemand, wacht er mit einem leichten Impuls auf. Dream liest das aus der Energie, die die Augen ohnehin
+schicken – eine Zahl, sonst nichts von der Person. Die Mac-Kamera macht das nie: Tritt ein Performer aus ihrem Bild,
+wird der Traum nicht ruhig, und tritt er hinein, gibt es keinen Impuls. Ohne Dreamy Eyes (oder wenn die Augen als
+Quelle ausgeschaltet sind) gibt es beides nicht.
+
 **Einstellungen früherer Versionen** werden beim ersten Start übertragen: Der Schalter „Bewegung: AN“ wird zum Modus
 (Feuer/LED → Flowtrack; Hände oder Marker → Dream Dance, oder Flowtrack, wenn „Tanz steuert die Effekte“ aus war),
 und was in „Direkte Interaktion“ und bei „auf Bewegung reagieren“ angehakt war, bleibt als Zeilen der Tabelle an.
@@ -1268,8 +1277,7 @@ Neben dem Modus die Art der Erkennung für die Mac-Kamera:
 - **Hände (KI):** Ein Körpermodell (MediaPipe Pose, läuft auf der Grafikkarte) findet beide Hände, auch im Halbdunkel.
   Beim allerersten Einschalten lädt Dream das Modell einmal herunter (ca. 15 MB, nach `~/.cache/dream/mediapipe`),
   danach geht alles offline. Der Punkt folgt einer Hand: Verliert das Modell sie kurz, springt er nicht zur anderen
-  Hand, und ein Punkt, der für ein einziges Bild weit weg auftaucht, zählt nicht; „jemand kommt / geht“ wartet einen
-  Moment, so gibt eine für ein paar Bilder verlorene Hand keinen Lichtpuls. Das Modell braucht den Oberkörper im Bild;
+  Hand, und ein Punkt, der für ein einziges Bild weit weg auftaucht, zählt nicht. Das Modell braucht den Oberkörper im Bild;
   springen die Hände trotzdem, mit **D** (Diagnose) ansehen, was die Kamera sieht – ein Bildschirm oder die Projektion im
   Bild kann Figuren zeigen, die es für eine Person hält.
 - **Feuer/LED/Lichtspuren:** helle Punkte im Bild, bis zu vier. Die Schwelle richtet sich nach der Raumhelligkeit:
@@ -1295,7 +1303,7 @@ und zieht es von der Licht-Erkennung und der Bewegungs-Verfolgung ab. Die Hände
 simulierter Projektion sank die Fehlerkennung von über 80 % der Bilder auf 0 %, ein Lichtpunkt wurde weiter immer
 erkannt. Eine Infrarot-Kamera braucht das nicht (sie sieht den Beamer gar nicht).
 
-**Kamera für Bewegung** (neben dem Schalter, auch am Handy): „wie Bild“ oder eine eigene, z. B. eine Infrarot-Kamera
+**Kamera für Bewegung** (neben dem Schalter, im Bedienfeld): „wie Bild“ oder eine eigene, z. B. eine Infrarot-Kamera
 mit IR-Strahler, die im Dunkeln sieht und die Projektion nicht bemerkt, während die normale Kamera das Bild liefert.
 Dream merkt sich die Kameras nach Namen, auch über einen Neustart. Ist eine gewählte Kamera nicht angeschlossen,
 steht sie mit „(nicht angeschlossen)“ in der Liste, Dream nimmt so lange die Standardkamera und sagt es; wird sie
@@ -1320,7 +1328,7 @@ Ruck nicht überschießt).
 **Verzögerung (Latenz) – wo sie entsteht und was hilft:** Die Diagnose (D) zeigt in der letzten Zeile, wie alt das
 Kamerabild ist, wie lange die Erkennung rechnet, die gemessene Verzögerung Beamer → Kamera (nach dem Kalibrieren) und
 die Vorhersage.
-- **⚡ Schnell (Tanz/Flow)** in der Karte Bewegung unter „Kamera und Erkennung“ (auch am Handy): Die Bewegungswerte folgen sofort statt ruhig
+- **⚡ Schnell (Tanz/Flow)** in der Karte Bewegung unter „Kamera und Erkennung“ (nur im Bedienfeld): Die Bewegungswerte folgen sofort statt ruhig
   geglättet, Glätten aus, 1 Schritt und 384 px (mehr KI-Bilder pro Sekunde), wenig Traum-Anteil. Nochmal drücken
   stellt die vorherigen Werte wieder her; der Schalter bleibt über einen Neustart.
 - **Sofort sichtbar** sind die Effekte, Anfassen und Licht (60 Bilder/s, an das Ausgabefenster jetzt 60-mal pro
@@ -1374,8 +1382,9 @@ Kreuz, um das sich der Traum dreht, daneben speed, spread, Werte pro Sekunde, Li
 bleibt frei; die Anzeige geht nicht in die Ausgabe, nicht in Syphon und nicht an die KI. Ausgeschaltet zeichnet sie
 nichts und gibt ihren Speicher frei. Bei ausgeblendetem Bedienfeld (H) ist auch die Diagnose nicht zu sehen.
 
-Solange die Mac-Kamera läuft, reagiert Dream: Ist niemand da, wird der Traum ruhig, kommt jemand, gibt es einen
-leichten Impuls, und die Regeln unten gelten. Die **Effekte** folgen der Bewegung sofort über die Tabelle (siehe
+Solange die Mac-Kamera läuft, gelten die Regeln unten (wer da ist – „niemand da beruhigt den Traum, jemand kommt gibt
+einen Impuls“ – ist nicht Sache der Mac-Kamera, sondern der Dreamy Eyes, siehe [Bewegung](#bewegung)). Die
+**Effekte** folgen der Bewegung sofort über die Tabelle (siehe
 [Tanz](#tanz)). Die langsamen KI-Regler folgen nur, wenn die Zeile „**Jemand ist da → Bewegung schiebt die
 KI-Regler**“ an ist (standardmäßig aus; der Regler der Zeile bestimmt, wie stark): Dann
 erzeugt die Bewegung einen eigenen Sog um den verfolgten Punkt – auch im Kamera- und Video-Modus und wenn Zoom und Drehung auf 0
@@ -1384,7 +1393,6 @@ ruhigen Traum:
 - **x/y** des verfolgten Punkts wird zum Zentrum von Zoom-Sog und Drehung – der Traum wirbelt um Feuer, Poi oder Hand.
 - **speed** → stärkere Verwandlung, schnellere Drehung und Farbdrift.
 - **spread** (Abstand der Props/Hände) → mehr Zoom.
-- **present** → niemand da: ruhig; jemand kommt: Lichtimpuls.
 - **Regeln** lösen auf Wunsch Szenenwechsel aus: „Feuer an“ (jemand/etwas da, 0,3 s), „Feuer aus“ (2 s nichts),
   „Schnell“ (Tempo über 1 für 0,5 s, höchstens alle 4 s; englisch „Fire on“, „Fire off“, „Fast“ gehen auch), in
   `~/.config/dream/motion.json`:
@@ -1593,8 +1601,11 @@ einem Ruck – so wechselst du nahtlos zwischen Tanzen und Bedienen. Vier Wege, 
 - ein MIDI-Knopf: „**Taste: Kupplung ein/aus**“ anlernen (siehe [MIDI-Controller](#midi-controller)),
 - der Knopf in Dream Control (Karte „Dream Dance“) – das Handy in der Tasche.
 
-Der Balken unter dem Knopf auf der Seite zeigt, wie weit der Tanz drin ist. Nach dem ersten Start ist die Kupplung
-eingelegt; Dream merkt sie sich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
+Der Balken unter dem Knopf auf der Seite zeigt, wie weit der Tanz drin ist. **Nach jedem Start ist die Kupplung
+gelöst**: Dein Tanz bewirkt nichts, bis du sie bewusst einlegst – eine eingelegte Kupplung merkt sich Dream nicht
+über einen Neustart hinweg (den Modus und das Bewegungs-Set schon). Gelöst ist deutlich zu sehen: Der Knopf ist leer
+mit gestricheltem rotem Rand und zeigt „Kupplung: gelöst“, und die Zeile darunter sagt, dass dein Tanz noch nichts
+bewirkt – in der Karte Bewegung, auf der Seite und in Dream Control gleich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
 
 **Bewegungs-Sets** sind benannte Tabellen dessen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines
 Auftritts. Eingebaut: **Standard** (die eingebaute Tabelle), **Wellen** (Energie → Wellen, Öffnung → Tunnel, Armwelle →
@@ -2067,7 +2078,8 @@ Mac-Kamera öffnet, die Energie im Raum als nach Sicherheit gewichteter Mittelwe
 Kamera in einem Strom, ein Modus als nichts als seine Tabelle, der Moduswechsel ohne Sprung von einem Bild zum
 nächsten und die Energie, die Dreamy Eyes aus zwei kleinen Bildern rechnen (Rauschen ist keine Bewegung, heraus
 kommen nur zwei Zahlen). `tests/test_movement.py` prüft Dreams Teil: das Quellen-Register, dass Dreamy Eyes eine Zahl
-melden können und sonst nichts, und dass die Einstellungen früherer Versionen einmal übertragen werden.
+melden können und sonst nichts, dass „niemand da / jemand kommt“ nur von den Dreamy Eyes gelesen wird und nie von der
+Mac-Kamera, und dass die Einstellungen früherer Versionen einmal übertragen werden.
 `node --test tests/js/dancerec.test.mjs` (#243) prüft die Sessions des Tanz-Labors (`static/dancerec.js`): Ein
 aufgenommener simulierter Tanz gibt beim Abspielen genau die Merkmale wieder, aus denen er gemacht wurde, und enthält
 nichts als Zahlen; seine Eingaben, einem frischen Erkenner gefüttert, ergeben dieselben Gesten; ein Feedback behält

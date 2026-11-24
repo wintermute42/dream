@@ -287,8 +287,9 @@
   <section data-sec="dancelab" data-only="control">
     <h2>Dream Dance</h2>
     <!-- #251: the clutch and the movement set, as in the panel's Movement card -->
-    <button id="clutchbtn" class="big clutchbtn on" aria-pressed="true" style="width:100%" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do.">Clutch: engaged</button>
-    <input type="checkbox" id="clutch" hidden aria-hidden="true" checked>
+    <button id="clutchbtn" class="big clutchbtn" aria-pressed="false" style="width:100%" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do.">Clutch: released</button>
+    <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
+    <input type="checkbox" id="clutch" hidden aria-hidden="true">
     <select id="dance_set" aria-label="Movement set" style="margin-top:8px"><option value="">Set: your table</option></select>
     <div class="hint">Say how the dance control feels while you dance: Dream keeps the last seconds as numbers (what it detected, what the movement steered) – never a camera picture. The lab itself is on the Mac.</div>
     <div class="row" style="margin-top:8px"><button id="dl-good" class="big">👍 Good</button><button id="dl-bad" class="big">👎 Bad</button></div>
@@ -345,15 +346,6 @@
       <select id="move_mode" hidden aria-hidden="true"><option value="off">Off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
       <label for="motion_sens" title="How strongly the energy in the room moves the dream (0 = not at all)">Mood – strength <span class="val" id="v-motion_sens"></span></label><input type="range" id="motion_sens" min="0" max="3" step="0.05">
     </div>
-    <div class="row" style="margin-top:8px">
-      <select id="flow_kind" data-only="control" aria-label="Kind of movement detection"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option><option value="marker">LED markers (2 colours)</option></select></div>
-    <label class="check" data-only="control"><input type="checkbox" id="fast"> ⚡ Fast (dance/flow): values follow at once, smoothing off</label>
-    <label for="flow_device" data-only="control">Camera for movement</label>
-    <select id="flow_device" data-only="control"><option value="">as picture</option></select>
-    <label data-only="control">Directness (hands paint and swirl) <span class="val" id="v-touch_amt"></span></label><input type="range" id="touch_amt" data-only="control" min="0" max="1" step="0.05">
-    <label class="check" data-only="control"><input type="checkbox" id="touch_mirror"> Mirror</label>
-    <label class="check" data-only="control"><input type="checkbox" id="pose"> Pose shapes the figure (skeleton)</label>
-    <label data-only="control">Pose strength <span class="val" id="v-pose_scale"></span></label><input type="range" id="pose_scale" data-only="control" min="0.2" max="1.5" step="0.05">
   </section>
 
   <section data-sec="music">
@@ -442,8 +434,8 @@
   byId('uinight').onclick = () => setNight(!document.body.classList.contains('night'));
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
-  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master']);
-  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion_sens', 'move_mode', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_mirror', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast', 'clutch', 'dance_set'];
+  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'drift', 'master']);
+  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion_sens', 'move_mode', 'drift', 'smooth', 'drift_prompt', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'clutch', 'dance_set'];
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount(document.getElementById('worldband'), { send: set => { Object.assign(state, set); send({ set }); } });   // (one word for all of them)
   let ws = null, state = {}, applying = false;
@@ -469,7 +461,7 @@
   // and the rest are the Mac's
   // #251: the dance's clutch (the button on the phone) and the movement sets
   let danceSets = [];
-  function clutchSync() { const on = document.getElementById('clutch').checked, b = document.getElementById('clutchbtn'); b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); b.textContent = MoveCard.clutchText(on); }
+  const clutchSync = () => MoveCard.clutchShow(document.getElementById('clutchbtn'), document.getElementById('clutch').checked, document.getElementById('clutchnote'));
   document.getElementById('clutchbtn').onclick = () => { const c = document.getElementById('clutch'); c.checked = !c.checked; setKey('clutch', c.checked); clutchSync(); };
   const moveCard = MoveCard.mount(document.getElementById('movecard'), { send: set => Object.entries(set).forEach(([k, v]) => setKey(k, v)) });
 
@@ -482,8 +474,8 @@
     const f = (id, t) => { if ($('v-' + id)) $('v-' + id).textContent = t; };
     f('strength', +$('strength').value <= 0.001 ? T('off (picture direct)') : (+$('strength').value).toFixed(2)); f('mix', Math.round($('mix').value * 100) + ' %');
     f('zoom', (+$('zoom').value).toFixed(3)); f('rot', (+$('rot').value).toFixed(1) + '°');
-    f('hue', (+$('hue').value).toFixed(1) + '°'); f('touch_amt', +$('touch_amt').value ? Math.round($('touch_amt').value * 100) + ' %' : T('off')); f('drift', +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off')); f('smooth', +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off')); f('sens', (+$('sens').value).toFixed(2) + '×');
-    f('motion_sens', (+$('motion_sens').value).toFixed(2) + '×'); f('pose_scale', (+$('pose_scale').value).toFixed(2));
+    f('hue', (+$('hue').value).toFixed(1) + '°'); f('drift', +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off')); f('smooth', +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off')); f('sens', (+$('sens').value).toFixed(2) + '×');
+    f('motion_sens', (+$('motion_sens').value).toFixed(2) + '×');
     const lv = +$('auto_level').value; f('auto_level', lv < 0.34 ? T('calm') : lv < 0.67 ? T('medium') : T('wild'));
     const on = $('auto').checked, b = $('autobtn');
     b.setAttribute('aria-pressed', String(on)); b.textContent = on ? T('🤖 Autopilot: ON') : T('🤖 Autopilot: OFF'); b.classList.toggle('on', on);
@@ -495,19 +487,17 @@
   let cams = [];
   function fillCams(list) {
     cams = list;
-    for (const [id, first] of [['cam_device', T('Default camera')], ['flow_device', T('as picture')]]) {
-      const sel = $(id), keep = state[id] || '';
-      sel.textContent = '';
-      const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.append(o); };
-      add('', first); list.forEach(n => add(n, n));
-      if (id === 'cam_device') add('device', T('📱 Live camera of a phone'));   // #146
-      if (keep && keep !== 'device' && !list.includes(keep)) add(keep, keep + T(' (not connected)'));
-      sel.value = keep;
-    }
+    const sel = $('cam_device'), keep = state.cam_device || '';
+    sel.textContent = '';
+    const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.append(o); };
+    add('', T('Default camera')); list.forEach(n => add(n, n));
+    add('device', T('📱 Live camera of a phone'));   // #146
+    if (keep && keep !== 'device' && !list.includes(keep)) add(keep, keep + T(' (not connected)'));
+    sel.value = keep;
   }
   function apply(st) {
     applying = true;
-    if (('cam_device' in st && st.cam_device && !cams.includes(st.cam_device)) || ('flow_device' in st && st.flow_device && !cams.includes(st.flow_device))) {
+    if ('cam_device' in st && st.cam_device && !cams.includes(st.cam_device)) {
       Object.assign(state, st); fillCams(cams);
     }
     Object.assign(state, st);

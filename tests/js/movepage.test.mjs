@@ -68,11 +68,19 @@ test('a key of the page is not a letter of a name', () => {
 
 test('the clutch and the sets say the same in the panel, on the page and in Dream Control', () => {
   assert.equal(C.clutchText(true), 'Clutch: engaged'); assert.equal(C.clutchText(false), 'Clutch: released');
+  // released – how Dream starts – is said plainly: the button's state, its word and the line below it
+  const attrs = {}, btn = { setAttribute: (k, v) => { attrs[k] = v; }, classList: { toggle: (c, on) => { attrs.on = on; } } }, note = {};
+  C.clutchShow(btn, false, note);
+  assert.deepEqual([attrs['aria-pressed'], attrs.on, btn.textContent], ['false', false, 'Clutch: released']);
+  assert.match(note.textContent, /^Released: your dance does nothing yet/);
+  C.clutchShow(btn, true, note);
+  assert.deepEqual([attrs['aria-pressed'], attrs.on, btn.textContent], ['true', true, 'Clutch: engaged']);
+  assert.match(note.textContent, /^Engaged: /);
   assert.equal(C.setLabel('waves'), 'Waves'); assert.equal(C.setLabel('My set 1'), 'My set 1'); assert.equal(C.setLabel('constructor'), 'constructor');
   for (const page of ['static/index.html', 'static/remote.html', 'static/dance.html']) {
     const html = read(page);
     assert.ok(/id="clutchbtn"[^>]*aria-pressed=/.test(html) && html.includes('id="dance_set"'), page);
-    assert.ok(html.includes('MoveCard.clutchText') && html.includes('MoveCard.fillSets'), page);
+    assert.ok(html.includes('MoveCard.clutchShow(') && html.includes('MoveCard.fillSets'), page);
   }
 });
 

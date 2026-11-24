@@ -54,6 +54,9 @@ command line for now, #231) via `dream-cloud`.
   the stage (register, the room's energy, the fade between modes; `tests/js/movement.test.mjs`), `movement.py` the modes
   and the register of the sources outside the stage. What moves the picture by movement is a target of the table, never
   a switch of its own; a new source reports to the register, a new effect is a new target. Dream windows are no source.
+  "Nobody there – the dream calms down, someone comes – an impulse" is Dreamy Eyes' alone (`movement.Presence`: read
+  from the energy they report, only while the mode listens to them); the Mac's camera in the stage never says who is
+  there.
   The panel has one card for it (#250, `static/movecard.js` and `movecard.css`: the mode's buttons, the part of the mode
   in use, the sources); Dream Control has the mode and the mood's strength, and nothing of movement the panel lacks
   (`tests/test_movecard.py`).
@@ -61,7 +64,7 @@ command line for now, #231) via `dream-cloud`.
   reads the stage through `window.opener.DreamBridge.<name>` (`static/movepage.js`) – it has no control line and no
   camera of its own (only the lab's sessions go to and from Dream directly, `/dance/sessions`), and everything that steers the show is in the panel too. The dance lab (#243) is part of that page.
   The dance acts on top of what hands and controllers set (`DreamMove.onTop`) and only while its clutch is engaged (the
-  setting `clutch`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
+  setting `clutch`: released after every start – `hub.py` – and shown as such by `MoveCard.clutchShow`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
   Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –
   `tests/js/flowauto.test.mjs`) chooses the kind of detection and the exposure, holds the one performer and watches the
   calibration; every choice carries its reason and can be taken over by hand. Its page is `/flowtrack`. The sample of

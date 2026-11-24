@@ -17,7 +17,13 @@
   const DETECTS = { hand: () => T('Hands (AI)'), on: () => T('Fire/LED'), marker: () => T('LED markers') };
   const name = mode => (Object.prototype.hasOwnProperty.call(NAMES, mode) ? NAMES[mode]() : NAMES.off());
   // #251: the dance's clutch and the movement sets – what the panel, the page of Dream Dance and Dream Control show alike
+  // (released is how Dream starts: the button and the line below it say so plainly)
   const clutchText = on => (on ? T('Clutch: engaged') : T('Clutch: released'));
+  const clutchNote = on => (on ? T('Engaged: your dance acts on top of the sliders and controllers.') : T('Released: your dance does nothing yet – engage the clutch to let it steer.'));
+  function clutchShow(btn, on, note) {
+    btn.setAttribute('aria-pressed', String(!!on)); btn.classList.toggle('on', !!on); btn.textContent = clutchText(on);
+    if (note) note.textContent = clutchNote(on);
+  }
   const SETS = { standard: () => T('Standard'), waves: () => T('Waves'), fire: () => T('Fire') };
   const setLabel = n => (Object.prototype.hasOwnProperty.call(SETS, n) ? SETS[n]() : n);
   // the choices of a set's select: "your table" (no set), then every set by its name; a name not in the list yet (Dream
@@ -159,7 +165,7 @@
     };
   }
 
-  const api = { mount, words, chips, info, MODES, name, clutchText, setLabel, fillSets };
+  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MoveCard = api;
 })(typeof window !== 'undefined' ? window : globalThis);
