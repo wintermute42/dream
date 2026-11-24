@@ -1448,8 +1448,11 @@ dancing and working the controls without a break. Four ways to it, all the same 
 - a MIDI button: learn “**Button: clutch in/out**” (see [MIDI controller](#midi-controller)),
 - the button in Dream Control (card “Dream Dance”) – the phone in your pocket.
 
-The bar under the button on the page shows how far the dance is in. The clutch is engaged after the first start; Dream
-remembers it. A wristband's button stays the lab's “good/bad” for now.
+The bar under the button on the page shows how far the dance is in. **After every start the clutch is released**:
+your dance does nothing until you engage it on purpose – Dream does not remember an engaged clutch across a restart
+(the mode and the movement set it does remember). Released shows plainly: the button is empty with a dashed red
+edge and reads “Clutch: released”, and the line below it says that your dance does nothing yet – in the Movement
+card, on the page and in Dream Control alike. A wristband's button stays the lab's “good/bad” for now.
 
 **Movement sets** are named tables of what your movements do – one per piece or mood of a show. Built in:
 **Standard** (the built-in table), **Waves** (energy → waves, opening → tunnel, arm wave → afterglow, circling →

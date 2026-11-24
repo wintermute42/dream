@@ -142,8 +142,9 @@ SETTINGS: dict[str, Setting] = {
     # what the Mac's camera detects: on (light: fire, LED) | hand (pose) | marker (#235: two LED markers, one per hand)
     "flow_kind": text("hand", choices=("on", "hand", "marker")),
     # #251: Dream Dance – the clutch (the dance acts only while it is engaged; released: only what the hands and the
-    # controllers set) and the movement set last chosen (a named table of what a movement does, dance.py)
-    "clutch": flag(True),
+    # controllers set; released after every start – hub.py – and engaged only on purpose) and the movement set last
+    # chosen (a named table of what a movement does, dance.py)
+    "clutch": flag(False),
     "dance_set": text("", clean=_set_name),
     "flow_markers": flag(False),                                # … LED markers beside the hand AI (they lead in the dark)
     "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand

@@ -287,8 +287,9 @@
   <section data-sec="dancelab" data-only="control">
     <h2>Dream Dance</h2>
     <!-- #251: the clutch and the movement set, as in the panel's Movement card -->
-    <button id="clutchbtn" class="big clutchbtn on" aria-pressed="true" style="width:100%" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do.">Clutch: engaged</button>
-    <input type="checkbox" id="clutch" hidden aria-hidden="true" checked>
+    <button id="clutchbtn" class="big clutchbtn" aria-pressed="false" style="width:100%" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do.">Clutch: released</button>
+    <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
+    <input type="checkbox" id="clutch" hidden aria-hidden="true">
     <select id="dance_set" aria-label="Movement set" style="margin-top:8px"><option value="">Set: your table</option></select>
     <div class="hint">Say how the dance control feels while you dance: Dream keeps the last seconds as numbers (what it detected, what the movement steered) – never a camera picture. The lab itself is on the Mac.</div>
     <div class="row" style="margin-top:8px"><button id="dl-good" class="big">👍 Good</button><button id="dl-bad" class="big">👎 Bad</button></div>
@@ -460,7 +461,7 @@
   // and the rest are the Mac's
   // #251: the dance's clutch (the button on the phone) and the movement sets
   let danceSets = [];
-  function clutchSync() { const on = document.getElementById('clutch').checked, b = document.getElementById('clutchbtn'); b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); b.textContent = MoveCard.clutchText(on); }
+  const clutchSync = () => MoveCard.clutchShow(document.getElementById('clutchbtn'), document.getElementById('clutch').checked, document.getElementById('clutchnote'));
   document.getElementById('clutchbtn').onclick = () => { const c = document.getElementById('clutch'); c.checked = !c.checked; setKey('clutch', c.checked); clutchSync(); };
   const moveCard = MoveCard.mount(document.getElementById('movecard'), { send: set => Object.entries(set).forEach(([k, v]) => setKey(k, v)) });
 

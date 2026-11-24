@@ -28,7 +28,8 @@
   <section class="mp-top" aria-label="Clutch, movement set and clocks">
     <div class="mp-card mp-clutch">
       <h2>Clutch</h2>
-      <button type="button" class="btn clutchbtn on" id="clutchbtn" aria-pressed="true" title="Engage or release the clutch (key K)">Clutch: engaged</button>
+      <button type="button" class="btn clutchbtn" id="clutchbtn" aria-pressed="false" title="Engage or release the clutch (key K)">Clutch: released</button>
+      <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
       <div class="mp-hold" aria-hidden="true"><i id="hold"></i></div>
       <div class="hint">Engaged: your dance acts on top of what the sliders and the controllers set. Released: only they do – the dance fades out in a third of a second. Key K, a MIDI button (“Button: clutch in/out”) or the button in Dream Control.</div>
     </div>
@@ -104,7 +105,7 @@
     if (!bridge) return;
     let st; try { st = bridge.state(); } catch (e) { return; }   // the stage is reloading: `link` notices
     const b = $('clutchbtn');
-    if (b.getAttribute('aria-pressed') !== String(st.clutch)) { b.setAttribute('aria-pressed', String(st.clutch)); b.classList.toggle('on', st.clutch); b.textContent = MoveCard.clutchText(st.clutch); }
+    if (b.getAttribute('aria-pressed') !== String(st.clutch)) MoveCard.clutchShow(b, st.clutch, $('clutchnote'));
     $('hold').style.transform = `scaleX(${(st.mode === 'dance' ? st.hold : 0).toFixed(3)})`;
     MoveCard.fillSets($('dance_set'), st.sets, st.set);
     $('setdelete').disabled = !st.own.includes(st.set);
@@ -114,7 +115,7 @@
     const dancing = st.mode === 'dance';
     $('nomode').hidden = dancing;
     if (!dancing) say('nomode-text', T('The movement mode is “{m}” – the dance acts only in the mode Dream Dance.', { m: MoveCard.name(st.mode) }));
-    say('pagestate', !dancing ? '' : st.camera === 'running' ? (st.clutch ? T('The dance steers the dream.') : T('Clutch released – only sliders and controllers steer.')) : T('The camera is not running yet.'));
+    say('pagestate', !dancing ? '' : st.camera === 'running' ? (st.clutch ? T('The dance steers the dream.') : T('Clutch released – your dance does nothing, only sliders and controllers steer.')) : T('The camera is not running yet.'));
   })();
 })();
 </script>

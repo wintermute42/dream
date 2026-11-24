@@ -1534,8 +1534,11 @@ einem Ruck – so wechselst du nahtlos zwischen Tanzen und Bedienen. Vier Wege, 
 - ein MIDI-Knopf: „**Taste: Kupplung ein/aus**“ anlernen (siehe [MIDI-Controller](#midi-controller)),
 - der Knopf in Dream Control (Karte „Dream Dance“) – das Handy in der Tasche.
 
-Der Balken unter dem Knopf auf der Seite zeigt, wie weit der Tanz drin ist. Nach dem ersten Start ist die Kupplung
-eingelegt; Dream merkt sie sich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
+Der Balken unter dem Knopf auf der Seite zeigt, wie weit der Tanz drin ist. **Nach jedem Start ist die Kupplung
+gelöst**: Dein Tanz bewirkt nichts, bis du sie bewusst einlegst – eine eingelegte Kupplung merkt sich Dream nicht
+über einen Neustart hinweg (den Modus und das Bewegungs-Set schon). Gelöst ist deutlich zu sehen: Der Knopf ist leer
+mit gestricheltem rotem Rand und zeigt „Kupplung: gelöst“, und die Zeile darunter sagt, dass dein Tanz noch nichts
+bewirkt – in der Karte Bewegung, auf der Seite und in Dream Control gleich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
 
 **Bewegungs-Sets** sind benannte Tabellen dessen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines
 Auftritts. Eingebaut: **Standard** (die eingebaute Tabelle), **Wellen** (Energie → Wellen, Öffnung → Tunnel, Armwelle →

@@ -131,7 +131,7 @@
  "Close": "Schließen",
  "Cloud GPU": "Cloud-GPU",
  "Clutch": "Kupplung",
- "Clutch released – only sliders and controllers steer.": "Kupplung gelöst – nur Regler und Controller steuern.",
+ "Clutch released – your dance does nothing, only sliders and controllers steer.": "Kupplung gelöst – dein Tanz bewirkt nichts, nur Regler und Controller steuern.",
  "Clutch, movement set and clocks": "Kupplung, Bewegungs-Set und Uhren",
  "Clutch: engaged": "Kupplung: eingelegt",
  "Clutch: released": "Kupplung: gelöst",
@@ -1305,5 +1305,7 @@
  "good great yes nice super top right": "gut gute super ja top richtig prima",
  "bad no nope wrong": "schlecht nein mies falsch",
  "not": "nicht kein keine",
- "Nothing kept: open the lab on the live dance or record first.": "Nichts gespeichert: erst das Labor im Live-Tanz öffnen oder aufnehmen."
+ "Nothing kept: open the lab on the live dance or record first.": "Nichts gespeichert: erst das Labor im Live-Tanz öffnen oder aufnehmen.",
+ "Released: your dance does nothing yet – engage the clutch to let it steer.": "Gelöst: Dein Tanz bewirkt noch nichts – leg die Kupplung ein, damit er steuert.",
+ "Engaged: your dance acts on top of the sliders and controllers.": "Eingelegt: Dein Tanz wirkt auf Reglern und Controllern obendrauf."
 }

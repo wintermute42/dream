@@ -64,7 +64,7 @@ command line for now, #231) via `dream-cloud`.
   reads the stage through `window.opener.DreamBridge.<name>` (`static/movepage.js`) – it has no connection and no
   camera of its own, and everything that steers the show is in the panel too. The dance lab (#243) is part of that page.
   The dance acts on top of what hands and controllers set (`DreamMove.onTop`) and only while its clutch is engaged (the
-  setting `clutch`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
+  setting `clutch`: released after every start – `hub.py` – and shown as such by `MoveCard.clutchShow`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
   whether a MIDI controller or sensor can move it; #216: its `weight` – how strongly it shapes the picture – and the
   setting it `needs` to act); the defaults, ranges, guests' keys, `midi.TARGETS`, what "Reset" brings home
