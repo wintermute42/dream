@@ -10,7 +10,7 @@
 Dream is an endless, ever-changing stream of pictures: a fast image model (SD-Turbo or SDXL-Turbo) turns each picture
 into the next. It runs on a Mac with Apple Silicon, in the browser, only on `127.0.0.1` (the phone remote and a
 second output device join over the home Wi-Fi when you allow it). It computes either **locally** on the Mac's GPU or
-on a **cloud GPU** you rent by the hour (Scaleway in Paris or RunPod in Europe). It reacts to music, to a camera, to
+on a **cloud GPU** you rent by the hour (RunPod, data centres in Europe). It reacts to music, to a camera, to
 movement (hands, fire, LEDs), to MIDI controllers and body sensors, and can be driven by an autopilot.
 
 The whole interface is available in English and German (switch **DE | EN** at the top right).
@@ -58,8 +58,8 @@ The whole interface is available in English and German (switch **DE | EN** at th
 **Cloud GPU**
 
 - [Cloud GPU](#cloud-gpu)
-  - [Scaleway: set up once](#scaleway-set-up-once)
   - [RunPod: set up once](#runpod-set-up-once)
+  - [Scaleway (currently unavailable)](#scaleway-currently-unavailable)
 
 **Help and more**
 
@@ -99,7 +99,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 | Chrome (or another current browser) | yes | panel and stage; Chrome for `--beamer` and the installable apps |
 | [Ollama](https://ollama.com) with `llama3.2:3b` | optional | prompt ideas and generated playlists |
 | `ffmpeg` (`brew install ffmpeg`) | optional | saving clips as video |
-| [Scaleway CLI](https://www.scaleway.com/en/cli/) or a RunPod account | optional | a cloud GPU instead of the Mac's |
+| A [RunPod](https://www.runpod.io/) account | optional | a cloud GPU instead of the Mac's |
 
 ```bash
 ./dream.sh
@@ -805,19 +805,24 @@ eyes** that invite people to step up and play:
   edge instead of being pressed into the picture.
 - **You in the dream:** whoever stands in front is mirrored in the iris – faintly all the time, and every two or three minutes
   for a few seconds very clearly, as in real eyes: then it is the person alone, cut out from the room (on the
-  phone), the face exactly as the camera sees it, and behind them the iris keeps dreaming. Now and then (every three to five
+  phone) and running out softly at their edge, the face as the camera sees it, and behind them the iris keeps dreaming. Now and then (every four to eight
   minutes, only while someone is there) the person appears as a **moment**: first in the two pupils, as if seen through
-  them, then the windows open and for about 2–3 seconds they stand in a soft cloud in the middle of the screen –
-  **the real camera picture, the face unchanged and recognisable**, a little smaller and lighter than a painted face.
-  Only around them is the dream: the dream's picture instead of the room, a softly glowing outline, fireflies, a
-  shimmer in the dream's colour at their edge, and sometimes a wreath of blossoms, a mandala behind the head or veils
-  of mist. Nothing is ever drawn over the face. Then the picture does not simply fade: within a second or two it
-  **comes apart into the dream** – its pieces drift off, the outermost first, the face last, the fireflies fly away –
-  while the eyes return (about 7 seconds in all). **Someone who just comes** (after a while with nobody) is greeted
+  them, then the windows open and for 3–4 seconds they stand in a soft cloud in the middle of the screen, a little
+  smaller and lighter than a painted face – **seen as in a dream, not as a photograph** (#229): the whole picture
+  wavers gently as through water or the shimmer over a fire (the face less than what is around it), the person has no
+  outline but **runs out into mist**, with a delicate fringe in the dream's colours, and they come soft and blurred.
+  **In the middle of the moment the face is clear for a second or so – the real camera picture, so people recognise
+  themselves** – then it blurs again. Around them is the dream: the dream's picture instead of the room, a soft glow,
+  fireflies, and sometimes a wreath of blossoms, a mandala behind the head or veils of mist. Then the picture does not
+  simply fade: within two or three seconds it **comes apart into the dream** from the outside in – its pieces are
+  drawn out into drifting streaks and leave sparks, the face last, the fireflies fly away, and at the end the mist
+  that is left blows away – while the eyes return (about 9 seconds in all). On a weak phone the picture is drawn
+  smaller and wavers in coarser strips; it stays smooth. **Someone who just comes** (after a while with nobody) is greeted
   at once – very clearly in the iris or with this moment, in turn.
   **What happens with the camera picture:** all of this is drawn on the phone itself, from the live camera and a mask
   of the person found there (selfie segmentation, about 250 KB); no picture and no word about who stands there is sent
-  for it, and nothing is kept. The AI does **not** repaint people: the dream portrait the Mac used to paint from the
+  for it, and nothing is kept. The dream look is drawn too, not computed: plain canvas drawing on the phone (strips
+  moved a little aside, a small copy scaled up for softness), no model and no AI. The AI does **not** repaint people: the dream portrait the Mac used to paint from the
   eyes' camera picture is gone (and `DREAM_YOU_EVERY` with it) – the Mac paints only the fantasy faces below, from
   words. The one thing that leaves the phone is what Dreamy Eyes are for: the front camera you lend to the dream
   (below, “One camera at a time”), passed on to the stage as it is and kept nowhere; tests guard both.
@@ -887,8 +892,17 @@ eyes** that invite people to step up and play:
   current prompt (a single quick AI step, about 0.4 s, the first one a few seconds; the stage barely notices). Every
   four to eight minutes one of them comes through the pupils: it appears inside them as if seen through mist – soft, pale, veiled, with no edge –,
   the two windows grow with glowing rims, turn a little and open into a **dream cloud** – the face inside soft puffs that
-  drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays three to five seconds,
+  drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays a few seconds,
   breathing, swaying and drifting a little; then it shrinks back into the pupils, and the eyes are there again.
+  **The face is alive** (as in the dream windows, see "Living faces" below): it blinks, now and then winks, glances
+  clearly to the side (the lids go along), lifts or knits its brows, smiles broadly with mouth and cheeks and turns and
+  nods its head – a new expression every few seconds – and smiles along while the eyes are petted. For that the stage on the Mac (Dream or Dream Control open there) finds once per painted face where its
+  eyes, brows, mouth and outline are, and Dream hands these points to Dreamy Eyes; the phone only moves them – it
+  loads no model for it and the Mac paints nothing extra. With the points, the painted face's own eyes lie exactly on
+  the pupils as it comes (in the pupils it looks straight out of them), and it stays five to seven seconds instead of
+  three to five. Without points – no stage open on the Mac, or a picture in which no face is found (a cat, a mask) –
+  the face is the still picture it used to be. A phone that runs short moves a smaller picture of the face less often,
+  and the weakest ones leave the head still.
   The pictures stay in memory only and never go into the gallery; only the eyes (and Dream Control) may fetch them.
   `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds); `DREAM_AIMASK=0`
   switches the painted faces off altogether (no fire spirit either: Dreamy Eyes never make the Mac load a model). With the cloud GPU
@@ -917,7 +931,8 @@ eyes** that invite people to step up and play:
 - **Its code may only lend the front camera** and see the dream – no settings, no commands, nothing that costs money; it
   does not even learn the prompt. Beside the small picture of the dream it is told two numbers: the master brightness
   and (#218) the music's beat, a pulse between 0 and 1 – never what the stage tells its output windows (effects, fades,
-  prompts); a guest's preview hears no beat. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
+  prompts); a guest's preview hears no beat. Of the painted faces it gets the pictures and (#230) where each has its
+  eyes, brows, mouth and outline – nothing else. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
   trying the eyes on your own phone never replaces Dream Control.
 - **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
   who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
@@ -960,8 +975,8 @@ one device to another.
   the Mac** – by the stage, in a background worker, with the face model Dream has anyway (well under a second per
   face; the stage's own drawing never waits for it) – never by a window and not again for another window. The 82
   points travel with the face (under 1 kB). Every window moves them itself over a net of triangles: it blinks, lets
-  its gaze wander, smiles, lifts a brow, breathes and tilts and turns its head a little – subtle, like a painting
-  that is alive. A picture in which no face is found (a cat, a mask), or one painted while no stage is open, is shown
+  its gaze wander, smiles, lifts or knits its brows, breathes and tilts and turns its head – clearly to see, but
+  natural, like a painting that is alive (the same expressions as in Dreamy Eyes, #230). A picture in which no face is found (a cat, a mask), or one painted while no stage is open, is shown
   still.
 - **One organism:** all windows breathe together and pulse to the beat, and now and then a wave of light runs
   through them in turn. When Dreamy Eyes go into trance, the third eye opens in every window too (and the painted
@@ -1197,10 +1212,12 @@ hit → flash. A planned wristband and finger glove send in the same format.
 
 ## Cloud GPU
 
-A rented GPU computes much faster than the Mac, especially SDXL-Turbo and the style models. Two providers:
-**Scaleway** (Paris, billed in €) and **RunPod** (data centres in Europe, billed in $ per second). Under “Computing” →
-**Cloud GPU** the list has both; start, delete, the cost display and the automatic deletion after 2 hours work the
-same way. After every restart Dream first computes locally again – the cloud is not remembered, so it is never chosen
+A rented GPU computes much faster than the Mac, especially SDXL-Turbo and the style models. Dream rents it
+at **RunPod** (data centres in Europe, billed in $ per second): under “Computing” → **Cloud GPU** the list has RunPod's
+GPUs, the RTX 4090 chosen. **Scaleway** (Paris, billed in €) is currently unavailable – Scaleway accepts no new GPU
+instances for the time being – and not in the list; it is still usable from the command line, see
+“[Scaleway (currently unavailable)](#scaleway-currently-unavailable)”. After every restart Dream first computes
+locally again – the cloud is not remembered, so it is never chosen
 by accident. Camera, picture and video frames and the prompt then go to your own machine at the provider; speech and
 music analysis stay on the Mac.
 
@@ -1245,26 +1262,6 @@ softer round by round). With a camera picture the upload fell from about 57 to 2
 
 <sub>[↑ Contents](#contents)</sub>
 
-### Scaleway: set up once
-
-```bash
-brew install scw
-scw init
-```
-
-`scw init` asks for access key and secret key (they stay in `~/.config/scw/config.yaml` on the Mac); choose the default
-zone **fr-par-2**, telemetry **no**, **add** the local SSH key. `dream-cloud` creates machines only in the default
-project of this configuration (`scw config get default-project-id`).
-
-**SSH key:** Scaleway console → IAM → SSH keys – the key from `~/.ssh/id_rsa.pub` must be there, otherwise Dream does
-not get onto the machine (it costs anyway, until `dream-cloud stop`).
-
-**GPU quota:** new accounts are often not allowed to create a GPU (“quota exceeded … 0/0”). Check in the Scaleway
-console → Organization → Organization Dashboard → tab **Quotas**, product “Instances”, search “L4”: if L4-1-24G shows at
-least 1, it works. Otherwise have it unlocked: **“Verify ID”** at the top or **“Contact support”** with “Instances,
-L4-1-24G, fr-par-2, quota 1”. Prices: L4 (24 GB) about €0.79 per hour, L40S (48 GB) about €1.47, H100 (80 GB) about
-€2.87; every type needs its own quota.
-
 ### RunPod: set up once
 
 1. An account on runpod.io, top up credit under **Billing** (from $10 for many hours). Without credit nothing starts.
@@ -1285,6 +1282,31 @@ CUDA 13; on machines with an older driver (12.6 or newer) `dream-cloud` installs
 (≈ 190 ms). The picture rate depends mostly on the line, not the GPU: each picture must go up and come back, the way to
 the data centre costs ~35 ms. What helps: a faster upload (cable instead of Wi-Fi, fibre), **384 px** instead of 512,
 and the line saving above.
+
+### Scaleway (currently unavailable)
+
+Scaleway accepts no new GPU instances for the time being, so the panel and Dream Control do not offer its GPUs. The
+way stays in `dream-cloud` and is still usable from the command line: `./dream-cloud start --type L4-1-24G` (also
+`L40S-1-48G`, `H100-1-80G`); status, `stop`, the cost display and the automatic deletion work as with RunPod. Without
+`--type`, `dream-cloud start` takes RunPod's RTX 4090. Set up once:
+
+```bash
+brew install scw
+scw init
+```
+
+`scw init` asks for access key and secret key (they stay in `~/.config/scw/config.yaml` on the Mac); choose the default
+zone **fr-par-2**, telemetry **no**, **add** the local SSH key. `dream-cloud` creates machines only in the default
+project of this configuration (`scw config get default-project-id`).
+
+**SSH key:** Scaleway console → IAM → SSH keys – the key from `~/.ssh/id_rsa.pub` must be there, otherwise Dream does
+not get onto the machine (it costs anyway, until `dream-cloud stop`).
+
+**GPU quota:** new accounts are often not allowed to create a GPU (“quota exceeded … 0/0”). Check in the Scaleway
+console → Organization → Organization Dashboard → tab **Quotas**, product “Instances”, search “L4”: if L4-1-24G shows at
+least 1, it works. Otherwise have it unlocked: **“Verify ID”** at the top or **“Contact support”** with “Instances,
+L4-1-24G, fr-par-2, quota 1”. Prices: L4 (24 GB) about €0.79 per hour, L40S (48 GB) about €1.47, H100 (80 GB) about
+€2.87; every type needs its own quota.
 
 ---
 
@@ -1325,7 +1347,8 @@ and the line saving above.
 - **“No answer from the AI for a while – reconnecting …”** (#177): the stage got no answer for 10 s (the first
   picture of a connection: 3 minutes) and opens the line anew by itself; a single broken picture never stops it.
 - **Speech input shows an error:** restart Dream; really hold key V (too short → “Too short”).
-- **Scaleway “quota exceeded”:** the GPU quota is missing, see “Scaleway: set up once”. Dream says so in the Computing
+- **Scaleway “quota exceeded”** (command line only for now): the GPU quota is missing, see “Scaleway (currently
+  unavailable)”. Dream says so in the Computing
   card (“Start failed: no GPU quota for … – … Quotas”) and switches back to “Local” by itself; nothing costs. The ID
   verification alone is not enough – the quota must also be requested from the support.
 - **Chip “☁ …” below the preview:** red means a GPU runs or starts (it costs money); neutral “not started” means the
@@ -1376,7 +1399,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart (the outline with them, at half strength), mouth, nose and hair 4–11 min apart, clearly to be seen then and never above four fifths, no jump from one picture to the next, one face at a time (stepping the clock through changes of face: the one shown fades out completely before the next fades in, no frame with a jump, never two at once), the same for both windows of a pair, a nose only at the rare level – and that the pages draw every line of a face through the rule (no grin; a nose only in the faces of light and only by the rule; no face fitted to the screen's height; no fullscreen with `?debug`). `node --test tests/js/style.test.mjs` (#221) tests the style layer: the registry in Node (a world by its name, today's look for an unknown name, a part a world does not draw comes from the first world; every world of `settings.WORLDS` is a file `static/world-<name>.js` that registers itself, and the panel and Dream Control offer it), and in the same headless browser `tests/js/style.html` draws today's look through the layer with a seeded random and a clock that stands still – eyes with every look, iris world and pupil, every living thing, the six faces of light with hints and in the rare moment, the six window motifs – and compares small copies with the pictures kept in `tests/js/style-ref.json` (`STYLE_REF=write` keeps the ones drawn now, only when the look is meant to change). `node --test tests/js/brush.test.mjs` tests the shared brushes as numbers (`static/dreambrush.js`: seeded random and noise, a tile of noise that repeats, smooth lines and swelling bands, the dream's brightness, the lids, the skeleton of a face – one size, the eyes', never fitted to a screen; between the eyes and the mouth lies its nose and nothing else, and the nose belongs to the rare level). **A new style world** is one file `static/world-<name>.js` that calls `DreamStyle.register('<name>', { eye, life, face, motif })` with the parts it draws (the rest comes from Classic), one name in `settings.WORLDS`, a script tag in `eyes.html` and `window.html`, an option in the two selects and its German name. `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart (the outline with them, at half strength), mouth, nose and hair 4–11 min apart, clearly to be seen then and never above four fifths, no jump from one picture to the next, one face at a time (stepping the clock through changes of face: the one shown fades out completely before the next fades in, no frame with a jump, never two at once), the same for both windows of a pair, a nose only at the rare level – and that the pages draw every line of a face through the rule (no grin; a nose only in the faces of light and only by the rule; no face fitted to the screen's height; no fullscreen with `?debug`). `node --test tests/js/style.test.mjs` (#221) tests the style layer: the registry in Node (a world by its name, today's look for an unknown name, a part a world does not draw comes from the first world; every world of `settings.WORLDS` is a file `static/world-<name>.js` that registers itself, and the panel and Dream Control offer it), and in the same headless browser `tests/js/style.html` draws today's look through the layer with a seeded random and a clock that stands still – eyes with every look, iris world and pupil, every living thing, the six faces of light with hints and in the rare moment, the six window motifs – and compares small copies with the pictures kept in `tests/js/style-ref.json` (`STYLE_REF=write` keeps the ones drawn now, only when the look is meant to change). `node --test tests/js/brush.test.mjs` tests the shared brushes as numbers (`static/dreambrush.js`: seeded random and noise, a tile of noise that repeats, smooth lines and swelling bands, the dream's brightness, the lids, the skeleton of a face – one size, the eyes', never fitted to a screen; between the eyes and the mouth lies its nose and nothing else, and the nose belongs to the rare level). **A new style world** is one file `static/world-<name>.js` that calls `DreamStyle.register('<name>', { eye, life, face, motif })` with the parts it draws (the rest comes from Classic), one name in `settings.WORLDS`, a script tag in `eyes.html` and `window.html`, an option in the two selects and its German name. `node --test tests/js/eyes-face.test.mjs` (#230) opens Dreamy Eyes in the same browser and is their Dream too: a painted face with its points comes through the pupils and moves (blink, smile, brows, a slight turn), its own eyes are what lies on the pupils, a phone that runs short gets a smaller net and no turn of the head, and a face without points stays still. `node --test tests/js/you.test.mjs` (#219, #229) draws “you in the dream” for an invented person in the same browser: the person runs out softly instead of ending in a line, in the middle of the moment the face is exactly the camera's picture with nothing over it, before and after it is soft and wavers, the room is never shown, and the picture leaves by coming apart into streaks, the face last, until nothing is left; and the drawing's code uses no network, no model, no blur filter and no loop over a large picture. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the

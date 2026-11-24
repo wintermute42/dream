@@ -224,6 +224,30 @@ def test_face_points_are_asked_for_once_however_many_windows(server, win):
     assert not any("marks" in m for s in socks for m in s.got)                  # (the others got them from the route, below)
 
 
+def test_face_points_are_asked_for_when_only_dreamy_eyes_look_on(server, win):
+    """#230: Dreamy Eyes move the painted faces too – with no window open they are who the points are found for."""
+    server.eyes.aimasks["goddess"] = (FACE, b"jpeg", time.time())
+    stage, eyes, guest = Sock("stage"), Sock("eyes"), Sock("guest")
+    win.markers.append(stage)
+    server.hub.roles[guest] = "guest"
+    try:
+        win.marks_tick(100.0)                           # a guest's remote shows no face
+        assert not stage.got and win.lookers() == []
+        server.hub.roles[eyes] = "eyes"
+        for now in (100.0, 100.5, 105.0):
+            win.marks_tick(now)
+        assert stage.got == [{"face": FACE, "url": f"/eyes/mask/{FACE}.jpg"}] and win.lookers() == [eyes]
+        window = come(server, 1)[0]
+        assert win.lookers() == [window, eyes]
+        win.marks_greet(eyes)                           # no points yet: nothing to hand on
+        assert not eyes.got
+        assert win.marks_take({"face": FACE, "points": points(win)}) == FACE
+        win.marks_greet(eyes)
+        assert eyes.got == [{"marks": {FACE: points(win)}}]
+    finally:
+        server.hub.roles.pop(eyes, None); server.hub.roles.pop(guest, None)
+
+
 def test_a_face_without_points_stays_still(server, win):
     server.eyes.aimasks["cat"] = (FACE, b"jpeg", time.time())
     stage = Sock("stage")
@@ -316,6 +340,7 @@ def test_a_window_never_looks_for_faces_itself():
     assert "/mp/" not in page and "data-detect" not in page and "FaceLandmarker" not in page
     assert '<script src="/static/dreamface.js" data-detect defer></script>' in read("index.html")
     assert "data-detect" not in read("eyes.html") and "data-detect" not in read("output.html")
+    assert '<script src="/static/dreamface.js"></script>' in read("eyes.html")   # #230: Dreamy Eyes move the points they are given
 
 
 def test_the_eye_is_drawn_by_one_module_for_both_pages():

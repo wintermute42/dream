@@ -2,8 +2,8 @@
 
 Live AI dream machine for VJ work and installations: an endless image-to-image loop (SD-Turbo / SDXL-Turbo) fed by
 prompt, camera, picture, video, voice, music and movement (built-in detection in the stage).
-Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (CUDA: Scaleway or RunPod) via
-`dream-cloud`.
+Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (CUDA: RunPod; Scaleway only from the
+command line for now, #231) via `dream-cloud`.
 
 - `server.py` is the entry point (`uvicorn server:app`) and only puts the parts together (#189); role "app" (Mac: pages,
   voice, control state, cloud control, local rendering) or "worker" (cloud: rendering only – it loads `render.py`,
@@ -32,14 +32,16 @@ Runs on a Mac (Apple Silicon); renders locally (MPS) or on a rented cloud GPU (C
   `world` (`settings.WORLDS`) names the world; Dream tells it to the eyes and the windows, which never set it. They draw with shared modules
   (#201, #214): `static/dreamlife.js` (the small living things, the impossible shapes), `static/dreameye.js` (the eye)
   and `static/dreamface.js` (the painted faces: their points are found once per face by the stage on the Mac – a worker,
-  asked over `/facemarks` – and moved by each window itself; a window never runs a model). How much of a face shows
+  asked over `/facemarks` – and moved by each window itself, and by Dreamy Eyes for the face that opens out of their pupils (#230:
+  `windows.lookers` get the points, `DreamFace.life` is what a face does next); neither ever runs a model for it). How much of a face shows
   is one rule for both pages (#220): `static/dreamvis.js` – mostly only the eyes, hints (brows, the sign on the
   forehead, the outline at half strength) every minute or two, mouth, nose and hair rarely and clearly then; one face at a time – a face that
   takes another's place while it shows waits until that one has faded out completely (`DreamVis.step`: never a cut, never two faces over each other); a drawn face has one size, the eyes' – never fitted to the screen, what has no room runs off its edge; whatever is drawn of a
   face – a line of light, the eye's brow – asks it (`DreamVis.of(vis, part)`), and a part it does not know is not
   drawn (`tests/js/vis.test.mjs`); the faces painted by the AI and "you in the dream" are pictures and stay whole. `static/dreamyou.js` draws "you in the dream" for
-  Dreamy Eyes (#219): the person as the camera sees them, cut out on the phone, the face unchanged, the dream only around
-  – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
+  Dreamy Eyes (#219, #229): the person from the camera, cut out on the phone and drawn as in a dream with plain canvas
+  drawing – wavering in strips, running out into mist, the face clear only in the middle of the moment, coming apart
+  when it leaves; never a model, no blur filter, no loop over a large picture – it never talks to the network, and `eyes.py` never takes or paints from a camera picture (`tests/test_rights.py`,
   `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).

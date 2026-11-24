@@ -757,6 +757,53 @@ def test_eyes_hear_only_the_beat(server, monkeypatch):
     assert not any("lake" in t or "amts" in t or "morph" in t for t in by["eyes"])  # its two previews got nothing
 
 
+def test_eyes_get_the_points_of_their_painted_faces_and_nothing_more(server, monkeypatch):
+    """#230: Dreamy Eyes move the painted face in their pupils, so Dream hands them where it has its eyes, brows and
+    mouth – found by the stage on this Mac, asked for although no dream window is there. Over /ctl the eyes still hear
+    only their own few things, a guest hears no points, and nobody but the stage says where a face is."""
+    w, face = server.windows, "0123456789ab"
+    pts = [(i * 37) % 1001 for i in range(2 * w.FACE_POINTS)]
+    for d in (server.hub.windows, w.marks, w.asked, server.eyes.aimasks):
+        d.clear()
+    server.eyes.aimasks["goddess"] = (face, b"jpeg", time.time())
+    told, noted = [], []
+    post = w.outbox.post
+    monkeypatch.setattr(w.outbox, "post", lambda sock, data: (
+        told.append((server.hub.key_roles.get(sock), json.loads(data))) if isinstance(data, str) else None, post(sock, data))[1])
+    monkeypatch.setattr(server.eyes, "eyes_note", noted.append)
+    heard = lambda role, key: [m[key] for r, m in told if r == role and key in m]
+    try:
+        with client(server, "local").websocket_connect("ws://127.0.0.1:7860/facemarks") as stage, \
+                client(server, "guest").websocket_connect(ws_url(server, "/ctl", "guest")), \
+                client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes") + "&as=eyes") as eyes:
+            wait_until(lambda: heard("eyes", "eyes_cfg") and heard("guest", "state"))
+            assert heard("eyes", "aimasks") == [{"goddess": f"/eyes/mask/{face}.jpg"}] and not heard("eyes", "marks")
+            w.marks_tick(time.time())                  # no dream window anywhere: the eyes alone are reason enough to ask
+            assert json.loads(stage.receive_text()) == {"face": face, "url": f"/eyes/mask/{face}.jpg"}
+            stage.send_text(json.dumps({"face": face, "points": pts}))
+            wait_until(lambda: heard("eyes", "marks"))
+            assert heard("eyes", "marks") == [{face: pts}]
+            for claim in ({"face": face, "points": [0] * len(pts)}, {"marks": {face: [0] * len(pts)}}, {"done": 1}):
+                eyes.send_text(json.dumps(claim))      # the eyes cannot say where a face is
+            wait_until(lambda: {"done": 1} in noted)
+            assert w.marks == {face: pts}
+            with client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes") + "&as=eyes"):   # eyes that come later
+                wait_until(lambda: len(heard("eyes", "eyes_cfg")) == 2)
+        assert heard("eyes", "marks") == [{face: pts}, {face: pts}]
+        late = [m for r, m in told if r == "eyes"][-4:]    # the faces first, then their points
+        assert [k for m in late for k in ("aimasks", "marks") if k in m] == ["aimasks", "marks"]
+        assert {k for r, m in told if r == "eyes" for k in m} == {"role", "can", "can_take", "feeds_mine", "aimasks", "marks", "eyes_cfg", "world"}
+        assert not heard("guest", "marks") and not heard("guest", "aimasks")
+        server.eyes.aimasks.clear()                    # no painted face: no points for anyone
+        w.marks_tick(time.time())
+        with client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes") + "&as=eyes"):
+            wait_until(lambda: len(heard("eyes", "eyes_cfg")) == 3)
+        assert len(heard("eyes", "marks")) == 2
+    finally:
+        for d in (server.hub.windows, w.marks, w.asked, server.eyes.aimasks):
+            d.clear()
+
+
 def test_no_painted_faces_when_switched_off(server, monkeypatch):
     """DREAM_AIMASK=0 (#218): the face painter ends at once – Dreamy Eyes never make this Mac load a model."""
     import asyncio
