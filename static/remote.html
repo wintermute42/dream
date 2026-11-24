@@ -139,8 +139,23 @@
   @media (prefers-reduced-motion: reduce) { .relieve.hot .face { animation: none; } }
   /* #146: the device's own camera, small, so you see what the stage gets */
   #devvid { display: block; width: 100%; max-height: 220px; object-fit: contain; margin-top: 8px; border-radius: 10px; background: #000; }
-  #devvid[hidden] { display: none; }
-  #devcam[aria-pressed="true"], #devmotion[aria-pressed="true"] { background: var(--accent); color: #140b1f; border-color: transparent; }
+  #devvid[hidden], #devother[hidden] { display: none; }
+  #devcam[aria-pressed="true"], #devmotion[aria-pressed="true"], #devglow[aria-pressed="true"] { background: var(--accent); color: #140b1f; border-color: transparent; }
+  /* #237: the phone glows as a light marker – the whole screen in one colour, as little else on it as possible */
+  .glowdot { display: block; width: 14px; height: 14px; border-radius: 50%; margin: 0 auto 4px; border: 1px solid rgba(0,0,0,.4); }
+  #glow { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom)); background: var(--glow, #0ff); touch-action: none; }
+  #glow[hidden] { display: none; }
+  #glow p, #glow button { margin: 0; border: 2px solid transparent; border-radius: 999px; padding: 10px 18px; max-width: 30em; background: rgba(0,0,0,.78); color: #fff;
+    font-size: 14px; text-align: center; }
+  #glowsay { transition: opacity .6s; }
+  #glow.quiet #glowsay { opacity: 0; }
+  #glowclutch { min-width: 62%; min-height: 96px; font-size: 18px; font-weight: 700; }
+  #glowclutch[aria-pressed="true"] { border-color: #fff; }
+  #glowend { position: relative; overflow: hidden; min-height: 48px; }
+  #glowend::before { content: ""; position: absolute; inset: 0; background: rgba(255,255,255,.28); transform: scaleX(0); transform-origin: left; }
+  #glowend.held::before { transform: scaleX(1); transition: transform .7s linear; }
+  @media (prefers-reduced-motion: reduce) { #glowsay, #glowend.held::before { transition: none; } }
   #rolebox { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0 0; padding: 8px 12px;
     border: 1px solid var(--line); border-radius: 12px; color: var(--muted); font-size: 13px; }
   #rolebox[hidden] { display: none; }
@@ -265,22 +280,30 @@
     <div class="row" data-only="control" style="margin-top:8px"><button id="imgclear">✕ Picture away</button><button id="vidclear">✕ Video away</button></div>
   </section>
 
-  <section data-sec="device" data-only="control">
+  <section data-sec="device" id="devsec">
     <h2>This device</h2>
     <div class="hint" id="devsecure" hidden>Camera and motion only over https – open Dream Control with its QR code from the panel (see README).</div>
-    <div class="row">
+    <div class="row" data-only="control">
       <button id="devcam" aria-pressed="false" style="font-weight:700">📷 Live camera: OFF</button>
       <select id="devfacing" aria-label="Which camera"><option value="environment">Back camera</option><option value="user">Front camera</option></select>
     </div>
     <video id="devvid" playsinline muted hidden></video>
     <button id="devmotion" aria-pressed="false" style="width:100%;margin-top:8px;font-weight:700">🧭 Motion: OFF</button>
-    <div id="devlearnrow" hidden>
+    <div id="devlearnrow" data-only="control" hidden>
       <label for="devtarget">Motion steers</label>
       <div class="row"><select id="devtarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select><button id="devlearn" style="flex:0 0 auto">📡 Learn</button></div>
       <label for="devimpulse">A strike (swing the device) makes</label>
       <select id="devimpulse"><option value="">nothing</option><option value="flash">Flash</option><option value="jolt">Spin jolt</option><option value="reseed">new motif (seed)</option><option value="next">next scene</option><option value="blackout">Blackout on/off</option></select>
     </div>
-    <div id="devother" class="row" hidden style="margin-top:8px;align-items:center"><span id="devothertext" class="hint" style="flex:1;margin:0"></span><button id="devend" style="flex:0 0 auto">■ End</button></div>
+    <div id="devglowrow" hidden>
+      <button id="devglow" aria-pressed="false" style="width:100%;margin-top:8px;font-weight:700">💡 Glow as a light marker: OFF</button>
+      <div class="seg" id="glowcols" role="group" aria-label="Colour of the glow" style="margin-top:6px">
+        <button data-c="cyan" aria-pressed="false"><i class="glowdot" style="background:#0ff"></i>Cyan</button><button data-c="green" aria-pressed="false"><i class="glowdot" style="background:#0f0"></i>Green</button><button data-c="blue" aria-pressed="false"><i class="glowdot" style="background:#0028ff"></i>Blue</button><button data-c="magenta" aria-pressed="false"><i class="glowdot" style="background:#f0f"></i>Magenta</button>
+      </div>
+      <div class="hint">The whole screen glows in this colour, and the Mac’s camera follows it as the marker of one hand – in the dark, too. Turn the screen brightness all the way up. The screen stays on while it glows; that empties the battery fast.</div>
+      <div class="hint" id="glowstate" role="status" aria-live="polite"></div>
+    </div>
+    <div id="devother" class="row" data-only="control" hidden style="margin-top:8px;align-items:center"><span id="devothertext" class="hint" style="flex:1;margin:0"></span><button id="devend" style="flex:0 0 auto">■ End</button></div>
     <div id="devstate" class="hint" role="status" aria-live="polite">The picture of this camera becomes the input “Camera” on the stage. Motion works like a sensor on the arm: learn what it steers, a strike becomes an impulse.</div>
   </section>
 
@@ -385,6 +408,11 @@
 
   <p class="hint" id="srcline" style="text-align:center;margin:18px 0 4px"><a id="srclink" href="https://github.com/wintermute42/dream" target="_blank" rel="noopener" style="color:var(--muted)">Source code (free software, AGPL-3.0)</a></p>
 </main>
+<div id="glow" role="dialog" aria-modal="true" aria-label="Light marker" hidden>
+  <p id="glowsay" role="status"></p>
+  <button id="glowclutch" aria-pressed="false" hidden>Clutch: released</button>
+  <button id="glowend">Hold to end the glow</button>
+</div>
 
 <script src="/static/i18n.js"></script>
 <script src="/static/measure.js"></script>
@@ -462,7 +490,8 @@
   // #251: the dance's clutch (the button on the phone) and the movement sets
   let danceSets = [];
   const clutchSync = () => MoveCard.clutchShow(document.getElementById('clutchbtn'), document.getElementById('clutch').checked, document.getElementById('clutchnote'));
-  document.getElementById('clutchbtn').onclick = () => { const c = document.getElementById('clutch'); c.checked = !c.checked; setKey('clutch', c.checked); clutchSync(); };
+  const clutchFlip = () => { const c = document.getElementById('clutch'); c.checked = !c.checked; setKey('clutch', c.checked); clutchSync(); };
+  document.getElementById('clutchbtn').onclick = clutchFlip;
   const moveCard = MoveCard.mount(document.getElementById('movecard'), { send: set => Object.entries(set).forEach(([k, v]) => setKey(k, v)) });
 
   // #216: the sliders' drawing (sliders.js): what a setting "needs" to act is read from the shared state here
@@ -512,6 +541,7 @@
     if ('music' in st) seg('musics', 'v', st.music);
     if ('move_mode' in st) moveCard.set({ move_mode: st.move_mode });   // #250
     if ('clutch' in st) clutchSync();                  // #251
+    if ('clutch' in st || 'move_mode' in st) glowClutch();   // #237: the clutch on the glowing screen
     if ('dance_set' in st) { $('dance_set').dataset.want = st.dance_set; MoveCard.fillSets($('dance_set'), danceSets, st.dance_set); }
     if ('backend' in st) seg('backends', 'b', st.backend);
     if ('backend' in st || 'cloud_bridge' in st) showComputing();
@@ -713,7 +743,11 @@
     $('takectl').hidden = !m.can_take;
     role = m.role; showInstall();
     $('reset').hidden = !can('set:all');               // #216: never a guest (the server refuses it anyway)
-    if (!can('feed')) { devStop('cam', false); devStop('motion', false); }   // #146: feeds end with the rights
+    dev.second = !!m.can_take;                        // #237: with Dream Control's key, standing by
+    $('devsec').hidden = !canLend();
+    if (!can('feed')) devStop('cam', false);          // #146: feeds end with the rights
+    if (!canLend()) devStop('motion', false);
+    if (dev.second && !dev.motion) devSay(T('This phone can be the second hand: lend its motion and let it glow as a light marker.'));
     else send({ cmd: 'relieve_ask' });                // #152: the stage tells how it is doing
   }
   $('takectl').onclick = () => send({ take_control: true });
@@ -746,7 +780,10 @@
 
   // ---------- #146: live camera and motion of this device (Dream Control, over https) ----------
   const dev = { stream: null, timer: 0, motion: false,
-    wait: { cam: false, motion: false }, m: {}, mAt: 0 };
+    wait: { cam: false, motion: false }, m: {}, mAt: 0, second: false };
+  // who may lend what: Dream Control its camera and motion; #237: a second phone with Dream Control's key that stands
+  // by lends its motion and glows – the second hand (the server decides, ctl.slot_for)
+  const canLend = () => can('feed') || dev.second;
   const secure = window.isSecureContext && navigator.mediaDevices;
   $('devsecure').hidden = !!secure;
   $('devcam').disabled = $('devmotion').disabled = !secure;
@@ -754,7 +791,7 @@
     $('devcam').setAttribute('aria-pressed', !!dev.stream); $('devcam').textContent = dev.stream ? T('📷 Live camera: ON') : T('📷 Live camera: OFF');
     $('devmotion').setAttribute('aria-pressed', dev.motion); $('devmotion').textContent = dev.motion ? T('🧭 Motion: ON') : T('🧭 Motion: OFF');
     $('devvid').hidden = !dev.stream;
-    $('devlearnrow').hidden = !dev.motion;
+    $('devlearnrow').hidden = $('devglowrow').hidden = !dev.motion;
   }
   $('devlearn').onclick = () => { send({ sensor_learn: $('devtarget').value }); devSay(T('Now move the device for 2 seconds …')); };
   $('devimpulse').onchange = () => send({ sensor_impulse: $('devimpulse').value });
@@ -768,6 +805,7 @@
   function devAnnounce() {                             // (again) after a reconnect: the server forgets feeds of a lost link
     if (dev.stream) { dev.wait.cam = true; send({ feed: { cam: true, facing: $('devfacing').value } }); }
     if (dev.motion) { dev.wait.motion = true; send({ feed: { motion: true } }); }
+    if (dev.motion && glow.on) send({ glow: glow.colour });
   }
   // #156: a camera another device lends (Dreamy Eyes): Dream Control sees it and may end it
   function feedsOther(all, mine) {
@@ -805,6 +843,7 @@
     }
     if (kind === 'motion' && dev.motion) {
       removeEventListener('devicemotion', onMotion); removeEventListener('deviceorientation', onOrient); dev.motion = false;
+      glowShow(null);                                  // #237: no glow without the motion (the server ends it too)
       if (tell) send({ feed: { motion: false } });
       if (why) devSay(why);
     }
@@ -844,8 +883,76 @@
     if (!window.DeviceMotionEvent) { devSay(T('This device reports no motion.')); return; }
     addEventListener('devicemotion', onMotion); addEventListener('deviceorientation', onOrient);
     dev.motion = true; dev.wait.motion = true; send({ feed: { motion: true } });
-    devSay(T('Motion is sent – choose what it steers, tap “Learn” and move the device for 2 seconds.')); devShow();
+    devSay(can('control') ? T('Motion is sent – choose what it steers, tap “Learn” and move the device for 2 seconds.')
+      : T('Motion is sent – this phone is the second hand.')); devShow();
   }
+
+  // ---------- #237: this phone glows as a light marker while it lends its motion ----------
+  // The colour is asked for here; the server answers with the colour this phone glows in (another one when a second
+  // phone has that one already), the hand Dream follows it for and whether the Mac's camera looks for markers at all.
+  const GLOW = { cyan: '#00ffff', green: '#00ff00', blue: '#0028ff', magenta: '#ff00ff' };   // never red, orange or yellow: that is fire
+  const glow = { on: false, colour: GLOW[uiPref('glow')] ? uiPref('glow') : 'cyan', fs: false, quiet: 0, hold: 0 };
+  const glowName = c => $('glowcols').querySelector(`[data-c="${c}"]`).textContent;
+  function glowCols() { document.querySelectorAll('#glowcols button').forEach(b => { const on = b.dataset.c === glow.colour; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); }
+  function glowClutch() {
+    const dancing = state.move_mode === 'dance' && can('control');
+    $('glowclutch').hidden = !dancing;
+    if (dancing) MoveCard.clutchShow($('glowclutch'), !!state.clutch);
+  }
+  // info: what the server says about this phone's glow ({colour, hand, tracked}), or null: it does not glow; `asked`:
+  // shown at once in the tap, the server's word follows
+  function glowShow(info) {
+    const was = glow.on, asked = glow.colour;
+    glow.on = !!info;
+    if (info && GLOW[info.colour]) glow.colour = info.colour;
+    glowCols();
+    $('devglow').setAttribute('aria-pressed', glow.on); $('devglow').textContent = glow.on ? T('💡 Glow as a light marker: ON') : T('💡 Glow as a light marker: OFF');
+    $('glow').hidden = !glow.on; $('glow').style.setProperty('--glow', GLOW[glow.colour]);
+    document.querySelector('main').inert = glow.on;
+    if (glow.on) {
+      const hand = info.hand === 'l' ? T('your left hand') : info.hand === 'r' ? T('your right hand') : '';
+      const other = was && asked !== glow.colour ? T('Another phone glows in that colour already – this one glows {c}. ', { c: glowName(glow.colour) }) : '';
+      const say = info.asked ? '' : other + (!hand ? T('No hand has this marker colour right now – choose it for a hand in the panel (Movement).')
+          : !info.tracked ? T('Dream follows this colour as {h} – once Flowtrack or Dream Dance look for LED markers (Movement: “LED markers”).', { h: hand })
+          : T('Dream follows this colour as {h}.', { h: hand }));
+      $('glowstate').textContent = say;
+      $('glowsay').textContent = T('Brightness all the way up. ') + say;
+      $('glow').classList.remove('quiet'); clearTimeout(glow.quiet);
+      glow.quiet = setTimeout(() => $('glow').classList.add('quiet'), 8000);   // then the words go: only the colour is left
+      glowClutch(); keepAwake();
+      if (!was) $('glowend').focus();
+    } else if (was) {
+      clearTimeout(glow.quiet); glowHold(false); $('glowstate').textContent = '';
+      if (glow.fs && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      glow.fs = false; $('devglow').focus();
+    }
+  }
+  function glowStart() {
+    if (!dev.motion) return;
+    send({ glow: glow.colour });
+    glowShow({ colour: glow.colour, asked: true });
+    if (!document.fullscreenElement && document.fullscreenEnabled) {   // the browser's bars go where it lets them
+      document.documentElement.requestFullscreen({ navigationUI: 'hide' }).then(() => { glow.fs = true; }).catch(() => {});
+    }
+  }
+  const glowStop = () => { send({ glow: '' }); glowShow(null); };
+  $('devglow').onclick = () => (glow.on ? glowStop() : glowStart());
+  document.querySelectorAll('#glowcols button').forEach(b => b.onclick = () => {
+    glow.colour = b.dataset.c; uiPref('glow', glow.colour); glowCols();
+    if (glow.on) send({ glow: glow.colour });
+  });
+  // the phone is in a swinging hand: the glow ends only when the button is held (a key or a screen reader: at once)
+  function glowHold(on) {
+    clearTimeout(glow.hold); $('glowend').classList.toggle('held', on);
+    if (on) glow.hold = setTimeout(glowStop, 700);
+  }
+  $('glowend').onpointerdown = () => glowHold(true);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('glowend').addEventListener(ev, () => glowHold(false)));
+  $('glowend').onclick = e => { if (e.detail === 0) glowStop(); };
+  $('glow').onkeydown = e => { if (e.key === 'Escape') glowStop(); };
+  $('glow').addEventListener('pointerdown', () => { $('glow').classList.remove('quiet'); clearTimeout(glow.quiet); glow.quiet = setTimeout(() => $('glow').classList.add('quiet'), 8000); });
+  $('glowclutch').onclick = () => { clutchFlip(); glowClutch(); };   // #251: the phone's button is the clutch
+  glowCols();
   $('devmotion').onclick = () => dev.motion ? (devStop('motion', true), devSay(T('Motion off.'))) : devMotionStart();
   addEventListener('pagehide', () => { devStop('cam', true); devStop('motion', true); });
 
@@ -864,6 +971,7 @@
       if (m.dance) danceLab(m.dance);                  // #243
       if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; MoveCard.fillSets($('dance_set'), danceSets, $('dance_set').dataset.want || $('dance_set').value); }   // #251
       if (m.feed_taken) devStop(m.feed_taken, false, T('Another device took over.'));
+      if ('glow' in m && dev.motion) glowShow(m.glow);   // #237: this phone's own glow, as Dream has it
       if (m.cams) fillCams(m.cams);
       if (m.schema) sliders.schema(m.schema);          // #216
       if (m.worlds) worldBand.worlds(m.worlds);             // #224

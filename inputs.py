@@ -183,13 +183,26 @@ async def sensor_loop():
             await hub.broadcast({"sensors": sens.live()})
 
 
-SENDER_PHONE = "Dream Control"                     # what ctl.feed_motion names the phone that lends its motion
+# what ctl.feed_motion names the phones that lend their motion: Dream Control, and (#237) a second phone that stands by
+SENDER_PHONES = ("Dream Control", "Dream Control 2")
 
 
 def sensor_kind(sender: str) -> str:
-    """#249: the kind of source a sender of sensor values is – the phone that lends its motion, or a wristband or
+    """#249: the kind of source a sender of sensor values is – a phone that lends its motion, or a wristband or
     glove (anything that sends OSC)."""
-    return "phone" if sender == SENDER_PHONE else "band"
+    return "phone" if sender in SENDER_PHONES else "band"
+
+
+def glow_arms(now: float | None = None) -> dict:
+    """#237: the motion of every phone that glows as a light marker, by the hand whose marker has its colour –
+    {"l": {"g": gyroscope, "age": seconds}, "r": …}: the stage's detection holds each against the spot of light it
+    sees for that hand."""
+    arms = {}
+    for sender in movement.glows.by:
+        hand, arm = movement.glows.hand(hub.state, sender), sens.arm(sender, now)
+        if hand and arm:
+            arms[hand] = arm
+    return arms
 
 
 async def sensor_dance():
@@ -198,7 +211,8 @@ async def sensor_dance():
     other there."""
     m = sens.motion() if movement.uses(hub.state, sensor_kind(sens.source)) else None
     if m:
-        await hub.broadcast({"sensors": {"dance": m}}, only="stage")
+        arms = glow_arms() if movement.uses(hub.state, "phone") else {}
+        await hub.broadcast({"sensors": {"dance": {**m, **({"arms": arms} if arms else {})}}}, only="stage")
 
 
 sources_told: dict = {"msg": None}
@@ -212,7 +226,7 @@ async def sources_tell():
             kind = sensor_kind(sender)
             movement.sources.report(f"{kind}:{sender}", kind, sender or "OSC", energy, 0.9, now)
         elif wall - at > movement.GONE:
-            sens.by.pop(sender, None)
+            sens.forget(sender)
     msg = movement.msg(hub.state, now)
     if msg != sources_told["msg"]:
         sources_told["msg"] = msg

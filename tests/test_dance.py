@@ -267,7 +267,7 @@ def test_the_stage_gets_the_sensor_only_while_a_mode_listens_to_it(server, monke
     monkeypatch.setitem(server.hub.state, "move_off", "band")                                   # … unless it is switched off
     asyncio.run(server.inputs.sensor_dance())
     assert len(sent) == 2
-    monkeypatch.setattr(server.inputs.sens, "source", server.inputs.SENDER_PHONE)               # the phone is another kind
+    monkeypatch.setattr(server.inputs.sens, "source", server.inputs.SENDER_PHONES[0])               # the phone is another kind
     asyncio.run(server.inputs.sensor_dance())
     assert len(sent) == 3
     monkeypatch.setattr(server.inputs.sens, "motion", lambda now=None: None)                    # no sensor: nothing sent

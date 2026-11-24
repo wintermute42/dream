@@ -88,6 +88,11 @@ test('the points of the skeleton and of the hands are kept for the stick figure,
   // a measurement that says when it was taken keeps its age: fed to a detector again it is the same repeat or new point
   const aged = R.pack(2, KEYS, D.create().step({ t: 2, hands: { l: null, r: null }, body: null }), { t: 2, hands: { l: [{ x: 0.3, y: 0.4, c: 0.9, src: 'pose', at: 1.95 }], r: null }, body: null }, null, {});
   assert.ok(Math.abs(R.input(aged).hands.l[0].at - 1.95) < 1e-3); assert.equal(aged.i.h.l[0].length, 6);
+  // #237: the gyroscope of a phone that glows as a hand's marker is kept with the frame it came in – and only there
+  const glowing = R.pack(3, KEYS, D.create().step({ t: 3, hands: { l: null, r: null }, body: null }), { t: 3, hands: { l: null, r: null }, body: null, arms: { l: null, r: { g: [0.1234, -2, 0.5], age: 0.02 } } }, null, {});
+  assert.deepEqual(glowing.i.m, { l: null, r: [0.123, -2, 0.5] });
+  assert.deepEqual(R.input(glowing).arms, { l: null, r: { g: [0.123, -2, 0.5], age: 0 } });
+  assert.ok(!('m' in aged.i)); assert.equal(R.input(aged).arms, null);
 });
 
 test('a feedback keeps the last seconds: its window, the mark at its end, the mapping in use', () => {

@@ -334,3 +334,51 @@ test('a model that runs on every second or fourth camera frame gives the same ca
     assert.ok(got.flicker < 3 * full.flicker, `${fps} fps, every ${every}: flickers ${got.flicker.toFixed(3)} a second, on every frame ${full.flicker.toFixed(3)}`);
   }
 });
+
+// ---------- #237: a glowing phone is its hand's marker, and feels that hand move ----------
+// the spot of light as the camera sees it for one hand, 30 times a second, and what the phone's gyroscope says
+function glowRun(spot, gyro, seconds = 2) {
+  let memo = null, last = null;
+  for (let i = 0; i <= seconds * 30; i++) {
+    const t = i / 30, [x, y] = spot(t);
+    last = D.armMarker([{ x, y, c: 0.6, src: 'marker', len: 0 }], gyro ? { g: gyro(t), age: 0.02 } : null, memo, t, 16 / 9);
+    memo = last.memo;
+  }
+  return last;
+}
+
+test('a glowing phone and its motion: they confirm each other, a wandering light while the phone rests is doubted', () => {
+  const swing = t => [0.5 + 0.2 * Math.sin(2 * Math.PI * t), 0.5], rest = () => [0.5, 0.5];
+  const marker = r => r.cands.find(c => c.src === 'marker').c;
+  assert.ok(marker(glowRun(swing, () => [0.5, 2.5, 0.3])) > 0.75);                   // both move
+  assert.ok(marker(glowRun(rest, () => [0.02, 0.01, 0])) > 0.75);                    // both rest
+  assert.ok(marker(glowRun(swing, () => [0.02, 0.01, 0])) < 0.25);                   // the spot runs about, the phone lies still: not the phone
+  assert.equal(marker(glowRun(swing, null)), 0.6);                                   // no phone for this hand: the marker as the camera has it
+  assert.equal(marker(glowRun(rest, () => [0.5, 2.5, 0.3])), 0.6);                   // turned on the spot: says nothing
+  // a short rest in a swing (the turn of a movement) is no doubt: it takes a third of a second of it
+  assert.ok(marker(glowRun(swing, t => (t > 1.8 ? [0, 0, 0] : [0.5, 2.5, 0.3]), 2)) >= 0.6);
+  // the phone swings fast: the marker leads, before the camera has seen it; an old value says nothing
+  assert.equal(glowRun(rest, () => [0, 6, 0]).fast, true);
+  assert.equal(glowRun(rest, () => [0, 1, 0]).fast, false);
+  assert.equal(D.armMarker([], { g: [0, 6, 0], age: 0.02 }, null, 1, 16 / 9).fast, true);
+  assert.equal(D.armMarker([], { g: [0, 6, 0], age: 0.5 }, null, 1, 16 / 9).fast, false);
+  // other candidates pass untouched
+  const pose = { x: 0.4, y: 0.5, c: 0.8, src: 'pose' };
+  assert.deepEqual(D.armMarker([pose], { g: [0, 0, 0], age: 0 }, null, 1, 16 / 9).cands, [pose]);
+});
+
+test('in the stream: the hand of a phone that lies still is not led by a light of its colour that wanders', () => {
+  const run = arms => {
+    const d = D.create(); let out = null;
+    for (let i = 0; i <= 90; i++) {
+      const t = i / 30, x = 0.5 + 0.2 * Math.sin(2 * Math.PI * t);
+      out = d.step({ t, hands: { l: [{ x: 0.3, y: 0.5, c: 0.8, src: 'pose', at: t }, { x, y: 0.3, c: 0.7, src: 'marker', len: 0 }], r: null },
+        body: { x: 0.4, y: 0.4, s: 0.12, c: 0.9 }, dark: true, arms });
+    }
+    return out;
+  };
+  const alone = run(null), still = run({ l: { g: [0.01, 0, 0.02], age: 0.02 }, r: null });
+  assert.equal(alone.src.height, 'marker');            // in the dark the marker leads – whatever light has its colour
+  assert.equal(still.src.height, 'pose');              // the phone lies still: the wandering light is not its hand
+  assert.ok(still.v.energy < 0.05 && alone.v.energy > 0.2, `${still.v.energy} / ${alone.v.energy}`);
+});
