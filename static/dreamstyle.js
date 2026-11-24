@@ -10,6 +10,19 @@
                                                                            their names); vis is the face rule's word
                                                                            (static/dreamvis.js)
      motif  { <kind>(c, m, t, dt, o) }                                     the large motifs of a dream window
+     back   { mask(bk, mode, t, w, h, al, o) }                             the night behind the eyes: where the dream
+                                                                           shines through ('clouds', 'fractal', 'pattern')
+     sky    { clouds(cg, t, o) }                                           a dream window's sky: the dream seen in clouds
+     fire   { flames(g, t, k, side, o) }                                   the flames while the eyes see fire
+     trance { back(g, t, p, o), eye(g, t, p, o) }                          the trance of the eyes: what is behind them,
+                                                                           and the third eye
+     you    { FRAMES, behind, front, tints(hue, t), spark(…), cloud(…),    what is drawn around "you in the dream" and a
+              rings(…) }                                                   painted face coming through the pupils – never
+                                                                           the picture itself (static/dreamyou.js)
+     air    { draw(g, t, o) }                                              what fills the night of the world, in both
+                                                                           pages (the first world has none)
+
+   (the parts from `back` on: #222; world-classic.js describes what each is handed)
 
    – with the shared brushes (static/dreambrush.js). The pages ask for a part of the world in use (`DreamStyle.eye()`);
    a part a world does not draw itself comes from the first world, today's look ('classic'), and so does everything

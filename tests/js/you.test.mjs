@@ -54,6 +54,16 @@ test('you in the dream, drawn in a browser', { skip: chrome ? false : 'no Chrome
     assert.ok(r.holedCore <= 1, `a hole in the mask shows in the face (${r.holedCore})`);
   });
 
+  await t.test('in every other style world too: at the peak the face unchanged, nothing over it, the room never shown, its frames show', () => {
+    assert.ok(Object.keys(r.worlds).length > 0);
+    for (const [w, x] of Object.entries(r.worlds)) for (const f of Object.keys(x.face)) {
+      assert.ok(x.face[f] <= 1, `${w}, frame ${f}: a pixel of the face differs by ${x.face[f]}`);
+      assert.equal(x.overFace[f], 0, `${w}, frame ${f}: something is drawn over the face`);
+      assert.equal(x.room[f], 0, `${w}, frame ${f}: ${x.room[f]} pixels of the room are shown`);
+      if (f !== 'null') assert.ok(x.frameDrawn[f] > 2000, `${w}, frame ${f} shows (${x.frameDrawn[f]} pixels)`);
+    }
+  });
+
   await t.test('before and after it is dreamy: the face soft and wavering', () => {
     assert.ok(r.dreamy.face > 30, `the face is not the plain camera picture (${r.dreamy.face})`);
     assert.ok(r.dreamy.moved > 100, `it wavers: ${r.dreamy.moved} pixels of the face differ a moment later`);

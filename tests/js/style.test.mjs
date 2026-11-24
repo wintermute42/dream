@@ -67,10 +67,10 @@ test('today\'s look through the style layer, drawn in a browser', { skip: chrome
   const ref = JSON.parse(readFileSync(REF, 'utf8'));
 
   await t.test('the worlds and the motifs a world can draw', () => {
-    assert.deepEqual(r.worlds, ['classic']);
+    assert.equal(r.worlds[0], 'classic');
     assert.deepEqual(r.motifs.sort(), ['cube', 'fork', 'mandala', 'penrose', 'stairs', 'third']);
   });
-  await t.test('the pictures are the ones kept: eyes, pupils, living things, faces of light, window motifs', () => {
+  await t.test('the pictures are the ones kept: eyes, pupils, living things, faces of light, window motifs, the night behind the eyes, a window\'s sky, fire, trance, around "you in the dream"', () => {
     assert.deepEqual(Object.keys(r.scenes).sort(), Object.keys(ref).sort());
     for (const name of Object.keys(ref)) {
       const a = Buffer.from(r.scenes[name], 'base64'), b = Buffer.from(ref[name], 'base64');

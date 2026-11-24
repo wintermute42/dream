@@ -25,6 +25,7 @@
 <script src="/static/dreameye.js"></script>
 <script src="/static/dreamstyle.js"></script>
 <script src="/static/world-classic.js"></script>
+<script src="/static/world-deepsea.js"></script>
 <script src="/static/dreamface.js"></script>
 </head>
 <body>
@@ -157,24 +158,12 @@
     if (dream.cur) dreamPic(picG, 0, 0, n, n, 1, 0.5, 0.5); else { picG.fillStyle = '#0a0812'; picG.fillRect(0, 0, n, n); }
   }
   // ---------- #214: clouds. Noise that repeats at its edges, made once; the dream is seen through fields of it ----------
-  const NOISE = (navigator.hardwareConcurrency || 4) <= 2 ? 128 : 256;
-  const { field } = DreamBrush, nA = DreamBrush.noiseTile(NOISE, 11), nB = DreamBrush.noiseTile(NOISE, 23), nC = DreamBrush.noiseTile(NOISE, 37);
-  const CLOUD = { thin: field(nA, 0.6, 0.1), full: field(nA, 0.82, 0.1), other: field(nB, 0.72, 0.12), wisp: field(nC, 0.45, 0.22) };
-  const EATEN = Array.from({ length: 7 }, (_, i) => field(nC, 1 - i / 6, 0.1));   // from whole (0) to gone (6): a motif dissolving
-  const FRINGE = field(nB, 0.6, 0.2);
-  const patterns = new Map();
-  // a field laid over a canvas of w×h, repeating: `span` of them side by side fill the longer side; shifted, turned
-  function tile(c, tex, w, h, span, ox, oy, rot) {
-    let p = patterns.get(tex);
-    if (!p) patterns.set(tex, p = c.createPattern(tex, 'repeat'));
-    const s = Math.max(w, h) / span / NOISE, far = (w + h) / s;
-    ox -= Math.floor(ox); oy -= Math.floor(oy);       // it repeats: the same picture, and small numbers however long the night
-    c.save(); c.translate(w / 2, h / 2); c.rotate(rot); c.scale(s, s); c.translate(ox * NOISE, oy * NOISE);
-    c.fillStyle = p; c.fillRect(-ox * NOISE - far, -oy * NOISE - far, far * 2, far * 2); c.restore();
-  }
+  // #222: the fields of cloud and how they are laid out are the brushes' (static/dreambrush.js); the sky itself – the
+  // dream seen through them – is drawn by the style world (the part `sky`). What a motif dissolves into stays here.
+  const { tile, clouds: cloudField } = DreamBrush;
+  const EATEN = Array.from({ length: 7 }, (_, i) => cloudField(37, 1 - i / 6, 0.1));   // from whole (0) to gone (6): a motif dissolving
+  const FRINGE = cloudField(23, 0.6, 0.2);
   const cl = canvas(2), cg = cl.getContext('2d'), mk = canvas(2), mg = mk.getContext('2d');
-  const VIGNETTE = (() => { const c = canvas(64), x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 12, 32, 32, 46);
-    gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,.62)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return c; })();
   const drift = Math.random() * 50;                    // every window has its own piece of the sky
   let cloudAt = -1e9;
   function clouds(t, breath) {                         // the dream, seen through drifting fields of cloud, darkness between
@@ -183,18 +172,9 @@
     if (resized) { cl.width = mk.width = w; cl.height = mk.height = h; }
     if (!resized && tier() === 0 && t - cloudAt < 30) return;   // the weakest: every other frame is enough, clouds are slow
     cloudAt = t;
-    const s = t / 1000 + drift * 40, swell = clamp(0.25 + 0.5 * breath + 0.6 * st.pulse, 0, 1);
     cg.setTransform(1, 0, 0, 1, 0, 0); cg.globalCompositeOperation = 'source-over'; cg.globalAlpha = 1; cg.clearRect(0, 0, w, h);
-    tile(cg, CLOUD.thin, w, h, 0.8, s / 46 + drift, s / 110, 0.2);
-    cg.globalAlpha = swell; tile(cg, CLOUD.full, w, h, 0.8, s / 46 + drift, s / 110, 0.2); cg.globalAlpha = 1;   // they swell with the breath and the beat
-    cg.globalCompositeOperation = 'destination-in';     // a second field drifts across and turns: where both are, the dream shows
-    tile(cg, CLOUD.other, w, h, 1.15, -s / 70 + drift * 0.7, s / 58, 1.1 + s / 150);
-    if (tier() > 0) { cg.globalCompositeOperation = 'destination-out'; cg.globalAlpha = 0.3; tile(cg, CLOUD.wisp, w, h, 2.2, s / 30, -s / 37 + drift, -0.7 - s / 240); cg.globalAlpha = 1; }   // fine wisps of dark in them
-    cg.globalCompositeOperation = 'destination-in'; cg.drawImage(VIGNETTE, 0, 0, w, h);
-    cg.globalCompositeOperation = 'source-atop';        // the dream into them: large, drifting slowly, another part in every window
-    const cx = 0.5 + 0.25 * Math.sin(t / 26000 + st.index * 1.7 + drift), cy = 0.5 + 0.25 * Math.cos(t / 33000 + st.index * 2.3 + drift);
-    if (dream.cur) dreamPic(cg, 0, 0, w, h, 1.3 + 0.15 * Math.sin(t / 19000 + st.index), cx, cy);
-    else { cg.fillStyle = '#17122a'; cg.fillRect(0, 0, w, h); }
+    DreamStyle.part('sky').clouds(cg, t, { w, h, tier: tier(), swell: clamp(0.25 + 0.5 * breath + 0.6 * st.pulse, 0, 1), drift, index: st.index, pulse: st.pulse,
+      dream: (c, x, y, pw, ph, zoom, cx, cy) => { if (dream.cur) dreamPic(c, x, y, pw, ph, zoom, cx, cy); else { c.fillStyle = '#17122a'; c.fillRect(x, y, pw, ph); } } });
   }
   // ---------- drawing helpers ----------
   // a soft-edged round piece (a mandala of the dream): drawn small off screen, its edge dissolved once by a soft light
@@ -234,7 +214,7 @@
     const h = Math.floor(clk / 47000), hp = (clk - h * 47000) / 5000;   // #218: rarely (one slot in ten) the pupil hypnotises for a moment
     e.hyp = DreamEye.hypnoAt(h, s); e.hypMix = hash(s, h + 61000) < 0.1 && hp < 1 ? clamp(Math.min(hp, 1 - hp) * 9, 0, 1) : 0; e.clk = clk;
     const v = visOf(s), want = FEEL[hash(s, v.round + 52000) * FEEL.length | 0][m.mirror ? 1 : 0];   // #220: the brow comes with the hints, each time with a feeling
-    e.browAl = DreamVis.of(v, 'brows');
+    e.browAl = DreamVis.of(v, 'brows'); e.creaseAl = DreamVis.of(v, 'crease');
     for (const key in e.brow) e.brow[key] = lerp(e.brow[key], v.level ? want[key] : 0, 1 - Math.exp(-dt * 8));
     return e;
   }
@@ -242,7 +222,7 @@
     const o = { rot: e.rot, hue: hueOf(dream.col), stars: irisStars, pic: (x, y, n, al) => { c.globalAlpha = al; c.drawImage(pic, x - n / 2, y - n / 2, n, n); } };
     const style = DreamStyle.eye();                    // #221: the eye of the style world in use
     style.draw(c, cx, cy, a, a * 0.56, m.mirror, { open: e.open, blink: e.blink, squint: 0, col: dream.col, energy: 0.3 + 0.5 * st.pulse,
-      look, brow: e.brow, browAl: e.browAl, fib, gx: e.gx, gy: e.gy, pupil: e.pupil, pupilMix: e.hypMix,
+      look, brow: e.brow, browAl: e.browAl, crease: e.creaseAl, fib, gx: e.gx, gy: e.gy, pupil: e.pupil, pupilMix: e.hypMix,
       pupilShape: (ix, iy, pr, R) => style.pupilShape(c, e.hyp, ix, iy, pr, R, m.mirror, { hue: o.hue, beat: st.pulse, now: e.clk }),
       iris: (ix, iy, R) => {
         for (const [world, al] of [[e.irisPrev, 1 - e.irisMix], [e.iris, e.irisMix]]) if (al > 0.01) style.irisWorld(c, world, ix, iy, R, m.mirror, al, o);
@@ -399,6 +379,8 @@
     const spill = (0.1 + 0.08 * breath + 0.3 * st.pulse) * (1 - 0.55 * tr);   // their light spills over a little, more on the beat
     if (tier() > 0 || spill > 0.2) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = spill; g.drawImage(cl, -W * 0.05, -H * 0.05, W * 1.1, H * 1.1); }
     g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+    const air = DreamStyle.part('air');                // #222: what fills the night of a world (today's look: nothing)
+    if (air) { air.draw(g, t, { W, H, hue: hueOf(dream.col), tier: tier(), of: 'window' }); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
     drawLiving(t);
     drawMotif(t, dt);
     const wk = (t - st.wave) / 650;                    // the wave passes: a soft bloom of light

@@ -72,7 +72,7 @@ def _fx(v: str) -> str:
 
 # #221: the style worlds Dreamy Eyes and the dream windows can be drawn in. Each is one file `static/world-<name>.js`
 # that registers itself with the style layer (static/dreamstyle.js); the first is today's look. A test compares.
-WORLDS = ("classic",)
+WORLDS = ("classic", "deepsea")
 
 # #148, owner's decision (2026-11-18) on what a guest may change: painting, touching, directness, impulses, movement
 # reaction, the pose and the music automatic/drop are the performer's – not a guest's; nor are "New" (the dream starts
