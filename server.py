@@ -59,6 +59,8 @@ if config.ROLE == "app":
     # `server.<part>` is where a test or a script finds it
     import cloud
     import ctl
+    import dance
+    import dancelab
     import eyes
     import hub
     import inputs

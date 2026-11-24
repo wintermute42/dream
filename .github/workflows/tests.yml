@@ -58,6 +58,10 @@ jobs:
         run: node --test tests/js/fire.test.mjs
       - name: Hypnotic pupils take turns
         run: node --test tests/js/eye.test.mjs
+      - name: Dance detection (synthetic trajectories) and its mapping table
+        run: node --test tests/js/dance.test.mjs tests/js/dancemap.test.mjs
+      - name: Dance lab – sessions, playback, feedback moments, test files
+        run: node --test tests/js/dancerec.test.mjs
       - name: How much of a face shows (mostly only the eyes, never a nose)
         run: node --test tests/js/vis.test.mjs
       - name: Brushes of the style worlds

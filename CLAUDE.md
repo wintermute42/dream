@@ -72,6 +72,23 @@ command line for now, #231) via `dream-cloud`.
   required checks, a pull request merges only with them green), and the JavaScript tests in `tests/js/` (`node --test`;
   `window.test.mjs` runs several dream windows in a headless Chrome and is their Dream itself). The stage and the output window draw through `static/gl-stage.js` (#204: one WebGL 2 chain, Canvas 2D
   from `static/fx.js` as fallback); an effect is changed in both, `tests/js/gl-stage.test.mjs` compares their pictures.
+  Dance steers the dream (#235) in three layers that know nothing of each other's insides: `static/dance.js` turns what
+  the sources see (the pose model's wrists, LED markers in two colours, lights, the hand model's 21 points, a motion
+  sensor – handed over by `static/motion.js` as `frame.dance` and by `inputs.sensor_dance`) into one feature stream
+  (continuous features and gestures, each value with confidence and source, plus the movement clock); the mapping
+  table (`dance.py` keeps it in `~/.config/dream/dance.json`, `static/dancemap.js` applies it every frame) says which
+  source moves which target; the stage reads the targets through one interface (`danceOut`: "fx.…" the instant layer,
+  "ai.…" the slow sliders). A new gesture, a taught movement or a glove is a new source name, a new effect a new
+  target – nothing else changes; the detection is pure and tested on synthetic trajectories (`tests/js/dance.test.mjs`,
+  hit rate and false alarms). No camera picture is stored or sent for any of it.
+  The dance lab (#243) is the workshop for it: `static/dancelab.js` (an overlay over the stage: camera with skeleton,
+  hands and markers, the stream as curves, one row of the table to tune, feedback "good"/"bad", sessions) on top of
+  `static/dancerec.js` (pure: the session format – the stream's records, the detector's inputs and the points of
+  skeleton and hands, frame by frame –, recording, playback, the last seconds of a feedback, test files for the
+  detection: `tests/js/dancerec.test.mjs`, and every file in `tests/js/dance-sessions/` is checked against the
+  detector); `dancelab.py` keeps sessions in the state folder (Control-only routes) and writes nothing that is not
+  numbers and short names – a session can never carry a picture (`tests/test_dancelab.py`). Taught movements and
+  anything learned later use this one format.
   The motion between the AI pictures (#194, #215) is one continuous camera: its numbers live in `static/morph.js` (the
   phase of every picture, the camera's pace, the record a picture is shown with; `tests/js/morph.test.mjs`), and
   whatever is drawn of a picture – its element, the smoothed picture, the effects – is placed by them, never restarted.

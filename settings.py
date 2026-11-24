@@ -75,6 +75,10 @@ def _fx(v: str) -> str:
 WORLDS = ("classic", "deepsea", "ink", "etching", "aurora")
 
 
+# #235: the colours an LED marker on a hand can have – never red, orange or yellow: those are fire
+MARKERS = ("cyan", "magenta", "green", "blue")
+
+
 def world_next(name: str) -> str:
     """#224: the world after this one in the list, round and round (the MIDI button, the drift)."""
     return WORLDS[(WORLDS.index(name) + 1) % len(WORLDS)] if name in WORLDS else WORLDS[0]
@@ -113,8 +117,18 @@ SETTINGS: dict[str, Setting] = {
     "syphon": flag(False),                                      # publish the stage picture as Syphon source "Dream"
     "pose": flag(False),                                        # the dancer's skeleton (flowtrack) shapes the figure
     "pose_scale": num(0.8, 0.2, 1.5, target=True, weight=0.5, needs="pose"),
-    "flowtrack": text("off", choices=("off", "on", "hand")),    # movement detection on the stage: off | on (light) | hand (pose)
-    "flow_kind": text("hand", choices=("on", "hand")),          # what the flowtrack switch turns on: on | hand
+    # movement detection on the stage: off | on (light) | hand (pose) | marker (#235: two LED markers, one per hand)
+    "flowtrack": text("off", choices=("off", "on", "hand", "marker")),
+    "flow_kind": text("hand", choices=("on", "hand", "marker")),    # what the flowtrack switch turns on
+    # #235: dance steers the instant effects through the mapping table (dance.py); the slow AI sliders (transformation,
+    # dream share, zoom, rotation, colour drift) follow movement only when asked to
+    "dance": flag(True),
+    "motion_ai": flag(False),
+    "flow_markers": flag(False),                                # … LED markers beside the hand AI (they lead in the dark)
+    "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand
+    "marker_r": text("magenta", choices=MARKERS),
+    "dance_fb_secs": num(4.0, 1.0, 15.0),                       # #243: the seconds a "good"/"bad" of the dance lab keeps
+    "flow_fingers": flag(False),                                # … the hand model's 21 points per hand (finger values)
     "drift": num(0.5, 0.0, 1.0, guest=True, target=True, weight=0.6),       # keeps the dream alive without new input (0 = off)
     "drift_prompt": flag(True, guest=True),
     "music_patterns": flag(True),                               # music: changing patterns, drop → next scene

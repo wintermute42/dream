@@ -8,6 +8,7 @@ import secrets
 import time
 
 import config
+import dance
 import hub
 import i18n
 import midi
@@ -78,6 +79,8 @@ async def midi_loop():
                 s = hub.state                          # #224: … after the one that shows most, and all of it
                 cur = s["world_to"] if s["world_mix"] > 0.5 else s["world"]
                 await hub.apply({"world": settings.world_next(cur), "world_mix": 0.0}, by="midi")
+            elif a.startswith("dance_"):               # #243: "good"/"bad" for the dance lab – the stage keeps the moment
+                await hub.broadcast({"cmd": "dance_fb", "arg": a[6:], "by": "midi"}, only="stage")
             elif a.startswith("fx_"):                  # effects: the stage knows which ones go together
                 await hub.broadcast({"cmd": "fx", "arg": a[3:]}, only="stage")
         if learned:
@@ -141,12 +144,12 @@ async def sensor_loop():
     try:
         await AsyncIOOSCUDPServer((host, SENSOR_PORT), disp, asyncio.get_running_loop()).create_serve_endpoint()
         print(f"Sensors over OSC on {host}:{SENSOR_PORT}", flush=True)
-    except OSError as e:
+    except OSError as e:                           # the port is taken: Dream Control's own sensors still come over /ctl
         print(f"Sensor port {SENSOR_PORT} not available: {e}", flush=True)
-        return
     shown_at, sent = 0.0, {}
     while True:
         await asyncio.sleep(1 / 30)
+        await sensor_dance()
         for target, value in sens.values(midi.TARGETS).items():
             lo, hi = midi.TARGETS[target]
             if abs(value - sent.get(target, 1e9)) > 0.003 * (hi - lo):   # only real changes
@@ -162,11 +165,27 @@ async def sensor_loop():
                     midi_thr.act(action)
                 # the stage shows it, and the phone that was swung gives a little jolt (#240: it never heard of it)
                 await hub.broadcast({"sensors": {"impulse": ev[1]}})
+            elif ev[0] == "button":                # #235: a wristband's button – the stage decides what it means
+                await hub.broadcast({"sensors": {"button": ev[1]}}, only="stage")
             elif ev[0] == "learned":
                 await hub.broadcast({"sensors": {"map": sens.mapping, "learned": {"key": ev[1], "target": ev[2]}}})
         if time.time() - shown_at > 0.5 and sens.ch:
             shown_at = time.time()
             await hub.broadcast({"sensors": sens.live()})
+
+
+async def sensor_dance():
+    """#235: the stage's dance detection gets the sensor's movement as it comes (~30 times a second, only while
+    dance is on and something was sent): the camera and the sensor on the arm confirm each other there."""
+    m = sens.motion() if hub.state["dance"] else None
+    if m:
+        await hub.broadcast({"sensors": {"dance": m}}, only="stage")
+
+
+def dance_map(new) -> dict:
+    """#235: Dream Control or this Mac changed the mapping table (or asked for the built-in one)."""
+    dance.set_rows(new)
+    return dance.msg()
 
 
 # ---------- movement (#85): the stage detects it and reports presence changes and rules ----------

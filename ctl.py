@@ -12,6 +12,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 import cloud
 import config
+import dance
 import eyes
 import hub
 import i18n
@@ -66,6 +67,8 @@ async def ctl(sock: WebSocket):
     if not rights.can(role, "eyes_only"):
         outbox.post(sock, json.dumps({"midi": {"map": inputs.midi_map}}))
         outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
+        # #235: the dance mapping table; #243: whether the dance lab is open, records or plays
+        outbox.post(sock, json.dumps({"dance": {**dance.msg()["dance"], "lab": hub.live.get("dance_lab") or {}}}))
         outbox.post(sock, json.dumps({"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
                                          "cams": hub.live.get("cams", []), "lan": config.LAN,
                                          "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
@@ -153,6 +156,12 @@ async def ctl(sock: WebSocket):
             if "sensor_forget" in msg or "sensor_invert" in msg or "sensor_impulse" in msg or "sensor_sens" in msg:
                 inputs.sensor_setting(msg)
                 await hub.broadcast({"sensors": {"map": inputs.sens.mapping}})
+            if isinstance(msg.get("dance_lab"), dict) and kind == "stage":   # #243: the lab's state, for Dream Control's card
+                lab = {k: bool(msg["dance_lab"].get(k)) for k in ("open", "rec", "play")}
+                hub.live["dance_lab"] = lab
+                await hub.broadcast({"dance": {"lab": lab}}, exclude=sock)
+            if "dance_map" in msg and rights.can(hub.roles.get(sock), "control"):   # #235: never a guest
+                await hub.broadcast(inputs.dance_map(msg["dance_map"]))
             if "midi_forget" in msg:
                 inputs.midi_map.pop(str(msg["midi_forget"]), None)
                 midi.save_map(inputs.midi_map)
@@ -175,6 +184,8 @@ async def ctl(sock: WebSocket):
         pass
     finally:
         hub.clients.pop(sock, None)
+        if kind == "stage" and hub.live.pop("dance_lab", None):   # #243: the lab is the stage's – gone with it
+            await hub.broadcast({"dance": {"lab": {}}})
         hub.roles.pop(sock, None)
         hub.key_roles.pop(sock, None)
         eyes.eyes_pages.discard(sock)

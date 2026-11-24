@@ -103,9 +103,12 @@ class Sensors:
         self.acc_level = 0.0
         self.impulse_at = 0.0
         self.strikes, self.linear_at = 0, -1e9   # #240: strikes counted (the panel shows them); acceleration without gravity seen
-        self.events: list = []              # ("learned", key, target) | ("impulse", strength)
+        self.events: list = []              # ("learned", key, target) | ("impulse", strength) | ("button", index)
         self.raw: dict = {}                 # #240: an angle's last number, to unwrap it (359° → 1° is 2°, not -358°)
         self.out: dict = {}                 # #240: the steered values, smoothed
+        self.gyro: tuple = ()               # #235: the gyroscope as it came (rad/s), for the dance detection on the stage
+        self.gyro_at = 0.0
+        self.buttons: dict = {}             # address → pressed (a wristband's buttons: the clutch)
 
     # ---------- incoming ----------
     def on_osc(self, address: str, args, source: str = "", now: float | None = None):
@@ -136,6 +139,13 @@ class Sensors:
         if "gyro" in low or "rotation_rate" in low or "rotationrate" in low:
             c = self.ch.setdefault("swing", Channel(0.0))
             c.update(mag, alpha=0.3)
+            self.gyro, self.gyro_at = tuple(round(v, 3) for v in (nums + [0.0, 0.0])[:3]), now
+        if ("btn" in low or "button" in low) and (address in self.buttons or len(self.buttons) < 8):
+            down = nums[0] > 0.5             # #235: a button is pressed once, however long it is held
+            if down and not self.buttons.get(address):
+                self.buttons.setdefault(address, False)
+                self.events.append(("button", list(self.buttons).index(address)))
+            self.buttons[address] = down
         if "linear" in low:
             self.linear_at = now
         if "accel" in low or "linear" in low:
@@ -233,6 +243,13 @@ class Sensors:
             tlo, thi = targets[t]
             out[t] = round(tlo + (thi - tlo) * n, 4)
         return out
+
+    def motion(self, now: float | None = None) -> dict | None:
+        """#235: what the dance detection takes from the sensor – the gyroscope's three axes and how old they are;
+        None once nothing came for a third of a second (the detection then goes on without the sensor)."""
+        now = time.time() if now is None else now
+        age = now - self.gyro_at
+        return {"g": list(self.gyro), "age": round(age, 3)} if self.gyro and 0 <= age < 0.33 else None
 
     def live(self) -> dict:
         busiest = sorted((k for k in self.ch if k != "swing"), key=lambda k: -(self.ch[k].hi - self.ch[k].lo))[:6]

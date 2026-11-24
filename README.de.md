@@ -48,6 +48,8 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Lichtspuren träumen (Quelle „Leuchtspuren“)](#lichtspuren-träumen-quelle-leuchtspuren)
   - [Umrisse erhalten (ControlNet, #113)](#umrisse-erhalten-controlnet-113)
   - [Pose formt die Figur (ControlNet)](#pose-formt-die-figur-controlnet)
+- [Tanz](#tanz)
+  - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
 
@@ -1209,6 +1211,8 @@ Dream merkt sich den Schalter auch über einen Neustart, wie den Autopilot; eine
   Bild kann Figuren zeigen, die es für eine Person hält.
 - **Feuer/LED/Lichtspuren:** helle Punkte im Bild, bis zu vier. Die Schwelle richtet sich nach der Raumhelligkeit:
   Im Dunkeln reicht eine Fackel, in einer hellen Halle zählen nur wirklich helle Lichter.
+- **Leucht-Marker (2 Farben):** ein leuchtender Marker an jeder Hand, an seiner Farbe verfolgt, ganz ohne KI-Modell –
+  siehe [Tanz](#tanz).
 
 **Kalibrieren (Kamera ↔ Beamer):** Steht die Kamera schräg oder seitlich, landen Effekte, Malen und Licht ohne
 Abgleich etwas neben der Person. **📐 Kalibrieren** in der Karte Bewegung (Bewegung muss an sein, Kamera und Beamer
@@ -1305,8 +1309,11 @@ Kreuz, um das sich der Traum dreht, daneben speed, spread, Werte pro Sekunde, Li
 bleibt frei; die Anzeige geht nicht in die Ausgabe, nicht in Syphon und nicht an die KI. Ausgeschaltet zeichnet sie
 nichts und gibt ihren Speicher frei. Bei ausgeblendetem Bedienfeld (H) ist auch die Diagnose nicht zu sehen.
 
-Bei eingeschalteter Erkennung reagiert Dream (Schalter „auf Bewegung reagieren“, Regler „Bewegung“ bis 3× – auch am Handy). Die Bewegung
-erzeugt einen eigenen Sog um den verfolgten Punkt – auch im Kamera- und Video-Modus und wenn Zoom und Drehung auf 0
+Bei eingeschalteter Erkennung reagiert Dream (Schalter „auf Bewegung reagieren“ – auch am Handy): Ist niemand da, wird
+der Traum ruhig, kommt jemand, gibt es einen leichten Impuls, und die Regeln unten gelten. Die **Effekte** folgen der
+Bewegung sofort über die Karte [Tanz](#tanz). Die langsamen KI-Regler folgen nur mit „**Bewegung bewegt auch die
+langsamen KI-Regler**“ (standardmäßig aus; Regler „Bewegung“ bis 3×): Dann
+erzeugt die Bewegung einen eigenen Sog um den verfolgten Punkt – auch im Kamera- und Video-Modus und wenn Zoom und Drehung auf 0
 stehen; beim Bewegen fließt mehr vom vorigen Traumbild mit. Die Werte sind geglättet, eine ruhige Hand gibt einen
 ruhigen Traum:
 - **x/y** des verfolgten Punkts wird zum Zentrum von Zoom-Sog und Drehung – der Traum wirbelt um Feuer, Poi oder Hand.
@@ -1362,6 +1369,135 @@ glowing fire ribbons“). „Pose-Stärke“ regelt, wie streng die Haltung eing
   Verwandlung zieht die Bühne das Ausgangsbild etwas Richtung Grau, damit die Figur gegen den bunten Traum ankommt;
   bei sanfter bleibt das Bild, wie es ist. Für eine deutliche Figur: Verwandlung 0,6+ und Pose-Stärke 0,8–1,2.
 
+## Tanz
+
+**Tanz steuert die Effekte** – sofort, mit voller Bildrate, ohne auf die KI zu warten. Bei eingeschalteter
+Bewegungserkennung (oder mit einem Bewegungssensor am Arm) macht Dream aus dem, was es sieht, einen **Strom von
+Merkmalen**, etwa so oft, wie die Kamera Bilder liefert, gemessen am eigenen Körper – wo du im Bild stehst und wie nah,
+spielt keine Rolle:
+
+| Merkmal | Was es sagt |
+|---|---|
+| Energie | wie viel und wie heftig du dich bewegst |
+| Tempo, Phase, eigener Schlag | das Tempo deiner eigenen Wiederholung und die Stelle darin – eine **Bewegungsuhr** neben der Schlaguhr der Musik |
+| Öffnung | wie weit die Hände auseinander sind |
+| Drehung | eine Hand läuft im Kreis, und wie herum |
+| Höhe | Hände unten … oben |
+| Ruhe | du stehst still |
+
+Obendrauf erkennt Dream **Gesten** – wiederholte, rhythmische Bewegungen: **Hochwerfen** (beide Hände oder eine),
+**Ziehharmonika** (Hände auseinander und zusammen), **Schieben** (beide Hände zur Seite und zurück), **Kreisen** und
+**Schlängeln** (eine Hand hoch, während die andere runtergeht). Eine Geste zählt nach zwei bis drei sauberen
+Wiederholungen und endet mit etwas Nachlauf, wenn du aufhörst (Hysterese) – Gehen, jemandem Winken, Gestikulieren beim
+Reden, einmal nach etwas Greifen oder Schunkeln lösen nichts aus. Ihre Größe wird zur Stärke des Effekts, ihr Tempo
+zum Schlag, der die Effekte anstößt.
+
+Karte **„Tanz“** im Bedienfeld:
+- **Tanz steuert die Effekte** – der Schalter für alles (auch in Dream Control in der Karte Bewegung, zusammen mit
+  „Bewegung bewegt auch die langsamen KI-Regler“).
+- **Was Dream sieht:** die Merkmale als Balken (blasser = unsicherer, mit der Quelle, aus der jedes kommt: Kamera,
+  Marker, Licht, Sensor, Hand-KI), die erkannte Geste mit ihrer Sicherheit, dein Tempo pro Minute und ein Punkt, der
+  mitschlägt.
+- **Was eine Bewegung bewirkt** – die Tabelle: Jede Zeile ist „eine Bewegung → was sie steuert“, mit Schalter und
+  Stärke; das grüne Licht zeigt eine Zeile bei der Arbeit. **+ Zeile** fügt eine hinzu, **✕** entfernt eine,
+  **Eingebaute Tabelle** holt die ursprüngliche zurück. Eingebaut: Energie → Nachleuchten und Öffnung → Kaleidoskop
+  (beide immer aktiv, jede abschaltbar), Hochwerfen → Rückkopplung, Ziehharmonika → Tunnel, Schieben → RGB-Versatz,
+  Kreisen → Mandala, Schlängeln → Wellen, dein eigener Schlag → der Stoß auf den Schlag, Drehung → die Drehung der
+  Effekte. Ziel kann jeder Effekt sein, alle Effekte zusammen, der Stoß auf den Schlag, die Drehung – oder einer der
+  langsamen **KI-Regler** (Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift; sie folgen frühestens in einer
+  halben Sekunde und kommen auf den Regler obendrauf).
+  Die Tabelle liegt in `~/.config/dream/dance.json`; nur dieser Mac und Dream Control können sie ändern.
+
+**Die langsamen KI-Regler bleiben ruhig:** Früher schob Bewegung Verwandlung, Zoom, Drehung und Farbdrift an – die KI
+braucht ein bis zwei Bilder, bis man das sieht, zu spät zum Tanzen. Das ist jetzt aus; „**Bewegung bewegt auch die
+langsamen KI-Regler**“ in der Karte Bewegung holt es zurück (dann bestimmt der Regler „Bewegung“ wie bisher, wie
+stark).
+
+**Quellen – Kamera, Marker, Sensor, einzeln oder zusammen:**
+- **Hände (KI):** die Handgelenke des Körpermodells; der Körper gibt das Maß. Eine sichtbare Hand genügt für
+  Hochwerfen und Kreisen.
+- **Leucht-Marker (2 Farben)** – eine eigene Art der Bewegungserkennung, ganz ohne KI-Modell: ein leuchtender Marker
+  an jeder Hand (LED-Armband, Handy-Display) in zwei festen Farben – **Cyan, Magenta, Grün oder Blau**, voreingestellt
+  links Cyan und rechts Magenta; nie Rot, Orange oder Gelb, das ist Feuer. Dream verfolgt den hellsten Fleck jeder
+  Farbe in jedem Kamerabild, auch im Dunkeln; Lampen, Fenster und Feuer werden übergangen. Eine schnelle Hand
+  verschmiert ihren Marker zu einem Streifen: Seine Länge zählt als Tempo. Kamera-Tipps: 60 Bilder pro Sekunde und
+  eine kurze, feste Belichtung (das Häkchen „kurze Belichtung“, wo die Kamera es erlaubt); Farben, die in der
+  Projektion nicht vorkommen, falls die Kamera sie sieht. Ohne Skelett schätzt Dream die Größe daran, wie weit die
+  Hände in den letzten Sekunden gereicht haben, und ein ganzer Körper, der seitlich schunkelt, sieht aus wie Schieben.
+- **Leucht-Marker zusätzlich zur Hand-KI** (Häkchen, bei „Hände (KI)“): beides zugleich – wo sie übereinstimmen,
+  bestätigen sie sich; im Dunkeln und bei schnellen Bewegungen hat der Marker Vorrang.
+- **Feuer/LED:** die zwei größten Lichter zählen als zwei Hände (Energie, Tempo, Hochwerfen, Kreisen – z. B. Poi).
+- **Bewegungssensor** (das Dream-Control-Handy in der Hand mit „🧭 Bewegung“, eine Handy-App, die OSC schickt, später
+  ein Armband – siehe „Sensor-Eingang“): schnell und unabhängig vom Licht. Allein liefert er Energie, Ruhe, Tempo und
+  Schlag, und seine Schläge sind die Quelle „Schlag (Sensor)“; Lage, Öffnung und die Gesten brauchen die Kamera.
+  Zusammen: Ein Sensor, der im Tempo schwingt, das die Kamera sieht, bestätigt eine Geste (eine kleine Bewegung zählt
+  dann eher), ein ruhender Arm bezweifelt sie, und fällt eine Quelle aus, macht die andere weiter.
+- **Finger (Hand-KI, 21 Punkte je Hand)** (Häkchen, bei „Hände (KI)“; ein zweites Modell, einmal heruntergeladen,
+  etwa 8 MB, es kostet etwas Grafikchip): je Hand **Faust ↔ offene Hand**, **Finger gespreizt**, **Greifen** (Daumen
+  an Zeigefinger, gehalten, bis sie klar auseinander sind) und **Schnippen** (die Hand schnellt auf). Sie sind Quellen
+  der Tabelle wie alle anderen, z. B. „Rechte Hand: Faust ↔ offene Hand → Kaleidoskop“. Rechne mit Grenzen bei
+  Abstand, Dunkelheit und schnellen Bewegungen – die Anzeige zeigt, wann eine Hand verloren geht.
+
+Von der Kamera wird dafür nichts gespeichert oder irgendwohin geschickt: Die Merkmale sind Zahlen, die die Bühne
+selbst rechnet.
+
+### Tanz-Labor
+
+Das **🧪 Tanz-Labor** (Knopf in der Karte Tanz oder Taste **L**; **Esc** schließt es) legt sich über die Bühne – auch
+auf einem Beamer, der die Bühne zeigt – und zeigt live, was Dream aus deinem Tanz macht, damit sich die Tanzsteuerung
+beim Tanzen abstimmen lässt:
+
+- **Kamera, Skelett und Marker:** das Kamerabild mit dem erkannten Skelett, den Händen und den Leucht-Markern;
+  **Handbahnen** zeichnen den Weg jeder Hand als verblassende Linie in ihrer Markerfarbe, **Mehrfachbelichtung** legt
+  mehrere Posen der letzten zwei Sekunden blass übereinander, so dass eine Abfolge auf einen Blick zu sehen ist;
+  **Kamerabild** aus lässt nur die Figur auf Schwarz.
+- **Ausgabe mit Effekten** daneben: was das Publikum sieht.
+- **Finger (Hand-KI):** die 21 Punkte jeder Hand vergrößert als Hand-Skelett (wenn „Finger“ in der Karte Bewegung an
+  ist), mit feinen Spuren der Fingerkuppen und – bei Mehrfachbelichtung – den letzten Handposen blass dahinter (ein
+  Schnippen wird zur sichtbaren Folge); darunter Faust ↔ offene Hand, Spreizung, Greifen und Schnippen mit der
+  Sicherheit der Hand-KI, oder „verloren“.
+- **Merkmal-Strom:** Energie, Tempo, Phase, Öffnung, Drehung, Höhe und Ruhe als laufende Kurven über die letzten
+  12 Sekunden, die erkannte Geste als Band darüber und – sobald eine Hand gesehen wurde – die Fingerwerte je Hand. Wo
+  ein Wert nicht bekannt ist (Hand verloren, kein Rhythmus), hat die Kurve eine **Lücke**, markiert mit einer
+  gestrichelten roten Linie: Dort zeigen sich die Grenzen bei Abstand, Licht und Tempo.
+- **Eine Zeile abstimmen:** eine Zeile der Tabelle wählen und ihr Ziel, ihre Kurve (gerade, früh, spät, S), den
+  Eingang von … bis (das untere Ende ist die Schwelle), den Ausgang von … bis und die Glättung ändern. Ein kleines
+  Bild zeigt die Kurve mit dem Live-Wert als Punkt. Jede Änderung **wirkt sofort**, Dream speichert sie, und
+  **↶ Rückgängig** nimmt sie Schritt für Schritt zurück (bis zu 30 Schritte).
+- **Feedback ohne Hände – „gut“ / „schlecht“:** Jedes speichert die **letzten Sekunden** (Regler, 1–15 s,
+  standardmäßig 4) als Feedback-Moment: die Merkmale, die erkannte Geste, den Stand jedes Ziels und die benutzte
+  Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen: die Knöpfe **👍 Gut / 👎 Schlecht** oder die
+  Tasten **G / B**; **per Sprache** – **🎙** halten (oder Taste V bei offenem Labor) und „gut“ oder „schlecht“ sagen;
+  die Karte **„🧪 Tanz-Labor“** in Dream Control; eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
+  gut / schlecht“); die **Taste eines Armbands** per OSC (eine Adresse mit `btn` oder `button` darin, Wert 1 solange
+  gedrückt): einmal drücken ist „gut“, zweimal innerhalb einer halben Sekunde „schlecht“. Feedback zählt, solange das
+  Labor im Live-Tanz offen ist oder eine Aufnahme läuft.
+- **Eine Session aufnehmen** (**● Aufnehmen**, Taste **R** oder aus Dream Control; höchstens 5 Minuten): dieselben
+  Zahlen Bild für Bild, 30-mal pro Sekunde, mit deinem Feedback als Marken. Eine Aufnahme läuft weiter, wenn du das
+  Labor schließt.
+- **Sessions und Feedback:** die Liste von allem Gespeicherten, das Neueste zuerst. **▶** spielt eine Session ab:
+  **Ihre Merkmale steuern statt des Live-Tanzes**, so lässt sich eine Einstellung ausprobieren, ohne noch einmal zu
+  tanzen – Strichmännchen, Hände und Kurven laufen mit. Die Zeitleiste zeigt die erkannten Gesten und die
+  Feedback-Marken; Abspielen/Pause, **1× · ½× · ¼×**, ein Regler für die Stelle (ein Klick auf das Band springt
+  dorthin), **[ ab hier** / **bis hier ]** spielen einen Ausschnitt in Schleife (die Mehrfachbelichtung zeigt dann die
+  Posen dieses Ausschnitts), **↩ Live** beendet es. **Feedback-Momente dieser Session** listet jede Marke mit dem, was
+  erkannt wurde und was die Bewegung gesteuert hat; ein Klick springt dorthin und spielt ihre Sekunden in Schleife.
+  **⬇** speichert eine Session als **Testdatei** für die Erkennung (siehe „Tests“), **🗑** löscht sie (fragt auf dem
+  Knopf noch einmal nach).
+
+**Was gespeichert wird und wo:** nur Zahlen – Merkmale, Sicherheiten, die Punkte von Skelett und Händen (normierte
+2D-Koordinaten), was Sensoren und Marker gemeldet haben, die Marken und die Tabelle. **Nie ein Kamerabild**; Dream
+prüft jede Session, bevor es sie schreibt, und lehnt alles ab, was nicht Zahlen und kurze Namen sind. Die Dateien
+liegen in `~/.local/state/dream/dance/`, nur für dich lesbar, und verlassen den Mac nie; nur dieser Mac und Dream
+Control können sie auflisten, lesen, hinzufügen oder löschen – Gäste, Dreamy Eyes und Traum-Fenster nicht. Das Labor
+kostet etwas Bildrate, solange es offen ist (es zeichnet Kamera und Kurven): für einen Auftritt schließen.
+
+**Aus Dream Control** (Karte „🧪 Tanz-Labor“): **👍 Gut**, **👎 Schlecht**, **● Aufnehmen** und **Labor auf der Bühne**
+(öffnet oder schließt das Labor am Mac). Die Karte sagt, was das Labor gerade tut, und bestätigt, was gespeichert
+wurde; alles andere – die Ansichten, das Abstimmen, die Wiedergabe – ist am Mac.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
 ## MIDI-Controller
 
 Ein MIDI-Controller mit Schiebe- und Drehreglern (z. B. ein älterer USB-Controller mit 8 Fadern, Master-Fader,
@@ -1412,6 +1548,15 @@ das Gerät ruht – auf den Tisch gelegt, bleibt er stehen. Ein Ziel neu lernen 
 Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository); mit einer früheren Version gelernte Zuordnungen
 behalten den alten, selbst angepassten Bereich (jetzt nie enger als das Rauschen des Sensors) – für das ruhigste
 Ergebnis neu lernen.
+
+**Tanz:** Solange „Tanz steuert die Effekte“ an ist, geht das Gyroskop (eine Adresse mit `gyro` oder `rotation_rate`
+darin) zusätzlich unverändert an die Tanz-Erkennung – Energie, Tempo und Schlag ohne Kamera und eine zweite Meinung
+mit Kamera (siehe [Tanz](#tanz)). Zuordnen muss man dafür nichts. Das geht auch, wenn Port 7020 von einem anderen
+Programm belegt ist: Die Bewegung des Dream-Control-Geräts kommt über dessen Verbindung.
+
+**Die Taste eines Armbands:** Eine Adresse mit `btn` oder `button` darin (Wert 1 solange gedrückt, z. B.
+`/band/1/btn`) ist eine Taste – Dream gibt jeden Druck einmal an die Bühne weiter, egal wie lange sie gehalten wird.
+Heute gibt sie Feedback im [Tanz-Labor](#tanz-labor) (einmal „gut“, zweimal „schlecht“).
 
 **Schlag (Peitschenschlag):** Eine kräftige, ruckartige Bewegung ist ein Impuls (höchstens alle 0,25 s). Unter
 „Schlag →“ festlegen, was er auslöst: Blitz, Dreh-Ruck, neues Motiv, nächste Szene oder Blackout;
@@ -1716,7 +1861,25 @@ pumpende Belichtung der Kamera, pulsierende warme LEDs (langsam, schnell, mit du
 Bildschirm mit warmen bewegten Bildern, eine orange Jacke und Haut von hell bis dunkel in warmem Licht; dazu die
 Stärke, Aufflammen, Abflauen, der Blick, der binnen zwei Proben folgt, der Wechsel der Stimmungen und die Gewöhnung an
 ein ruhiges Feuer. `node --test tests/js/eye.test.mjs`
-prüft, wie oft welche hypnotische Pupille kommt. Die Augen mit Feuer sehen, ohne eines anzuzünden:
+prüft, wie oft welche hypnotische Pupille kommt. `node --test tests/js/dance.test.mjs` (#235) prüft die Tanz-Erkennung
+(`static/dance.js`) an einem simulierten Tänzer (`tests/js/dance-sim.mjs`): jede Geste in 144 Varianten von Größe,
+Tempo, Ort und Größe des Körpers, Zittern und Bildrate (er gibt die Trefferquote aus und wie schnell eine Geste erkannt
+wird), die Fehlalarme bei Stehen, Gehen, Winken, Gestikulieren, einmal Greifen, Jubeln und Schunkeln (keine), die
+Bewegungsuhr an bekannten Tempi, Marker allein, eine Hand allein, den Sensor allein und mit der Kamera, Leucht-Marker
+in gemalten Bildern (Lampen und Feuer sind keine) und die Fingerwerte an gemalten Händen jeder Größe und Drehung.
+`node --test tests/js/dancemap.test.mjs` prüft die Zuordnungstabelle (`static/dancemap.js`: Kurve, Bereiche, Glättung,
+Loslassen, wenn eine Quelle nicht bekannt ist) und was die Tanz-Karte aus einer Hand an einer Zeile macht.
+`node --test tests/js/dancerec.test.mjs` (#243) prüft die Sessions des Tanz-Labors (`static/dancerec.js`): Ein
+aufgenommener simulierter Tanz gibt beim Abspielen genau die Merkmale wieder, aus denen er gemacht wurde, und enthält
+nichts als Zahlen; seine Eingaben, einem frischen Erkenner gefüttert, ergeben dieselben Gesten; ein Feedback behält
+genau seine Sekunden; die Wiedergabe (Pause, Zeitlupe, Sprünge, Schleife), die Liste der Feedback-Momente und die
+Testdateien: Jede Datei in `tests/js/dance-sessions/` läuft durch die Erkennung und muss tun, was sie erwartet.
+**Eine Testdatei aus deinem eigenen Tanz:** Im Labor schreibt **⬇** an einer Session `dance-<id>.json` – was der
+Erkenner bekommen hat, und je Feedback-Marke, was erwartet wird: nach einem „gut“ die Geste, die dort erkannt wurde
+(oder `none`), nach einem „schlecht“ `"want": null` mit dem Erkannten in `was` – trag in `want` die Geste ein, die es
+hätte sein sollen (oder `"none"`). Leg die Datei nach `tests/js/dance-sessions/`, und der Test prüft sie von da an.
+Sie enthält die Bahnen deiner Hände und deines Körpers (kein Bild) – deine Entscheidung, ob das in ein öffentliches
+Repository gehört. Die Augen mit Feuer sehen, ohne eines anzuzünden:
 `node scripts/fire_video.mjs fire.y4m` schreibt einen 70-s-Film desselben gemalten Feuers (etwa 90 MB), und ein Chrome
 oder Chromium, gestartet mit `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
 --use-file-for-fake-video-capture=fire.y4m`, zeigt ihn den Dreamy Eyes als Kamera (ein nur dafür gestartetes Dream:
@@ -1740,7 +1903,9 @@ Wo der Code liegt, falls du etwas ändern willst: `server.py` ist das, was `./dr
 zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`, `flow.py` für das Flussfeld zwischen zwei Bildern), die Rechte (`rights.py`: die Rollen und was jede
 darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihrem Bereich und ob ein Gast sie ändern
 darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
-(`inputs.py`), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
+(`inputs.py`), die Tanz-Zuordnungstabelle (`dance.py`; die Erkennung selbst ist `static/dance.js`, die Zuordnung
+`static/dancemap.js`, die Karte `static/dancepanel.js`), das Tanz-Labor (`dancelab.py` hält die Sessions;
+`static/dancerec.js` ist ihr Format, Aufnahme und Wiedergabe, `static/dancelab.js` das Labor), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
@@ -1770,7 +1935,7 @@ Gebrauch herunter, und jedes hat seine eigene Lizenz:
 | Stil-LoRA: Sticker | Stil | MIT | ja |
 | [Whisper large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) (MLX) | Sprache | MIT | ja |
 | [Llama 3.2 3B](https://www.llama.com/llama3_2/license/) über Ollama (optional) | Prompt-Ideen, Playlists | Llama 3.2 Community License | ja (unter 700 Mio. Nutzern im Monat; „Built with Llama“) |
-| [MediaPipe](https://ai.google.dev/edge/mediapipe)-Modelle (Pose, Gesicht, Freistellen) | Bewegung, Dreamy Eyes | Apache 2.0 | ja |
+| [MediaPipe](https://ai.google.dev/edge/mediapipe)-Modelle (Pose, Hände, Gesicht, Freistellen) | Bewegung, Dreamy Eyes | Apache 2.0 | ja |
 
 Die Python-Bibliotheken (PyTorch, diffusers, transformers, FastAPI, uvicorn, Pillow, NumPy, cryptography, qrcode,
 python-osc, mido, python-rtmidi, syphon-python, mlx-whisper, psutil, …) stehen unter freizügigen Lizenzen (BSD, MIT,
