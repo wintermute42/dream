@@ -144,25 +144,32 @@
     // k: 'hand', 'on' (light) or 'marker' (#235); device: a camera's deviceId (none = the standard camera)
     let device = '';
     // src: a stream of its own instead of a camera (tests, other sources)
+    // Every start and stop has a number: a start that was overtaken (the mode, then the kind, chosen in quick
+    // succession; switched off while the camera was opening) lets go of what it opened and says nothing – two starts
+    // at once used to tear the picture from each other and leave the detection dead with "no camera".
+    let turn = 0;
     async function start(k, dev = '', src = null) {
       if (k === kind && running && dev === device && !src) return;
       stop(); kind = k; st.kind = k; running = true; device = dev;
+      const my = turn;
       try {
         if (!stream) {
           say('camera', T('Opening the camera …'));
-          stream = src || await navigator.mediaDevices.getUserMedia({ audio: false,
+          const got = src || await navigator.mediaDevices.getUserMedia({ audio: false,
             video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 60 }, ...(dev ? { deviceId: { exact: dev } } : {}) } });
-          video.srcObject = stream; await video.play();
+          if (my !== turn) { if (!src) got.getTracks().forEach(t => t.stop()); return; }
+          stream = got; video.srcObject = stream; await video.play();
+          if (my !== turn) return;
           camFps = stream.getVideoTracks()[0].getSettings().frameRate || 30;
         }
-        if (!running || kind !== k) return;
         await setExposure();
         if (k === 'hand') await loadPose();
         if (k === 'hand' && hands21.on) loadHands().catch(() => {});   // the fingers come when their model is there
-        if (!running || kind !== k) return;
+        if (my !== turn) return;
         say('running', '');
         loop();
       } catch (e) {
+        if (my !== turn) return;
         const cam = !stream;
         say(cam ? 'nocam' : 'nomodel', cam ? T('No camera – allow access or connect a camera.')
           : T('The AI model could not be loaded – the first time needs the internet.'));
@@ -170,7 +177,7 @@
       }
     }
     function stop() {
-      running = false; kind = 'off'; st.kind = 'off';
+      turn++; running = false; kind = 'off'; st.kind = 'off';
       if (vfc && video.cancelVideoFrameCallback) video.cancelVideoFrameCallback(vfc);
       vfc = 0;
       if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; video.srcObject = null; }
