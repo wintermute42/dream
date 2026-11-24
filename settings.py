@@ -83,6 +83,11 @@ MOVE_MODES = ("off", "mood", "flowtrack", "dance")
 MOVE_SOURCES = ("camera", "eyes", "phone", "band")
 
 
+def _set_name(v: str) -> str:
+    """#251: the name of a movement set – a short plain name, or none."""
+    return v if re.fullmatch(r"[\w][\w .+-]{0,23}", v) else ""
+
+
 def _sources(v: str) -> str:
     """Only known kinds of movement sources, each once."""
     return "+".join(dict.fromkeys(k for k in v.split("+") if k in MOVE_SOURCES))
@@ -136,6 +141,10 @@ SETTINGS: dict[str, Setting] = {
     "pose_scale": num(0.8, 0.2, 1.5, target=True, weight=0.5, needs="pose"),
     # what the Mac's camera detects: on (light: fire, LED) | hand (pose) | marker (#235: two LED markers, one per hand)
     "flow_kind": text("hand", choices=("on", "hand", "marker")),
+    # #251: Dream Dance – the clutch (the dance acts only while it is engaged; released: only what the hands and the
+    # controllers set) and the movement set last chosen (a named table of what a movement does, dance.py)
+    "clutch": flag(True),
+    "dance_set": text("", clean=_set_name),
     "flow_markers": flag(False),                                # … LED markers beside the hand AI (they lead in the dark)
     "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand
     "marker_r": text("magenta", choices=MARKERS),

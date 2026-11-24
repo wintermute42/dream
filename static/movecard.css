@@ -48,3 +48,6 @@ details.sub[open] > summary { color: var(--text); }
   .movepart { transition: none; transform: none; }
   .movesources button, .movesources .dot::after { transition: none; }
 }
+/* #251: the dance's clutch – large, and plain to see whether it is engaged */
+.clutchbtn { width: 100%; min-height: 44px; font-weight: 700; }
+.clutchbtn[aria-pressed="true"] { background: var(--ok); color: #0b1a10; border-color: transparent; }

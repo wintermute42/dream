@@ -16,6 +16,22 @@
   const KINDS = { camera: () => T('Mac camera'), eyes: () => 'Dreamy Eyes', phone: () => T('Phone'), band: () => T('Wristband') };
   const DETECTS = { hand: () => T('Hands (AI)'), on: () => T('Fire/LED'), marker: () => T('LED markers') };
   const name = mode => (Object.prototype.hasOwnProperty.call(NAMES, mode) ? NAMES[mode]() : NAMES.off());
+  // #251: the dance's clutch and the movement sets – what the panel, the page of Dream Dance and Dream Control show alike
+  const clutchText = on => (on ? T('Clutch: engaged') : T('Clutch: released'));
+  const SETS = { standard: () => T('Standard'), waves: () => T('Waves'), fire: () => T('Fire') };
+  const setLabel = n => (Object.prototype.hasOwnProperty.call(SETS, n) ? SETS[n]() : n);
+  // the choices of a set's select: "your table" (no set), then every set by its name; a name not in the list yet (Dream
+  // has not said so) stands as it is. Rebuilt only when something changed, so an open list is not torn away.
+  function fillSets(select, names, current) {
+    const want = [''].concat(names || []), cur = current == null ? '' : String(current);
+    if (cur && !want.includes(cur)) want.push(cur);
+    const key = want.join('\n');
+    if (select.dataset.filled !== key) {
+      select.dataset.filled = key; select.textContent = '';
+      for (const n of want) { const o = document.createElement('option'); o.value = n; o.textContent = n ? T('Set: {s}', { s: setLabel(n) }) : T('Set: your table'); select.append(o); }
+    }
+    if (select.value !== cur && document.activeElement !== select) select.value = cur;
+  }
 
   // the energy of the room in a word: {energy, conf} → text (nothing known: no source reports)
   function words(room) {
@@ -143,7 +159,7 @@
     };
   }
 
-  const api = { mount, words, chips, info, MODES, name };
+  const api = { mount, words, chips, info, MODES, name, clutchText, setLabel, fillSets };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MoveCard = api;
 })(typeof window !== 'undefined' ? window : globalThis);

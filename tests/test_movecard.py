@@ -30,7 +30,7 @@ def test_one_card_holds_all_of_movement():
     # what the three cards held is all in the one: the mode, the mood, the camera's settings, the table, the hands
     assert {"move_mode", "motion_sens", "move_cam", "movepage", "flow_kind", "flow_device", "flow_color", "flow_short",
             "marker_l", "marker_r", "flow_markers", "flow_fingers", "fastbtn", "calibgo", "calibreset", "flow_unproject",
-            "diagon", "pose", "pose_scale", "dancelabbtn", "touch_amt", "touch_mirror"} <= ids(card)
+            "diagon", "pose", "pose_scale", "touch_amt", "touch_mirror", "clutchbtn", "dance_set"} <= ids(card)
     for element in ('id="movesources"', 'id="moveenergy"', 'id="dancepanel"', 'role="meter"'):
         assert element in card, element
     # the modes: every mode Dream knows, and a part of the card for each

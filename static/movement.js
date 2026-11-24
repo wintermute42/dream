@@ -13,6 +13,9 @@
 //   the stream's record (`energy`, `still`) together with `present` (someone is there at all).
 // - the mode: its table is applied to the record; a change of mode fades the old table's effect out while the new
 //   one's fades in (FADE seconds, eased) – never a jolt.
+// - the clutch of the dance (#251): what the hands and the controllers set is the base, the dance acts on top of it
+//   (`onTop`) – and only while the clutch is engaged. Engaging and releasing fades the dance's part in and out in
+//   CLUTCH seconds; released, only the base is left.
 (function (root) {
   'use strict';
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -25,6 +28,7 @@
   };
   const TABLES = Object.keys(MODES).filter(m => m !== 'off');
   const FADE = 0.6;                                    // seconds a change of mode takes
+  const CLUTCH = 0.3;                                  // seconds the dance takes to come in or go out with its clutch
   const ease = x => x * x * (3 - 2 * x);
   const modeOf = m => (Object.prototype.hasOwnProperty.call(MODES, m) ? m : 'off');
   const offSet = off => new Set(String(off || '').split('+').filter(k => KINDS.includes(k)));
@@ -49,6 +53,10 @@
     }
     return weight > 0 ? { energy: sum / weight, conf: 1 - unsure } : { energy: 0, conf: 0 };
   }
+
+  // The base and the dance on top of it: what a slider, a button or a MIDI controller set stays, the movement adds its
+  // part – a controller moved while dancing shifts the base, the dance stays on top. Held inside the target's range.
+  const onTop = (base, dance, lo = 0, hi = 1) => clamp((Number.isFinite(+base) ? +base : 0) + (Number.isFinite(+dance) ? +dance : 0), lo, hi);
 
   // ---------- Dreamy Eyes: how much moves in front of a camera, from two small pictures ----------
   // look(data, w, h): RGBA pixels of a small sample of the camera (the same size every time) → {e, c}: the share of
@@ -81,7 +89,7 @@
   function create({ maps }) {
     const map = Object.fromEntries(TABLES.map(m => [m, maps.create()]));
     const gain = Object.fromEntries(TABLES.map(m => [m, 0]));
-    let still = 0, frame = null, list = [], mixed = { energy: 0, conf: 0 }, started = false;
+    let still = 0, frame = null, list = [], mixed = { energy: 0, conf: 0 }, started = false, hold = 1;
 
     // The record the tables read: the stream's (or an empty one), with the room's energy in place of the stream's own.
     // rec: the feature stream's record or null; cam: {energy, conf} of the camera when the stream has none (a kind of
@@ -105,19 +113,21 @@
     }
 
     // One frame of the stage. in: {mode, tables: {mode: rows}, rec, cam, remote, strength (how strongly the mood
-    // acts, 1 = as its table says), dt (s)}. Returns {target: value} – what every target of the one interface is at.
-    function step({ mode, tables = {}, rec = null, cam = null, remote = [], strength = 1, dt = 1 / 60 }) {
+    // acts, 1 = as its table says), clutch (the dance's: engaged or not), dt (s)}. Returns {target: value} – what every
+    // target of the one interface is at.
+    function step({ mode, tables = {}, rec = null, cam = null, remote = [], strength = 1, clutch = true, dt = 1 / 60 }) {
       mode = modeOf(mode); list = remote;
       const fading = TABLES.some(m => m !== mode && gain[m] > 0);
       frame = mode === 'off' && !fading ? null : blend(rec, cam, remote, dt);
       if (!frame) { still = 0; mixed = { energy: 0, conf: 0 }; }
+      hold = started ? clamp(hold + (clutch ? dt : -dt) / CLUTCH, 0, 1) : clutch ? 1 : 0;
       const out = {};
       for (const m of TABLES) {
         // the first frame starts in its mode (a page that loads does not fade in); afterwards every change glides
         gain[m] = started ? clamp(gain[m] + (m === mode ? dt : -dt) / FADE, 0, 1) : m === mode ? 1 : 0;
         if (gain[m] <= 0) { map[m].reset(); continue; }
         // a mode on its way out still reads the stream – its effect leaves with its gain, not in one frame
-        const got = map[m].apply(tables[m] || [], frame, dt), k = ease(gain[m]) * (m === 'mood' ? clamp(strength, 0, 3) : 1);
+        const got = map[m].apply(tables[m] || [], frame, dt), k = ease(gain[m]) * (m === 'mood' ? clamp(strength, 0, 3) : m === 'dance' ? ease(hold) : 1);
         for (const dst of Object.keys(got)) out[dst] = clamp((out[dst] || 0) + k * got[dst], -1, 1);
       }
       started = true;
@@ -133,7 +143,7 @@
       ...list.map(s => ({ ...s }))];
     }
     return { step, sources, of: (m, id) => (map[m] ? map[m].of(id) : 0), gain: m => gain[m] || 0,
-      get frame() { return frame; }, get room() { return mixed; } };
+      get frame() { return frame; }, get room() { return mixed; }, get hold() { return hold; } };
   }
 
   // the kinds of the register in one line each, for a short display: [{kind, n, on, used, active}]
@@ -144,7 +154,7 @@
     });
   }
 
-  const api = { create, uses, cameraOn, room, sight, byKind, modeOf, MODES, TABLES, KINDS, FADE };
+  const api = { create, uses, cameraOn, room, sight, byKind, onTop, modeOf, MODES, TABLES, KINDS, FADE, CLUTCH };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamMove = api;
 })(typeof window !== 'undefined' ? window : globalThis);

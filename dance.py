@@ -80,11 +80,43 @@ MOOD_ROWS = [
     _row("content", "energy", "ai.prompt", lo=0.1, hi=0.8, smooth=2.0),
     _row("calm", "still", "stage.calm", lo=0.5, hi=1.0, smooth=3.0),
 ]
+# #251: movement sets – named tables for the dance, to choose from in a show (the panel, a MIDI button, a playlist
+# scene). The built-in ones; the owner's own are kept beside the tables in the file. "standard" is the built-in table.
+SET_ROWS = {
+    "waves": [
+        _row("energy", "energy", "fx.waves", lo=0.1, hi=0.8, out=0.8, curve="soft", smooth=0.25),
+        _row("open", "open", "fx.tunnel", lo=0.45, hi=0.95, out=0.7, curve="s", smooth=0.3),
+        _row("wave", "g.wave", "fx.trails", out=1.0),
+        _row("circle", "g.circle", "fx.mandala", out=1.0),
+        _row("accordion", "g.accordion", "fx.mirror", out=1.0),
+        _row("pulse", "pulse", "fx.pulse", out=0.7, smooth=0.0),
+        {**_row("turn", "turn", "fx.spin", lo=-1.0, hi=1.0, smooth=0.3), "out": [-1.0, 1.0]},
+    ],
+    "fire": [
+        _row("energy", "energy", "fx.feedback", lo=0.15, hi=0.85, out=0.8, curve="soft", smooth=0.2),
+        _row("height", "height", "fx.rgb", lo=0.55, hi=1.0, out=0.6, curve="hard", smooth=0.2),
+        _row("throw", "g.throw", "fx.trails", out=1.0),
+        _row("push", "g.push", "fx.waves", out=1.0),
+        _row("circle", "g.circle", "fx.kaleido", out=1.0),
+        _row("pulse", "pulse", "fx.pulse", out=1.0, smooth=0.0),
+        {**_row("turn", "turn", "fx.spin", lo=-1.0, hi=1.0, smooth=0.2), "out": [-1.0, 1.0]},
+    ],
+}
+MAX_SETS = 24
+SET_NAME = re.compile(r"[\w][\w .+-]{0,23}")
+
 DEFAULT_TABLES = {"mood": MOOD_ROWS, "flowtrack": TOUCH_ROWS, "dance": DEFAULT_ROWS + TOUCH_ROWS}
 
 
 def default_tables() -> dict:
     return {m: [dict(r) for r in rows] for m, rows in DEFAULT_TABLES.items()}
+
+
+def builtin_sets() -> dict:
+    """The built-in movement sets: the built-in table as "standard", and the others with the rows of the direct
+    interaction every dance table has."""
+    return {"standard": [dict(r) for r in DEFAULT_TABLES["dance"]],
+            **{name: [dict(r) for r in rows + TOUCH_ROWS] for name, rows in SET_ROWS.items()}}
 
 
 def _num(v, lo, hi):
@@ -142,6 +174,20 @@ def load_tables() -> dict:
     return out
 
 
+def load_sets() -> dict:
+    """The owner's own movement sets (#251), or none."""
+    try:
+        with open(MAP_FILE) as f:
+            data = json.load(f)
+        got = data.get("sets") if isinstance(data, dict) else None
+        if isinstance(got, dict):
+            return {k: clean_rows(v) for k, v in list(got.items())[:MAX_SETS * 4]
+                    if isinstance(k, str) and SET_NAME.fullmatch(k) and k not in builtin_sets() and isinstance(v, list)}
+    except (FileNotFoundError, ValueError, OSError, RecursionError):
+        pass
+    return {}
+
+
 def is_current() -> bool:
     """Whether the file already has a table per mode (#249)."""
     try:
@@ -156,11 +202,46 @@ def save_tables() -> None:
     os.makedirs(os.path.dirname(MAP_FILE), exist_ok=True)
     tmp = MAP_FILE + ".tmp"
     with open(tmp, "w") as f:
-        json.dump({"version": 2, "tables": tables}, f, ensure_ascii=False, indent=1)
+        json.dump({"version": 2, "tables": tables, **({"sets": sets} if sets else {})}, f, ensure_ascii=False, indent=1)
     os.replace(tmp, MAP_FILE)
 
 
 tables: dict = load_tables()
+sets: dict = dict(list(load_sets().items())[:MAX_SETS])
+
+
+def all_sets() -> dict:
+    """Every movement set by name: the built-in ones first, then the owner's."""
+    return {**builtin_sets(), **sets}
+
+
+def use_set(name: str) -> bool:
+    """#251: the dance table becomes this set's rows (a copy: tuning the table never changes the set)."""
+    rows = all_sets().get(name) if isinstance(name, str) else None
+    if rows is None:
+        return False
+    set_rows([dict(r) for r in rows], "dance")
+    return True
+
+
+def save_set(name) -> bool:
+    """The dance table as it is now, kept as a set of this name (an own set of that name is replaced; a built-in one
+    is never overwritten)."""
+    if not isinstance(name, str) or not SET_NAME.fullmatch(name) or name in builtin_sets():
+        return False
+    if name not in sets and len(sets) >= MAX_SETS:
+        return False
+    sets[name] = [dict(r) for r in tables["dance"]]
+    save_tables()
+    return True
+
+
+def delete_set(name) -> bool:
+    if not isinstance(name, str) or name not in sets:
+        return False
+    sets.pop(name)
+    set_rows(tables["dance"], "dance")                # writes the file anew – or removes it when nothing of the owner's is left
+    return True
 
 
 def set_rows(new, mode: str = "dance") -> list:
@@ -174,7 +255,7 @@ def set_rows(new, mode: str = "dance") -> list:
         tables[mode] = clean_rows(new)
     else:
         return tables[mode]
-    if tables == default_tables():
+    if tables == default_tables() and not sets:
         try:
             os.remove(MAP_FILE)
         except OSError:
@@ -214,5 +295,6 @@ def row_on(mode: str, dst: str) -> bool:
 
 
 def msg() -> dict:
-    """The tables for the pages: every mode's (the stage, the panel), and the dance table by its own name (#235)."""
-    return {"dance": {"map": tables["dance"], "tables": tables}}
+    """The tables for the pages: every mode's (the stage, the panel), the dance table by its own name (#235), and the
+    names of the movement sets (#251)."""
+    return {"dance": {"map": tables["dance"], "tables": tables, "sets": list(all_sets()), "own_sets": list(sets)}}

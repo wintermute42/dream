@@ -80,6 +80,10 @@ async def midi_loop():
                 s = hub.state                          # #224: … after the one that shows most, and all of it
                 cur = s["world_to"] if s["world_mix"] > 0.5 else s["world"]
                 await hub.apply({"world": settings.world_next(cur), "world_mix": 0.0}, by="midi")
+            elif a == "clutch":                        # #251: the dance's clutch, in or out
+                await hub.apply({"clutch": not hub.state["clutch"]}, by="midi")
+            elif a == "dance_set":                     # #251: the next movement set, round and round
+                await hub.apply({"dance_set": next_set(hub.state["dance_set"])}, by="midi")
             elif a.startswith("dance_"):               # #243: "good"/"bad" for the dance lab – the stage keeps the moment
                 await hub.broadcast({"cmd": "dance_fb", "arg": a[6:], "by": "midi"}, only="stage")
             elif a.startswith("fx_"):                  # effects: the stage knows which ones go together
@@ -212,6 +216,34 @@ async def sources_tell():
     if msg != sources_told["msg"]:
         sources_told["msg"] = msg
         await hub.broadcast(msg)
+
+
+def next_set(name: str) -> str:
+    """#251: the movement set after this one in the list (the MIDI button)."""
+    names = list(dance.all_sets())
+    return names[(names.index(name) + 1) % len(names)] if name in names else names[0]
+
+
+def _set_chosen() -> None:
+    """#251: a movement set was chosen – in the panel, by a MIDI button, by a playlist scene: its rows are the dance
+    table from now on, and every page is told. A name that is no set changes nothing."""
+    if dance.use_set(hub.state["dance_set"]):
+        try:
+            asyncio.get_running_loop().create_task(hub.broadcast(dance.msg()))
+        except RuntimeError:                       # no loop (a script, a test): the next page that connects is told
+            pass
+
+
+hub.on_change("dance_set", _set_chosen)
+
+
+def dance_sets(msg: dict) -> dict:
+    """#251: Dream Control or this Mac keeps the dance table as a set of its own, or removes one of its own sets."""
+    if "dance_set_save" in msg:
+        dance.save_set(msg["dance_set_save"])
+    if "dance_set_delete" in msg:
+        dance.delete_set(msg["dance_set_delete"])
+    return dance.msg()
 
 
 def dance_map(new, mode: str = "dance") -> dict:

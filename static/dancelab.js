@@ -1,7 +1,8 @@
 /* Dream – the dance lab (#243): see live what Dream makes of a dance, change the mapping while dancing, say "good" or
    "bad" without hands, record sessions and play them back.
 
-   An overlay over the stage, mounted by index.html. It shows the camera picture with the skeleton, the hands and the
+   A part of the page of Dream Dance (#251: static/dance.html – it reads the stage through the bridge of the window
+   that opened it). It shows the camera picture with the skeleton, the hands and the
    LED markers (trails of the hands, a multiple exposure of the last poses), the output with its effects beside it, the
    hand model's 21 points per hand large (with trails of the finger tips), and the feature stream of dance.js as
    running curves – a gap where a value is not known. Below: one row of the mapping table to tune (target, curve,
@@ -58,7 +59,7 @@
     const HAND_COL = { cyan: '#35e6f0', magenta: '#f040dc', green: '#59e06a', blue: '#5b8cff' };
     const handCol = h => HAND_COL[(opts.colours() || {})[h]] || (h === 'l' ? HAND_COL.cyan : HAND_COL.magenta);
 
-    box.classList.add('dl'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', T('Dance lab')); box.hidden = true; box.textContent = '';
+    box.classList.add('dl'); box.setAttribute('role', 'region'); box.setAttribute('aria-label', T('Dance lab')); box.hidden = true; box.textContent = '';
     // ---------- the bar: what the lab is doing, record, feedback ----------
     const bar = el('header', 'dl-bar'), title = el('h2', '', T('🧪 Dance lab')), modeTxt = el('span', 'dl-mode'), tools = el('div', 'btns dl-tools');
     modeTxt.setAttribute('role', 'status');
@@ -67,8 +68,7 @@
     const voiceBtn = btn('🎙', T('Hold and say “good” or “bad” (or key V)')); voiceBtn.setAttribute('aria-label', T('Feedback by voice: hold and say “good” or “bad”'));
     const secsLab = el('label', 'dl-secs'), secsIn = el('input'), secsVal = el('span', 'val');
     secsIn.type = 'range'; secsIn.min = 1; secsIn.max = 15; secsIn.step = 1; secsLab.append(T('a feedback keeps the last'), secsIn, secsVal);
-    const closeBtn = btn(T('✕ Close'), T('Close the lab (key L or Esc)'));
-    tools.append(recBtn, goodBtn, badBtn, voiceBtn, secsLab, closeBtn); bar.append(title, modeTxt, tools);
+    tools.append(recBtn, goodBtn, badBtn, voiceBtn, secsLab); bar.append(title, modeTxt, tools);
     // ---------- the three views ----------
     const views = el('div', 'dl-views');
     const [camFig, camCv] = view(T('Camera, skeleton and markers'), T('The camera picture with the detected skeleton, the hands and the LED markers'));
@@ -403,7 +403,7 @@
     loopB.onclick = () => { if (player && loopFrom != null && player.pos > loopFrom) player.setLoop(loopFrom, player.pos); };
     loopOff.onclick = () => { if (player) { player.setLoop(null); loopFrom = null; } };
     liveBtn.onclick = live;
-    recBtn.onclick = () => record(); goodBtn.onclick = () => feedback('good', 'panel'); badBtn.onclick = () => feedback('bad', 'panel'); closeBtn.onclick = () => show(false);
+    recBtn.onclick = () => record(); goodBtn.onclick = () => feedback('good', 'panel'); badBtn.onclick = () => feedback('bad', 'panel');
     secsIn.oninput = () => { opts.setSecs(+secsIn.value); secsVal.textContent = T('{n} s', { n: secsIn.value }); };
     voiceBtn.addEventListener('mousedown', () => opts.voice(true)); voiceBtn.addEventListener('mouseup', () => opts.voice(false)); voiceBtn.addEventListener('mouseleave', () => opts.voice(false)); voiceBtn.addEventListener('blur', () => opts.voice(false));
     voiceBtn.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); opts.voice(true); } });
@@ -458,12 +458,11 @@
     }
     function show(on = !open) {
       if (on === open) return;
-      open = on; box.hidden = !on; document.body.classList.toggle('dancelab-open', on);
-      if (on) { secsIn.value = opts.secs(); secsVal.textContent = T('{n} s', { n: secsIn.value }); drawnRows = ''; mode(); refresh(); loop(); closeBtn.focus(); }
+      open = on; box.hidden = !on;
+      if (on) { secsIn.value = opts.secs(); secsVal.textContent = T('{n} s', { n: secsIn.value }); drawnRows = ''; mode(); refresh(); loop(); }
       else { live(); if (!rec) rng.clear(); }
       state();
     }
-    document.addEventListener('keydown', e => { if (open && e.key === 'Escape') { e.stopPropagation(); show(false); } });
 
     return { show, record, feedback, refresh, get open() { return open; }, get active() { return active(); }, get recording() { return !!rec; }, get playing() { return !!player; },
       // a wristband's one button: one press "good", two right after each other "bad"

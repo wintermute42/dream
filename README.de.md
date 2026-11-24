@@ -49,6 +49,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Umrisse erhalten (ControlNet, #113)](#umrisse-erhalten-controlnet-113)
   - [Pose formt die Figur (ControlNet)](#pose-formt-die-figur-controlnet)
 - [Tanz](#tanz)
+  - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
   - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
@@ -1214,9 +1215,10 @@ Interaktion“):
     oder „keine Quelle“) und „**auch die Mac-Kamera nutzen**“. Stimmung ein- und ausschalten ist ein Klick auf
     **Stimmung** bzw. **Aus**.
   - **Flowtrack:** was Dream gerade erkennt – die Art, Werte pro Sekunde, ob jemand da ist.
-  - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo.
+  - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo, die **Kupplung** und das
+    **Bewegungs-Set** (siehe [Dream Dance](#dream-dance-die-seite-die-kupplung-die-sets)).
 - **Seite ↗** öffnet die Seite des Modus in einem eigenen Fenster, für einen zweiten Bildschirm, bei den Modi, die
-  eine haben (Dream Dance: das Tanz-Labor).
+  eine haben (Dream Dance).
 - **Quellen** – ein Chip je Art, siehe unten.
 - Darunter eingeklappt: **Kamera und Erkennung** (Art der Erkennung, Kamera, Licht- und Marker-Farben, Finger,
   ⚡ Schnell, Kalibrieren, Projektion abziehen, Diagnose, Pose) und **Was eine Bewegung bewirkt** (was Dream sieht, die
@@ -1504,10 +1506,52 @@ die KI-Regler**“ der Tabelle holt es zurück (ihr Regler bestimmt, wie stark).
 Von der Kamera wird dafür nichts gespeichert oder irgendwohin geschickt: Die Merkmale sind Zahlen, die die Bühne
 selbst rechnet.
 
+### Dream Dance: die Seite, die Kupplung, die Sets
+
+**Die Seite.** Im Modus Dream Dance öffnet **Seite ↗** in der Karte Bewegung (oder Taste **L** auf der Bühne) die
+Seite von Dream Dance in einem eigenen Fenster – für einen zweiten Bildschirm. Sie gehört nur diesem Mac (kein Handy
+oder Tablet erreicht sie) und ist eine Zusatzansicht: Alles, was den Auftritt steuert, gibt es auch im Bedienfeld.
+Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine eigene Verbindung und keine eigene
+Kamera – öffne sie also aus dem Bedienfeld, nicht über ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
+selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
+Bewegungs-Sets, die beiden Uhren und darunter das Tanz-Labor.
+
+**Die Kupplung** entscheidet, ob dein Tanz wirkt. Was Regler, Bedienfeld und ein MIDI-Controller einstellen, ist die
+**Grundlage**; der Tanz wirkt **obendrauf** – ein Effekt mit 30 % von Hand und 40 % vom Tanz zeigt sich mit 70 %, und
+ein Fader, den du beim Tanzen bewegst, verschiebt die Grundlage, während der Tanz obendrauf bleibt. **Gelöst** bleibt
+nur die Grundlage. Einlegen und Lösen blendet den Anteil des Tanzes in etwa einer Drittelsekunde ein und aus, nie mit
+einem Ruck – so wechselst du nahtlos zwischen Tanzen und Bedienen. Vier Wege, alle derselbe Schalter:
+- der große Knopf auf der Seite und **Kupplung: eingelegt / gelöst** in der Karte Bewegung,
+- Taste **K** auf der Bühne oder auf der Seite (im Modus Dream Dance),
+- ein MIDI-Knopf: „**Taste: Kupplung ein/aus**“ anlernen (siehe [MIDI-Controller](#midi-controller)),
+- der Knopf in Dream Control (Karte „Dream Dance“) – das Handy in der Tasche.
+
+Der Balken unter dem Knopf auf der Seite zeigt, wie weit der Tanz drin ist. Nach dem ersten Start ist die Kupplung
+eingelegt; Dream merkt sie sich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
+
+**Bewegungs-Sets** sind benannte Tabellen dessen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines
+Auftritts. Eingebaut: **Standard** (die eingebaute Tabelle), **Wellen** (Energie → Wellen, Öffnung → Tunnel, Armwelle →
+Nachleuchten, Kreisen → Mandala, Ziehharmonika → Spiegel) und **Feuer** (Energie → Feedback, Hände oben → RGB-Versatz,
+Hochwerfen → Nachleuchten, Schieben → Wellen, Kreisen → Kaleidoskop). Ein gewähltes Set macht seine Zeilen zur
+benutzten Tabelle; die Tabelle danach abzustimmen ändert das Set nie. Wählen kannst du
+- in der Karte Bewegung (Modus Dream Dance) oder auf der Seite,
+- mit einem MIDI-Knopf: „**Taste: nächstes Bewegungs-Set**“ geht sie der Reihe nach durch,
+- in Dream Control,
+- in einer Playlist-Szene: `"settings": {"dance_set": "waves"}` in einer Szene einer Playlist-Datei.
+
+Auf der Seite behält **Als Set behalten** die Tabelle, wie sie jetzt ist, unter einem eigenen Namen (Buchstaben,
+Ziffern, Leerzeichen und `. + -`, höchstens 24 Zeichen, bis zu 24 Sets); **Dieses Set entfernen** entfernt ein
+eigenes. Deine Sets liegen mit den Tabellen in `~/.config/dream/dance.json`.
+
+**Uhren.** Die Seite zeigt die eigene Uhr des Tanzes (das Tempo deiner Wiederholung) und die Schlaguhr der Musik
+nebeneinander, je mit einem Punkt, der mitschlägt, und sagt, wer den Schlag gibt: deine Bewegung, die Musik, beide
+zusammen (auch im halben oder doppelten Tempo) oder zwei verschiedene Schläge. Effekte auf dem Schlag stoßen beide
+an – die Zeile „Eigener Schlag → Schub auf den Schlag“ der Tabelle für deine Bewegung, der Schlag der Musik wie immer.
+
 ### Tanz-Labor
 
-Das **🧪 Tanz-Labor** (**Seite ↗** im Modus Dream Dance, der Knopf unter „Was eine Bewegung bewirkt“ oder Taste **L**; **Esc** schließt es) legt sich über die Bühne – auch
-auf einem Beamer, der die Bühne zeigt – und zeigt live, was Dream aus deinem Tanz macht, damit sich die Tanzsteuerung
+Das **🧪 Tanz-Labor** ist der untere Teil der Seite von Dream Dance. Es zeigt live, was Dream aus deinem Tanz macht,
+damit sich die Tanzsteuerung
 beim Tanzen abstimmen lässt:
 
 - **Kamera, Skelett und Marker:** das Kamerabild mit dem erkannten Skelett, den Händen und den Leucht-Markern;
@@ -1531,7 +1575,7 @@ beim Tanzen abstimmen lässt:
   standardmäßig 4) als Feedback-Moment: die Merkmale, die erkannte Geste, den Stand jedes Ziels und die benutzte
   Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen: die Knöpfe **👍 Gut / 👎 Schlecht** oder die
   Tasten **G / B**; **per Sprache** – **🎙** halten (oder Taste V bei offenem Labor) und „gut“ oder „schlecht“ sagen;
-  die Karte **„🧪 Tanz-Labor“** in Dream Control; eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
+  die Karte **„Dream Dance“** in Dream Control; eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
   gut / schlecht“); die **Taste eines Armbands** per OSC (eine Adresse mit `btn` oder `button` darin, Wert 1 solange
   gedrückt): einmal drücken ist „gut“, zweimal innerhalb einer halben Sekunde „schlecht“. Feedback zählt, solange das
   Labor im Live-Tanz offen ist oder eine Aufnahme läuft.
@@ -1552,12 +1596,14 @@ beim Tanzen abstimmen lässt:
 2D-Koordinaten), was Sensoren und Marker gemeldet haben, die Marken und die Tabelle. **Nie ein Kamerabild**; Dream
 prüft jede Session, bevor es sie schreibt, und lehnt alles ab, was nicht Zahlen und kurze Namen sind. Die Dateien
 liegen in `~/.local/state/dream/dance/`, nur für dich lesbar, und verlassen den Mac nie; nur dieser Mac und Dream
-Control können sie auflisten, lesen, hinzufügen oder löschen – Gäste, Dreamy Eyes und Traum-Fenster nicht. Das Labor
-kostet etwas Bildrate, solange es offen ist (es zeichnet Kamera und Kurven): für einen Auftritt schließen.
+Control können sie auflisten, lesen, hinzufügen oder löschen – Gäste, Dreamy Eyes und Traum-Fenster nicht. Die Seite
+kostet etwas Bildrate, solange sie offen ist (sie zeichnet Kamera und Kurven): Schließe ihr Fenster, wenn du sie nicht
+brauchst.
 
-**Aus Dream Control** (Karte „🧪 Tanz-Labor“): **👍 Gut**, **👎 Schlecht**, **● Aufnehmen** und **Labor auf der Bühne**
-(öffnet oder schließt das Labor am Mac). Die Karte sagt, was das Labor gerade tut, und bestätigt, was gespeichert
-wurde; alles andere – die Ansichten, das Abstimmen, die Wiedergabe – ist am Mac.
+**Aus Dream Control** (Karte „Dream Dance“): die **Kupplung**, das **Bewegungs-Set**, **👍 Gut**, **👎 Schlecht**,
+**● Aufnehmen** und **Seite am Mac** (öffnet die Seite am Mac – der Browser dort fragt womöglich, ob er das Fenster
+erlauben soll). Die Karte sagt, was das Labor gerade tut, und bestätigt, was gespeichert wurde; alles andere – die
+Ansichten, das Abstimmen, die Wiedergabe – ist am Mac.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -1579,7 +1625,8 @@ ein Preset wählen und dabei bleiben.
   Pose-Stärke, **Master-Helligkeit** (0 = schwarz; wirkt auf Bühne, Ausgabefenster und Syphon), Effekt-Stärke und
   die Überblendung zwischen zwei Stilwelten (#224).
 - **Tasten-Ziele:** Pause/Start, nächste Szene, Neu, neuer Seed, **Blackout an/aus** (Master auf 0 und zurück),
-  Tap-Tempo, Muster weiter, nächste Stilwelt (#221; #224: die nach der Welt, die am meisten zu sehen ist), jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus.
+  Tap-Tempo, Muster weiter, nächste Stilwelt (#221; #224: die nach der Welt, die am meisten zu sehen ist), jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus,
+  „gut“ und „schlecht“ des Tanz-Labors, die **Kupplung** von Dream Dance ein/aus und das nächste Bewegungs-Set (#251).
 - Regler gleiten weich zum neuen Wert (keine Sprünge) und bewegen sich im Bedienfeld und am Handy mit.
   Endlos-Drehregler (die nur „mehr/weniger“ senden) erkennt Dream nach wenigen Rasten selbst.
 - Vorschlag für 8 Fader + Master: Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion,
@@ -1932,6 +1979,12 @@ Bewegungsuhr an bekannten Tempi, Marker allein, eine Hand allein, den Sensor all
 in gemalten Bildern (Lampen und Feuer sind keine) und die Fingerwerte an gemalten Händen jeder Größe und Drehung.
 `node --test tests/js/dancemap.test.mjs` prüft die Zuordnungstabelle (`static/dancemap.js`: Kurve, Bereiche, Glättung,
 Loslassen, wenn eine Quelle nicht bekannt ist) und was die Anzeige der Tabelle aus einer Hand an einer Zeile macht.
+`node --test tests/js/movepage.test.mjs` (#251) prüft, was die Seiten der Modi teilen (`static/movepage.js`): Die
+Seite findet die Bühne, die sie geöffnet hat, und merkt, wenn sie neu geladen wird; wer den Schlag gibt, wenn die Uhr
+des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keine eigene Verbindung und keine
+eigene Kamera hat. `tests/js/movement.test.mjs` spielt auch die Kupplung (aus und ein in einer Drittelsekunde, ohne
+Sprung) und den Tanz auf der Grundlage. `tests/test_dance.py` prüft die Bewegungs-Sets (eingebaut, eigene, in der
+Datei, wer sie ändern darf).
 `node --test tests/js/movecard.test.mjs` (#250) prüft die Karte Bewegung (`static/movecard.js`): dieselben Modi in
 beiden Seiten, die Energie als Wort, die Chips der Quellen, die Zeile, die sagt, was Dream erkennt, und dass ihre
 Stile nur transform und opacity bewegen; `tests/test_movecard.py`, dass die eine Karte alles enthält, was die drei
