@@ -1376,7 +1376,7 @@ then leaves a person at the edge out, but it cannot make the model look at someo
 
 **The page.** In the mode Flowtrack, **Page ↗** in the Movement card (or key **L**) opens the page of Flowtrack in a
 window of its own – this Mac only, for a second screen, and an extra view like the page of Dream Dance (it reads the
-stage that opened it; no connection and no camera of its own). On it:
+stage that opened it; no control line and no camera of its own). On it:
 - **Automatic** – the switch and the four choices with their reasons.
 - **Effect** – one row per target of the flowtrack table with its switch, its strength and a light while it acts:
   paint, touch, impulses, light in the dark, movement shapes the effects, content by energy, movement pushes the AI
@@ -1487,7 +1487,8 @@ Nothing of the camera is stored or sent anywhere for this: the features are numb
 **The page.** In the mode Dream Dance, **Page ↗** in the Movement card (or key **L** on the stage) opens the page of
 Dream Dance in a window of its own – put it on a second screen. It is this Mac's only (no phone or tablet reaches
 it), and it is an extra view: everything that steers the show is in the panel too. The page reads the stage in the
-window that opened it; it has no connection and no camera of its own, so open it from the panel, not by its address.
+window that opened it; it has no control line and no camera of its own (only the lab's sessions are read from and
+written to Dream directly), so open it from the panel, not by its address.
 If the stage is reloaded, the page finds it again by itself. If the browser blocks the window, allow pop-ups for
 Dream. On the page: the clutch, the movement sets, the two clocks, and below them the dance lab.
 
@@ -1917,7 +1918,7 @@ a dark one); the one person followed to the edge while spectators there are igno
 view in other light is the same view, a turned camera is not, a dark room claims nothing.
 `node --test tests/js/movepage.test.mjs` (#251) tests what the pages of the modes share (`static/movepage.js`): the
 page finds the stage that opened it and notices when it is reloaded, who gives the beat when the dancer's clock and
-the music's are compared, and that the page of Dream Dance has no connection and no camera of its own;
+the music's are compared, and that the page of Dream Dance opens no socket and no camera of its own;
 `tests/js/movement.test.mjs` also plays the clutch (out and in within a third of a second, without a step) and the
 dance on top of the base. `tests/test_dance.py` checks the movement sets (built in, own, kept in the file, who may
 change them).

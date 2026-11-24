@@ -1458,7 +1458,7 @@ schauen lassen.
 
 **Die Seite.** Im Modus Flowtrack öffnet **Seite ↗** in der Karte Bewegung (oder Taste **L**) die Seite von Flowtrack
 in einem eigenen Fenster – nur an diesem Mac, für einen zweiten Bildschirm, und eine Zusatzansicht wie die Seite von
-Dream Dance (sie liest die Bühne, die sie geöffnet hat; keine eigene Verbindung, keine eigene Kamera). Darauf:
+Dream Dance (sie liest die Bühne, die sie geöffnet hat; keine eigene Steuerleitung, keine eigene Kamera). Darauf:
 - **Automatik** – der Schalter und die vier Entscheidungen mit ihren Begründungen.
 - **Wirkung** – eine Zeile je Ziel der Flowtrack-Tabelle mit Schalter, Stärke und einem Licht, solange sie wirkt:
   Malen, Anfassen, Impulse, Licht im Dunkeln, Bewegung formt die Effekte, Inhalt nach Energie, Bewegung schiebt die
@@ -1577,8 +1577,9 @@ selbst rechnet.
 **Die Seite.** Im Modus Dream Dance öffnet **Seite ↗** in der Karte Bewegung (oder Taste **L** auf der Bühne) die
 Seite von Dream Dance in einem eigenen Fenster – für einen zweiten Bildschirm. Sie gehört nur diesem Mac (kein Handy
 oder Tablet erreicht sie) und ist eine Zusatzansicht: Alles, was den Auftritt steuert, gibt es auch im Bedienfeld.
-Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine eigene Verbindung und keine eigene
-Kamera – öffne sie also aus dem Bedienfeld, nicht über ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
+Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine eigene Steuerleitung und keine eigene
+Kamera (nur die Sessions des Labors gehen direkt an Dream und zurück) – öffne sie also aus dem Bedienfeld, nicht über
+ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
 selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
 Bewegungs-Sets, die beiden Uhren und darunter das Tanz-Labor.
 
@@ -2053,8 +2054,8 @@ ignoriert werden; und die Kalibrierung – derselbe Blick in anderem Licht ist d
 nicht, ein dunkler Raum behauptet nichts.
 `node --test tests/js/movepage.test.mjs` (#251) prüft, was die Seiten der Modi teilen (`static/movepage.js`): Die
 Seite findet die Bühne, die sie geöffnet hat, und merkt, wenn sie neu geladen wird; wer den Schlag gibt, wenn die Uhr
-des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keine eigene Verbindung und keine
-eigene Kamera hat. `tests/js/movement.test.mjs` spielt auch die Kupplung (aus und ein in einer Drittelsekunde, ohne
+des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keinen eigenen Socket und keine
+eigene Kamera öffnet. `tests/js/movement.test.mjs` spielt auch die Kupplung (aus und ein in einer Drittelsekunde, ohne
 Sprung) und den Tanz auf der Grundlage. `tests/test_dance.py` prüft die Bewegungs-Sets (eingebaut, eigene, in der
 Datei, wer sie ändern darf).
 `node --test tests/js/movecard.test.mjs` (#250) prüft die Karte Bewegung (`static/movecard.js`): dieselben Modi in

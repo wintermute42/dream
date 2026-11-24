@@ -58,8 +58,8 @@ command line for now, #231) via `dream-cloud`.
   in use, the sources); Dream Control has the mode and the mood's strength, and nothing of movement the panel lacks
   (`tests/test_movecard.py`).
   A mode's page (#251: `/dance`, `static/dance.html`) is a window of its own on this Mac (`rights.LOCAL_ONLY`) that
-  reads the stage through `window.opener.DreamBridge.<name>` (`static/movepage.js`) – it has no connection and no
-  camera of its own, and everything that steers the show is in the panel too. The dance lab (#243) is part of that page.
+  reads the stage through `window.opener.DreamBridge.<name>` (`static/movepage.js`) – it has no control line and no
+  camera of its own (only the lab's sessions go to and from Dream directly, `/dance/sessions`), and everything that steers the show is in the panel too. The dance lab (#243) is part of that page.
   The dance acts on top of what hands and controllers set (`DreamMove.onTop`) and only while its clutch is engaged (the
   setting `clutch`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
   Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –
