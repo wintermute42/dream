@@ -133,6 +133,7 @@
   .movesources .live .dot { opacity: 1; }
   .movesources .unused { color: var(--muted); }
   .flowswitch select { width: auto; flex: 1 1 45%; min-width: 0; }
+  .flowswitch select[hidden] { display: none; }       /* one detection choice shows: the mode's own */
   .flowswitch #flow_device { flex-basis: 100%; }      /* the camera on its own line, the full width */
   h1 small { color: var(--muted); font-weight: 400; }
   .row { margin: 10px 0; }
@@ -550,6 +551,7 @@
     <div class="flowswitch keep">
       <select id="move_mode" aria-label="Movement mode" title="One mode at a time. Mood: the energy in the room (Dreamy Eyes, phones) moves the dream – no gestures. Flowtrack: one performer with fire, LEDs or hands. Dance: your dance steers the dream."><option value="off">Movement: off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
       <select id="flow_kind" aria-label="Kind of movement detection" title="Hands (AI) or light: fire, LED, light trails"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option><option value="marker">LED markers (2 colours)</option></select>
+      <select id="dance_kind" hidden aria-label="What Dream Dance detects" title="What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice."><option value="hand">Dance: Hands (AI)</option><option value="marker">Dance: LED markers (2 colours)</option></select>
       <select id="flow_device" class="camsel" aria-label="Camera for movement" title="Camera for movement, e.g. an infrared camera"><option value="">Camera: as picture</option></select>
       <div class="lightopts" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-basis:100%">
         <select id="flow_color" aria-label="Light colour" title="Fire/LED: any bright light, or an LED token in a colour that occurs nowhere else (robust against lamps and windows)" style="flex:1 1 50%;min-width:0">
@@ -1341,7 +1343,7 @@
   }
   function camSync() {                                 // a new choice or a camera plugged in: switch at once
     if (mode === 'cam') setMode('cam', true);
-    if (flowOn()) tracker.start($('flow_kind').value, camId(flowCam()));
+    if (flowOn()) tracker.start(camKind(), camId(flowCam()));
   }
   const flowCam = () => $('flow_device').value || $('cam_device').value;
   // keep: back to the dream from the current picture (autopilot); hard: a cut instead of the soft switch (the drop)
@@ -1749,6 +1751,8 @@
   const poseOn = () => flowOn() && $('pose').checked && typeof poseBlob !== 'undefined' && poseBlob && performance.now() - poseAt < 2000;
   // #249: the Mac's camera runs only for a mode that needs it (flowtrack, dance; the mood when asked): off = no work
   const flowOn = () => DreamMove.cameraOn(moveMode(), moveOpts());
+  // what the camera detects in the mode in use: the dance has its own choice (DreamMove.camKind)
+  const camKind = () => DreamMove.camKind(moveMode(), { flow: $('flow_kind').value, dance: $('dance_kind').value });
   // #235, #249: the slow AI sliders follow speed and place of the movement only when the mode's table says so (the row
   // to "ai.react") – the effects follow it at once
   const msens = () => (flowOn() && mo && performance.now() - moAt < 1000 ? moveGain('ai.react') * +$('motion_sens').value : 0);
@@ -1979,7 +1983,7 @@
   if (params.get('stage') === '1') document.body.classList.add('hide', 'stage-only');
   const BIND = { prompt: 'prompt', strength: 'strength', mix: 'mix', zoom: 'zoom', rot: 'rot', hue: 'hue', sens: 'sens',
     quality: 'quality', size: 'size', seed: 'seed', model: 'model', rewrite: 'rewrite', playlist: 'playlist',
-    motion_sens: 'motion_sens', move_mode: 'move_mode', move_cam: 'move_cam', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_mirror: 'touch_mirror', ap_words: 'ap_words', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
+    motion_sens: 'motion_sens', move_mode: 'move_mode', move_cam: 'move_cam', flow_kind: 'flow_kind', dance_kind: 'dance_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_mirror: 'touch_mirror', ap_words: 'ap_words', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
     cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', flow_fingers: 'flow_fingers', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
@@ -2038,7 +2042,7 @@
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
         if (k === 'master') { look.master = +v; $('v-master').textContent = Math.round(v * 100) + ' %'; }
       }
-      if (['move_mode', 'move_off', 'move_cam', 'flow_kind'].some(k => k in st)) moveSync();   // #249: once, with all of them in place
+      if (['move_mode', 'move_off', 'move_cam', 'flow_kind', 'dance_kind'].some(k => k in st)) { moveSync(); lightSync(); }   // #249: once, with all of them in place
       show();
     } finally { applying = false; }
     if ('fast' in st || 'fast_prev' in st) setTimeout(fastSync);   // after the whole state: both keys known
@@ -2346,7 +2350,7 @@
   // #249: the mode decides – the camera is opened only for a mode that needs it and closed when none does
   let camWant = '', tableShow = () => {};            // the dance card, once it is mounted
   function moveSync() {
-    const on = flowOn(), want = on ? $('flow_kind').value + '|' + flowCam() : '';
+    const on = flowOn(), want = on ? camKind() + '|' + flowCam() : '';
     $('move_cam').disabled = moveMode() !== 'mood';
     $('movetable').textContent = moveMode() === 'off' ? T('Movement is off – shown: the table of Dream Dance.') : T('What a movement does in the mode “{m}”.', { m: MOVE_NAMES[moveMode()] });
     tableShow();
@@ -2354,11 +2358,11 @@
     if (want === camWant) return;
     camWant = want;
     if (!on) { mo = null; touch.hands = []; }
-    if (on) tracker.start($('flow_kind').value, camId(flowCam())).then(listCams); else tracker.stop();
+    if (on) tracker.start(camKind(), camId(flowCam())).then(listCams); else tracker.stop();
     flowFeed(mode === 'flow');
   }
   const MOVE_NAMES = { off: T('Off'), mood: T('Mood'), flowtrack: 'Flowtrack', dance: 'Dream Dance' };
-  ['move_mode', 'move_cam', 'flow_kind'].forEach(id => $(id).addEventListener('change', moveSync));
+  ['move_mode', 'move_cam', 'flow_kind', 'dance_kind'].forEach(id => $(id).addEventListener('change', moveSync));
   // the register (movement.js): the Mac's camera and whatever else sends movement, one line per kind with its switch
   const KIND_NAMES = { camera: T('Mac camera'), eyes: 'Dreamy Eyes', phone: T('Phone (Dream Control)'), band: T('Wristband/glove (OSC)') };
   let sourcesShown = '';
@@ -2413,7 +2417,8 @@
   // #117: the light token's colour and the short exposure (light mode only)
   function lightSync() {
     tracker.lightOptions($('flow_color').value, $('flow_short').checked);
-    const k = $('flow_kind').value;
+    const k = camKind(), dancing = moveMode() === 'dance';
+    $('flow_kind').hidden = dancing; $('dance_kind').hidden = !dancing;   // one choice shows: the mode's own
     document.querySelector('.lightopts').classList.toggle('off', k === 'hand');   // the short exposure: light and markers
     $('flow_color').disabled = k !== 'on';
     document.querySelector('.markeropts').classList.toggle('off', k === 'on');
@@ -2429,7 +2434,7 @@
     tracker.danceOptions({ markers: $('flow_markers').checked, left: $('marker_l').value, right: $('marker_r').value, fingers: $('flow_fingers').checked });
     lightSync();
   }
-  ['flow_color', 'flow_short', 'flow_kind'].forEach(id => $(id).addEventListener('change', lightSync));
+  ['flow_color', 'flow_short', 'flow_kind', 'dance_kind', 'move_mode'].forEach(id => $(id).addEventListener('change', lightSync));
   ['marker_l', 'marker_r', 'flow_markers', 'flow_fingers'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));
   danceSync();
   setInterval(() => {                                  // what it sees, in one line
@@ -2708,7 +2713,7 @@
     { name: 'pose', on: () => $('pose').checked, run: async () => {
       keep('pose_scale', $('pose_scale').value); keep('pose', true);
       await relGlide('pose_scale', $('pose_scale').min); relSet('pose', false); } },
-    { name: 'hands', on: () => flowOn() && $('flow_kind').value === 'hand', run: async () => { keep('flow_kind', 'hand'); relSet('flow_kind', 'on'); } },
+    { name: 'hands', on: () => flowOn() && moveMode() !== 'dance' && $('flow_kind').value === 'hand', run: async () => { keep('flow_kind', 'hand'); relSet('flow_kind', 'on'); } },
     { name: 'size', on: () => +$('size').value > 512, run: async () => { keep('size', $('size').value); relSet('size', '512'); } },
     // the model is never switched here (owner's decision): which model runs stays the owner's choice
   ];

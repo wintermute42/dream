@@ -202,3 +202,13 @@ test('the built-in presets through the real tables: the mood has no gestures and
   for (let t = 0; t < 0.5; t += 1 / 30) out = eng.step({ mode: 'mood', tables, rec: null, remote: [eyes(0.7)], dt: 1 / 30 });
   assert.ok(out['stage.calm'] < 0.9, 'movement wakes it');
 });
+
+test('a mode has its own detection: light chosen for flowtrack never becomes the dance\'s', () => {
+  assert.equal(M.camKind('flowtrack', { flow: 'on', dance: 'hand' }), 'on');
+  assert.equal(M.camKind('dance', { flow: 'on', dance: 'hand' }), 'hand', 'flowtrack with LEDs, then Dream Dance: hands');
+  assert.equal(M.camKind('dance', { flow: 'marker', dance: 'hand' }), 'hand');
+  assert.equal(M.camKind('dance', { flow: 'hand', dance: 'marker' }), 'marker', 'markers only when chosen for the dance');
+  assert.equal(M.camKind('mood', { flow: 'marker', dance: 'hand' }), 'marker');
+  assert.equal(M.camKind('dance', { flow: 'on', dance: 'on' }), 'hand', 'the dance never runs on light');
+  assert.equal(M.camKind('dance', {}), 'hand'); assert.equal(M.camKind('flowtrack', { flow: '__proto__' }), 'hand');
+});

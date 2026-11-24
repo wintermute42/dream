@@ -136,6 +136,9 @@ SETTINGS: dict[str, Setting] = {
     "pose_scale": num(0.8, 0.2, 1.5, target=True, weight=0.5, needs="pose"),
     # what the Mac's camera detects: on (light: fire, LED) | hand (pose) | marker (#235: two LED markers, one per hand)
     "flow_kind": text("hand", choices=("on", "hand", "marker")),
+    # … and what it detects for Dream Dance: a mode is a preset, so the dance keeps its own choice – light chosen for
+    # flowtrack never becomes the dance's detection (a bright window would stand in for the hands)
+    "dance_kind": text("hand", choices=("hand", "marker")),
     "flow_markers": flag(False),                                # … LED markers beside the hand AI (they lead in the dark)
     "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand
     "marker_r": text("magenta", choices=MARKERS),
@@ -257,7 +260,8 @@ def moved(saved: dict) -> dict:
     if "move_mode" in saved or saved.get("flowtrack") not in ("on", "hand", "marker"):
         return saved
     kind = saved["flowtrack"]
-    return {**saved, "flow_kind": kind, "move_mode": "flowtrack" if kind == "on" or saved.get("dance") is False else "dance"}
+    mode = "flowtrack" if kind == "on" or saved.get("dance") is False else "dance"
+    return {**saved, "flow_kind": kind, "move_mode": mode, **({"dance_kind": kind} if mode == "dance" else {})}
 
 
 def loaded(saved) -> dict:

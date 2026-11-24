@@ -1459,6 +1459,12 @@ Karte **„Tanz“** im Bedienfeld:
 braucht ein bis zwei Bilder, bis man das sieht, zu spät zum Tanzen. Das ist jetzt aus; die Zeile „**Bewegung schiebt
 die KI-Regler**“ der Tabelle holt es zurück (dann bestimmt der Regler „Bewegung“ wie bisher, wie stark).
 
+**Dream Dance hat seine eigene Erkennung:** Was die Kamera des Macs erkennt, wird je Modus gewählt. Dream Dance erkennt
+mit „Tanz: Hände (KI)“ (Standard) oder „Tanz: Leucht-Marker (2 Farben)“; Flowtrack und die Stimmung behalten ihre
+eigene Wahl (Hände, Feuer/LED oder Marker). Wer für Flowtrack Feuer/LED wählt und dann zu Dream Dance wechselt, tanzt
+wieder mit den Händen – der Tanz läuft nie auf bloßem Licht, bei dem eine Lampe oder ein helles Fenster für die Hände
+stünde. Die Karte „Bewegung“ zeigt die Wahl des Modus, der gerade läuft.
+
 **Quellen – Kamera, Marker, Sensor, einzeln oder zusammen:**
 - **Hände (KI):** die Handgelenke des Körpermodells; der Körper gibt das Maß. Eine sichtbare Hand genügt für
   Hochwerfen und Kreisen.
