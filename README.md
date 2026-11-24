@@ -795,6 +795,17 @@ eyes** that invite people to step up and play:
     and sleep is slow bubbles. Measured in a headless browser without a graphics card, the processor slowed four
     times: Dreamy Eyes about 19 frames a second (Classic: 30), a dream window 6 (Classic: 8) at full resolution – both
     pages lower their resolution by themselves when a device does not keep up, as before.
+  - **Ink & watercolour** (#223) – light pigment on black paper. Surfaces are washes with wet edges and grain, lines are
+    brush strokes that swell, thin out and run dry; the line work “boils” a little, as hand animation does. The eye is a
+    bone-coloured wash with a brushed iris ring, bare paper for its highlight and one loaded lid stroke flicked into a
+    wing; the brow is a brush stroke. Around the eyes: petal washes, a bloom of pigment spreading, an enso, an ink twig
+    growing leaf by leaf, a bird of two strokes, drops in wet paper, a sweep of a broad brush. The faces of light are
+    *sumi*, *willow* and *plum* (a small sign on the forehead and, fainter, a thin jaw line – the face's outline – with the hints; hair strokes and washes,
+    closed lips and the nose – one loaded stroke down its side, a dry flick under its tip – only in the rare moment). In a window the dream shows through wash blots, around a brushed enso with
+    the eye or the folded dream in it; the impossible shapes are washed panes with brushed edges. Fire is vermilion and
+    ochre washes with flame strokes rising; where Classic shows a heart a drop of red pigment blooms, where it shows
+    stars there is a flick of splatter, and sleep is slow rings of wash. Measured as above (processor slowed four
+    times): Dreamy Eyes about 20 frames a second, a dream window 4 (Classic: 36 and 8 in the same run).
 - **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
   come only with the hints** (see above) and show a feeling then: surprise (someone very close, waking up, a dream turning
