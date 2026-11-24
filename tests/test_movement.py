@@ -297,6 +297,18 @@ def test_the_old_movement_switch_becomes_the_mode(old, mode, kind):
     assert (got["move_mode"], got["flow_kind"]) == (mode, kind)
     assert (got["motion_sens"], got["touch_amt"]) == (1.7, 0.4)                  # what stays a setting stays as it was
     assert set(got) == set(settings.DEFAULT_STATE)                               # the old keys are gone
+    assert got["dance_kind"] == (kind if mode == "dance" else "hand")            # the dance keeps what it detected with
+
+
+def test_the_dance_has_its_own_detection():
+    """A mode is a preset: light chosen for flowtrack is not what Dream Dance detects with."""
+    assert settings.DEFAULT_STATE["dance_kind"] == "hand"
+    assert settings.SETTINGS["dance_kind"].choices == ("hand", "marker")
+    with pytest.raises(ValueError):
+        settings.coerce("dance_kind", "on")                                      # never light: a window would be a hand
+    got = settings.loaded({"move_mode": "dance", "flow_kind": "on"})
+    assert (got["flow_kind"], got["dance_kind"]) == ("on", "hand")
+    assert "dance_kind" not in settings.GUEST_KEYS
 
 
 def test_a_state_of_today_is_left_alone():
@@ -345,3 +357,15 @@ def test_the_sensor_hands_on_the_pull_on_the_arm():
         raw.on_osc("/x/accelerometer", [0.0, 9.81, 0.0], "192.0.2.8", now=200.0 + i * 0.01)
         raw.on_osc("/x/gyro", [0.0, 0.0, 0.1], "192.0.2.8", now=200.0 + i * 0.01)
     assert raw.motion(now=200.3)["a"] == pytest.approx(0.0, abs=0.05)
+
+
+def test_relieving_and_the_autopilot_never_change_what_the_movement_detects():
+    """"Relieve" (the button, Dream Control, the autopilot when Dream is overloaded) takes back what costs most – never
+    the movement's mode or detection: "Hands (AI)" turned into "Fire/LED" took a dance its hands."""
+    import os
+    page = open(os.path.join(os.path.dirname(__file__), "..", "static", "index.html"), encoding="utf-8").read()
+    steps = page[page.index("const REL_STEPS = ["):page.index("const REL_NAMES")]
+    movement = ("flow_kind", "dance_kind", "move_mode", "move_cam", "move_off", "flow_markers", "flow_fingers", "marker_l", "marker_r")
+    for key in movement:
+        assert key not in steps, key
+    assert "relSet('flow_kind'" not in page and "relSet('dance_kind'" not in page

@@ -25,13 +25,20 @@
     <span id="nomode-text"></span>
     <button type="button" class="btn" id="tomode">Switch to Dream Dance</button>
   </div>
-  <section class="mp-top" aria-label="Clutch, movement set and clocks">
+  <section class="mp-top" aria-label="Clutch, detection, movement set and beat">
     <div class="mp-card mp-clutch">
       <h2>Clutch</h2>
       <button type="button" class="btn clutchbtn" id="clutchbtn" aria-pressed="false" title="Engage or release the clutch (key K)">Clutch: released</button>
       <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
       <div class="mp-hold" aria-hidden="true"><i id="hold"></i></div>
       <div class="hint">Engaged: your dance acts on top of what the sliders and the controllers set. Released: only they do – the dance fades out in a third of a second. Key K, a MIDI button (“Button: clutch in/out”) or the button in Dream Control.</div>
+    </div>
+    <div class="mp-card">
+      <h2>Detection</h2>
+      <select id="dance_kind" aria-label="What Dream Dance detects" title="What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice."><option value="hand">Dance: Hands (AI)</option><option value="marker">Dance: LED markers (2 colours)</option></select>
+      <select id="flow_device" aria-label="Camera for movement" title="Camera for movement, e.g. an infrared camera"></select>
+      <div class="mp-detect" id="detectstate" role="status"></div>
+      <div class="hint">Dream Dance has its own detection – what Flowtrack detects with (fire/LED too) stays Flowtrack’s. Only you change it: here or in the Movement card. The fingers’ switch is at the finger view below.</div>
     </div>
     <div class="mp-card">
       <h2>Movement set</h2>
@@ -44,10 +51,10 @@
       <div class="hint" id="setstate" role="status">A set is a named table of what your movements do. Choose one here, in the panel, with a MIDI button (“Button: next movement set”) or in a playlist scene.</div>
     </div>
     <div class="mp-card">
-      <h2>Clocks</h2>
+      <h2>Beat</h2>
       <div class="mp-clocks">
-        <i class="mp-dot" id="dot-move" aria-hidden="true"></i><span>Your movement</span><span class="mp-bpm" id="bpm-move">–</span>
-        <i class="mp-dot music" id="dot-music" aria-hidden="true"></i><span>Music</span><span class="mp-bpm" id="bpm-music">–</span>
+        <i class="mp-dot" id="dot-move" aria-hidden="true"></i><span>Your beat</span><span class="mp-bpm" id="bpm-move">–</span>
+        <i class="mp-dot music" id="dot-music" aria-hidden="true"></i><span>Music beat</span><span class="mp-bpm" id="bpm-music">–</span>
       </div>
       <div class="hint" id="clockstate" role="status"></div>
     </div>
@@ -80,6 +87,8 @@
   $('clutchbtn').onclick = () => bridge && bridge.setClutch($('clutchbtn').getAttribute('aria-pressed') !== 'true');
   $('dance_set').onchange = () => bridge && bridge.setSet($('dance_set').value);
   $('tomode').onclick = () => bridge && bridge.setMode('dance');
+  $('dance_kind').onchange = () => bridge && bridge.setKind($('dance_kind').value);
+  $('flow_device').onchange = () => bridge && bridge.setCam($('flow_device').value);
   const nameOk = () => /^[\p{L}\p{N}_][\p{L}\p{N}_ .+-]{0,23}$/u.test($('setname').value.trim());
   $('setsave').onclick = () => {
     const name = $('setname').value.trim();
@@ -99,7 +108,8 @@
     else if (lab && k === 'r') lab.record();
   });
 
-  // what the stage is at, with every frame: the clutch, how far the dance is in, the set, the two clocks
+  let camsShown = '';
+  // what the stage is at, with every frame: the clutch, how far the dance is in, the detection, the set, the two beats
   (function tick() {
     requestAnimationFrame(tick);
     if (!bridge) return;
@@ -113,6 +123,13 @@
     say('bpm-move', MovePage.clockText(st.move)); say('bpm-music', MovePage.clockText(st.music));
     say('clockstate', MovePage.agreeText(st.move, st.music));
     const dancing = st.mode === 'dance';
+    // the detection: the dance's own choice, the camera, and what really runs right now
+    if (document.activeElement !== $('dance_kind') && $('dance_kind').value !== st.kind) $('dance_kind').value = st.kind;
+    const camsKey = JSON.stringify(st.cams);
+    if (camsKey !== camsShown) { camsShown = camsKey; $('flow_device').textContent = ''; for (const [v, t] of st.cams) { const o = document.createElement('option'); o.value = v; o.textContent = t; $('flow_device').append(o); } }
+    if (document.activeElement !== $('flow_device') && $('flow_device').value !== st.cam) $('flow_device').value = st.cam;
+    const runs = st.tracking === 'hand' ? T('Hands (AI)') : st.tracking === 'marker' ? T('LED markers') : st.tracking === 'on' ? T('Fire/LED') : T('nothing');
+    say('detectstate', !dancing ? T('Not in the mode Dream Dance – the choice is kept for it.') : st.camera !== 'running' ? T('The camera is not running yet.') : T('Running now: {k}', { k: runs }));
     $('nomode').hidden = dancing;
     if (!dancing) say('nomode-text', T('The movement mode is “{m}” – the dance acts only in the mode Dream Dance.', { m: MoveCard.name(st.mode) }));
     say('pagestate', !dancing ? '' : st.camera === 'running' ? (st.clutch ? T('The dance steers the dream.') : T('Clutch released – your dance does nothing, only sliders and controllers steer.')) : T('The camera is not running yet.'));

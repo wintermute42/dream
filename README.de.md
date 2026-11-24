@@ -1552,6 +1552,12 @@ zum Schlag, der die Effekte anstößt.
 braucht ein bis zwei Bilder, bis man das sieht, zu spät zum Tanzen. Das ist jetzt aus; die Zeile „**Bewegung schiebt
 die KI-Regler**“ der Tabelle holt es zurück (ihr Regler bestimmt, wie stark).
 
+**Dream Dance hat seine eigene Erkennung:** Was die Kamera des Macs erkennt, wird je Modus gewählt. Dream Dance erkennt
+mit „Tanz: Hände (KI)“ (Standard) oder „Tanz: Leucht-Marker (2 Farben)“; Flowtrack und die Stimmung behalten ihre
+eigene Wahl (Hände, Feuer/LED oder Marker). Wer für Flowtrack Feuer/LED wählt und dann zu Dream Dance wechselt, tanzt
+wieder mit den Händen – der Tanz läuft nie auf bloßem Licht, bei dem eine Lampe oder ein helles Fenster für die Hände
+stünde. Die Karte „Bewegung“ zeigt die Wahl des Modus, der gerade läuft.
+
 **Quellen – Kamera, Marker, Sensor, einzeln oder zusammen:**
 - **Hände (KI):** die Handgelenke des Körpermodells; der Körper gibt das Maß. Eine sichtbare Hand genügt für
   Hochwerfen und Kreisen.
@@ -1589,7 +1595,7 @@ Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine 
 Kamera (nur die Sessions des Labors gehen direkt an Dream und zurück) – öffne sie also aus dem Bedienfeld, nicht über
 ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
 selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
-Bewegungs-Sets, die beiden Uhren und darunter das Tanz-Labor.
+Erkennung, die Bewegungs-Sets, der Takt und darunter das Tanz-Labor.
 
 **Die Kupplung** entscheidet, ob dein Tanz wirkt. Was Regler, Bedienfeld und ein MIDI-Controller einstellen, ist die
 **Grundlage**; der Tanz wirkt **obendrauf** – ein Effekt mit 30 % von Hand und 40 % vom Tanz zeigt sich mit 70 %, und
@@ -1621,9 +1627,14 @@ Auf der Seite behält **Als Set behalten** die Tabelle, wie sie jetzt ist, unter
 Ziffern, Leerzeichen und `. + -`, höchstens 24 Zeichen, bis zu 24 Sets); **Dieses Set entfernen** entfernt ein
 eigenes. Deine Sets liegen mit den Tabellen in `~/.config/dream/dance.json`.
 
-**Uhren.** Die Seite zeigt die eigene Uhr des Tanzes (das Tempo deiner Wiederholung) und die Schlaguhr der Musik
-nebeneinander, je mit einem Punkt, der mitschlägt, und sagt, wer den Schlag gibt: deine Bewegung, die Musik, beide
-zusammen (auch im halben oder doppelten Tempo) oder zwei verschiedene Schläge. Effekte auf dem Schlag stoßen beide
+**Erkennung.** Die Karte „Erkennung“ auf der Seite wählt, womit Dream Dance erkennt – **Tanz: Hände (KI)** oder
+**Tanz: Leucht-Marker (2 Farben)** – und die Kamera, und sagt, was gerade läuft. Es ist die eigene Wahl des Tanzes
+(dieselbe wie in der Karte Bewegung); womit Flowtrack erkennt, bleibt Flowtracks Sache. Nur du änderst die Erkennung:
+nicht der Autopilot, nicht „Entlasten“, nicht ein Wechsel des Modus.
+
+**Takt.** Die Seite zeigt deinen Takt (das Tempo deiner Wiederholung) und den Musik-Takt
+nebeneinander, je mit einem Punkt, der mitschlägt, und sagt, wer den Takt gibt: dein Tanz, die Musik, beide
+zusammen (auch im halben oder doppelten Tempo) oder zwei verschiedene Takte. Effekte auf dem Schlag stoßen beide
 an – die Zeile „Eigener Schlag → Schub auf den Schlag“ der Tabelle für deine Bewegung, der Schlag der Musik wie immer.
 
 ### Tanz-Labor
@@ -1635,16 +1646,25 @@ beim Tanzen abstimmen lässt:
 - **Kamera, Skelett und Marker:** das Kamerabild mit dem erkannten Skelett, den Händen und den Leucht-Markern;
   **Handbahnen** zeichnen den Weg jeder Hand als verblassende Linie in ihrer Markerfarbe, **Mehrfachbelichtung** legt
   mehrere Posen der letzten zwei Sekunden blass übereinander, so dass eine Abfolge auf einen Blick zu sehen ist;
-  **Kamerabild** aus lässt nur die Figur auf Schwarz.
-- **Ausgabe mit Effekten** daneben: was das Publikum sieht.
-- **Finger (Hand-KI):** die 21 Punkte jeder Hand vergrößert als Hand-Skelett (wenn „Finger“ in der Karte Bewegung an
-  ist), mit feinen Spuren der Fingerkuppen und – bei Mehrfachbelichtung – den letzten Handposen blass dahinter (ein
-  Schnippen wird zur sichtbaren Folge); darunter Faust ↔ offene Hand, Spreizung, Greifen und Schnippen mit der
-  Sicherheit der Hand-KI, oder „verloren“.
+  **Kamerabild** aus lässt nur die Figur auf Schwarz. Es ist die große Ansicht links, direkt neben dem Merkmal-Strom –
+  so vergleichst du, was Dream erkennt, mit dem, was der Strom daraus macht. Die Zeile darunter sagt, womit Dream
+  erkennt und was es in diesem Bild gefunden hat (Skelett gefunden oder verloren, jede Hand mit Quelle und
+  Sicherheit); ein Bild **ohne Skelett** bekommt einen roten Rahmen und „Skelett verloren“.
+- **Ausgabe mit Effekten:** was das Publikum sieht.
+- **Finger (Hand-KI):** die 21 Punkte jeder Hand vergrößert als Hand-Skelett, mit feinen Spuren der Fingerkuppen
+  und – bei Mehrfachbelichtung – den letzten Handposen blass dahinter (ein Schnippen wird zur sichtbaren Folge);
+  darunter Faust ↔ offene Hand, Spreizung, Greifen und Schnippen mit der Sicherheit der Hand-KI. Der Schalter
+  **Finger (Hand-KI)** sitzt direkt unter der Ansicht (derselbe wie in der Karte Bewegung). Eine leere Ansicht sagt,
+  warum: Finger brauchen die Erkennung „Hände (KI)“, der Schalter ist aus, das Hand-Modell lädt noch (einmal, ca.
+  8 MB), oder es ist keine Hand im Bild.
 - **Merkmal-Strom:** Energie, Tempo, Phase, Öffnung, Drehung, Höhe und Ruhe als laufende Kurven über die letzten
   12 Sekunden, die erkannte Geste als Band darüber und – sobald eine Hand gesehen wurde – die Fingerwerte je Hand. Wo
   ein Wert nicht bekannt ist (Hand verloren, kein Rhythmus), hat die Kurve eine **Lücke**, markiert mit einer
-  gestrichelten roten Linie: Dort zeigen sich die Grenzen bei Abstand, Licht und Tempo.
+  gestrichelten roten Linie: Dort zeigen sich die Grenzen bei Abstand, Licht und Tempo. Wo das **Skelett verloren**
+  ging, läuft ein blassrotes Band durch alle Kurven. Die Tabelle unter den Kurven sagt zu jedem Merkmal, **woraus es
+  berechnet wird** (z. B. Öffnung: der Abstand der beiden Hände in Schulterbreiten), seine **Quelle jetzt** (Skelett,
+  Leucht-Marker, Bewegungssensor …) und **wie sicher** es ist. In einer Wiedergabe stehen die Quellen nicht da – eine
+  Sitzung speichert nur Werte und Sicherheiten.
 - **Eine Zeile abstimmen:** eine Zeile der Tabelle wählen und ihr Ziel, ihre Kurve (gerade, früh, spät, S), den
   Eingang von … bis (das untere Ende ist die Schwelle), den Ausgang von … bis und die Glättung ändern. Ein kleines
   Bild zeigt die Kurve mit dem Live-Wert als Punkt. Jede Änderung **wirkt sofort**, Dream speichert sie, und
@@ -1944,8 +1964,8 @@ steht bei L4-1-24G mindestens 1, geht es. Sonst freischalten lassen: oben **„V
   flüssig, 😬 wird eng, 🥵 überlastet, 🤯 stark überlastet, 😴 pausiert (flüssig heißt etwa 3 KI-Bilder pro Sekunde auf
   dem Mac, 4 in der Cloud). Ein Tipp nimmt Schritt für Schritt zurück, was am meisten kostet: Diagnose → Stil-Modell und
   Stil-Referenzbild (nur bei SDXL, erst ausgeblendet – der Stil geht früh) → Qualität „Flüssig“ → Umrisse und Pose (die
-  Stärke gleitet erst auf null, dann gehen sie aus) → Hand-Erkennung „Hände (KI)“ → „Feuer/LED“ → Auflösung 512 px. Das
-  Modell wechselt es nie – das bleibt deine Wahl. Nach jedem Schritt wartet es ein paar Sekunden und misst;
+  Stärke gleitet erst auf null, dann gehen sie aus) → Auflösung 512 px. Das
+  Modell wechselt es nie und die Bewegungserkennung ändert es nie – das bleibt deine Wahl. Nach jedem Schritt wartet es ein paar Sekunden und misst;
   sobald Dream flüssig läuft, hört es auf, der Rest bleibt, wie er war. Während es arbeitet, atmet das Gesicht aus (😮‍💨),
   und der Knopf zählt die Schritte mit einem Balken darunter. Der Hinweis „🐢 entlastet: …“ sagt, was zurückgenommen
   wurde; **↶** stellt alles wieder her. **Auch der Autopilot drückt ihn**, wenn Dream 15 Sekunden lang überlastet ist
