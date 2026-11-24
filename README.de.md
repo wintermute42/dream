@@ -1466,7 +1466,8 @@ schauen lassen.
 
 **Die Seite.** Im Modus Flowtrack öffnet **Seite ↗** in der Karte Bewegung (oder Taste **L**) die Seite von Flowtrack
 in einem eigenen Fenster – nur an diesem Mac, für einen zweiten Bildschirm, und eine Zusatzansicht wie die Seite von
-Dream Dance (sie liest die Bühne, die sie geöffnet hat; keine eigene Steuerleitung, keine eigene Kamera). Darauf:
+Dream Dance (sie liest die Bühne, die sie geöffnet hat; keine eigene Steuerleitung, keine eigene Kamera – und wie
+diese bittet sie, ein Bühnenfenster neu zu laden, das vor einem Update von Dream geladen wurde). Darauf:
 - **Automatik** – der Schalter und die vier Entscheidungen mit ihren Begründungen.
 - **Wirkung** – eine Zeile je Ziel der Flowtrack-Tabelle mit Schalter, Stärke und einem Licht, solange sie wirkt:
   Malen, Anfassen, Impulse, Licht im Dunkeln, Bewegung formt die Effekte, Inhalt nach Energie, Bewegung schiebt die

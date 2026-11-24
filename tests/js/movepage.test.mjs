@@ -234,6 +234,8 @@ function contract(page, from) {
 test('the pages name what they need of the stage, and the stage has it', () => {
   const { html, script, calls, state } = contract('static/dance.html', 'window.DreamBridge = { dance: {');
   assert.ok(calls.has('setKind') && calls.has('setCam') && state.has('cams') && state.has('kind'));
+  const flow = contract('static/flowtrack.html', 'window.DreamBridge.flowtrack = {');
+  assert.ok(flow.calls.has('setKind') && flow.state.has('kind') && flow.state.has('calib'));
   // both selects are labelled, the camera's is never empty, and only the helpers write a choice of the stage into them
   assert.match(html, /<label for="dance_kind">/); assert.match(html, /<label for="flow_device">Camera<\/label>/);
   assert.match(html, /<select id="flow_device"[^>]*>\s*<option value="">/);

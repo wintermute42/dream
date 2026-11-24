@@ -1384,7 +1384,8 @@ then leaves a person at the edge out, but it cannot make the model look at someo
 
 **The page.** In the mode Flowtrack, **Page ↗** in the Movement card (or key **L**) opens the page of Flowtrack in a
 window of its own – this Mac only, for a second screen, and an extra view like the page of Dream Dance (it reads the
-stage that opened it; no control line and no camera of its own). On it:
+stage that opened it; no control line and no camera of its own – and like it, it asks you to reload a stage window
+that was loaded before an update of Dream). On it:
 - **Automatic** – the switch and the four choices with their reasons.
 - **Effect** – one row per target of the flowtrack table with its switch, its strength and a light while it acts:
   paint, touch, impulses, light in the dark, movement shapes the effects, content by energy, movement pushes the AI
