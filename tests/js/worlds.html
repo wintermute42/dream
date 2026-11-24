@@ -1,0 +1,98 @@
+<!doctype html>
+<!-- #222: every style world besides today's look, drawn in a real browser with a seeded random and a clock that stands
+     still: the scenes of tests/js/style-scenes.js, and what the owner's rules ask of a world – its faces show nothing
+     but what the face rule lets through and leave the place of a nose empty; nothing of today's signs (hearts, stars,
+     letters) is borrowed; it draws every part itself. tests/js/worlds.test.mjs reads the report. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Style worlds</title>
+<style>body { background: #141220; color: #f2eefb; font: 14px system-ui, sans-serif; } canvas { margin: 4px; max-width: 46vw; }</style>
+</head>
+<body>
+<script>
+(() => { let a = 20261123; Math.random = () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; performance.now = () => 54321;
+  Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 }); })();
+</script>
+<script src="/static/dreambrush.js"></script>
+<script src="/static/dreamvis.js"></script>
+<script src="/static/dreamlife.js"></script>
+<script src="/static/dreameye.js"></script>
+<script src="/static/dreamstyle.js"></script>
+<script>
+// what is watched while a world draws: which parts of a face it asks the rule for, whether it borrows today's drawing
+// of a sign, whether it writes letters. Set up before the worlds load, so none of them can keep the unwatched ones.
+const watch = { parts: new Set(), life: [], pupils: [], letters: 0 };
+{ const of = DreamVis.of; DreamVis.of = (v, part) => { watch.parts.add(String(part)); return of(v, part); };
+  const life = DreamLife.draw; DreamLife.draw = (g, d, ...rest) => { watch.life.push(d.kind); return life(g, d, ...rest); };
+  const pupil = DreamEye.pupilShape; DreamEye.pupilShape = (g, shape, ...rest) => { watch.pupils.push(shape); return pupil(g, shape, ...rest); };
+  for (const name of ['fillText', 'strokeText']) { const f = CanvasRenderingContext2D.prototype[name]; CanvasRenderingContext2D.prototype[name] = function (...a) { watch.letters++; return f.apply(this, a); }; } }
+</script>
+<script src="/static/world-classic.js"></script>
+<script src="/static/world-deepsea.js"></script>
+<script src="/static/world-ink.js"></script>
+<script src="/static/world-etching.js"></script>
+<script src="/static/world-aurora.js"></script>
+<script src="/tests/style-scenes.js"></script>
+<script>
+(async () => {
+  const report = { error: '', worlds: {}, classic: {} };
+  try {
+    const S = StyleScenes, { canvas } = DreamBrush, PARTS = ['eye', 'life', 'face', 'back', 'sky', 'fire', 'trance', 'you'];
+    const first = Object.fromEntries(PARTS.map(k => [k, DreamStyle.part(k)])), firstMotif = Object.fromEntries(DreamStyle.motifs().map(k => [k, DreamStyle.motif(k)]));
+    for (const name of S.NAMES) report.classic[name] = S.small(S.draw(name));
+    const lit = c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 6 && d[i] + d[i + 1] + d[i + 2] > 18) n++; return n; };
+    for (const world of DreamStyle.names().slice(1)) {
+      const r = report.worlds[world] = { scenes: {}, error: '' };
+      try {
+        DreamStyle.use(world);
+        watch.parts.clear(); watch.life.length = 0; watch.pupils.length = 0; watch.letters = 0;
+        // it draws every part itself – the full vocabulary, nothing left to today's look
+        r.own = PARTS.filter(k => DreamStyle.part(k) !== first[k]); r.air = !!DreamStyle.part('air');
+        r.ownMotifs = DreamStyle.motifs().filter(k => DreamStyle.motif(k) !== firstMotif[k]);
+        r.modes = DreamStyle.face().MODES; r.frames = DreamStyle.part('you').FRAMES;
+        const t0 = Date.now();
+        for (const name of S.NAMES) { const c = S.draw(name); r.scenes[name] = S.small(c); c.title = `${world}: ${name}`; document.body.append(c); }
+        r.ms = Date.now() - t0;
+        // the faces of light: a face in the middle of a screen, each of its ways, at each level of the rule – as the page
+        // draws it (once without ink: where the dream shines through; once as its own glow)
+        const W = 960, H = 900, geo = { cx: W / 2, ey: H * 0.42, A: 90, half: 110, q: 1 }, F = DreamBrush.faceFrame(geo.cx, geo.ey, geo.half);
+        const [nx0, ny0] = F(-0.7, 0.45), [nx1, ny1] = F(0.7, 1.75);   // where the nose is: between the eyes and the mouth
+        const faceAt = (mode, vis, t) => { const c = canvas(W, H), g = c.getContext('2d');
+          DreamStyle.face().draw(g, mode, t, geo, vis); g.globalCompositeOperation = 'lighter'; DreamStyle.face().draw(g, mode, t, geo, vis, 'hsla(200,80%,70%,', 0.22); return c; };
+        const inBox = c => { const d = c.getContext('2d').getImageData(nx0, ny0, nx1 - nx0, ny1 - ny0).data; let m = 0; for (let i = 3; i < d.length; i += 4) m = Math.max(m, d[i]); return m; };
+        r.faces = {};
+        for (const mode of r.modes) {
+          const f = r.faces[mode] = { nose: 0, noseRare: 255 };   // the nose: the most of it with the hints alone, the least in the rare moment
+          f.eyesOnly = lit(faceAt(mode, DreamVis.EYES_ONLY, S.T0)) + lit(faceAt(mode, DreamVis.held(0), S.T0));
+          for (const t of [S.T0, 3000, 91234]) { f.nose = Math.max(f.nose, inBox(faceAt(mode, DreamVis.held(1), t))); f.noseRare = Math.min(f.noseRare, inBox(faceAt(mode, DreamVis.held(2), t))); }
+          const hints = faceAt(mode, DreamVis.held(1), S.T0), rare = faceAt(mode, DreamVis.held(2), S.T0);
+          f.hints = lit(hints); f.rare = lit(rare);
+          if (mode === r.modes[0]) { hints.title = `${world}: ${mode}, hints`; rare.title = `${world}: ${mode}, rare`; document.body.append(hints, rare); }
+        }
+        // the eye: its brow and the lid's crease only as far as the page lets them show
+        const eyeAt = browAl => { const c = canvas(400, 300), g = c.getContext('2d'); S.eye(g, 200, 170, 120, false, { browAl, emo: 'surprise' }); return c.getContext('2d').getImageData(0, 0, 400, 60).data; };
+        { const a = eyeAt(0), b = eyeAt(1); let diff = 0; for (let i = 0; i < a.length; i++) if (Math.abs(a[i] - b[i]) > 8) diff++; r.browShows = diff; }
+        // nothing borrowed from today's signs: for each of them the world draws its own form
+        watch.life.length = 0; watch.pupils.length = 0;
+        const c = canvas(600, 400), g = c.getContext('2d'); r.signs = {};
+        for (const kind of ['stars', 'fireheart', 'zzz', 'tear', 'sparks', 'ember', 'symbol']) {
+          g.clearRect(0, 0, 600, 400); g.globalCompositeOperation = 'lighter';
+          DreamStyle.life().draw(g, { ...S.thing(kind, 3, 300, 220, 60), variant: 'star' }, 900, 0.9, 60, 208, { H: 400, anchor: [300, 200, 40] });
+          g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; r.signs[kind] = lit(c);
+        }
+        // (as the pages make them: a thing of a mood comes without puffs)
+        for (const kind of ['tear', 'zzz', 'ember', 'fireheart']) DreamStyle.life().draw(g, { ...S.thing(kind, 1, 300, 220, 12), puffs: [], born: 1000 }, 500, 1, 12, 210, { H: 400 });
+        g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+        for (const shape of ['heart', 'star']) { g.clearRect(0, 0, 600, 400); S.eye(g, 300, 200, 200, false, { shape }); r.signs['pupil ' + shape] = lit(c); }
+        r.borrowed = { life: [...new Set(watch.life)], pupils: [...new Set(watch.pupils)].filter(s => s === 'heart' || s === 'star') };
+        r.letters = watch.letters; r.parts = [...watch.parts].sort();
+      } catch (e) { r.error += String(e && e.stack || e); }
+    }
+    DreamStyle.use('classic');
+  } catch (e) { report.error += ' ' + (e && e.stack || e); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>

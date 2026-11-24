@@ -788,43 +788,198 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   – davon wird nichts gesendet oder gespeichert), und die Augen folgen der Person; tritt jemand heran, öffnen sie sich,
   ganz nah werden sie groß vor Staunen, und Interesse weitet die Pupillen. Ohne jemanden davor träumen sie für sich
   herum.
-- **Lächle sie an, und sie grinsen zurück:** Ein schwebendes Grinsen eigener Gestaltung (zwei Zahnreihen, leuchtend in
-  den Farben des Traums) erscheint, solange jemand lächelt, die Augen lächeln mit, dann verblasst es. Ab und zu kommt es
-  auch von selbst.
+- **Meist nur die Augen (#220):** Wie viel von einem Gesicht zu sehen ist, folgt einer einzigen Regel – für alles
+  Gesichtsartige, das in den Dreamy Eyes und in den Traum-Fenstern gezeichnet wird (die von der KI gemalten Gesichter
+  und „Du im Traum“ sind Bilder und bleiben ganz). Die meiste Zeit gibt es nur die Augen. Alle ein bis zwei
+  Minuten kommen für etwa zehn Sekunden **Andeutungen**: die Brauen, das Stirnzeichen eines Gesichts aus Licht und – zurückhaltend, mit etwa halber
+  Stärke – **der Umriss dieses Gesichts**. Etwa
+  alle fünf bis zehn Minuten, innerhalb eines solchen Moments und nur, wenn die Augen ruhig sind, kommen **Mund, Nase und
+  Haar** dazu, und der Umriss wird kräftiger – für diese wenigen Sekunden deutlich zu sehen (mit etwa vier Fünfteln der vollen Stärke, nie so fest
+  wie die Augen) – und gehen wieder, bevor die Andeutungen gehen. Ein Grinsen gibt es nicht. **Immer nur ein Gesicht:**
+  Wo ein Gesicht ein anderes ablöst, während es zu sehen ist (eine gehaltene Stufe wechselt ihr Gesicht, die Stilwelt
+  wechselt, die Silhouette der Person hinter den Augen), blendet das alte erst ganz aus (etwa eine Sekunde), und erst
+  dann blendet das nächste ein – nie ein harter Schnitt, nie zwei Gesichter übereinander; ein gemaltes Gesicht, das
+  weichen muss, während es noch kommt, geht von dort, wo es gerade war. Zum Anschauen einer Stufe `?face=0`, `?face=1` oder `?face=2` an
+  die Adresse der Dreamy Eyes oder eines Traum-Fensters hängen: Sie wird gehalten (0: nur die Augen, 1: mit
+  Andeutungen und Umriss, 2: dazu Mund, Nase und Haar; das Gesicht wechselt alle 20 Sekunden).
+- **Stilwelten (#221):** Wie das alles gezeichnet wird, ist eine *Stilwelt*. Die Dreamy Eyes und die Traum-Fenster
+  bestimmen die Szene – was erscheint, wann und wo; eine Welt bestimmt das Material: das Auge, alles, was um die Augen
+  lebt und durch die Fenster treibt, die Gesichter aus Licht, die großen Motive der Fenster. Die erste Welt,
+  **Klassisch**, ist der bisherige Look von Dream (leuchtende Linien, weiches Licht), unverändert. Die Welt wählst du
+  im Bedienfeld (unter „Trance: …“: das Weltenband, **Stilwelt**) oder in Dream Control (Karte „👀 Dreamy Eyes“) – tippe auf ihr kleines Bild, siehe „Das Weltenband“ weiter unten; eine MIDI-Taste kann
+  zur nächsten weiterschalten („Taste: nächste Stilwelt“). Dream sagt es sofort jeder Dreamy-Eyes-Seite und jedem
+  Traum-Fenster – sie hören es nur, mit ihren Codes lässt es sich nicht setzen. Feuer, Trance und „Du im Traum“ laufen
+  in jeder Welt: Außer dem Auge, den Lebewesen, den Gesichtern und den Motiven zeichnet eine Welt auch die Nacht hinter
+  den Augen, den Himmel eines Fensters, die Flammen, die Trance und das, was „Du im Traum“ umgibt (#222: die Rahmen,
+  die Glühwürmchen und die Funken, die es hinterlässt, die Farben seines Leuchtens; das Bild der Person selbst und wie
+  es geträumt wird – das Wabern, der Nebel am Rand mit seinem Farbsaum, die Klarheit im Höhepunkt, das Zerfallen – ist
+  in jeder Welt gleich). In jeder Welt außer Klassisch gilt die Gesichts-Regel oben für alles
+  Gezeichnete, und es gibt keine der heutigen Zeichen (Herzen, Sterne, „z“): Jede Welt hat dafür eine eigene Form.
+  Eine Welt ist eine Datei (wie sie eingebaut wird, steht unter „Tests“). Die Welten:
+  - **Klassisch** – der bisherige Look, unverändert.
+  - **Biolumineszenz** (#222) – die Tiefsee: nirgends Konturen, nur Fäden aus Licht, dünne Häute und Lichtperlen, die
+    an ihnen entlang pulsieren; Meeresschnee treibt durch alles. Das Auge ist eine dunkle Kammer, vom Rand her
+    beleuchtet, mit einer Anemonenkrone um die Iris und Flimmerhärchen als Wimpern; die Braue ist eine Reihe kleiner
+    Lichter. Um die Augen: Plankton, eine Anemone, die sich öffnet, eine Rippenqualle, ein wachsender Seefächer,
+    kleine Medusen, die Lichterkette einer Staatsqualle. Die Gesichter aus Licht sind eine Meduse, ein Anglerfisch
+    und eine Anemone (ein warmes Locklicht oder eine kleine Krone auf der Stirn und, zarter, die Lichter am Kiefer – der Umriss des Gesichts – mit den Andeutungen; Glocke, Arme,
+    ein geschlossener Mund und die Nase – zwei feine Lichterreihen und ein Schimmer auf der Spitze – nur im seltenen Moment). Im Fenster leuchtet der Traum im Wasser um eine Meduse von oben –
+    mit dem Auge oder dem gefalteten Traum in ihrer Glocke –, und die unmöglichen Figuren sind Scheiben des Traums
+    mit Rändern aus Lichtfäden. Feuer ist ein glühender Schlot in der Tiefe (warme Fahnen steigen auf); wo Klassisch
+    ein Herz zeigt, ist hier ein warmes Locklicht oder eine winzige warme Meduse, wo es Sterne zeigt, blitzt Plankton,
+    und Schlaf sind langsame Blasen. Gemessen in einem Browser ohne Grafikkarte, der Prozessor vierfach gebremst:
+    Dreamy Eyes etwa 19 Bilder pro Sekunde (Klassisch: 30), ein Traum-Fenster 6 (Klassisch: 8) bei voller Auflösung –
+    beide Seiten senken ihre Auflösung wie bisher selbst, wenn ein Gerät nicht mitkommt.
+  - **Tusche & Aquarell** (#223) – helle Pigmente auf schwarzem Papier. Flächen sind Lavierungen mit nassen Rändern und
+    Körnung, Linien sind Pinselstriche, die anschwellen, dünner werden und trocken auslaufen; die Linien „kochen“ ein
+    wenig, wie in handgezeichneter Animation. Das Auge ist eine beinfarbene Lavierung mit gepinseltem Irisring, blankem
+    Papier als Glanzlicht und einem satten Lidstrich, der in einen Flügel ausläuft; die Braue ist ein Pinselstrich. Um
+    die Augen: Blütenlavierungen, eine Pigmentblüte, die sich ausbreitet, ein Ensō, ein Tuschezweig, der Blatt für Blatt
+    wächst, ein Vogel aus zwei Strichen, Tropfen im nassen Papier, der Zug eines breiten Pinsels. Die Lichtgesichter
+    heißen *sumi*, *willow* und *plum* (ein kleines Zeichen auf der Stirn und, zarter, eine dünne Kieferlinie – der Umriss des Gesichts – mit den Andeutungen; Haarstriche und
+    Lavierungen, geschlossene Lippen und die Nase – ein satter Strich an ihrer Seite, ein trockener Schwung unter der Spitze – nur im seltenen Moment). Im Fenster scheint der Traum
+    durch Lavierungsflecken, um ein gepinseltes Ensō mit dem Auge oder dem gefalteten Traum darin; die unmöglichen
+    Figuren sind lavierte Scheiben mit gepinselten Kanten. Feuer sind Lavierungen in Zinnober und Ocker mit
+    aufsteigenden Flammenstrichen; wo Klassisch ein Herz zeigt, blüht ein Tropfen rotes Pigment, wo es Sterne zeigt, ist
+    es ein Spritzer, und Schlaf sind langsame Ringe aus Lavierung. Gemessen wie oben (Prozessor vierfach gebremst):
+    Dreamy Eyes etwa 20 Bilder pro Sekunde, ein Traum-Fenster 4 (Klassisch im selben Lauf: 36 und 8).
+  - **Kupferstich** (#225) – eine alte Kupferplatte, die lebendig wird, mit den langen Linien des Jugendstils. Es gibt
+    nur Linie – Striche, die an- und abschwellen, Schraffur, Punktierung – in knochenfarbener Tinte mit Grünspan,
+    Altrosa und ein wenig Goldlicht, das hin und wieder eine Linie entlangläuft. Das Auge: Das Weiße sind feine Linien,
+    die dem Augapfel folgen, das Lid eine schwellende Linie, die in einer Ranke endet, einzelne Wimpern; der Traum
+    selbst ist in die Iris gestochen, die Striche so dick, wie er dort hell ist. Um die Augen und durch die Fenster: ein
+    Farn, dessen Wedel sich entrollt, eine Ranke, die sich selbst zeichnet und hinter deren Spitze Blätter aufgehen,
+    eine Pusteblume, deren Samen davonfliegen, eine Lilie, die sich öffnet, ein Nachtfalter wie aus einer
+    Naturkundetafel mit schraffierten Flügeln, schraffierte Tautropfen, Flügelsamen, die ein Auge umkreisen, eine Wolke
+    aus Punkten. Die Lichtgesichter heißen *lily* (ein Edelstein an feiner Kette auf der Stirn; selten Haar in Bündeln
+    mit Locken am Ende, Lilien an den Schläfen, ein offener Heiligenschein mit Teilstrichen), *fern* (ein junger
+    Farnwedel auf der Stirn; selten Ranken als Haar, ein Blätterkranz) und *moth* (ein ruhender
+    Falter auf der Stirn; selten ein Schleier feiner Linien, ein Heiligenschein aus Punkten) – mit den Andeutungen auch, zarter, die Kieferlinie (der Umriss des Gesichts; beim Farn gepunktet); geschlossene,
+    schraffierte Lippen und die Nase (eine Seite mit anschwellender Linie gestochen und im Schatten schraffiert, die
+    andere nur gepunktet) nur im seltenen Moment. Im Fenster ist der Traum
+    eine Rosette, in ein Medaillon mit Teilstrichen gestochen, um dessen Rahmen Ranken wachsen; das dritte Auge sitzt
+    mitten in einer Pusteblume; die unmöglichen Figuren sind Fläche für Fläche schraffiert, und ein Samen steigt die
+    Treppe hinauf; der Himmel ist punktiert, in den Farben des Traums. Feuer sind gestochene Flammen mit Gold darin.
+    Statt eines Herzens gibt es eine Knospe, statt Sternen eine Pusteblume und treibende Samen, und Schlaf ist eine
+    Mohnkapsel, die nickt und ein paar Samen fallen lässt. Keine Linie ist feiner als etwa 1,2 px, damit die Platte auch
+    auf groben Ausgaben hält. Gemessen wie oben (Prozessor vierfach gebremst): Dreamy Eyes etwa 25 Bilder pro Sekunde,
+    ein Traum-Fenster 6 (Klassisch im selben Lauf: 39 und 8).
+  - **Aurora** (#226) – Vorhänge aus Nordlicht über einem Sternenfeld: langsam, leuchtend, kalte Grün- und Violetttöne
+    mit warmem unterem Rand; die ruhigste Welt. Ein Vorhang ist eine Linie, auf der Strahlen stehen, deren Höhe und
+    Helligkeit an ihr entlangwandern. Das Auge ist ein Stück Nachthimmel, auf dessen unterem Lid Licht steht, mit
+    Strahlen als Wimpern, die vom oberen Lid aufsteigen, und einer dünnen Korona um die Iris; die Braue ist ein kleiner
+    Bogen aus Strahlen. Um die Augen: ein kleiner treibender Vorhang, ein Halo mit Nebenmonden, eine kleine Korona,
+    Lichtsäulen über Eisstaub, eine Sternschnuppe, Diamantstaub, ein stiller Bogen. Die Lichtgesichter heißen *veil*,
+    *crown* und *pillars* (ein helleres Licht auf der Stirn und, zarter, ein niedriges Band am Kiefer – der Umriss des Gesichts – mit den Andeutungen; Schleier, wo Haar fiele,
+    ein warmes Licht als Mund und die Nase – eine schlanke Lichtsäule mit einem Stern auf der Spitze –
+    nur im seltenen Moment). Im Fenster sieht man den Traum in großen Vorhängen, um eine Polarlicht-Korona –
+    Strahlen strömen aus einer dunklen Scheibe mit dem Auge oder dem gefalteten Traum darin; die unmöglichen Figuren
+    haben Kanten aus Licht. Feuer ist ein rotes Polarlicht, das vom Horizont aufsteigt; wo Klassisch ein Herz zeigt,
+    steht eine kleine warme Nebensonne, wo es Sterne zeigt, glitzert Eisstaub, und im Schlaf verlöschen Lichtsäulen
+    nacheinander, während Schnee sinkt. Gemessen wie oben (Prozessor vierfach gebremst): Dreamy Eyes etwa 25 Bilder pro
+    Sekunde, ein Traum-Fenster 3 bei voller Auflösung (Klassisch im selben Lauf: 35 und 8) – die Fenster dieser Welt
+    sind bisher die teuersten und darauf angewiesen, dass die Seite auf einem schwachen Gerät ihre Auflösung senkt.
+- **Stilwelten überblenden (#224):** Zwei Stilwelten können gleichzeitig zu sehen sein, eine blendet in die andere über
+  – dieselbe Szene wird in beiden gezeichnet und addiert, wie eine Doppelbelichtung: Augen, Lichtgesichter und das
+  Motiv eines Fensters liegen genau übereinander. Die Überblendung hat eine erste Welt, eine zweite und wie weit das
+  Bild auf dem Weg dazwischen ist (0 % ganz die erste, 100 % ganz die zweite; dazwischen bleiben beide gemischt,
+  solange es dort gelassen wird). Die **Welten-Drift** bewegt sie von selbst, ein MIDI-Regler kann sie von Hand drehen (Regler-Ziel
+  „Stilwelten: Überblendung“); die Taste „nächste Stilwelt“ schaltet zur Welt nach derjenigen, die gerade am meisten
+  zu sehen ist, und zeigt sie ganz. Eine andere Welt zu wählen ist nie ein harter Schnitt: Sie kommt in einer kurzen
+  Überblendung (etwa anderthalb Sekunden). **Ein Gesicht aus Licht wird nie gemischt:** Während zwei Welten gezeichnet
+  werden, zeichnet eine von ihnen das Gesicht – die, die am meisten zu sehen ist; übernimmt die andere, blendet das
+  Gesicht erst ganz aus, und erst dann blendet das Gesicht der anderen Welt ein (siehe „Meist nur die Augen“).
+  - **Das Weltenband – so steuerst du das alles:** im Bedienfeld (unter „Trance: …“) und in Dream Control (Karte
+    „👀 Dreamy Eyes“) dieselbe kleine Karte, **Stilwelt**:
+    - **Eine Reihe kleiner Bilder, eines pro Welt** – jedes von der Welt selbst gezeichnet (ihr Auge), darunter ihr
+      Name. Die Welt, die zu sehen ist, hat einen Ring, die, mit der gerade gemischt wird, einen gestrichelten.
+      **Tippe auf ein Bild**, um zu dieser Welt überzublenden (die kurze Überblendung oben); das Wandern wartet dann
+      drei Minuten. Mit der Tastatur: mit Tab in die Reihe, die Pfeiltasten gehen von Bild zu Bild, Leertaste oder
+      Enter wählt.
+    - **Ein Balken darunter, beschriftet „erste Welt → zweite Welt“:** wie weit die Überblendung ist. Er zeigt nur
+      an – die Drift und der MIDI-Regler bewegen ihn.
+    - **Der Schalter „Von selbst durch die Welten wandern“** schaltet die Drift ein und aus, drei Knöpfe stellen ihr
+      Tempo: **langsam**, **ruhig**, **lebhaft**. Aus sind die drei grau; wieder an hat die Drift das Tempo, das sie
+      zuletzt hatte.
+    - **Eine Zeile, die sagt, was gerade passiert:** „gerade: Klassisch → Biolumineszenz · 32 %“, während eine Welt in
+      die nächste übergeht; „gerade: Klassisch · nächste Welt in 0:40“, während eine Welt allein bleibt (es zählt
+      herunter); „Biolumineszenz gewählt · Wandern pausiert noch 2:40“ nach einem Tippen, einem MIDI-Regler oder einer
+      MIDI-Taste; „Klassisch · Wandern aus“; und „Wandern ruht, solange keine Dreamy Eyes und kein Traum-Fenster an
+      sind“ – die Drift läuft nur, solange jemand sie sehen kann.
+    - Eine Welt, die Dream später bekommt, erscheint von selbst in der Reihe. Grenzen: Die Bilder werden einmal beim
+      Öffnen der Seite gezeichnet (sie bewegen sich nicht und zeigen einen erfundenen Traum in der Iris); einen Regler
+      für die Überblendung gibt es nicht mehr – um eine Mischung von Hand zu halten, nimm einen MIDI-Regler oder
+      schalte das Wandern aus, während es unterwegs ist.
+  - **Welten-Drift – in einem neuen Dream an:** Dream wandert von selbst von Welt zu Welt, durch alle in der
+    Reihenfolge der Liste und wieder von vorn. Jede Welt bleibt eine Weile allein, dann kommt langsam die nächste:
+    *langsam* (alle fünf Minuten eine Welt), *ruhig* (alle zwei Minuten – die Voreinstellung), *lebhaft* (alle 45
+    Sekunden) oder *aus*. Der Balken der Überblendung bewegt sich sichtbar mit. Ein Griff an die Welten – ein Tippen auf
+    eine Welt im Bedienfeld oder in Dream Control (auch auf die, die gerade zu sehen ist), ein MIDI-Regler oder eine
+    MIDI-Taste – lässt die Drift drei Minuten warten; dann geht sie von dort weiter, wo die Mischung stehen blieb. Soll eine Welt oder eine
+    Mischung dauerhaft bleiben, schalte das Wandern aus. Die Drift ruht, solange weder Dreamy Eyes noch ein
+    Traum-Fenster verbunden sind. „Reset“ lässt all das, wie es ist (es gilt dem, was das KI-Bild formt).
+  - **Alte Handys:** Zwei Welten in jedem Bild zu zeichnen kostet etwa die doppelte Zeit. Ein Gerät, das nicht
+    mitkommt, zeigt deshalb nie eine Dauer-Mischung: Es zeigt die nähere der beiden Welten und wechselt mit einer
+    kurzen Überblendung, sobald der Regler deutlich über die Mitte ist; die schwächsten Geräte (die schon mit den
+    wenigsten Details zeichnen) gehen stattdessen durch Schwarz, zeichnen also nie zwei Bilder für eines. Das
+    entscheidet jede Seite selbst an ihrer Bildrate (zwei Welten drei Sekunden lang unter etwa 33 Bildern pro Sekunde:
+    ab dann eine Welt; nach anderthalb Minuten versucht sie das Mischen wieder und wartet jedes Mal länger, wenn es
+    nicht hält). Dieselbe Überblendung kann also auf einem neuen und einem alten Gerät verschieden aussehen: hier ein
+    langsames Ineinanderfließen, dort ein Wechsel der Welt. Um eine Art auf jedem Gerät anzusehen, häng
+    `?blend=mix`, `?blend=fade` oder `?blend=dip` an die Adresse der Dreamy Eyes oder eines Traum-Fensters.
+  - **Gemessen** (die echten Seiten in einem Chromium ohne Fenster, Prozessor vierfach gebremst, wie bei den Welten
+    oben): Mit einer Welt zeichnen die Dreamy Eyes 34 Bilder pro Sekunde in Klassisch und 23 in Kupferstich oder
+    Aurora, mit einer Dauer-Mischung zweier Welten 10–11; ein Traum-Fenster zeichnet bei voller Auflösung 8, 6 und 3
+    mit einer Welt und 2–3,5 mit zweien. Eine Mischung kostet etwas mehr als beide Welten zusammen. Sich selbst
+    überlassen (Prozessor sechsfach gebremst), gingen Augen und Fenster binnen weniger Sekunden zu einer Welt über.
+    Auf einem echten alten Handy wurde nichts gemessen.
+  - Die Augen und die Fenster hören nur von den Welten (die Welt, die zweite, wie weit die Überblendung ist); mit
+    ihren Codes lässt sich nichts davon setzen, und ein Gast kann es auch nicht.
 - **Weibliche Augen:** eine Mandelform mit leicht angehobenem äußerem Augenwinkel, ein zarter rosé-violetter Lidschatten
   mit etwas Schimmer, ein Lidstrich mit kleinem Flügel, volle Wimpern, die zum äußeren Winkel hin länger und geschwungener
-  werden (unten ein paar feine). **Die Brauen kommen nur ab und zu, für ein Gefühl** – wie das Grinsen: Staunen (jemand ganz
-  nah, Aufwachen, ein Traum, der wild wird), Freude (mit dem Grinsen), Traurigkeit (mit der Lichtträne), Zweifel (eine
+  werden (unten ein paar feine). **Die Brauen kommen nur mit den Andeutungen** (siehe oben) und zeigen dann ein Gefühl: Staunen (jemand ganz
+  nah, Aufwachen, ein Traum, der wild wird), Freude (jemand lächelt sie an), Traurigkeit (mit der Lichtträne), Zweifel (eine
   hoch, eine flach, beim Schielen), ein grimmiger Blick (selten, in einem dunklen, wilden Traum) oder Neugier – dann
   verblassen sie wieder. **Ihr Look wechselt
   sanft** etwa jede Minute: Rosé, Smoky (grau mit langem Flügel), Golden (mit Glitzer), Nymphe (türkis, lange Wimpern)
   oder Puppe (ohne Flügel, sehr lange Wimpern, runde Brauen).
 - **Hinter den Augen scheint der Traum durch die Nacht** – durch treibende Wolken, eine riesige atmende Spirale aus
-  weichen Lichtern, eine kaleidoskopische Blume aus Ringen oder ein nur angedeutetes Gesicht aus Licht um die Augen – eine
-  Göttin mit Diadem und wallendem Haar, eine Katze mit Ohren und zuckenden Schnurrhaaren, Medusa mit sich windenden
-  Schlangen, eine Meerjungfrau mit Haar, das wie Seetang treibt, und einer Krone aus Muscheln, ein Waldgeist mit einer Krone aus Blättern,
-  Ranken um die Augen, einem Blatt auf der Stirn und aufsteigenden leuchtenden Sporen (ohne Mund), eine Mondpriesterin mit Sichel auf der Stirn, wehendem Schleier und langen
-  Ohrringen; die Masken wechseln alle ein, zwei Minuten (hochkant etwas ruhiger), der Traum
+  weichen Lichtern oder eine kaleidoskopische Blume aus Ringen; die Masken wechseln alle ein, zwei Minuten (hochkant etwas ruhiger), der Traum
   dahinter zoomt und wandert langsam, etwas heller als auf der Bühne. Alle zwei bis vier Minuten öffnet sich für 6–10
   Sekunden ein **Traumfenster**: Die Nacht geht weit auf und der Traum ist deutlich hinter den Augen zu sehen, dann zieht er
   sich weich wieder hinter die Masken zurück. Direkt hinter den Augen bleibt es dunkler, damit sie
   klar bleiben.
+- **Gesichter aus Licht, nur angedeutet:** Mit den Andeutungen erscheint um die Augen ein Gesicht aus Licht, jedes Mal
+  ein anderes, und die Augen werden seine Augen – zuerst sein Zeichen und, zarter, sein Umriss: das Strahlendiadem der Göttin, die Ohren der
+  Katze, die Schlangen über Medusas Stirn, die Muschelkrone der Meerjungfrau, die Blätterkrone des Waldgeists mit dem
+  Blatt auf der Stirn und leuchtenden Sporen, die Sichel der Mondpriesterin. In den seltenen Momenten kommen Haar
+  und ein geschlossener Mund deutlich dazu, und der Umriss wird kräftiger (wallendes Haar, zuckende Schnurrhaare, sich windende Schlangen, Haar
+  wie Seetang, Ranken, ein Schleier und lange Ohrringe) – und die Nasenlinie der Göttin, das Näschen der Katze. Der
+  Traum füllt die Linien. **Ein Gesicht ist nie gestaucht:** Es hat eine einzige Größe, die der Augen, hochkant wie
+  quer; auf einem breiten, niedrigen Bildschirm laufen Kinn und Haarenden über den Rand, statt ins Bild gedrückt zu
+  werden.
 - **Du im Traum:** Wer davorsteht, spiegelt sich in der Iris – schwach die ganze Zeit, und alle zwei, drei Minuten für
   ein paar Sekunden ganz deutlich, wie in echten Augen: dann ist es die Person allein, vom Raum freigestellt (auf dem
-  Handy), das Gesicht genau so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle drei bis fünf
+  Handy) und am Rand weich auslaufend, das Gesicht so, wie die Kamera es sieht, und dahinter träumt die Iris weiter. Ab und zu (alle vier bis acht
   Minuten, nur solange jemand da ist) erscheint die Person als **Moment**: zuerst in den beiden Pupillen, wie durch sie
-  hindurch gesehen, dann öffnen sich die Fenster und sie steht für etwa 2–3 Sekunden in einer weichen Wolke in der
-  Bildmitte – **das echte Kamerabild, das Gesicht unverändert und erkennbar**, etwas kleiner und leichter als ein
-  gemaltes Gesicht. Nur drumherum ist der Traum: das Traumbild statt des Raums, ein weicher Leuchtrand,
-  Glühwürmchen, ein Farbschimmer in der Farbe des Traums an ihrem Rand, und manchmal ein Kranz aus Blüten, ein
-  Mandala hinter dem Kopf oder Nebelschleier. Über dem Gesicht wird nie etwas gezeichnet. Danach blendet das Bild
-  nicht einfach aus: In ein, zwei Sekunden **löst es sich in den Traum auf** – seine Stücke treiben davon, die
-  äußeren zuerst, das Gesicht zuletzt, die Glühwürmchen fliegen fort –, während die Augen zurückkehren (insgesamt etwa
-  7 Sekunden). **Wer gerade kommt** (nachdem eine Weile niemand da war), wird sofort begrüßt – ganz deutlich in der
+  hindurch gesehen, dann öffnen sich die Fenster und sie steht für 3–4 Sekunden in einer weichen Wolke in der
+  Bildmitte, etwas kleiner und leichter als ein gemaltes Gesicht – **wie im Traum gesehen, nicht wie ein Foto** (#229):
+  Das ganze Bild wabert leicht wie durch Wasser oder Hitzeflimmern (das Gesicht schwächer als das Drumherum), die
+  Person hat keine Kontur, sondern **verläuft in Nebel**, mit einem zarten Farbsaum in den Farben des Traums, und sie
+  kommt weich und verschwommen. **In der Mitte des Moments ist das Gesicht etwa eine Sekunde lang klar – das echte
+  Kamerabild, man erkennt sich** –, dann verschwimmt es wieder. Drumherum ist der Traum: das Traumbild statt des
+  Raums, ein weiches Leuchten, Glühwürmchen, und manchmal ein Kranz aus Blüten, ein Mandala hinter dem Kopf oder
+  Nebelschleier. Danach blendet das Bild nicht einfach aus: In zwei, drei Sekunden **löst es sich von außen nach
+  innen in den Traum auf** – seine Stücke ziehen sich zu treibenden Schlieren und hinterlassen Funken, das Gesicht
+  zuletzt, die Glühwürmchen fliegen fort, und am Ende verweht der Nebel, der übrig ist –, während die Augen
+  zurückkehren (insgesamt etwa 9 Sekunden). Auf einem schwachen Handy wird das Bild kleiner gezeichnet und wabert in
+  gröberen Streifen; es bleibt flüssig. **Wer gerade kommt** (nachdem eine Weile niemand da war), wird sofort begrüßt – ganz deutlich in der
   Iris oder mit diesem Moment, im Wechsel.
   **Was mit dem Kamerabild passiert:** All das zeichnet das Handy selbst, aus der Live-Kamera und einer dort
   gefundenen Maske der Person (Selfie-Segmentierung, etwa 250 KB); dafür wird kein Bild und kein Wort darüber, wer
-  davorsteht, gesendet, und nichts wird aufbewahrt. Die KI malt Menschen **nicht** um: Das Traum-Porträt, das der Mac
+  davorsteht, gesendet, und nichts wird aufbewahrt. Auch der Traum-Look ist gezeichnet, nicht berechnet: einfaches
+  Zeichnen auf dem Handy (Streifen, leicht versetzt; eine kleine Kopie, groß gezogen, für die Weichheit), kein Modell
+  und keine KI. Die KI malt Menschen **nicht** um: Das Traum-Porträt, das der Mac
   früher aus dem Kamerabild der Augen gemalt hat, gibt es nicht mehr (und `DREAM_YOU_EVERY` auch nicht) – der Mac malt
   nur noch die Fantasie-Gesichter unten, aus Worten. Das Einzige, was das Handy verlässt, ist das, wofür Dreamy Eyes da
   sind: die Frontkamera, die du dem Traum leihst (unten, „Immer nur eine Kamera“), unverändert an die Bühne
@@ -834,20 +989,25 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   oder gesenkte Brauen –, dann gehen sie wieder ihre eigenen Wege.
 - **Deine Silhouette als Maske:** Ab und zu, nur wenn jemand da ist, scheint der Traum durch die Umrisse der Person
   davor (Selfie-Segmentierung auf dem Handy, etwa 250 KB, nichts wird gesendet oder gespeichert).
-- **Dreamy liebt Feuer ❤️‍🔥 (#162, #218):** Sieht die Kamera Flammen, sind die Augen verzaubert. Was als Flamme zählt, ist
+- **Dreamy liebt Feuer ❤️‍🔥 (#162, #218, #233):** Sieht die Kamera Flammen, sind die Augen verzaubert. Was als Flamme zählt, ist
   streng, damit ein warmes Zimmer kein Feuer ist: sehr helles, sattes Orange bis Gelb (nah an der Regel von #162) mit
   einem Kern, so hell, wie die Kamera es zeigen kann, das **flackert wie eine Flamme** – Größe und Form ändern sich
-  beide ständig und unregelmäßig –, und das fast eine Sekunde lang (etwa 0,8 s), bevor die Augen es glauben. Erkannt auf
+  beide ständig und unregelmäßig, bei einer größeren Flamme auch ihr Umriss (höher, breiter, geneigt) –, und das fast
+  eine Sekunde lang (etwa 0,85 s), bevor die Augen es glauben. Erkannt auf
   dem Handy, etwa 15-mal pro Sekunde. Kein Feuer sind: eine ruhige orange Lampe, eine Lampe, während das Handy berührt
   oder getragen wird, eine Lampe, die gedimmt wird, warme Wände und ein schummriges warmes Zimmer in einer rauschenden
   Kamera, die Kamera, die ihre Belichtung sucht, warme LEDs, die mit dem Verschluss der Kamera pulsieren (sie werden
   gleichmäßig heller und dunkler und behalten ihre Form), ein Bildschirm mit warmen bewegten Bildern, ein Gesicht oder
-  eine Hand in warmem Licht. Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
+  eine Hand in warmem Licht, auch wenn sie sich bewegt oder winkt (ihr Licht geht gleichmäßig auf und ab), ein warmes
+  Licht, das mit der Musik pulsiert, und eine Lampe, die in einem Handy in der Hand leicht flackert (beide behalten ihren
+  Umriss), und eine Wand in warmem Zimmerlicht, vor der sich jemand bewegt (der Kopf reißt ihr Licht auseinander und fügt
+  es wieder zusammen, und eine Wand ist größer als jede Flamme: warmes Licht über mehr als ein Viertel des Bildes ist eine
+  Wand). Eine Kerze, die vor so einer Wand gehalten wird, wird erkannt. Eine kleine Flamme zählt nur, wenn sie geschwungen wird (Poi); eine kleine Flamme, die weit
   weg steht, oder eine Flamme, die gar nicht flackert, ist nicht mehr als eine Lampe.
   **Sehen, was die Augen im eigenen Raum für Feuer halten:** Dreamy Eyes mit `?debug` am Ende der Adresse öffnen (nach
   einem vorhandenen `?…`: `&debug`). Eine Ecke zeigt dann die Kamera-Probe in Grau, warmes Licht in Gelb (sein heller
   Kern weiß) und das, was als Feuer zählt, in Rot, daneben die Zahlen: wie sicher sie sind (Feuer ab 0,70), die Stärke
-  und für den lebhaftesten Fleck seine Größe, den Anteil seines Kerns und seine Sprünge (Feuer über 4).
+  und für den lebhaftesten Fleck seine Größe, den Anteil seines Kerns und seine Sprünge (Feuer über 4,1).
   - **Sie folgen dem Feuer sofort.** Der Blick geht dorthin, wo die Flamme im Bild ist (innerhalb von etwa einer
     Zehntelsekunde), und bleibt an ihr, wenn sie sich bewegt. Alles folgt stufenlos seiner **Stärke**: wie weit sie sich
     öffnen, wie hoch die Flammen am unteren Bildrand stehen (am höchsten auf der Seite der Flamme), wie viel Glut
@@ -901,12 +1061,22 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   kaum etwas). Alle vier bis acht Minuten kommt eines davon durch die Pupillen: Es taucht in ihnen wie durch Nebel auf (weich, blass, verschleiert, ohne Rand), als sähe man
   hindurch, die beiden Fenster wachsen mit leuchtendem Rand, drehen sich ein wenig und öffnen sich zu einer **Traumwolke** – das
   Gesicht in weichen Bällchen, die treiben und ihre Form ändern, ringsum ein Schimmer in der Traumfarbe, dahinter weiter der
-  Traum –, bleibt dort drei bis fünf Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
-  und die Augen sind wieder da. Die Bilder bleiben nur im Speicher und kommen nie in die Galerie; nur die Augen
+  Traum –, bleibt dort einige Sekunden, atmend, sich wiegend und leicht treibend – und schrumpft zurück in die Pupillen,
+  und die Augen sind wieder da. **Das Gesicht lebt** (wie in den Traum-Fenstern, siehe „Lebendige Gesichter“ unten):
+  Es blinzelt, zwinkert ab und zu, schaut deutlich zur Seite (die Lider gehen mit), hebt oder runzelt die Brauen,
+  lächelt breit mit Mund und Wangen, dreht den Kopf und nickt – alle paar Sekunden ein neuer Ausdruck – und lächelt
+  mit, solange die Augen gestreichelt werden. Dafür findet die Bühne auf dem Mac (Dream oder Dream Control
+  dort offen) einmal pro gemaltem Gesicht, wo Augen, Brauen, Mund und Umriss sind, und Dream gibt diese Punkte an die
+  Dreamy Eyes weiter; das Handy bewegt sie nur – es lädt dafür kein Modell, und der Mac malt nichts zusätzlich. Mit
+  den Punkten liegen die Augen des gemalten Gesichts beim Aufgehen genau auf den Pupillen (in den Pupillen schaut es
+  gerade heraus), und es bleibt fünf bis sieben Sekunden statt drei bis fünf. Ohne Punkte – keine Bühne auf dem Mac
+  offen oder ein Bild, in dem kein Gesicht gefunden wird (eine Katze, eine Maske) – ist das Gesicht das Standbild von
+  früher. Ein Handy, dem die Luft ausgeht, bewegt ein kleineres Bild des Gesichts seltener, und die schwächsten
+  lassen den Kopf still. Die Bilder bleiben nur im Speicher und kommen nie in die Galerie; nur die Augen
   (und Dream Control) dürfen sie abholen. `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` ändert, wie oft eines
   gemalt wird (Sekunden); `DREAM_AIMASK=0` schaltet die gemalten Gesichter ganz ab (auch kein Feuergeist:
   die Dreamy Eyes lassen den Mac dann nie ein Modell laden). Mit der Cloud-GPU gibt es keine gemalten Gesichter.
-- **Die Pupillen verwandeln sich:** ein Katzenschlitz, solange das Grinsen da ist, Herzen, wenn jemand weiter lächelt,
+- **Die Pupillen verwandeln sich:** ein Katzenschlitz, solange das Katzengesicht aus Licht zu sehen ist, Herzen, wenn jemand weiter lächelt,
   Sterne, wenn sie staunen, eine drehende Spirale, wenn sie hypnotisieren (oder von einem Feuer gebannt sind). Etwa
   jedes vierte Mal (#218) ist es statt der Spirale ein weicher Schimmer, nie zweimal derselbe hintereinander: Lichter,
   die sich wie ein Mandala drehen, Lichter, die wie Schnee sinken, Ringe, die in die Tiefe sinken, oder ein langsamer
@@ -917,8 +1087,6 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
 - **Launen ab und zu:** Sie zwinkern, schielen, rollen die Augen, hypnotisieren, weinen eine Träne aus Licht, die zu
   Sternen zerplatzt, oder funkeln. Lange niemand da und ein ruhiger Traum: Sie schlafen langsam ein, kleine z's steigen
   auf – wer kommt, weckt sie mit einem Schreck (Sternpupillen, Funkeln). Lebhafter Traum: öfter.
-- **Das Grinsen gibt es in drei Arten** – mit Zähnen, als Lächeln aus kleinen Lichtern oder als leuchtendes Neon mit
-  verträumter Zunge – und es zeichnet sich von einer Seite her in die Luft.
 - **Um die Augen** entstehen Wölkchen, aufblühende Lichtspiralen, Mandalas, wachsende Fraktal-Bäume aus Licht,
   flatternde Licht-Motten, schillernde Blasen, Polarlicht-Bänder und kleine Monde, die ein Auge umkreisen – alles in den
   Farben des Traums, öfter, wenn der Traum lebhaft ist. Wird das Handy knapp, fallen sie zuerst weg (nie die Kamera);
@@ -927,13 +1095,14 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   `~/.cache/dream/mediapipe` ab.
 - **Einrichten:** Dream Control → Karte **„👀 Dreamy Eyes“** → „Code fürs Augen-Handy zeigen“ (oder am Mac: Bedienfeld →
   „Ausgabe“ → **👀 Dreamy Eyes**) → mit dem Augen-Handy scannen. Einmal auf diesem Handy: Dreams Zertifikat installieren (siehe „Dream Control über https und als App“) – der
-  Browser gibt die Kamera nur über https heraus. **„Augen öffnen“** tippen (Vollbild, der Bildschirm bleibt an). Damit es
+  Browser gibt die Kamera nur über https heraus. **„Augen öffnen“** tippen (Vollbild, der Bildschirm bleibt an; mit `?debug` in der Adresse bleibt die Seite ein Fenster). Damit es
   dort bleibt: Android „Bildschirmfixierung“ (Einstellungen → Sicherheit → App anpinnen, dann den Browser über die
   App-Übersicht anpinnen), das Handy am Strom, in einer Halterung auf Augenhöhe.
 - **Sein Code darf nur die Frontkamera leihen** und den Traum sehen – keine Einstellungen, keine Befehle, nichts, was Geld
   kostet; es erfährt nicht einmal den Prompt. Neben dem kleinen Bild des Traums bekommt es zwei Zahlen gesagt: die
   Master-Helligkeit und (#218) den Takt der Musik, einen Puls zwischen 0 und 1 – nie das, was die Bühne ihren
-  Ausgabefenstern sagt (Effekte, Überblendungen, Prompts); die Vorschau eines Gasts hört keinen Takt. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
+  Ausgabefenstern sagt (Effekte, Überblendungen, Prompts); die Vorschau eines Gasts hört keinen Takt. Von den gemalten Gesichtern bekommt es
+  die Bilder und (#230), wo jedes Augen, Brauen, Mund und Umriss hat – sonst nichts. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
   eigenem Cookie – die Augen auf dem eigenen Handy auszuprobieren, ersetzt also nie Dream Control.
 - **Immer nur eine Kamera:** Die Bühne zeigt „👀 Live-Kamera: Dreamy Eyes“. In Dream Control sagt die Karte „Dieses Gerät“,
   wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp), und die eigene
@@ -952,8 +1121,8 @@ Fenster zeigt **ein großes, lebendiges Motiv**, der Traum umwabert es als Wolke
 einem Gerät zum anderen.
 
 - **Ein großes Motiv pro Fenster:**
-  - ein **großes Auge** – genau das Auge der Dreamy Eyes: Iris-Fasern, Lider, Wimpern, eine Braue, wenn es etwas
-    fühlt. Es schaut umher, blinzelt, seine Pupille weitet sich im dunklen Traum und mit dem Takt, und seine Iris ist
+  - ein **großes Auge** – genau das Auge der Dreamy Eyes: Iris-Fasern, Lider, Wimpern und eine Braue nur mit den
+    Andeutungen (#220: alle ein, zwei Minuten, nach Dreams Uhr – beide Augen eines Paars heben ihre gemeinsam). Es schaut umher, blinzelt, seine Pupille weitet sich im dunklen Traum und mit dem Takt, und seine Iris ist
     der Traum – pur, zum Kaleidoskop gefaltet, als Tunnel oder als Galaxie; selten (etwa jedes zehnte Mal, alle 47 s) hypnotisiert seine
     Pupille für ein paar Sekunden (#218: die Spirale oder einer der weichen Schimmer reihum, atmend im Takt – in beiden
     Fenstern eines Paars dieselbe);
@@ -978,8 +1147,9 @@ einem Gerät zum anderen.
   Gesicht auf dem Mac** bestimmt – von der Bühne, in einem Hintergrund-Worker, mit dem Gesichtsmodell, das Dream
   ohnehin hat (deutlich unter einer Sekunde pro Gesicht; das Zeichnen der Bühne wartet nie darauf) – nie von einem
   Fenster und nicht noch einmal für ein weiteres Fenster. Die 82 Punkte reisen mit dem Gesicht (unter 1 kB). Jedes
-  Fenster bewegt sie selbst über ein Dreiecksnetz: Es blinzelt, lässt den Blick wandern, lächelt, hebt eine Braue,
-  atmet und neigt und dreht den Kopf ein wenig – dezent, wie ein Gemälde, das lebt. Ein Bild, in dem kein Gesicht
+  Fenster bewegt sie selbst über ein Dreiecksnetz: Es blinzelt, lässt den Blick wandern, lächelt, hebt oder runzelt die
+  Brauen, atmet und neigt und dreht den Kopf – gut zu sehen, aber natürlich, wie ein Gemälde, das lebt (dieselben
+  Ausdrücke wie in den Dreamy Eyes, #230). Ein Bild, in dem kein Gesicht
   gefunden wird (eine Katze, eine Maske), oder eines, das gemalt wurde, während keine Bühne offen war, bleibt still
   sichtbar.
 - **Ein Organismus:** Alle Fenster atmen gemeinsam und pulsieren im Takt, und ab und zu läuft eine Lichtwelle der
@@ -1188,9 +1358,10 @@ gelten also auch nach einem Neustart. Welche Nummern der Controller sendet, hän
 ein Preset wählen und dabei bleiben.
 
 - **Regler-Ziele:** Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion, Bewegung,
-  Pose-Stärke, **Master-Helligkeit** (0 = schwarz; wirkt auf Bühne, Ausgabefenster und Syphon) und Effekt-Stärke.
+  Pose-Stärke, **Master-Helligkeit** (0 = schwarz; wirkt auf Bühne, Ausgabefenster und Syphon), Effekt-Stärke und
+  die Überblendung zwischen zwei Stilwelten (#224).
 - **Tasten-Ziele:** Pause/Start, nächste Szene, Neu, neuer Seed, **Blackout an/aus** (Master auf 0 und zurück),
-  Tap-Tempo, Muster weiter, jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus.
+  Tap-Tempo, Muster weiter, nächste Stilwelt (#221; #224: die nach der Welt, die am meisten zu sehen ist), jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus.
 - Regler gleiten weich zum neuen Wert (keine Sprünge) und bewegen sich im Bedienfeld und am Handy mit.
   Endlos-Drehregler (die nur „mehr/weniger“ senden) erkennt Dream nach wenigen Rasten selbst.
 - Vorschlag für 8 Fader + Master: Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion,
@@ -1494,7 +1665,7 @@ Bild ankommt; mit `KEEP=1` bleibt die Seite offen und zeigt beide Bilder nebenei
 je ein großes Motiv, der Traum als Wolken mit Dunkel dazwischen, das Augenpaar, das gemeinsam schaut, ein gemaltes
 Gesicht, das sich über seine Punkte bewegt, und eines ohne Punkte, das still bleibt, ein Motiv, das von einem Fenster ins
 andere wandert, Welle, Streicheln und Trance, und ein schwaches Gerät, das weniger Pixel zeichnet; mit `KEEP=1` bleiben
-die Fenster offen. `node --test tests/js/you.test.mjs` (#219) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Das Gesicht muss mit jedem Rahmen und in jedem Moment genau das Kamerabild sein, der Raum ist nie zu sehen, und das Bild geht, indem es sich auflöst, das Gesicht zuletzt. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
+die Fenster offen. `node --test tests/js/vis.test.mjs` (#220) prüft die Regel selbst als reine Zahlen (`static/dreamvis.js`): mehr als vier Fünftel der Zeit nur die Augen, Andeutungen im Abstand von 60–120 s (der Umriss mit ihnen, mit halber Stärke), Mund, Nase und Haar im Abstand von 4–11 min, dann deutlich zu sehen und nie über vier Fünftel, kein Sprung von einem Bild zum nächsten, immer nur ein Gesicht (die Uhr läuft durch Gesichtswechsel: das gezeigte blendet ganz aus, bevor das nächste einblendet, kein Bild mit einem Sprung, nie zwei zugleich), dasselbe für beide Fenster eines Paars, eine Nase nur auf der seltenen Stufe – und dass die Seiten jede Linie eines Gesichts durch die Regel zeichnen (kein Grinsen; eine Nase nur in den Gesichtern aus Licht und nur nach der Regel; kein Gesicht wird an die Bildschirmhöhe angepasst; kein Vollbild mit `?debug`). `node --test tests/js/style.test.mjs` (#221) prüft die Stil-Schicht: die Registrierung in Node (eine Welt über ihren Namen, der heutige Look bei unbekanntem Namen, ein Teil, den eine Welt nicht selbst zeichnet, kommt aus der ersten Welt; jede Welt aus `settings.WORLDS` ist eine Datei `static/world-<name>.js`, die sich selbst anmeldet, und Bedienfeld und Dream Control bieten sie an), und im selben Browser ohne Fenster zeichnet `tests/js/style.html` den heutigen Look durch die Schicht, mit festem Zufall und stehender Uhr – Augen mit jedem Look, jeder Iris-Welt und Pupille, alles Lebendige, die sechs Gesichter aus Licht mit Andeutungen und im seltenen Moment, die sechs Fenster-Motive – und vergleicht kleine Kopien mit den Bildern in `tests/js/style-ref.json` (`STYLE_REF=write` behält die jetzt gezeichneten, nur wenn sich der Look ändern soll). Er zeichnet auch, was mit #222 hinter die Schicht gewandert ist (die Nacht hinter den Augen, den Himmel eines Fensters, Flammen, Trance, das Drumherum von „Du im Traum“). `node --test tests/js/worlds.test.mjs` (#222) prüft jede andere Welt (`tests/js/worlds.html`, dieselben Szenen aus `tests/js/style-scenes.js`): Jede Szene wird ohne Fehler gezeichnet und sieht nicht aus wie Klassisch; die Welt zeichnet jeden Teil und jedes Fenster-Motiv selbst; ihre Gesichter zeigen nichts, solange nur die Augen zu sehen sind, lassen den Platz der Nase bei den Andeutungen leer, zeigen im seltenen Moment eine Nase und fragen die Gesichts-Regel nur nach Teilen, die sie kennt; wo Klassisch ein Herz, einen Stern oder einen Buchstaben zeichnet, zeichnet die Welt eine eigene Form (nichts von Klassisch geliehen, kein Text); und keine Welt-Datei spricht mit dem Netz oder gibt ein Bild heraus. `you.test.mjs` prüft das Gesicht in jeder Welt. **Eine neue Welt:** `static/world-<name>.js` schreiben (Muster: `world-deepsea.js`; jeden Teil registrieren), den Namen in `settings.WORLDS`, ihren Namen, Kurznamen und ein paar Worte über sie in `static/worldband.js` (`NAMES`, `SHORT`, `ABOUT` – das Weltenband im Bedienfeld und in Dream Control; ihr Bild dort zeichnet die Welt selbst) mit dem Deutschen in `static/i18n/de.json`, das Skript in `eyes.html`, `window.html` und die drei Testseiten – die Tests nennen, was fehlt. `node --test tests/js/brush.test.mjs` prüft die gemeinsamen Pinsel als Zahlen (`static/dreambrush.js`: Zufall und Rauschen aus einem Startwert, eine Rausch-Kachel, die sich wiederholt, glatte Linien und anschwellende Bänder, die Helligkeit des Traums, die Lider, das Skelett eines Gesichts – eine einzige Größe, die der Augen, nie an einen Bildschirm angepasst; zwischen Augen und Mund liegt seine Nase und sonst nichts, und die Nase gehört zur seltenen Stufe). **Eine neue Stilwelt** ist eine Datei `static/world-<name>.js`, die `DreamStyle.register('<name>', { eye, life, face, motif })` mit den Teilen aufruft, die sie zeichnet (der Rest kommt aus Klassisch), ein Name in `settings.WORLDS`, ein Script-Tag in `eyes.html` und `window.html` und ihr Name in `static/worldband.js` mit dem Deutschen (#224: Bedienfeld und Dream Control bekommen die Liste der Welten von Dream und zeigen jede mit einem Bild, das sie selbst zeichnet). `node --test tests/js/eyes-face.test.mjs` (#230) öffnet die Dreamy Eyes im selben Browser und ist auch ihr Dream: Ein gemaltes Gesicht mit seinen Punkten kommt durch die Pupillen und bewegt sich (Blinzeln, Lächeln, Brauen, leichtes Kopfdrehen), seine eigenen Augen liegen auf den Pupillen, ein Handy, dem die Luft ausgeht, bekommt ein kleineres Netz und kein Kopfdrehen, und ein Gesicht ohne Punkte bleibt still. `node --test tests/js/worldband.test.mjs` (#224) prüft das Weltenband: als reine Werte in Node, was die Einstellungen bedeuten, was ein Tippen verlangt, Schalter und Tempo und jeden Text der Statuszeile auf Deutsch; und im selben Browser ohne Fenster (`tests/js/worldband.html`) ein Bild pro Welt mit Namen, die Markierung der Welt, die zu sehen ist, und der, mit der gemischt wird, Tippen und Tastatur, den Schalter und die drei Tempi, die Statuszeile, dass jede Welt ein eigenes Bild zeichnet, dass es in eine breite und eine schmale Spalte passt und dass nur transform und opacity animiert sind. `node --test tests/js/blend.test.mjs` (#224) prüft die Überblendung: den Plan eines Bildes als reine Zahlen (`static/dreamstyle.js`: eine Welt oder zwei, deren Gewichte zusammen 1 ergeben; einer Hand am Regler wird weich gefolgt; eine andere Welt kommt in einer kurzen Überblendung; ein Gerät, das nicht mitkommt, zeigt immer nur eine Welt und pendelt nicht, das schwächste geht durch Schwarz) und die echten Seiten – Dreamy Eyes und ein Traum-Fenster, je in einem Rahmen von `tests/js/blend.html` mit einer Uhr, die der Test weiterstellt (`tests/js/still.js`) – im selben Browser: Was Dream sagt, kommt in der Stil-Schicht an, halb und halb ist das Mittel der Bilder beider Welten, jedes Paar von Welten zeichnet mit Feuer, Trance und Gesicht, ein schwaches Gerät zeichnet nie zwei Bilder für eines, und ein Gesicht aus Licht, das im Bild gehalten wird, wechselt immer einzeln (nach 20 Sekunden ein anderes Gesicht, beim Weltwechsel das Gesicht der anderen Welt: Bild für Bild kein Sprung, und das nächste Gesicht erst, wenn das vorige weg ist – von zwei zugleich gezeichneten Welten zeichnet nur eine das Gesicht). `node --test tests/js/you.test.mjs` (#219, #229) zeichnet „Du im Traum“ für eine erfundene Person im selben Browser: Die Person läuft weich aus, statt in einer Linie zu enden, in der Mitte des Moments ist das Gesicht genau das Kamerabild und nichts liegt darüber, davor und danach ist es weich und wabert, der Raum ist nie zu sehen, und das Bild geht, indem es sich in Schlieren auflöst, das Gesicht zuletzt, bis nichts mehr übrig ist; und der Code der Zeichnung benutzt kein Netz, kein Modell, keinen Weichzeichner-Filter und keine Schleife über ein großes Bild. `node --test tests/js/sliders.test.mjs` (#216) prüft die Regler: die Regeln (Wirkung, Füllung, Einrasten, Farben) in
 Node und `tests/js/sliders.html` im selben Browser ohne Fenster (Null-Marke und -Knopf, Doppeltipp, Schimmern,
 Kartenstreifen, der Zurücksetzen-Knopf). `node --test tests/js/signs.test.mjs` (#217) prüft die bewegten Zeichen und
 die Form: Regler → Zeichen (Art, Stärke, Richtung, das echte Tempo, Stillstand bei 0) und Regler → Achsen in Node, und

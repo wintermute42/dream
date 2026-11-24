@@ -13,7 +13,7 @@ from html.parser import HTMLParser
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = ["static/index.html", "static/remote.html", "static/output.html", "static/eyes.html", "static/window.html"]
-SCRIPTS = ["static/motion.js", "static/calib.js", "static/fx.js", "static/qrbox.js", "static/common.js", "static/sliders.js", "static/signs.js",
+SCRIPTS = ["static/motion.js", "static/calib.js", "static/fx.js", "static/qrbox.js", "static/common.js", "static/sliders.js", "static/signs.js", "static/worldband.js",
            "static/compute.js"]
 PY = sorted(f for f in os.listdir(ROOT) if f.endswith(".py"))   # #189: every module of the server and the scripts
 ATTRS = ("title", "aria-label", "placeholder", "alt", "label")

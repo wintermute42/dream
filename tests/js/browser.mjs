@@ -3,6 +3,7 @@
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -25,9 +26,24 @@ export function findChrome() {
   return mac.find(existsSync) || '';
 }
 
+// a test that is a page's Dream speaks WebSocket by hand (Node brings no server for it): the answer to a page that
+// connects, and one message to it – text or binary, not masked
+export function wsAccept(req, socket) {
+  const accept = createHash('sha1').update(req.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+  socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+  socket.on('data', () => {}); socket.on('error', () => {});
+}
+export function wsFrame(data) {
+  const text = typeof data === 'string', body = Buffer.from(data), n = body.length;
+  if (n >= 65536) throw new Error('a message of a test is never that long');
+  return Buffer.concat([n < 126 ? Buffer.from([text ? 0x81 : 0x82, n]) : Buffer.from([text ? 0x81 : 0x82, 126, n >> 8, n & 255]), body]);
+}
+
 // serves the test page (a file of tests/js) and static/, starts the browser on it and waits for the page's report
-// (the page POSTs it to /result as JSON)
-export function runPage(chrome, page) {
+// (the page POSTs it to /result as JSON). #224: /eyes and /window are the real pages, for a frame inside the test
+// page – with tests/js/still.js before everything else: a clock the test steps, a seeded random, no network
+// gl: false – a page that only draws on Canvas 2D: without the software WebGL it is drawn many times faster
+export function runPage(chrome, page, { gl = true } = {}) {
   return new Promise((resolve, reject) => {
     const profile = mkdtempSync(path.join(os.tmpdir(), 'dream-gl-'));
     let browser = null;
@@ -38,8 +54,15 @@ export function runPage(chrome, page) {
         req.on('end', () => { res.end('ok'); if (!process.env.KEEP) finish(); try { resolve(JSON.parse(body)); } catch (e) { reject(e); } });
         return;
       }
+      const real = /^\/(eyes|window)(\?|$)/.exec(req.url);
+      if (real) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(readFileSync(path.join(ROOT, 'static', real[1] + '.html'), 'utf8').replace('<head>', '<head><script src="/tests/still.js"></script>'));
+        return;
+      }
       const file = req.url === '/' ? path.join(ROOT, 'tests', 'js', page)
-        : /^\/static\/[\w-]+\.(js|css)$/.test(req.url) ? path.join(ROOT, req.url.slice(1)) : '';
+        : /^\/static\/[\w-]+\.(js|css)$/.test(req.url) ? path.join(ROOT, req.url.slice(1))
+        : /^\/tests\/[\w-]+\.js$/.test(req.url) ? path.join(ROOT, 'tests', 'js', req.url.slice(7)) : '';   // what test pages share
       if (!file || !existsSync(file)) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html' });
       res.end(readFileSync(file));
@@ -54,7 +77,7 @@ export function runPage(chrome, page) {
       const url = `http://127.0.0.1:${server.address().port}/`;
       if (process.env.KEEP) console.log(`open ${url} – Ctrl-C ends`);
       browser = spawn(chrome, [...(process.env.KEEP ? [] : ['--headless=new']), '--no-sandbox', '--disable-gpu-sandbox', '--no-first-run', '--no-default-browser-check',
-        '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--force-device-scale-factor=1', '--force-color-profile=srgb',
+        ...(gl ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] : ['--disable-gpu']), '--force-device-scale-factor=1', '--force-color-profile=srgb',
         '--window-size=900,700', `--user-data-dir=${profile}`, url], { stdio: 'ignore' });
       browser.once('error', e => { finish(); reject(e); });
     });
