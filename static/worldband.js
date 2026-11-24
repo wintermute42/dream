@@ -1,12 +1,14 @@
 /* Dream – the band of worlds: how the style worlds of Dreamy Eyes and the dream windows are chosen in the panel
    (index.html) and in Dream Control (remote.html). One small picture per world Dream knows (`settings.WORLDS`, told
    over /ctl), drawn once by the world itself – its eye; a tap fades over to that world. Under it where the crossfade
-   stands (a display: the MIDI knob and the drift move it), a switch for the drift – Dream wandering from world to
+   stands, from the world on the left to the one on the right: a slider – a finger, the mouse or the arrow keys set
+   the mix and hold it there (the drift waits three minutes after a hand, as after a tap; switched off, the mix stays
+   for good), the MIDI knob and the drift move it too. Then a switch for the drift – Dream wandering from world to
    world by itself – with its pace, and one line that says what is going on.
 
    The page hands over what Dream says (`set` the settings, `drift` the drift's clock, `worlds` the list) and gets the
-   settings a hand asks for (`send`). What is shown follows from that alone: `view`, `tap`, `auto` and `status` are
-   pure (tests/js/worldband.test.mjs). Looks: worldband.css – only transform and opacity move. A global `WorldBand`. */
+   settings a hand asks for (`send`). What is shown follows from that alone: `view`, `tap`, `mixTo`, `mixKey`, `auto`
+   and `status` are pure (tests/js/worldband.test.mjs). Looks: worldband.css – only transform and opacity move. A global `WorldBand`. */
 (function (root) {
   'use strict';
   const T = (text, vars) => (root.I18N ? root.I18N.t(text, vars) : vars ? text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : text);
@@ -51,6 +53,17 @@
     const i = worlds.indexOf(w);
     return i < 0 ? null : { world: w, world_to: worlds[(i + 1) % worlds.length], world_mix: 0 };
   }
+  // A hand on the crossfade: the setting that puts the mix there (0–1, in whole per cent) – nothing while there is
+  // only one world to show
+  function mixTo(st, k) {
+    const v = view(st);
+    return v.a === v.b ? null : { world_mix: Math.round(clamp01(k) * 100) / 100 };
+  }
+  // … and where a key takes the mix from where it stands: the arrows by 2 %, Page Up and Down by 10 %, Home and End
+  // to either world (null: not a key of the slider)
+  const MIX_KEYS = { ArrowRight: 0.02, ArrowUp: 0.02, ArrowLeft: -0.02, ArrowDown: -0.02, PageUp: 0.1, PageDown: -0.1 };
+  const mixKey = (mix, key) => (key === 'Home' ? 0 : key === 'End' ? 1 : has(MIX_KEYS, key) ? clamp01(clamp01(mix) + MIX_KEYS[key]) : null);
+  const MIX_EVERY = 66;                                // ms between two words to Dream while a hand drags: about 15 a second
   // The switch and the pace: the setting "world_auto" to ask for. `last`: the pace it had when it was last on.
   const auto = (on, last) => (on ? (last > 0 ? last : PACE) : 0);
   // The line that says what is going on. drift: Dream's word on the drift – { wait, next, idle }: seconds it still
@@ -60,7 +73,7 @@
     const v = view(st), d = drift || {}, ago = Math.max(0, +since || 0);
     if (!(st.world_auto > 0)) return T('{a} · wandering off', { a: name(v.cur) });
     const wait = (+d.wait || 0) - ago;
-    if (wait > 0) return T('{a} chosen · wandering paused for another {t}', { a: name(v.cur), t: clock(wait) });
+    if (wait > 0) return v.mixing ? T('Mix by hand · wandering paused for another {t}', { t: clock(wait) }) : T('{a} chosen · wandering paused for another {t}', { a: name(v.cur), t: clock(wait) });
     if (v.mixing) return T('now: {a} → {b} · {n} %', { a: name(v.a), b: name(v.b), n: Math.round(v.mix * 100) });
     if (d.idle) return T('now: {a} · wandering rests while no Dreamy Eyes and no dream window are on', { a: name(v.cur) });
     if (d.next == null) return T('now: {a}', { a: name(v.cur) });
@@ -70,7 +83,7 @@
   function spoken(st, drift) {
     const v = view(st), d = drift || {};
     if (!(st.world_auto > 0)) return T('{a} · wandering off', { a: name(v.cur) });
-    if (d.wait > 0) return T('{a} chosen · wandering paused', { a: name(v.cur) });
+    if (d.wait > 0) return v.mixing ? T('Mix by hand · wandering paused') : T('{a} chosen · wandering paused', { a: name(v.cur) });
     if (v.mixing) return T('now: {a} → {b}', { a: name(v.a), b: name(v.b) });
     return T('now: {a}', { a: name(v.cur) });
   }
@@ -126,16 +139,28 @@
     const id = 'wb' + (++count), st = { world: 'classic', world_to: 'classic', world_mix: 0, world_auto: 0 };
     let worlds = [], drift = { wait: 0, next: null, idle: false }, heard = performance.now(), last = PACE, said = '';
     let watch = null;
-    const send = changes => { if (changes && o.send) o.send(changes); };
+    // Dream echoes a change to every page but the one that asked (hub.apply's exclude), so the band takes its own
+    // wish at once – otherwise a tap on a pace or the switch would not show until something else changed
+    const take = changes => {
+      for (const k of ['world', 'world_to', 'world_mix', 'world_auto']) if (k in changes) st[k] = k === 'world_mix' || k === 'world_auto' ? +changes[k] || 0 : String(changes[k]);
+      if (st.world_auto > 0) last = st.world_auto;
+    };
+    // (not the mix: a dragging hand shows its own value, and a late word of its own must not overwrite Dream's answer)
+    const send = changes => {
+      if (!changes) return;
+      if (o.send) o.send(changes);
+      const own = { ...changes }; delete own.world_mix;
+      if (Object.keys(own).length) { take(own); show(); }
+    };
     const make = (tag, cls, attrs = {}, text) => { const n = document.createElement(tag); if (cls) n.className = cls; for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text != null) n.textContent = text; return n; };
     el.classList.add('wb'); el.textContent = '';
     const head = make('div', 'wb-head');
     head.append(make('span', 'wb-title', { id: id + '-t' }, T('Style world')), make('span', 'wb-sub', {}, T('Dreamy Eyes & dream windows')));
     const strip = make('div', 'wb-strip', { role: 'radiogroup', 'aria-labelledby': id + '-t' });
-    const flow = make('div', 'wb-flow', { role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-label': T('Crossfade from the style world to the second one') });
-    const from = make('span', 'wb-from'), to = make('span', 'wb-to'), fill = make('i', 'wb-fill');
-    const labs = make('div', 'wb-labs', { 'aria-hidden': 'true' }), bar = make('div', 'wb-bar');
-    labs.append(from, make('span', 'wb-arrow', {}, '→'), to); bar.append(fill); flow.append(labs, bar);
+    const flow = make('div', 'wb-flow', { role: 'slider', tabindex: 0, 'aria-orientation': 'horizontal', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-label': T('Crossfade from the style world to the second one') });
+    const from = make('span', 'wb-from'), to = make('span', 'wb-to'), fill = make('i', 'wb-fill'), knob = make('i', 'wb-knob');
+    const labs = make('div', 'wb-labs', { 'aria-hidden': 'true' }), track = make('div', 'wb-track'), bar = make('div', 'wb-bar');
+    labs.append(from, make('span', 'wb-arrow', {}, '→'), to); bar.append(fill); track.append(bar, knob); flow.append(labs, track);
     const sw = make('button', 'wb-switch', { type: 'button', role: 'switch', 'aria-checked': 'false', 'aria-labelledby': id + '-s' });
     const autoRow = make('div', 'wb-auto');
     autoRow.append(sw, make('span', 'wb-autolabel', { id: id + '-s' }, T('Wander through the worlds by itself')));
@@ -159,6 +184,49 @@
     pace.addEventListener('click', ev => { const b = ev.target.closest('[role=radio]'); if (b && st.world_auto > 0) send({ world_auto: +b.dataset.v }); });
     sw.addEventListener('click', () => send({ world_auto: auto(!(st.world_auto > 0), last) }));
 
+    // A hand on the crossfade. While it drags (and a moment after, until Dream's last word is in) the band shows the
+    // hand's own mix, not the echo of an earlier one; Dream hears of it about 15 times a second, and of where it ends.
+    const hand = { id: null, x0: 0, moved: false, mix: null, until: 0, sent: null, sentAt: -1e9, timer: 0, settle: 0 };
+    const held = () => hand.mix != null && (hand.id != null || performance.now() < hand.until);
+    function say() {                                   // … in time: never two words closer than MIX_EVERY, and the last one always
+      clearTimeout(hand.timer); hand.timer = 0;
+      const now = performance.now(), wait = MIX_EVERY - (now - hand.sentAt);
+      if (hand.mix === hand.sent && now - hand.sentAt < 600) return;   // (said already)
+      if (wait > 0) { hand.timer = setTimeout(say, wait); return; }
+      hand.sentAt = now; hand.sent = hand.mix; send(mixTo(st, hand.mix));
+    }
+    function put(k) {                                  // the hand's mix: shown at once, said in time
+      const set = mixTo(st, k);
+      if (!set) return;
+      hand.mix = set.world_mix; hand.until = performance.now() + 600;
+      clearTimeout(hand.settle); hand.settle = setTimeout(show, 650);   // … then what Dream says shows again
+      say(); show();
+    }
+    const at = ev => { const r = bar.getBoundingClientRect(); return r.width > 0 ? (ev.clientX - r.left) / r.width : 0; };
+    flow.addEventListener('pointerdown', ev => {
+      if (hand.id != null || (ev.pointerType === 'mouse' && ev.button !== 0) || !mixTo(st, 0)) return;
+      hand.id = ev.pointerId; hand.x0 = ev.clientX; hand.moved = false;
+      try { flow.setPointerCapture(ev.pointerId); } catch (e) { /* a pointer that cannot be held: it works while over the band */ }
+    });
+    flow.addEventListener('pointermove', ev => {
+      if (ev.pointerId !== hand.id) return;
+      if (!hand.moved && Math.abs(ev.clientX - hand.x0) < 4) return;   // (a finger scrolling the page past it moves nothing)
+      hand.moved = true; flow.classList.add('wb-drag'); put(at(ev));
+    });
+    const lift = (ev, done) => {
+      if (ev.pointerId !== hand.id) return;
+      hand.id = null; flow.classList.remove('wb-drag');
+      if (done) put(at(ev));                           // (a tap on the bar: there; a drag the page took away stays where it was)
+    };
+    flow.addEventListener('pointerup', ev => lift(ev, true));
+    flow.addEventListener('pointercancel', ev => lift(ev, false));
+    flow.addEventListener('keydown', ev => {
+      if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      const k = mixKey(held() ? hand.mix : view(st).mix, ev.key);
+      if (k == null) return;
+      ev.preventDefault(); put(k);
+    });
+
     function chips() {
       strip.textContent = '';
       const canvases = {};
@@ -178,7 +246,7 @@
       watch.observe(strip);
     }
     function show() {
-      const v = view(st), on = st.world_auto > 0;
+      const v = view(held() ? { ...st, world_mix: hand.mix } : st), on = st.world_auto > 0, pc = Math.round(v.mix * 100);
       let focusable = false;
       for (const b of strip.children) {
         const cur = b.dataset.world === v.cur;
@@ -188,9 +256,10 @@
       if (!focusable && strip.firstElementChild) strip.firstElementChild.tabIndex = 0;
       from.textContent = name(v.a); to.textContent = name(v.b);
       labs.classList.toggle('wb-one', v.a === v.b);
-      fill.style.transform = `scaleX(${v.mix.toFixed(4)})`;
-      flow.setAttribute('aria-valuenow', Math.round(v.mix * 100));
-      flow.setAttribute('aria-valuetext', v.a === v.b ? name(v.a) : `${name(v.a)} → ${name(v.b)} · ${Math.round(v.mix * 100)} %`);
+      fill.style.transform = `scaleX(${v.mix.toFixed(4)})`; knob.style.transform = `translateX(${(v.mix * 100).toFixed(2)}%)`;
+      flow.setAttribute('aria-valuenow', pc);
+      flow.setAttribute('aria-valuetext', v.a === v.b ? name(v.a) : `${pc} % ${name(v.b)}`);
+      if (v.a === v.b) flow.setAttribute('aria-disabled', 'true'); else flow.removeAttribute('aria-disabled');
       sw.setAttribute('aria-checked', on ? 'true' : 'false');
       pace.classList.toggle('wb-off', !on);
       const chosen = [...pace.children].find(b => +b.dataset.v === st.world_auto);
@@ -199,15 +268,14 @@
       const say = spoken(st, drift);
       if (say !== said) { said = say; live.textContent = say; }
     }
-    function tick() { line.textContent = status(st, drift, (performance.now() - heard) / 1000); }
+    function tick() { line.textContent = status(held() ? { ...st, world_mix: hand.mix } : st, drift, (performance.now() - heard) / 1000); }
     const timer = setInterval(() => { if (el.isConnected && el.offsetParent !== null) tick(); }, 500);
 
     chips(); show();
     return {
       // Dream's settings, all or some of them
       set(changes) {
-        for (const k of ['world', 'world_to', 'world_mix', 'world_auto']) if (k in changes) st[k] = k === 'world_mix' || k === 'world_auto' ? +changes[k] || 0 : String(changes[k]);
-        if (st.world_auto > 0) last = st.world_auto;
+        take(changes);
         show();
       },
       // Dream's list of worlds
@@ -219,11 +287,11 @@
       // Dream's word on the drift
       drift(d) { drift = { wait: +d.wait || 0, next: d.next == null ? null : +d.next, idle: !!d.idle }; heard = performance.now(); show(); },
       get state() { return { ...st, worlds: [...worlds], drift: { ...drift }, status: line.textContent }; },
-      stop() { clearInterval(timer); if (watch) watch.disconnect(); },
+      stop() { clearInterval(timer); clearTimeout(hand.timer); clearTimeout(hand.settle); if (watch) watch.disconnect(); },
     };
   }
 
-  const api = { NAMES, SHORT, ABOUT, PACES: PACES.map(p => p[0]), PACE, name, short, about, clock, view, tap, auto, status, spoken, mount, pictures };
+  const api = { NAMES, SHORT, ABOUT, PACES: PACES.map(p => p[0]), PACE, name, short, about, clock, view, tap, mixTo, mixKey, MIX_EVERY, auto, status, spoken, mount, pictures };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.WorldBand = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -54,6 +54,21 @@ const watch = { parts: new Set(), life: [], pupils: [], letters: 0 };
         const t0 = Date.now();
         for (const name of S.NAMES) { const c = S.draw(name); r.scenes[name] = S.small(c); c.title = `${world}: ${name}`; document.body.append(c); }
         r.ms = Date.now() - t0;
+        // #226: Aurora draws lighter on a weak device (the tier a page hands its air: 2 all of it, 0 the least) – fewer
+        // rays in everything, a window's corona kept as one picture – and exactly as before once the device keeps up
+        if (world === 'aurora') {
+          const proto = CanvasRenderingContext2D.prototype, real = proto.drawImage, HEAVY = ['eyes', 'life', 'back', 'fire', 'trance', 'you'];
+          const count = fn => { let n = 0; proto.drawImage = function (...a) { n++; return real.apply(this, a); }; try { fn(); } finally { proto.drawImage = real; } return n; };
+          const tell = tier => DreamStyle.part('air').draw(canvas(64).getContext('2d'), S.T0, { W: 64, H: 64, hue: S.hue, tier, of: 'window' });
+          const third = (tier, t) => { const c = canvas(480, 270); DreamStyle.motif('third')(c.getContext('2d'), { kind: 'third', seed: 7 }, t, 0.016, { ...S.kit(480, 270), tier }); return c; };
+          r.weak = { calls: {}, motif: {} };
+          for (const tier of [2, 1, 0]) {
+            tell(tier); r.weak.calls[tier] = count(() => HEAVY.forEach(name => S.draw(name)));
+            third(tier, S.T0); let c; const calls = count(() => { c = third(tier, S.T0 + 16); });   // the frame after: a weak device lays the kept picture on
+            r.weak.motif[tier] = { calls, lit: lit(c) };
+          }
+          tell(2); r.weak.back = HEAVY.filter(name => S.small(S.draw(name)) !== r.scenes[name]);
+        }
         // the faces of light: a face in the middle of a screen, each of its ways, at each level of the rule – as the page
         // draws it (once without ink: where the dream shines through; once as its own glow)
         const W = 960, H = 900, geo = { cx: W / 2, ey: H * 0.42, A: 90, half: 110, q: 1 }, F = DreamBrush.faceFrame(geo.cx, geo.ey, geo.half);
