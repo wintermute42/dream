@@ -52,6 +52,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Dreaming light trails (input “Light trails”)](#dreaming-light-trails-input-light-trails)
   - [Keep outlines (ControlNet)](#keep-outlines-controlnet)
   - [Pose shapes the figure (ControlNet)](#pose-shapes-the-figure-controlnet)
+- [Flowtrack](#flowtrack)
 - [Dance](#dance)
   - [Dream Dance: the page, the clutch, the sets](#dream-dance-the-page-the-clutch-the-sets)
   - [Dance lab](#dance-lab)
@@ -1144,11 +1145,12 @@ interaction”):
   - **Mood:** the slider **Strength** (0 = nothing … 3×), the **Energy** bar of the room (it follows at once; a small
     mark holds the last peak for a moment; beside it a word: still, calm, moving, lively, wild – or “no source”) and
     “**also use the Mac's camera**”. Switching the mood on and off is one click on **Mood** or **Off**.
-  - **Flowtrack:** what Dream detects right now – the kind, values a second, whether someone is there.
+  - **Flowtrack:** what Dream detects right now – the kind, values a second, whether someone is there –,
+    **Automatic: ON/OFF** and what the automatic chose and why (see [Flowtrack](#flowtrack)).
   - **Dream Dance:** the recognised gesture with how sure Dream is and your tempo, the **clutch** and the
     **movement set** (see [Dream Dance](#dream-dance-the-page-the-clutch-the-sets)).
-- **Page ↗** opens the page of the mode in a window of its own, for a second screen, for the modes that have one
-  (Dream Dance).
+- **Page ↗** opens the page of the mode in a window of its own, for a second screen: Flowtrack and Dream Dance have
+  one, the mood needs none.
 - **Sources** – one chip per kind, see below.
 - Folded away below: **Camera and detection** (the kind of detection, the camera, light and marker colours, fingers,
   ⚡ Fast, calibrating, subtracting the projection, diagnostics, the pose) and **What a movement does** (what Dream
@@ -1359,6 +1361,66 @@ strictly the posture is kept (0.8–1.2 good).
   dream; with a gentle one the picture stays as it is. For a clear figure: transformation 0.6+ and pose strength
   0.8–1.2.
 
+## Flowtrack
+
+**Flowtrack** is the movement mode for the performance of **one person** – flow, fire, poi, dance: the effects sit at
+the performer (the centre of the effects, painting, touching, impulses, light in the dark), and an **automatic** sets
+everything for following exactly that one person.
+
+**The automatic** (on by default; **Automatic: ON/OFF** in the Movement card and on the page) looks at a small sample
+of the camera picture twice a second – kept nowhere – and makes four choices. Each is shown with its reason, and each
+can be taken over by hand:
+
+| Choice | What the automatic does | By hand |
+|---|---|---|
+| **Detection** | two LED markers in two colours in the picture → **LED markers**; a dark room with bright light → **Fire/LED** (it says whether it takes it for fire or for LEDs); a room bright enough → **Hands (AI)**. A new proposal must hold three seconds before the kind changes – a torch passing by or a lamp going out for a moment switches nothing. | choose the kind on the page or under “Camera and detection” |
+| **Exposure** | short and fixed for lights (the room turns black, the lights stay sharp and keep their colour), normal for the hand AI; after 20 seconds without any light it looks at the room again with a normal exposure. A kind chosen by hand gets the exposure it needs. | short / normal on the page, or “short exposure” in the card |
+| **Person** | only what belongs to the performer counts: the automatic takes whoever is nearest the middle, follows them – also to the edge –, and **ignores what is at the edge or far away** (spectators, a phone held up, a lamp). When the performer is lost for a moment nobody else steps in; someone alone at the edge counts after three seconds. | “everyone counts” on the page |
+| **Calibration** | with every calibration Dream keeps a signature of what the camera saw around its own picture (a grid of brightness, 144 digits – no picture). In quiet moments the automatic compares: when the view no longer matches three times in a row, it says **calibrate again**. It never calibrates by itself, and in a room too dark or too plain to tell it says so instead of guessing. | **📐 Calibrate** on the page or in the card |
+
+A choice made by hand is marked “by hand” and stays yours until **↺ Auto** gives it back; switching the automatic off
+makes every choice yours. With the hand AI the model follows one skeleton – whom it picks is the model's; the automatic
+then leaves a person at the edge out, but it cannot make the model look at someone else.
+
+**The page.** In the mode Flowtrack, **Page ↗** in the Movement card (or key **L**) opens the page of Flowtrack in a
+window of its own – this Mac only, for a second screen, and an extra view like the page of Dream Dance (it reads the
+stage that opened it; no control line and no camera of its own – and like it, it asks you to reload a stage window
+that was loaded before an update of Dream). On it:
+- **Automatic** – the switch and the four choices with their reasons.
+- **Effect** – one row per target of the flowtrack table with its switch, its strength and a light while it acts:
+  paint, touch, impulses, light in the dark, movement shapes the effects, content by energy, movement pushes the AI
+  sliders – and the three rows of a wristband (below).
+- **Movement patterns** – the camera picture with the tracks of the hands or props (fading trails, multiple exposure),
+  the **dashed frame** where Dream's picture lies in the camera picture (the calibration; the page also says how much
+  of the projection is taken out while “Subtract the projection” is on) and the **green circle** around the one
+  person; the output beside it; and the curves of energy, tempo, opening (the distance of the props or hands),
+  turning, height and stillness.
+- **Sessions** – **● Record** keeps a session in the dance lab's format (numbers only, never a camera picture; see
+  [Dance lab](#dance-lab)) to play back, loop and export – the ground for a performer's profile later.
+
+In the panel: **Automatic: ON/OFF** and the line below it that says what was detected and why.
+
+**The rules** of the Movement section (“Fire on”, “Fire off”, “Fast” → scene changes) apply in this mode as before.
+
+**A wristband as a further source.** A wristband or a phone on the arm (see
+[Sensor input](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)) adds what the arm itself does –
+without any gesture triggers, and together with the fire or LED detection of the camera:
+- its **energy** quickens the picture's own motion,
+- its **rotation** turns the effects, either way,
+- the **pull on a swung arm** (centrifugal force; it needs a sender that reports acceleration) turns the colours.
+
+These are three rows of the flowtrack table (“Arm rotation (sensor) → Turning of the effects” …); they rest while no
+sensor sends. A flowtrack table you changed before this version keeps its rows – “Built-in table” brings the new ones.
+
+**Safety with fire.** Fasten a wristband or phone so that it cannot slip or fly off when the arm swings – a strap
+that closes firmly, no loose ends, nothing that can catch in a chain or a staff. Nothing that melts or burns belongs
+near the flame: wear it on the upper arm or under a sleeve of natural fibre rather than at the wrist next to a wick.
+Keep fuel well away from everything electrical – the Mac, the projector, cables, chargers – and from where the
+audience stands; a phone that got fuel on it is cleaned and aired before it is used again. Dream only watches: it
+does not replace a spotter, a fire blanket or the rules of the venue.
+
+<sub>[↑ Contents](#contents)</sub>
+
 ## Dance
 
 **Dance steers the effects** – at once, at the full frame rate, without waiting for the AI. With movement detection on
@@ -1440,7 +1502,8 @@ Nothing of the camera is stored or sent anywhere for this: the features are numb
 **The page.** In the mode Dream Dance, **Page ↗** in the Movement card (or key **L** on the stage) opens the page of
 Dream Dance in a window of its own – put it on a second screen. It is this Mac's only (no phone or tablet reaches
 it), and it is an extra view: everything that steers the show is in the panel too. The page reads the stage in the
-window that opened it; it has no connection and no camera of its own, so open it from the panel, not by its address.
+window that opened it; it has no control line and no camera of its own (only the lab's sessions are read from and
+written to Dream directly), so open it from the panel, not by its address.
 If the stage is reloaded, the page finds it again by itself. If the browser blocks the window, allow pop-ups for
 Dream. On the page: the clutch, the detection, the movement sets, the beat, and below them the dance lab.
 
@@ -1889,9 +1952,14 @@ swaying (none), the movement clock against known tempos, markers alone, one hand
 camera, LED markers in painted pictures (lamps and fire are none) and the finger values on painted hands of every
 size and turn. `node --test tests/js/dancemap.test.mjs` tests the mapping table (`static/dancemap.js`: curve, ranges,
 smoothing, letting go when a source is not known) and what the table's display makes of a hand on a row.
+`node --test tests/js/flowauto.test.mjs` (#252) tests Flowtrack's automatic (`static/flowauto.js`) on painted camera
+pictures: fire, LEDs and markers in a dark room and a bright one, each kind with its reason; a proposal that must hold
+before the kind changes; the exposure (also that a short exposure does not make the automatic take a bright room for
+a dark one); the one person followed to the edge while spectators there are ignored; and the calibration – the same
+view in other light is the same view, a turned camera is not, a dark room claims nothing.
 `node --test tests/js/movepage.test.mjs` (#251) tests what the pages of the modes share (`static/movepage.js`): the
 page finds the stage that opened it and notices when it is reloaded, who gives the beat when the dancer's clock and
-the music's are compared, and that the page of Dream Dance has no connection and no camera of its own;
+the music's are compared, and that the page of Dream Dance opens no socket and no camera of its own;
 `tests/js/movement.test.mjs` also plays the clutch (out and in within a third of a second, without a step) and the
 dance on top of the base. `tests/test_dance.py` checks the movement sets (built in, own, kept in the file, who may
 change them).

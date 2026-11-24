@@ -106,7 +106,7 @@
 
     box.classList.add('dl'); box.setAttribute('role', 'region'); box.setAttribute('aria-label', T('Dance lab')); box.hidden = true; box.textContent = '';
     // ---------- the bar: what the lab is doing, record, feedback ----------
-    const bar = el('header', 'dl-bar'), title = el('h2', '', T('🧪 Dance lab')), modeTxt = el('span', 'dl-mode'), tools = el('div', 'btns dl-tools');
+    const bar = el('header', 'dl-bar'), title = el('h2', '', opts.title || T('🧪 Dance lab')), modeTxt = el('span', 'dl-mode'), tools = el('div', 'btns dl-tools');
     modeTxt.setAttribute('role', 'status');
     const recBtn = btn(T('● Record'), T('Record a session: the features and the points of skeleton and hands – numbers only, no camera picture (key R)')); recBtn.setAttribute('aria-pressed', 'false');
     const goodBtn = btn(spoken('good'), T('That felt right: keep the last seconds (key G)')), badBtn = btn(spoken('bad'), T('That did not work: keep the last seconds (key B)'));
@@ -232,6 +232,7 @@
       const g = ctxOf(camCv); if (!g) return; const [c, w, h] = g, f = fresh ? frames[frames.length - 1] : null;
       c.fillStyle = '#000'; c.fillRect(0, 0, w, h);
       if (!player && camOn.checked && opts.video && opts.video.videoWidth) { c.globalAlpha = 0.6; c.drawImage(opts.video, 0, 0, w, h); c.globalAlpha = 1; }
+      if (!player && opts.overlay) opts.overlay(c, w, h);   // #252: what the page draws into the camera picture (the calibration, the one person)
       if (!f) { c.fillStyle = C.muted; c.font = '13px system-ui'; c.textAlign = 'center'; c.fillText(T('nothing detected – is “Movement” on?'), w / 2, h / 2); return; }
       if (skeletonWanted(frames) && !f.p.b) {            // this frame has no skeleton: plain to see, in the picture itself
         c.strokeStyle = C.warn; c.lineWidth = 4; c.strokeRect(2, 2, w - 4, h - 4);

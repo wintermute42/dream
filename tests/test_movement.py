@@ -323,6 +323,42 @@ def test_the_old_settings_are_no_settings_any_more():
     assert set(dance.OLD_SWITCHES) <= gone and {"paint", "warp", "content", "impulse", "light"} == set(dance.OLD_SWITCHES.values())
 
 
+# ---------- #252: flowtrack – the automatic's switch, the wristband as a source of its own features ----------
+def test_flowtracks_automatic_is_on_by_default_and_never_a_guests():
+    assert settings.DEFAULT_STATE["flow_auto"] is True and "flow_auto" not in settings.GUEST_KEYS
+
+
+def test_the_wristband_moves_the_picture_without_gestures():
+    """Energy, rotation and the pull on a swung arm act on the picture's tempo, the turning of the effects and the
+    colours – rows of the flowtrack preset that rest while no sensor sends, beside the targets of the hands."""
+    band = {r["id"]: r for r in dance.BAND_ROWS}
+    assert {(r["src"], r["dst"]) for r in band.values()} == {("energy", "fx.speed"), ("spin", "fx.spin"), ("force", "fx.hue")}
+    assert band["armspin"]["in"] == [-1.0, 1.0] and band["armspin"]["out"][0] < 0 < band["armspin"]["out"][1]   # it turns both ways
+    flow = dance.DEFAULT_TABLES["flowtrack"]
+    assert [r["id"] for r in flow] == [r["id"] for r in dance.TOUCH_ROWS + dance.BAND_ROWS]
+    assert not any(r["src"].startswith("g.") for r in flow), "no gesture triggers"
+    assert dance.clean_rows(flow) == flow
+    assert not any(r["id"] in band for r in dance.DEFAULT_TABLES["dance"])       # the dance has its own table
+
+
+def test_the_sensor_hands_on_the_pull_on_the_arm():
+    s = sensors.Sensors()
+    s.on_osc("/band/gyro", [1.0, 2.0, 3.0], "192.0.2.7", now=100.0)
+    assert s.motion(now=100.01) == {"g": [1.0, 2.0, 3.0], "age": 0.01}           # no acceleration reported: no pull claimed
+    for i in range(30):
+        s.on_osc("/band/linear_acceleration", [0.0, 12.0, 0.0], "192.0.2.7", now=100.0 + i * 0.01)
+        s.on_osc("/band/gyro", [1.0, 2.0, 3.0], "192.0.2.7", now=100.0 + i * 0.01)
+    m = s.motion(now=100.3)
+    assert m["a"] == pytest.approx(12.0, abs=0.1) and m["g"] == [1.0, 2.0, 3.0]
+    s.on_osc("/band/gyro", [1.0, 2.0, 3.0], "192.0.2.7", now=101.0)               # the acceleration stopped coming: no pull claimed
+    assert s.motion(now=101.01) == {"g": [1.0, 2.0, 3.0], "age": 0.01}
+    raw = sensors.Sensors()                                                       # a raw accelerometer: gravity is taken away
+    for i in range(30):
+        raw.on_osc("/x/accelerometer", [0.0, 9.81, 0.0], "192.0.2.8", now=200.0 + i * 0.01)
+        raw.on_osc("/x/gyro", [0.0, 0.0, 0.1], "192.0.2.8", now=200.0 + i * 0.01)
+    assert raw.motion(now=200.3)["a"] == pytest.approx(0.0, abs=0.05)
+
+
 def test_relieving_and_the_autopilot_never_change_what_the_movement_detects():
     """"Relieve" (the button, Dream Control, the autopilot when Dream is overloaded) takes back what costs most – never
     the movement's mode or detection: "Hands (AI)" turned into "Fire/LED" took a dance its hands."""

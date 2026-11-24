@@ -107,6 +107,18 @@ test('the page of Dream Dance reads the stage and never talks to Dream itself', 
   }
 });
 
+test('the page of Flowtrack: the automatic with its reasons, the effect per target – and nothing of its own', () => {
+  const html = read('static/flowtrack.html');
+  assert.ok(html.includes("MovePage.link('flowtrack'"));
+  assert.ok(!/new WebSocket|fetch\(|XMLHttpRequest|getUserMedia/.test(html), 'no connection and no camera of its own');
+  // every choice of the automatic: its value, its reason, the hand's own choice, and the way back to the automatic
+  for (const k of ['kind', 'short', 'person']) for (const part of ['-value', '-why', '-by', '-auto', '-tag']) assert.ok(html.includes(`id="${k}${part}"`), k + part);
+  for (const part of ['id="autobtn"', 'id="calib-why"', 'id="calib-go"', 'id="unproject"', 'id="effects"', 'id="dancelab"']) assert.ok(html.includes(part), part);
+  const stage = read('static/index.html');
+  assert.ok(stage.includes('window.DreamBridge.flowtrack') && stage.includes("window.open('/flowtrack'"));
+  assert.ok(stage.includes('id="flowautobtn"'), 'the automatic\'s switch is in the panel too');
+});
+
 // ---- the Detection card of the page: two choices of the stage (what is detected, which camera), shown by the page ----
 // a <select> as the browser has one: a value it has no option for selects nothing
 class Select {
@@ -201,22 +213,29 @@ test('why nothing runs, and what to do', () => {
   assert.equal(P.detectText(st({ camera: 'later' }), 'Some new state').text, 'Nothing runs: Some new state');
 });
 
-test('the page of Dream Dance names what it needs of the stage, and the stage has it', () => {
-  const html = read('static/dance.html'), stageHtml = read('static/index.html');
+// what a page uses of its bridge is on its list of needs, and the stage's bridge offers all of it
+function contract(page, from) {
+  const html = read(page), stageHtml = read('static/index.html');
   const needs = new Function('return ' + html.match(/const NEEDS = (\{[^;]+\});/)[1])();
-  const bridge = stageHtml.slice(stageHtml.indexOf('window.DreamBridge = { dance: {'), stageHtml.indexOf('setInterval(() => { if (labApi'));
+  // the stage's script from where the bridges begin: the parts the bridges share, and the bridges themselves
+  const bridge = stageHtml.slice(stageHtml.indexOf('const labOpts = {'), stageHtml.indexOf('setInterval(() => { if (labApi'));
   const script = html.slice(html.lastIndexOf('<script>'));
-  // every call and every value of the state the page uses is on the list …
   const calls = new Set([...script.matchAll(/\bbridge\.((?:lab\.)?\w+)\(/g)].map(m => m[1]));
   const state = new Set([...script.matchAll(/\bst\.(\w+)\b/g)].map(m => m[1]));
-  for (const c of calls) assert.ok(needs.calls.includes(c), 'needs.calls lacks ' + c);
-  for (const k of state) assert.ok(needs.state.includes(k), 'needs.state lacks ' + k);
+  for (const c of calls) assert.ok(needs.calls.includes(c), page + ': needs.calls lacks ' + c);
+  for (const k of state) assert.ok(needs.state.includes(k), page + ': needs.state lacks ' + k);
+  for (const c of needs.calls) assert.match(bridge, new RegExp('\\b' + c.split('.').pop() + '(:|\\(| = |,)'), page + ': ' + c);
+  const told = bridge.slice(bridge.indexOf(from)); assert.ok(bridge.includes(from), page);
+  for (const k of needs.state) assert.match(told.slice(told.indexOf('state: () =>')), new RegExp('\\b' + k + '(:|,)'), page + ': state.' + k);
+  assert.ok(html.includes('needs: NEEDS') && html.includes('id="oldstage"') && html.includes('MovePage.reloadStage()'), page);
+  return { html, script, calls, state };
+}
+
+test('the pages name what they need of the stage, and the stage has it', () => {
+  const { html, script, calls, state } = contract('static/dance.html', 'window.DreamBridge = { dance: {');
   assert.ok(calls.has('setKind') && calls.has('setCam') && state.has('cams') && state.has('kind'));
-  // … and the stage's bridge offers all of it
-  for (const c of needs.calls) assert.match(bridge, new RegExp('\\b' + c.split('.').pop() + '(:|\\(| = |,)'), c);
-  const told = bridge.slice(bridge.indexOf('state: () => ({'));
-  for (const k of needs.state) assert.match(told, new RegExp('\\b' + k + '(:|,)'), k);
-  assert.ok(html.includes('needs: NEEDS') && html.includes('id="oldstage"') && html.includes('MovePage.reloadStage()'));
+  const flow = contract('static/flowtrack.html', 'window.DreamBridge.flowtrack = {');
+  assert.ok(flow.calls.has('setKind') && flow.state.has('kind') && flow.state.has('calib'));
   // both selects are labelled, the camera's is never empty, and only the helpers write a choice of the stage into them
   assert.match(html, /<label for="dance_kind">/); assert.match(html, /<label for="flow_device">Camera<\/label>/);
   assert.match(html, /<select id="flow_device"[^>]*>\s*<option value="">/);

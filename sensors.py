@@ -110,6 +110,7 @@ class Sensors:
         self.gyro_at = 0.0
         self.buttons: dict = {}             # address → pressed (a wristband's buttons: the clutch)
         self.by: dict = {}                  # #249: sender → [when, energy 0…1 of its swing] (the register of sources)
+        self.force, self.force_at = 0.0, -1e9   # #252: the arm's acceleration without gravity (m/s²), smoothed
 
     # ---------- incoming ----------
     def on_osc(self, address: str, args, source: str = "", now: float | None = None):
@@ -163,6 +164,8 @@ class Sensors:
     def _impulse(self, mag: float, now: float, gravity: bool):
         if gravity:                          # raw accelerometer: take away the ~9.81 of gravity
             mag = abs(mag - 9.81)
+        self.force += (mag - self.force) * 0.3   # #252: the pull on a swung arm (centrifugal force), for flowtrack
+        self.force_at = now
         self.acc_level += (mag - self.acc_level) * 0.02    # running level of the arm's movement
         # #240: however sensitive, a strike stands well above the device's own noise at rest
         threshold = max(max(6.0, self.acc_level * 3.0) / max(self.sensitivity, 0.1), self.acc_level + STRIKE_FLOOR)
@@ -250,10 +253,13 @@ class Sensors:
 
     def motion(self, now: float | None = None) -> dict | None:
         """#235: what the dance detection takes from the sensor – the gyroscope's three axes and how old they are;
-        None once nothing came for a third of a second (the detection then goes on without the sensor)."""
+        None once nothing came for a third of a second (the detection then goes on without the sensor). #252: with
+        it the arm's acceleration without gravity ("a", m/s²) while a sender reports one."""
         now = time.time() if now is None else now
         age = now - self.gyro_at
-        return {"g": list(self.gyro), "age": round(age, 3)} if self.gyro and 0 <= age < 0.33 else None
+        if not self.gyro or not 0 <= age < 0.33:
+            return None
+        return {"g": list(self.gyro), "age": round(age, 3), **({"a": round(self.force, 2)} if 0 <= now - self.force_at < 0.33 else {})}
 
     def live(self) -> dict:
         busiest = sorted((k for k in self.ch if k != "swing"), key=lambda k: -(self.ch[k].hi - self.ch[k].lo))[:6]

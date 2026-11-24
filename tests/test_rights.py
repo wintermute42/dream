@@ -46,6 +46,7 @@ HTTP = {
     ("POST", "/playlists/generate"): ("/playlists/generate", LC),
     ("GET", "/remote"): ("/remote", LCG),
     ("GET", "/dance"): ("/dance", {"local"}),            # #251: the page of Dream Dance is this Mac's
+    ("GET", "/flowtrack"): ("/flowtrack", {"local"}),    # #252: … and so is the page of Flowtrack
     ("GET", "/eyes"): ("/eyes", {"local", "control", "eyes"}),
     ("GET", "/window"): ("/window", {"local", "control", "window"}),
     ("GET", "/control"): ("/control", LC),

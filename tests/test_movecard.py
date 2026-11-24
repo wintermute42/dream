@@ -30,7 +30,7 @@ def test_one_card_holds_all_of_movement():
     # what the three cards held is all in the one: the mode, the mood, the camera's settings, the table, the hands
     assert {"move_mode", "motion_sens", "move_cam", "movepage", "flow_kind", "flow_device", "flow_color", "flow_short",
             "marker_l", "marker_r", "flow_markers", "flow_fingers", "fastbtn", "calibgo", "calibreset", "flow_unproject",
-            "diagon", "pose", "pose_scale", "touch_amt", "touch_mirror", "clutchbtn", "dance_set"} <= ids(card)
+            "diagon", "pose", "pose_scale", "touch_amt", "touch_mirror", "clutchbtn", "dance_set", "flowautobtn", "flow_auto"} <= ids(card)
     # the dance's own detection sits in the dance's part of the card, in sight – not folded away with the camera's
     dance_part = card[card.index('data-for="dance"'):card.index('class="movesrc"')]
     assert 'id="dance_kind"' in dance_part and 'value="hand"' in dance_part and 'value="on"' not in dance_part
@@ -78,3 +78,20 @@ def test_the_strength_of_the_mood_is_a_target_a_controller_can_move():
     assert settings.SETTINGS["motion_sens"].target and settings.SETTINGS["motion_sens"].needs == "move_mode"
     for page in ("index.html", "remote.html"):
         assert '<option value="motion_sens">Mood: strength</option>' in read(page), page
+
+
+def test_the_pages_of_the_modes_are_this_macs_and_extra_views():
+    """#251, #252: Dream Dance and Flowtrack have a page each – local only, opened from the panel, reading the stage
+    and never Dream itself; what steers the show is in the panel too."""
+    import rights
+    assert ("GET", r"/dance") in rights.LOCAL_ONLY and ("GET", r"/flowtrack") in rights.LOCAL_ONLY
+    assert rights.needs("GET", "/dance") == rights.needs("GET", "/flowtrack") == rights.roles_with("stage") == {"local"}
+    panel, control = read("index.html"), read("remote.html")
+    for page, name in (("dance.html", "dance"), ("flowtrack.html", "flowtrack")):
+        html = read(page)
+        assert f"MovePage.link('{name}'" in html and f"window.open('/{name}'" in panel
+        assert not re.search(r"new WebSocket|fetch\(|XMLHttpRequest|getUserMedia", html), page
+        assert f"/{name}" not in control.replace("/static/", "")              # Dream Control has no pages
+    card = section(panel, "motion", "details")
+    for essential in ("clutchbtn", "dance_set", "flowautobtn", "flowwhy"):      # the essentials are in the panel
+        assert f'id="{essential}"' in card, essential
