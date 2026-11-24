@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="/static/worldband.css">
 <link rel="stylesheet" href="/static/signs.css">
 <link rel="stylesheet" href="/static/compute.css">
+<link rel="stylesheet" href="/static/movecard.css">
 <style>
   :root { --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --card: #17141f; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 18px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -275,7 +276,7 @@
     <button id="devmotion" aria-pressed="false" style="width:100%;margin-top:8px;font-weight:700">🧭 Motion: OFF</button>
     <div id="devlearnrow" hidden>
       <label for="devtarget">Motion steers</label>
-      <div class="row"><select id="devtarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select><button id="devlearn" style="flex:0 0 auto">📡 Learn</button></div>
+      <div class="row"><select id="devtarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select><button id="devlearn" style="flex:0 0 auto">📡 Learn</button></div>
       <label for="devimpulse">A strike (swing the device) makes</label>
       <select id="devimpulse"><option value="">nothing</option><option value="flash">Flash</option><option value="jolt">Spin jolt</option><option value="reseed">new motif (seed)</option><option value="next">next scene</option><option value="blackout">Blackout on/off</option></select>
     </div>
@@ -284,10 +285,15 @@
   </section>
 
   <section data-sec="dancelab" data-only="control">
-    <h2>🧪 Dance lab</h2>
+    <h2>Dream Dance</h2>
+    <!-- #251: the clutch and the movement set, as in the panel's Movement card -->
+    <button id="clutchbtn" class="big clutchbtn" aria-pressed="false" style="width:100%" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do.">Clutch: released</button>
+    <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
+    <input type="checkbox" id="clutch" hidden aria-hidden="true">
+    <select id="dance_set" aria-label="Movement set" style="margin-top:8px"><option value="">Set: your table</option></select>
     <div class="hint">Say how the dance control feels while you dance: Dream keeps the last seconds as numbers (what it detected, what the movement steered) – never a camera picture. The lab itself is on the Mac.</div>
     <div class="row" style="margin-top:8px"><button id="dl-good" class="big">👍 Good</button><button id="dl-bad" class="big">👎 Bad</button></div>
-    <div class="row" style="margin-top:8px"><button id="dl-rec" aria-pressed="false">● Record</button><button id="dl-open" aria-pressed="false">Lab on the stage</button></div>
+    <div class="row" style="margin-top:8px"><button id="dl-rec" aria-pressed="false">● Record</button><button id="dl-open" aria-pressed="false">Page on the Mac</button></div>
     <div id="dl-state" class="hint" role="status" aria-live="polite"></div>
   </section>
 
@@ -314,7 +320,7 @@
     <h2>MIDI · master</h2>
     <label>Master brightness (0 = black)</label><input type="range" id="master" min="0" max="1" step="0.01">
     <div id="midistate" class="hint">no MIDI device at the Mac</div>
-    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
+    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
   </section>
 
   <section data-key data-sec="motion" class="haschar">
@@ -327,16 +333,19 @@
     <label>Drift – the dream stays alive <span class="val" id="v-drift"></span></label><input type="range" id="drift" min="0" max="1" step="0.05">
     <label>Smoothing – against flicker <span class="val" id="v-smooth"></span></label><input type="range" id="smooth" min="0" max="1" step="0.05">
     <label class="check"><input type="checkbox" id="drift_prompt"> Vary the prompt gently</label>
-    <div class="row" style="margin-top:8px"><select id="move_mode" data-only="control" aria-label="Movement mode" style="font-weight:700"><option value="off">Movement: off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
-      <select id="flow_kind" data-only="control" aria-label="Kind of movement detection"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option><option value="marker">LED markers (2 colours)</option></select></div>
-    <label class="check" data-only="control"><input type="checkbox" id="fast"> ⚡ Fast (dance/flow): values follow at once, smoothing off</label>
-    <label for="flow_device" data-only="control">Camera for movement</label>
-    <select id="flow_device" data-only="control"><option value="">as picture</option></select>
-    <label data-only="control">Directness (hands paint and swirl) <span class="val" id="v-touch_amt"></span></label><input type="range" id="touch_amt" data-only="control" min="0" max="1" step="0.05">
-    <label class="check" data-only="control"><input type="checkbox" id="touch_mirror"> Mirror</label>
-    <label data-only="control">Movement reaction <span class="val" id="v-motion_sens"></span></label><input type="range" id="motion_sens" data-only="control" min="0" max="3" step="0.05">
-    <label class="check" data-only="control"><input type="checkbox" id="pose"> Pose shapes the figure (skeleton)</label>
-    <label data-only="control">Pose strength <span class="val" id="v-pose_scale"></span></label><input type="range" id="pose_scale" data-only="control" min="0.2" max="1.5" step="0.05">
+    <!-- #250: the movement mode and the mood's strength, as in the panel's Movement card (static/movecard.js) -->
+    <div class="movecard" id="movecard" data-only="control">
+      <div class="movehead">
+        <div class="seg movemodes" role="group" aria-label="Movement mode">
+          <button type="button" data-mode="off" class="on" aria-pressed="true" title="Movement does nothing: no camera, no work">Off</button>
+          <button type="button" data-mode="mood" aria-pressed="false" title="Catch the mood: the energy in the room moves the dream – no gestures, no camera on the Mac needed">Mood</button>
+          <button type="button" data-mode="flowtrack" aria-pressed="false" title="One performer with fire, LEDs or hands: the effects sit at the person">Flowtrack</button>
+          <button type="button" data-mode="dance" aria-pressed="false" title="Your dance steers the dream: features and gestures">Dream Dance</button>
+        </div>
+      </div>
+      <select id="move_mode" hidden aria-hidden="true"><option value="off">Off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
+      <label for="motion_sens" title="How strongly the energy in the room moves the dream (0 = not at all)">Mood – strength <span class="val" id="v-motion_sens"></span></label><input type="range" id="motion_sens" min="0" max="3" step="0.05">
+    </div>
   </section>
 
   <section data-sec="music">
@@ -384,6 +393,7 @@
 <script src="/static/worldband.js"></script>
 <script src="/static/signs.js"></script>
 <script src="/static/compute.js"></script>
+<script src="/static/movecard.js"></script>
 <script>
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
@@ -424,8 +434,8 @@
   byId('uinight').onclick = () => setNight(!document.body.classList.contains('night'));
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
-  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master']);
-  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion_sens', 'move_mode', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_mirror', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast'];
+  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'drift', 'master']);
+  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion_sens', 'move_mode', 'drift', 'smooth', 'drift_prompt', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'clutch', 'dance_set'];
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount(document.getElementById('worldband'), { send: set => { Object.assign(state, set); send({ set }); } });   // (one word for all of them)
   let ws = null, state = {}, applying = false;
@@ -447,6 +457,13 @@
   const send = m => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
   const measureMe = DreamMeasure('remote', send);     // #180: its frames during a measurement run
   const setKey = (k, v) => { state[k] = v; send({ set: { [k]: v } }); };
+  // #250: the mode's buttons – the mode and the mood's strength are all of the movement card that is here; the pages
+  // and the rest are the Mac's
+  // #251: the dance's clutch (the button on the phone) and the movement sets
+  let danceSets = [];
+  const clutchSync = () => MoveCard.clutchShow(document.getElementById('clutchbtn'), document.getElementById('clutch').checked, document.getElementById('clutchnote'));
+  document.getElementById('clutchbtn').onclick = () => { const c = document.getElementById('clutch'); c.checked = !c.checked; setKey('clutch', c.checked); clutchSync(); };
+  const moveCard = MoveCard.mount(document.getElementById('movecard'), { send: set => Object.entries(set).forEach(([k, v]) => setKey(k, v)) });
 
   // #216: the sliders' drawing (sliders.js): what a setting "needs" to act is read from the shared state here
   // #217: every drawn slider tells its moving sign and the shape of the picture's character (signs.js)
@@ -457,8 +474,8 @@
     const f = (id, t) => { if ($('v-' + id)) $('v-' + id).textContent = t; };
     f('strength', +$('strength').value <= 0.001 ? T('off (picture direct)') : (+$('strength').value).toFixed(2)); f('mix', Math.round($('mix').value * 100) + ' %');
     f('zoom', (+$('zoom').value).toFixed(3)); f('rot', (+$('rot').value).toFixed(1) + '°');
-    f('hue', (+$('hue').value).toFixed(1) + '°'); f('touch_amt', +$('touch_amt').value ? Math.round($('touch_amt').value * 100) + ' %' : T('off')); f('drift', +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off')); f('smooth', +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off')); f('sens', (+$('sens').value).toFixed(2) + '×');
-    f('motion_sens', (+$('motion_sens').value).toFixed(2) + '×'); f('pose_scale', (+$('pose_scale').value).toFixed(2));
+    f('hue', (+$('hue').value).toFixed(1) + '°'); f('drift', +$('drift').value ? Math.round($('drift').value * 100) + ' %' : T('off')); f('smooth', +$('smooth').value ? Math.round($('smooth').value * 100) + ' %' : T('off')); f('sens', (+$('sens').value).toFixed(2) + '×');
+    f('motion_sens', (+$('motion_sens').value).toFixed(2) + '×');
     const lv = +$('auto_level').value; f('auto_level', lv < 0.34 ? T('calm') : lv < 0.67 ? T('medium') : T('wild'));
     const on = $('auto').checked, b = $('autobtn');
     b.setAttribute('aria-pressed', String(on)); b.textContent = on ? T('🤖 Autopilot: ON') : T('🤖 Autopilot: OFF'); b.classList.toggle('on', on);
@@ -470,19 +487,17 @@
   let cams = [];
   function fillCams(list) {
     cams = list;
-    for (const [id, first] of [['cam_device', T('Default camera')], ['flow_device', T('as picture')]]) {
-      const sel = $(id), keep = state[id] || '';
-      sel.textContent = '';
-      const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.append(o); };
-      add('', first); list.forEach(n => add(n, n));
-      if (id === 'cam_device') add('device', T('📱 Live camera of a phone'));   // #146
-      if (keep && keep !== 'device' && !list.includes(keep)) add(keep, keep + T(' (not connected)'));
-      sel.value = keep;
-    }
+    const sel = $('cam_device'), keep = state.cam_device || '';
+    sel.textContent = '';
+    const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.append(o); };
+    add('', T('Default camera')); list.forEach(n => add(n, n));
+    add('device', T('📱 Live camera of a phone'));   // #146
+    if (keep && keep !== 'device' && !list.includes(keep)) add(keep, keep + T(' (not connected)'));
+    sel.value = keep;
   }
   function apply(st) {
     applying = true;
-    if (('cam_device' in st && st.cam_device && !cams.includes(st.cam_device)) || ('flow_device' in st && st.flow_device && !cams.includes(st.flow_device))) {
+    if ('cam_device' in st && st.cam_device && !cams.includes(st.cam_device)) {
       Object.assign(state, st); fillCams(cams);
     }
     Object.assign(state, st);
@@ -495,6 +510,9 @@
     }
     if ('mode' in st) { seg('modes', 'm', st.mode); $('flowmode').classList.toggle('on', st.mode === 'flow'); }
     if ('music' in st) seg('musics', 'v', st.music);
+    if ('move_mode' in st) moveCard.set({ move_mode: st.move_mode });   // #250
+    if ('clutch' in st) clutchSync();                  // #251
+    if ('dance_set' in st) { $('dance_set').dataset.want = st.dance_set; MoveCard.fillSets($('dance_set'), danceSets, st.dance_set); }
     if ('backend' in st) seg('backends', 'b', st.backend);
     if ('backend' in st || 'cloud_bridge' in st) showComputing();
     if ('running' in st) $('run').textContent = st.running ? '⏸ Pause' : T('▶ Go on');
@@ -844,6 +862,7 @@
       if (m.feeds) feedsOther(m.feeds, m.feeds_mine || []);
       if (m.sensors) devSensors(m.sensors);
       if (m.dance) danceLab(m.dance);                  // #243
+      if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; MoveCard.fillSets($('dance_set'), danceSets, $('dance_set').dataset.want || $('dance_set').value); }   // #251
       if (m.feed_taken) devStop(m.feed_taken, false, T('Another device took over.'));
       if (m.cams) fillCams(m.cams);
       if (m.schema) sliders.schema(m.schema);          // #216

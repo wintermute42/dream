@@ -29,6 +29,7 @@ state["music_pattern"] = playlists.OLD_PATTERNS.get(state["music_pattern"], stat
 state["style"] = playlists.OLD_STYLES.get(state["style"], state["style"])
 # the movement mode is remembered like every other setting (#90, #249)
 state["backend"] = "local"        # #102: every start computes on this Mac; the cloud (it costs) only when chosen
+state["clutch"] = False           # #251: every start has the dance's clutch released – it is engaged only on purpose
 if state.get("cam_device") == "device":          # #146: a device's live camera never outlives the run it was sent in
     state["cam_device"] = ""
     if state.get("mode") == "cam":

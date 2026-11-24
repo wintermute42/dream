@@ -210,7 +210,7 @@
     };
   }
 
-  const api = { FORMAT, VERSION, RATE, MAX_SECONDS, BODY, BONES, HAND_BONES, TIPS, WRIST, pack, unpack, input, body, hand21, wrist, session, good, ring, moment,
+  const api = { FORMAT, VERSION, RATE, MAX_SECONDS, BODY, BONES, HAND_BONES, TIPS, WRIST, SRC, pack, unpack, input, body, hand21, wrist, session, good, ring, moment,
     recorder, player, gestures, review, poses, testFile, check, verdict, clutch, WORDS };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamDanceRec = api;
