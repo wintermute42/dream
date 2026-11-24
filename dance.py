@@ -105,7 +105,15 @@ SET_ROWS = {
 MAX_SETS = 24
 SET_NAME = re.compile(r"[\w][\w .+-]{0,23}")
 
-DEFAULT_TABLES = {"mood": MOOD_ROWS, "flowtrack": TOUCH_ROWS, "dance": DEFAULT_ROWS + TOUCH_ROWS}
+# #252: a wristband (or a phone on the arm) in flowtrack – no gestures, only what the arm does: its energy quickens the
+# picture, its rotation turns the effects, the pull on a swung arm (centrifugal force) turns the colours. The rows
+# rest while no sensor sends (their sources are not known then); they combine with fire and LEDs in the camera.
+BAND_ROWS = [
+    _row("armspeed", "energy", "fx.speed", lo=0.1, hi=0.8, out=0.6, smooth=0.3),
+    {**_row("armspin", "spin", "fx.spin", lo=-1.0, hi=1.0, smooth=0.25), "out": [-0.8, 0.8]},
+    _row("armforce", "force", "fx.hue", lo=0.1, hi=0.9, out=0.8, curve="soft", smooth=0.4),
+]
+DEFAULT_TABLES = {"mood": MOOD_ROWS, "flowtrack": TOUCH_ROWS + BAND_ROWS, "dance": DEFAULT_ROWS + TOUCH_ROWS}
 
 
 def default_tables() -> dict:

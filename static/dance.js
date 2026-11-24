@@ -20,7 +20,8 @@
   const gate = (x, a, b) => clamp((x - a) / (b - a), 0, 1);
   const wrap = x => x - Math.round(x);                 // a phase difference in −0.5 … 0.5
   const HANDS = ['l', 'r'];
-  const FEATURES = ['energy', 'tempo', 'phase', 'pulse', 'open', 'turn', 'height', 'still', 'impulse'];
+  // #252: 'spin' and 'force' are the arm's own (a wristband, a phone on the arm): its rotation, and the pull on it
+  const FEATURES = ['energy', 'tempo', 'phase', 'pulse', 'open', 'turn', 'height', 'still', 'impulse', 'spin', 'force'];
   const FINGERS = ['palm', 'spread', 'pinch', 'snap'];
   const GESTURES = ['throw', 'accordion', 'push', 'circle', 'wave'];
   // everything a mapping row can take as its source (learned gestures and glove sensors add names of the same kind)
@@ -187,7 +188,7 @@
       st = { t: null, grid: null, tick: 0, centre: null, S: 0, reach: 0, hand: { l: null, r: null }, b: buf(),
         seen: { l: [], r: [] }, ok: { l: 0, r: 0 }, rad: { l: 0, r: 0 }, bodyAt: -1e9, still: 0, eCam: 0, eSens: 0,
         clock: { period: 0, phase: 0, c: 0, agree: 0, beatAt: -1e9, lost: 0 }, g: Object.fromEntries(GESTURES.map(g => [g, 0])),
-        active: null, below: 0, size: 0, turn: 0, impulse: 0, sens: { at: -1e9, axis: 0, level: [0, 0, 0] },
+        active: null, below: 0, size: 0, turn: 0, impulse: 0, spin: 0, force: 0, sens: { at: -1e9, axis: 0, level: [0, 0, 0] },
         fing: Object.fromEntries(HANDS.map(h => [h, { palm: 0, spread: 0, pinch: 0, snap: 0, on: false, was: [], snapAt: -1e9, c: 0 }])) };
     }
     reset();
@@ -338,7 +339,11 @@
         const top = st.sens.level.indexOf(Math.max(...st.sens.level));
         if (st.sens.level[top] > 1.3 * st.sens.level[st.sens.axis]) st.sens.axis = top;
         st.sens.now = sn.g[st.sens.axis] || 0;
-      } else if (t - st.sens.at > 0.4) st.eSens *= Math.exp(-dt / 0.2);
+        // #252: the arm's rotation about its liveliest axis (−1 … 1 for 8 rad/s either way) and the pull on it (20 m/s²: all)
+        st.spin += (clamp(st.sens.now / 8, -1, 1) - st.spin) * Math.min(1, dt / 0.12);
+        st.force += (clamp((Number.isFinite(sn.a) ? sn.a : 0) / 20, 0, 1) - st.force) * Math.min(1, dt / 0.15);
+        st.sens.force = Number.isFinite(sn.a);
+      } else if (t - st.sens.at > 0.4) { st.eSens *= Math.exp(-dt / 0.2); st.spin *= Math.exp(-dt / 0.2); st.force *= Math.exp(-dt / 0.2); }
 
       // ---- the grid: trajectories at a fixed rate, whatever the camera's ----
       if (st.grid == null) st.grid = t;
@@ -402,6 +407,8 @@
       set('pulse', locked ? Math.exp(-ck.phase * 4) * gate(ck.c, 0.3, 0.6) : 0, ck.c, locked ? clockSrc : '');   // a beat's envelope
       st.impulse *= Math.exp(-dt / 0.2);
       set('impulse', st.impulse, sensFresh ? 0.9 : 0, sensFresh ? 'sensor' : '');
+      set('spin', sensFresh ? st.spin : 0, sensFresh ? 0.9 : 0, sensFresh ? 'sensor' : '');
+      set('force', sensFresh && st.sens.force ? st.force : 0, sensFresh && st.sens.force ? 0.9 : 0, sensFresh && st.sens.force ? 'sensor' : '');
       for (const g of GESTURES) { out.g[g] = +st.g[g].toFixed(3); set('g.' + g, st.active === g ? st.size : 0, st.g[g], camSrc); }
       out.gesture = st.active; out.gc = st.active ? out.g[st.active] : 0; out.size = +st.size.toFixed(3);
 

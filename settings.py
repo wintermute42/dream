@@ -145,6 +145,7 @@ SETTINGS: dict[str, Setting] = {
     # controllers set) and the movement set last chosen (a named table of what a movement does, dance.py)
     "clutch": flag(True),
     "dance_set": text("", clean=_set_name),
+    "flow_auto": flag(True),                                    # #252: flowtrack's automatic chooses kind and exposure, holds the one person
     "flow_markers": flag(False),                                # … LED markers beside the hand AI (they lead in the dark)
     "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand
     "marker_r": text("magenta", choices=MARKERS),

@@ -297,3 +297,18 @@ test('a skeleton that drops out for a frame now and then is no movement: still h
   const o = e.step({ t: 0.03, hands: { l: { x: 0.6, y: 0.5, c: 0.9, src: 'pose' }, r: { x: 0.4, y: 0.5, c: 0.9, src: 'pose' } }, body: { x: 0.5, y: 0.4, s: 0.1, c: 0.9 } });
   assert.ok(Number.isFinite(o.v.open) && o.v.open > 0);
 });
+
+// ---------- #252: a wristband's own features – the arm's rotation and the pull on it ----------
+test('the arm: its rotation goes both ways, the pull on it is known only when the sensor reports one', () => {
+  const run = (g, a, n = 40) => { const det = D.create(); let r; for (let i = 0; i < n; i++) r = det.step({ t: i / 30, hands: { l: null, r: null }, sensor: { g, ...(a == null ? {} : { a }), age: 0 } }); return r; };
+  let r = run([0, 6, 0], 10);
+  assert.ok(r.v.spin > 0.7 && r.c.spin === 0.9 && r.src.spin === 'sensor', `spin ${r.v.spin}`);
+  assert.ok(Math.abs(r.v.force - 0.5) < 0.03 && r.c.force === 0.9, `force ${r.v.force}`);
+  assert.ok(run([0, -6, 0], 10).v.spin < -0.7, 'the other way round');
+  r = run([0, 6, 0], null);
+  assert.equal(r.c.force, 0, 'no acceleration sent: the pull is not known (a row on it rests)'); assert.equal(r.v.force, 0);
+  r = D.create().step({ t: 0, hands: { l: null, r: null }, sensor: null });
+  assert.equal(r.c.spin, 0); assert.equal(r.c.force, 0);
+  assert.ok(D.SOURCES.includes('spin') && D.SOURCES.includes('force'));
+  for (const odd of [NaN, Infinity, 'x', {}, 1e9]) { const o = run([0, 1, 0], odd); assert.ok(o.v.force >= 0 && o.v.force <= 1, String(odd)); }
+});
