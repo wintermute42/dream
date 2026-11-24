@@ -31,8 +31,17 @@
   // what the performer plays with. `axis`: the two lights are the two ends of one thing – its turning is read from
   // the line between them; `hides`: the prop is often behind the body – the automatic waits longer for it.
   const PROPS = { poi: { hides: true }, staff: { axis: true }, hoop: { hides: true }, fans: {}, hands: {}, other: {} };
-  const PROP_NAME = { poi: () => T('poi'), staff: () => T('staff'), hoop: () => T('hoop'), fans: () => T('fans'), hands: () => T('hands'), other: () => T('something else') };
-  const propName = prop => (Object.prototype.hasOwnProperty.call(PROP_NAME, prop) ? PROP_NAME[prop]() : PROP_NAME.other());
+  // a prop's name as the pages show it (whatever is asked for: a known name, or "something else")
+  function propName(prop) {
+    switch (prop) {
+      case 'poi': return T('poi');
+      case 'staff': return T('staff');
+      case 'hoop': return T('hoop');
+      case 'fans': return T('fans');
+      case 'hands': return T('hands');
+      default: return T('something else');
+    }
+  }
   const SOURCES = ['figure', 'round'];                 // what a profile adds to the sources of the mapping table
   const MIN_SECONDS = 15;                              // seconds of movement a profile is learned from, at least
   const MAX_FIGURES = 3, BINS = 24, WINDOW = 6;        // figures kept; points of the energy curve; seconds looked at for a figure

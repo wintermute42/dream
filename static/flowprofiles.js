@@ -17,8 +17,7 @@
   const T = (text, vars) => (root.I18N ? root.I18N.t(text, vars) : vars ? text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : text);
   const MAX_TAKE = 180;                                // seconds: the longest live take (it stops and learns by itself)
   const BUILT_IN = 8;                                  // shoulder widths a second: the speed that is full energy without a profile (dance.js)
-  const KIND = { on: () => T('Fire/LED'), marker: () => T('LED markers'), hand: () => T('Hands (AI)') };
-  const kindName = k => (Object.prototype.hasOwnProperty.call(KIND, k) ? KIND[k]() : String(k));
+  const kindName = k => (k === 'on' ? T('Fire/LED') : k === 'marker' ? T('LED markers') : k === 'hand' ? T('Hands (AI)') : String(k));
   // a number as the page's language writes it (2.1 – 2,1)
   const num = (x, digits) => x.toLocaleString(root.I18N && root.I18N.lang ? root.I18N.lang : 'en', { minimumFractionDigits: digits, maximumFractionDigits: digits });
   let mounted = 0;
