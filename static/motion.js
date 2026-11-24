@@ -4,6 +4,9 @@
 // difference of successive frames keeps the hand's tempo and direction, also when it is only a blur) and poor light
 // (the picture is brightened and its contrast raised for the analysis, thresholds follow the room's brightness).
 // It reports what flowtrack used to send: present, x, y, speed, spread, count, points (0…1 in the camera picture).
+// #235: for the dance detection (dance.js) it also reports what each source sees of the two hands (`dance`: the pose
+// model's wrists, LED markers in two colours – one per hand, found without a model in every camera frame –, the
+// body's place and size, and, when asked for, the hand model's 21 points per hand). No picture ever leaves this file.
 window.DreamMotion = (() => {
   'use strict';
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -54,6 +57,11 @@ window.DreamMotion = (() => {
     const trails = mk(512, 288), tctx = trails.getContext('2d');                   // the light-trail picture (source)
     const glow = mk(512, 288), gctx = glow.getContext('2d');
     let stream = null, kind = 'off', running = false, landmarker = null, loading = null, vfc = 0;
+    // #235: markers (two colours, one per hand), the hand model (fingers) and what the dance detection gets of it all
+    const mark = { on: false, colours: { l: 'cyan', r: 'magenta' }, found: { l: null, r: null } };
+    const hands21 = { on: false, model: null, loading: null, at: 0, l: null, r: null };
+    const lights = { l: null, r: null };               // light mode: which spot is which, kept from frame to frame
+    let poseAt = 0;
     let camFps = 30, prevGray = null, gain = 1, contrast = 1, lum = 0.5, lumAt = 0, lastTs = -1, poseMs = 0, poseEvery = 1, frameNo = 0;
     const fx = new OneEuro(), fy = new OneEuro();
     // #96: what the latency is made of, and how far ahead the point is predicted
@@ -66,7 +74,7 @@ window.DreamMotion = (() => {
     // the measured beamer → camera delay of the calibration plus the detection; capped, so a jerk never overshoots
     function setLead(ms) { lat.lead = clamp(ms, 40, 150); }
     const st = { present: false, x: 0.5, y: 0.5, speed: 0, spread: 0, count: 0, points: [], rate: 0, lum: 0.5, gain: 1,
-      blur: false, kind: 'off', landmarks: null, at: 0 };
+      blur: false, kind: 'off', landmarks: null, at: 0, dance: null };
     let prev = null, vel = [0, 0], lastSeen = 0, nDet = 0, rateAt = performance.now(), wasPresent = false, trailsOn = false;
     const ruleState = RULES.map(() => ({ since: null, fired: false, at: -1e9 }));
     // calibration (#92): camera picture → Dream's picture (as the beamer shows it); without one they are the same
@@ -93,7 +101,22 @@ window.DreamMotion = (() => {
       return loading;
     }
 
-    // k: 'hand' or 'on' (light); device: a camera's deviceId (none = the standard camera)
+    // #235: the hand model (21 points per hand), loaded only when the fingers are asked for – it shares the graphics chip
+    async function loadHands() {
+      if (hands21.model) return hands21.model;
+      if (!hands21.loading) hands21.loading = (async () => {
+        const { FilesetResolver, HandLandmarker } = await import('/mp/vision_bundle.mjs');
+        const files = await FilesetResolver.forVisionTasks('/mp/wasm');
+        const make = delegate => HandLandmarker.createFromOptions(files, {
+          baseOptions: { modelAssetPath: '/mp/hand_landmarker.task', delegate }, runningMode: 'VIDEO', numHands: 2,
+          minHandDetectionConfidence: 0.4, minHandPresenceConfidence: 0.4, minTrackingConfidence: 0.4 });
+        try { hands21.model = await make('GPU'); } catch (e) { hands21.model = await make('CPU'); }
+        return hands21.model;
+      })().catch(e => { hands21.loading = null; throw e; });
+      return hands21.loading;
+    }
+
+    // k: 'hand', 'on' (light) or 'marker' (#235); device: a camera's deviceId (none = the standard camera)
     let device = '';
     // src: a stream of its own instead of a camera (tests, other sources)
     async function start(k, dev = '', src = null) {
@@ -110,6 +133,7 @@ window.DreamMotion = (() => {
         if (!running || kind !== k) return;
         await setExposure();
         if (k === 'hand') await loadPose();
+        if (k === 'hand' && hands21.on) loadHands().catch(() => {});   // the fingers come when their model is there
         if (!running || kind !== k) return;
         say('running', '');
         loop();
@@ -127,7 +151,8 @@ window.DreamMotion = (() => {
       if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; video.srcObject = null; }
       prevGray = null; prev = null; fx.reset(); fy.reset();
       if (st.present) { st.present = false; onPresence(false); }
-      Object.assign(st, { speed: 0, count: 0, points: [], spread: 0, landmarks: null, rate: 0 });
+      Object.assign(st, { speed: 0, count: 0, points: [], spread: 0, landmarks: null, rate: 0, dance: null });
+      Object.assign(hands21, { l: null, r: null, at: 0 }); Object.assign(lights, { l: null, r: null }); mark.found = { l: null, r: null };
       wasPresent = false; say('off', '');
     }
     function loop(now, meta) {
@@ -192,7 +217,8 @@ window.DreamMotion = (() => {
       // the difference map follows the hand – the page keeps time for the dream and its effects
       poseEvery = clamp(Math.max(camFps > 45 ? 2 : 1, Math.ceil(poseMs / 14)), 1, 4);
       const person = r.landmarks && r.landmarks[0];
-      st.landmarks = person || null;
+      st.landmarks = person || null; poseAt = now;
+      if (hands21.on && hands21.model && frameNo % (poseEvery * 2) === 0) fingers(person, ts);
       if (!person) return [];
       const out = [];
       HANDS.forEach((idx, rank) => {
@@ -201,6 +227,59 @@ window.DreamMotion = (() => {
         out.push([lms.reduce((a, l) => a + l.x, 0) / lms.length, lms.reduce((a, l) => a + l.y, 0) / lms.length, HANDS.length - rank]);
       });
       return out;
+    }
+    // #235: the hand model's 21 points per hand, in picture heights (x times the picture's width / height, so a
+    // finger is as long across as upright). Which hand is which: the pose model's wrist it lies on; without one, the
+    // model's own guess (it assumes a mirrored picture – a camera's is not, so its "Left" is the right hand).
+    function fingers(person, ts) {
+      // the camera picture as it is (not the small brightened one of the body model): fingers are small
+      const r = hands21.model.detectForVideo(video, ts), asp = video.videoWidth / Math.max(1, video.videoHeight);
+      const sides = r.handedness || r.handednesses || [], got = { l: null, r: null };
+      (r.landmarks || []).forEach((lm, i) => {
+        const label = sides[i] && sides[i][0];
+        let side = label && label.categoryName === 'Left' ? 'r' : 'l';
+        if (person && person[15] && person[16]) {
+          const d = k => Math.hypot(person[k].x - lm[0].x, person[k].y - lm[0].y);
+          side = d(15) <= d(16) ? 'l' : 'r';
+        }
+        const c = label ? label.score : 0.5;
+        if (!got[side] || got[side].c < c) got[side] = { pts: lm.map(p => [+(p.x * asp).toFixed(4), +p.y.toFixed(4)]), c: +c.toFixed(2) };
+      });
+      Object.assign(hands21, got, { at: performance.now() });
+    }
+    // #235: two LED markers, one colour per hand – bright spots of exactly these colours, in every camera frame
+    function markers() {
+      const W = lightCv.width, H = lightCv.height;
+      lctx.drawImage(video, 0, 0, W, H);
+      mark.found = DreamDance.findMarkers(lctx.getImageData(0, 0, W, H).data, W, H, mark.colours);
+      return ['r', 'l'].filter(h => mark.found[h]).map(h => [mark.found[h].x, mark.found[h].y, 2]);
+    }
+    // what the dance detection gets: per hand every source's view (camera coordinates), the body, the fingers
+    function danceInput(now, blobsCam) {
+      const person = now - poseAt < 150 ? st.landmarks : null, hands = { l: [], r: [] };
+      if (kind === 'hand' && person) {
+        [['r', HANDS[0]], ['l', HANDS[1]]].forEach(([h, idx]) => {
+          const lms = idx.map(i => person[i]), c = Math.min(...lms.map(l => (l.visibility == null ? 1 : l.visibility)));
+          if (c >= MIN_VIS) hands[h].push({ x: lms.reduce((a, l) => a + l.x, 0) / lms.length, y: lms.reduce((a, l) => a + l.y, 0) / lms.length, c, src: 'pose' });
+        });
+      }
+      if (kind === 'marker' || (kind === 'hand' && mark.on)) for (const h of ['l', 'r']) if (mark.found[h]) hands[h].push({ ...mark.found[h], src: 'marker' });
+      if (kind === 'on') {
+        // fire and light have no left and right: each spot stays the hand it was nearest to a frame ago
+        const free = blobsCam.slice(0, 2).map(b => ({ x: b[0], y: b[1], c: 0.6, src: 'light' })), next = { l: null, r: null };
+        for (const h of ['r', 'l']) {
+          const was = lights[h]; if (!was || !free.length) continue;
+          const i = free.reduce((a, f, j) => (Math.hypot(f.x - was.x, f.y - was.y) < Math.hypot(free[a].x - was.x, free[a].y - was.y) ? j : a), 0);
+          if (Math.hypot(free[i].x - was.x, free[i].y - was.y) < 0.3) next[h] = free.splice(i, 1)[0];
+        }
+        for (const h of ['r', 'l']) if (!next[h] && free.length) next[h] = free.shift();   // a new spot: the hand that is free
+        Object.assign(lights, next);
+        for (const h of ['l', 'r']) if (lights[h]) hands[h].push(lights[h]);
+      }
+      const fresh = hands21.on && now - hands21.at < 200;
+      st.dance = { hands, body: kind === 'hand' && person ? DreamDance.bodyFrom(person, video.videoWidth / Math.max(1, video.videoHeight)) : null,
+        fingers: { l: fresh ? hands21.l : null, r: fresh ? hands21.r : null }, dark: lum < 0.12,
+        aspect: video.videoWidth / Math.max(1, video.videoHeight) };
     }
     // bright spots (fire, LEDs): threshold above the room's own brightness, so it works in the dark and in a lit hall
     function lightBlobs(pred) {
@@ -254,7 +333,7 @@ window.DreamMotion = (() => {
       const ok = caps.exposureMode && caps.exposureMode.includes('manual') && caps.exposureTime;
       exposure.supported = !!ok;
       if (!ok) { exposure.on = false; return; }
-      const want = kind === 'on' && shortWanted;
+      const want = (kind === 'on' || kind === 'marker') && shortWanted;
       try {
         if (want) {
           const t = clamp(20, caps.exposureTime.min, caps.exposureTime.max);   // ~2 ms (the unit is 100 µs)
@@ -320,9 +399,11 @@ window.DreamMotion = (() => {
       const pred = projected(now);
       const m = motionMap(pred);
       measureLight(now);
-      let blobs = kind === 'hand' ? poseBlobs(now) : lightBlobs(pred), blur = false;
+      let blobs = kind === 'hand' ? poseBlobs(now) : kind === 'marker' ? markers() : lightBlobs(pred), blur = false;
+      if (kind === 'hand' && mark.on) { const m = markers(); if (blobs && !blobs.length) blobs = m; }   // the model sees no hand: the markers do
       const skipped = blobs === null;                  // a frame without the model (slow graphics chip): see below
       if (skipped) blobs = [];
+      danceInput(now, blobs);
       blobs = blobs.map(b => [...toPic(b[0], b[1]), b[2]]);   // from here on in the picture's coordinates
       // a fast hand smears and the model loses it: follow the moving pixels near where it was (up to 0.3 s)
       if (kind === 'hand' && (!blobs.length || frameNo % poseEvery) && prev && t - lastSeen < 0.3) {
@@ -408,6 +489,14 @@ window.DreamMotion = (() => {
     return {
       start, stop, skeleton, video, grab, calibrate, setFast, setLead,
       lightOptions(color, short) { lightColor = HUES[color] ? color : ''; shortWanted = !!short; if (running) setExposure(); },
+      // #235: LED markers beside the hand model (in marker mode they are all there is) and their two colours; the
+      // hand model's fingers
+      danceOptions({ markers: m, left, right, fingers: f }) {
+        mark.on = !!m; mark.colours = { l: left, r: right }; hands21.on = !!f;
+        if (!f) Object.assign(hands21, { l: null, r: null, at: 0 });
+        if (f && running && kind === 'hand') loadHands().catch(() => {});
+      },
+      get fingersReady() { return !!hands21.model; },
       get exposure() { return exposure; },
       get latency() { return { cam: lat.cam, proc: lat.proc, lead: lat.lead, fast: lat.fast }; },
       get calibrated() { return !!H; },

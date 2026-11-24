@@ -1,0 +1,33 @@
+/* The dance card (dancepanel.js) – in the colours of the page it stands on (--accent, --text, --muted, --line, --ok).
+   Only transform and opacity are animated; nothing holds up a click. */
+.dp, .dp * { box-sizing: border-box; }
+.dp-see { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: rgba(255,255,255,.03); }
+.dp-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; min-height: 1.6em; }
+.dp-gesture { font-weight: 700; font-size: .9em; color: var(--muted); }
+.dp-gesture.dp-on { color: var(--ok); }
+.dp-clock { display: inline-flex; align-items: center; gap: 6px; font-size: .8em; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dp-beat { display: block; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); opacity: .15; transform: scale(.7); will-change: transform, opacity; }
+.dp-row { display: grid; grid-template-columns: 5.6em 1fr 3.6em 5.5em; gap: 6px; align-items: center; font-size: .78em; line-height: 1.5; }
+.dp-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-val { text-align: right; font-variant-numeric: tabular-nums; }
+.dp-src { color: var(--muted); font-size: .9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-bar { position: relative; display: block; height: .55em; background: var(--line); border-radius: 3px; overflow: hidden; }
+.dp-bar i { display: block; height: 100%; width: 100%; background: var(--accent); border-radius: 3px; transform: scaleX(0); transform-origin: left center; will-change: transform, opacity; }
+/* turning goes both ways: the bar grows from the middle */
+.dp-bar.dp-mid::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--text); opacity: .5; }
+.dp-bar.dp-mid i { width: 50%; margin-left: 50%; }
+.dp-fingers { margin-top: 6px; font-size: .74em; color: var(--muted); white-space: pre-line; font-variant-numeric: tabular-nums; }
+.dp-map { margin-top: 10px; display: grid; gap: 6px; }
+.dp-maprow { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; grid-template-areas: 'on src x' 'arrow dst live' 'amt amt amt'; gap: 4px 6px; align-items: center;
+  padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; }
+.dp-maprow > input[type=checkbox] { grid-area: on; width: 20px; height: 20px; margin: 0; }
+.dp-maprow > select { min-width: 0; width: 100%; font-size: .85em; padding-top: 4px; padding-bottom: 4px; }
+.dp-maprow > select[data-part=src] { grid-area: src; } .dp-maprow > select[data-part=dst] { grid-area: dst; }
+.dp-arrow { grid-area: arrow; color: var(--muted); text-align: center; }
+.dp-maprow > input[type=range] { grid-area: amt; width: 100%; margin: 0; }
+.dp-maprow .dp-x { grid-area: x; min-height: 0; padding: 2px 9px; }
+/* a row at work right now: its light */
+.dp-live { grid-area: live; justify-self: center; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); opacity: 0; will-change: opacity; }
+.dp-maprow.dp-off > select, .dp-maprow.dp-off > input[type=range] { opacity: .55; }
+.dp-btns { margin-top: 8px; }
+.dp :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }

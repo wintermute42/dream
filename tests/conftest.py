@@ -61,13 +61,15 @@ def pytest_unconfigure(config):
 
 @pytest.fixture(autouse=True)
 def sandbox(tmp_path, monkeypatch):
-    """Each test: its own HOME and Dream folders; the mapping files of midi, sensors and playlists point there too."""
+    """Each test: its own HOME and Dream folders; the mapping files of midi, sensors, dance and playlists point there too."""
     env = _sandbox_env(str(tmp_path))
     for k, v in env.items():
         monkeypatch.setenv(k, v)
+    import dance
     import midi
     import playlists
     import sensors
+    monkeypatch.setattr(dance, "MAP_FILE", os.path.join(env["DREAM_CONFIG_DIR"], "dance.json"))
     monkeypatch.setattr(midi, "MAP_FILE", os.path.join(env["DREAM_CONFIG_DIR"], "midi.json"))
     monkeypatch.setattr(sensors, "MAP_FILE", os.path.join(env["DREAM_CONFIG_DIR"], "sensors.json"))
     monkeypatch.setattr(playlists, "USER_FILE", os.path.join(env["DREAM_CONFIG_DIR"], "playlists.json"))

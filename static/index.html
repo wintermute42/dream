@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/static/qrbox.css">
 <link rel="stylesheet" href="/static/sliders.css">
 <link rel="stylesheet" href="/static/worldband.css">
+<link rel="stylesheet" href="/static/dancepanel.css">
 <link rel="stylesheet" href="/static/signs.css">
 <link rel="stylesheet" href="/static/compute.css">
 <style>
@@ -236,7 +237,7 @@
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   /* parts that have no effect with the current input/state: still there (the layout never moves), but pale */
   .modepart.off > *, #cloudbox.off > *, #player.off { filter: grayscale(1); opacity: .74; transition: opacity .3s; }
-  .lightopts.off > * { filter: grayscale(1); opacity: .74; }   /* light options while the hands are tracked */
+  .lightopts.off > *, .markeropts.off > * { filter: grayscale(1); opacity: .74; }   /* light options while the hands are tracked */
   .modepart > * { transition: opacity .3s; }
   #makeother { margin-top: 6px; font-size: .85em; }
   #makeother > summary { cursor: pointer; color: var(--muted); padding: 4px 0; }
@@ -542,19 +543,28 @@
     <summary>Movement</summary>
     <div class="flowswitch keep">
       <button class="btn" id="flowswitch" aria-pressed="false" title="Movement detection on or off (all movement functions)">Movement: OFF</button>
-      <select id="flow_kind" aria-label="Kind of movement detection" title="Hands (AI) or light: fire, LED, light trails"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option></select>
+      <select id="flow_kind" aria-label="Kind of movement detection" title="Hands (AI) or light: fire, LED, light trails"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option><option value="marker">LED markers (2 colours)</option></select>
       <select id="flow_device" class="camsel" aria-label="Camera for movement" title="Camera for movement, e.g. an infrared camera"><option value="">Camera: as picture</option></select>
       <div class="lightopts" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-basis:100%">
         <select id="flow_color" aria-label="Light colour" title="Fire/LED: any bright light, or an LED token in a colour that occurs nowhere else (robust against lamps and windows)" style="flex:1 1 50%;min-width:0">
           <option value="">Light: anything bright</option><option value="green">Light: green LED</option><option value="magenta">Light: magenta LED</option><option value="blue">Light: blue LED</option><option value="red">Light: red LED</option></select>
         <label style="display:flex;align-items:center;gap:6px;margin:0;flex:1 1 40%" title="Where the camera allows it: short, fixed exposure – the room turns almost black, only lights stay bright, hardly any motion blur"><input type="checkbox" id="flow_short" checked> short exposure</label>
       </div>
-      <select id="flowtrack" hidden aria-hidden="true"><option value="off">Off</option><option value="on">On: fire/LED/light trails</option><option value="hand">On: hands by AI (rehearsals without fire)</option></select>
+      <div class="markeropts" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-basis:100%">
+        <select id="marker_l" aria-label="Marker colour of the left hand" title="LED marker on the left hand: a colour that occurs nowhere else in the picture (never red, orange or yellow – that is fire)" style="flex:1 1 45%;min-width:0">
+          <option value="cyan">Left: cyan</option><option value="magenta">Left: magenta</option><option value="green">Left: green</option><option value="blue">Left: blue</option></select>
+        <select id="marker_r" aria-label="Marker colour of the right hand" title="LED marker on the right hand: another colour than the left one" style="flex:1 1 45%;min-width:0">
+          <option value="cyan">Right: cyan</option><option value="magenta">Right: magenta</option><option value="green">Right: green</option><option value="blue">Right: blue</option></select>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: the LED markers are followed as well – in the dark and on fast moves they lead, otherwise both confirm each other"><input type="checkbox" id="flow_markers"> LED markers beside the hand AI</label>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: a second model finds 21 points per hand – fist, spread fingers, pinch and snap become values the dance card can use. Costs some of the graphics chip; downloaded once (about 8 MB)."><input type="checkbox" id="flow_fingers"> Fingers (hand AI, 21 points per hand)</label>
+      </div>
+      <select id="flowtrack" hidden aria-hidden="true"><option value="off">Off</option><option value="on">On: fire/LED/light trails</option><option value="hand">On: hands by AI (rehearsals without fire)</option><option value="marker">On: LED markers</option></select>
     </div>
   <div class="row">
     <label>Movement – how strongly it steers the dream <span class="val" id="v-msens"></span></label>
     <label style="display:flex;align-items:center;gap:6px;margin:0 0 4px"><input type="checkbox" id="motion" checked> react to movement</label>
     <input type="range" id="motion_sens" min="0" max="3" step="0.05" value="1">
+    <label style="display:flex;align-items:center;gap:6px;margin:4px 0" title="Off: movement steers the effects at once (card “Dance”), the slow AI sliders keep still. On: movement also pushes transformation, dream share, zoom, rotation and colour drift, as before – the AI needs a picture or two to follow."><input type="checkbox" id="motion_ai"> Movement also moves the slow AI sliders</label>
     <div id="flowstate" style="font-size:12px;color:var(--muted)">Movement off</div>
     <button class="btn" id="fastbtn" aria-pressed="false" style="width:100%;margin-top:6px" title="For fast movement: values follow at once, smoothing off, 1 step, 384 px, little dream share – press again to restore everything">⚡ Fast (dance/flow): OFF</button>
     <input type="checkbox" id="fast" hidden aria-hidden="true">
@@ -571,6 +581,15 @@
     <div id="posestate" style="font-size:12px;color:var(--muted)"></div>
   </div>
 
+  </details>
+  <details class="sec" data-sec="dance">
+    <summary>Dance</summary>
+  <div class="row">
+    <label style="display:flex;align-items:center;gap:6px;margin:0 0 6px" title="Movements steer the effects at once, at the full frame rate – nothing waits for the AI. What steers what is the table below."><input type="checkbox" id="dance" checked> Dance steers the effects</label>
+    <!-- #235: what Dream sees of the dance, and the mapping table (static/dancepanel.js) -->
+    <div id="dancepanel"></div>
+    <div class="hint">Gestures need two or three repetitions to count. Sources: the camera (hands, LED markers) and a motion sensor on the arm – whatever is there.</div>
+  </div>
   </details>
   <details class="sec" data-sec="touch">
     <summary>Direct interaction</summary>
@@ -740,6 +759,9 @@
 <script src="/static/fx.js"></script>
 <script src="/static/gl-stage.js"></script>
 <script src="/static/calib.js"></script>
+<script src="/static/dance.js"></script>
+<script src="/static/dancemap.js"></script>
+<script src="/static/dancepanel.js"></script>
 <script src="/static/motion.js"></script>
 <script src="/static/beat.js"></script>
 <script src="/static/soft.js"></script>
@@ -1678,10 +1700,34 @@
   // movement (#85: detected on the stage itself): speed drives the transformation, spread the zoom, the point is the pivot.
   let mo = null, moAt = 0;
   const pivot = { x: 0.5, y: 0.5 };
+  // #235: dance steers the dream. The detection's and the sensor's view go into one feature stream (dance.js); the
+  // mapping table (dancemap.js, kept by Dream: dance.py) says what each feature and gesture does – `danceOut` holds
+  // what every target of the one interface is at ("fx.…": the instant layer, read by the effects' loop; "ai.…": the
+  // slow sliders, read by `mod` below).
+  const danceDet = DreamDance.create(), danceMap = DreamDanceMap.create();
+  let danceRows = [], danceFrame = null, danceAt = 0, danceOut = {}, danceSens = null, danceSensAt = 0;
+  const danceOn = () => $('dance').checked;
+  const danceAi = k => danceOut['ai.' + k] || 0;
+  // one step of the stream: from a camera frame's sources, or – with no camera – from the sensor alone
+  function danceStep(cam) {
+    const now = performance.now(), fresh = danceSens && now - danceSensAt < 330;
+    danceFrame = danceDet.step({ t: now / 1000, hands: { l: null, r: null }, ...(cam || {}), sensor: fresh ? { g: danceSens.g, age: danceSens.age + (now - danceSensAt) / 1000 } : null });
+    danceAt = now;
+  }
+  function danceSensor(m) {                            // the sensor's movement, ~30 times a second (inputs.sensor_dance)
+    danceSens = m; danceSensAt = performance.now();
+    if (danceOn() && danceSensAt - moAt > 100) danceStep(null);   // no camera frame lately: the sensor keeps the stream going
+  }
+  // what the targets are at, every frame of the stage: without a fresh record everything glides to rest
+  function danceTargets(dt) {
+    danceOut = danceMap.apply(danceRows, danceOn() && danceFrame && performance.now() - danceAt < 500 ? danceFrame : null, dt);
+    return danceOut;
+  }
   const poseOn = () => flowOn() && $('pose').checked && typeof poseBlob !== 'undefined' && poseBlob && performance.now() - poseAt < 2000;
   // the one movement switch (state key "flowtrack", kept for saved settings): off = no movement effect, no work
   const flowOn = () => $('flowtrack').value !== 'off';
-  const msens = () => (flowOn() && $('motion').checked && mo && performance.now() - moAt < 1000 ? +$('motion_sens').value : 0);
+  // #235: the slow AI sliders follow movement only when asked ("motion_ai") – the effects follow it at once (the dance card)
+  const msens = () => (flowOn() && $('motion').checked && $('motion_ai').checked && mo && performance.now() - moAt < 1000 ? +$('motion_sens').value : 0);
   // Smoothed movement (about 0.3 s): calm hands give a calm dream, a fast throw a clear burst.
   const msm = { speed: 0, spread: 0 };
   // speed with a square-root curve, so slow and medium movement already shows
@@ -1694,20 +1740,20 @@
   function strengthParts() {
     const slider = +ui.strength.value * damp(0.8);
     const music = sens() * mu.intensity * (0.22 * musicPattern().push * mu.beatEnv + 0.06 * band.mid) + 0.3 * sens() * mu.drop;
-    const parts = { slider, music, motion: msens() * 0.25 * mspeed(), wake: 0.25 * wake, drift: 0.25 * drift.kick };
+    const parts = { slider, music, motion: msens() * 0.25 * mspeed() + 0.3 * danceAi('strength'), wake: 0.25 * wake, drift: 0.25 * drift.kick };
     const raw = slider + parts.music + parts.motion + parts.wake + parts.drift;
     return { ...parts, raw, total: clamp(raw, 0.15, 0.95) };   // the AI needs at least 0.15 for one whole step
   }
   const mod = {
     strength: () => strengthParts().total,
     zoom: () => (noZoom ? 0 : +ui.zoom.value * damp(0.35) + sens() * mu.intensity * 0.035 * musicPattern().bass * band.bass) + mzoom()
-      + driftAmt() * (0.004 + 0.003 * Math.sin(drift.clock * 0.6)),     // drift: a slow breathing zoom
+      + driftAmt() * (0.004 + 0.003 * Math.sin(drift.clock * 0.6)) + 0.04 * danceAi('zoom'),     // drift: a slow breathing zoom
     rot: () => +ui.rot.value * damp(0.35) * (1 + sens() * 1.5 * band.high) + sens() * 6 * mu.jolt * mu.joltDir
-      + (+ui.rot.value < 0 ? -1 : 1) * msens() * 2.5 * mspeed() + driftAmt() * 0.6 * Math.sin(drift.clock * 0.23),
-    hue: () => +ui.hue.value * damp(0.3) + sens() * mu.intensity * 18 * musicPattern().mid * band.mid + Math.min(30, msens() * 18 * mspeed()),
+      + (+ui.rot.value < 0 ? -1 : 1) * msens() * 2.5 * mspeed() + driftAmt() * 0.6 * Math.sin(drift.clock * 0.23) + 2.5 * danceAi('rot'),
+    hue: () => +ui.hue.value * damp(0.3) + sens() * mu.intensity * 18 * musicPattern().mid * band.mid + Math.min(30, msens() * 18 * mspeed()) + 18 * danceAi('hue'),
     // more of the previous dream flows in while moving, so the swirl shows even with a low dream share
     mix: () => clamp(+ui.mix.value - sens() * 0.15 * musicPattern().push * mu.beatEnv - 0.4 * sens() * mu.drop
-      + msens() * 0.3 * mspeed(), 0, 0.9),
+      + msens() * 0.3 * mspeed() + 0.3 * danceAi('mix'), 0, 0.9),
   };
   function bandLevel(lo, hi) {
     const ny = actx.sampleRate / 2, a = Math.floor(lo / ny * freq.length), b = Math.max(a + 1, Math.floor(hi / ny * freq.length));
@@ -1912,7 +1958,7 @@
     motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
-    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
+    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', dance: 'dance', motion_ai: 'motion_ai', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', flow_fingers: 'flow_fingers', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
@@ -1962,6 +2008,7 @@
         if (k === 'calib' || k === 'flow_unproject') unprojSync();
         if (k === 'fast_prev') fastPrev = v;
         if (k === 'flow_color' || k === 'flow_short') lightSync();
+        if (k === 'marker_l' || k === 'marker_r' || k === 'flow_markers' || k === 'flow_fingers') danceSync(k);
         if (k === 'style_ref' || k === 'model') lookSync();
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
         if (k === 'master') { look.master = +v; $('v-master').textContent = 'Master ' + Math.round(v * 100) + ' %'; }
@@ -2287,6 +2334,7 @@
     },
     onFrame: f => {
       mo = f; moAt = performance.now();
+      if (danceOn() && f.dance) danceStep(f.dance);
       const k = $('fast').checked ? 0.6 : 0.25;          // "Schnell": the dream follows the tempo at once
       msm.speed += ((+f.speed || 0) - msm.speed) * k; msm.spread += ((+f.spread || 0) - msm.spread) * k;
     },
@@ -2303,13 +2351,28 @@
   // #117: the light token's colour and the short exposure (light mode only)
   function lightSync() {
     tracker.lightOptions($('flow_color').value, $('flow_short').checked);
-    document.querySelector('.lightopts').classList.toggle('off', $('flow_kind').value !== 'on');
+    const k = $('flow_kind').value;
+    document.querySelector('.lightopts').classList.toggle('off', k === 'hand');   // the short exposure: light and markers
+    $('flow_color').disabled = k !== 'on';
+    document.querySelector('.markeropts').classList.toggle('off', k === 'on');
+    $('marker_l').disabled = $('marker_r').disabled = k === 'on' || (k === 'hand' && !$('flow_markers').checked);
+    $('flow_markers').disabled = $('flow_fingers').disabled = k !== 'hand';
+  }
+  // #235: the two marker colours (never the same for both hands), markers beside the hand AI, the fingers
+  function danceSync(changed) {
+    if ($('marker_l').value === $('marker_r').value) {
+      const other = changed === 'marker_r' ? 'marker_l' : 'marker_r', free = [...$(other).options].find(o => o.value !== $(other).value);
+      $(other).value = free.value; if (!applying) sendCtl({ set: { [other]: free.value } });
+    }
+    tracker.danceOptions({ markers: $('flow_markers').checked, left: $('marker_l').value, right: $('marker_r').value, fingers: $('flow_fingers').checked });
+    lightSync();
   }
   ['flow_color', 'flow_short', 'flow_kind'].forEach(id => $(id).addEventListener('change', lightSync));
-  lightSync();
+  ['marker_l', 'marker_r', 'flow_markers', 'flow_fingers'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));
+  danceSync();
   setInterval(() => {                                  // what it sees, in one line
     if (tracker.status.code !== 'running') return;
-    const f = tracker.frame, how = tracker.kind === 'hand' ? T('Hands (AI)') : T('Light');
+    const f = tracker.frame, how = tracker.kind === 'hand' ? T('Hands (AI)') : tracker.kind === 'marker' ? T('LED markers') : T('Light');
     $('flowstate').textContent = T('{how}: {r} values/s', { how, r: Math.round(f.rate) }) + ' · ' + (f.present ? T('someone there') : T('nobody')) + (f.gain > 1.3 ? T(' · dark, brightened ×{g}', { g: f.gain.toFixed(1) }) : '');
   }, 500);
   updFlowSwitch();
@@ -2655,6 +2718,7 @@
 
   // cards that have no effect right now look inactive (see CSS details.sec.idle)
   const IDLE = { auto: () => !apOn(), motion: () => !flowOn(), touch: () => !flowOn(), music: () => $('music').value === 'off',
+    dance: () => !danceOn() || (!flowOn() && !sensLive),
     fx: () => !fxShown().length };
   function markIdle() {
     for (const [k, off] of Object.entries(IDLE)) {
@@ -3033,6 +3097,14 @@
   const FX_ICON = { kaleido: '❄️', mandala: '🌸', mirror: '🪞', tunnel: '🌀', waves: '🌊', feedback: '♾️', trails: '✨',
     pixel: '👾', raster: '▦', rgb: '🌈', glitch: '⚡', hue: '🎨' };
   const FX_LIST = Object.keys(FX_NAMES);
+  // #235: the dance card – what Dream sees, and the mapping table (a hand's change goes to Dream, which keeps the table)
+  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => sendCtl({ dance_map: rows }), fxNames: FX_NAMES,
+    sources: DreamDance.SOURCES, targets: DreamDanceMap.targets(DreamFx.ALL) });
+  const danceCard = document.querySelector('details.sec[data-sec="dance"]');
+  setInterval(() => {                                  // the display, a dozen times a second while its card is open and in view
+    if (!danceCard.open || document.hidden || document.body.classList.contains('hide')) return;
+    dancePanel.show(danceOn() && danceFrame && performance.now() - danceAt < 500 ? danceFrame : null, danceMap.of);
+  }, 80);
   const fxMine = () => $('fx').value.split('+').filter(e => FX_NAMES[e]);
   // by hand: autopilot off, or a hand on the effects in the last minute (then the autopilot leaves them alone)
   const fxByHand = () => !apOn() || apHands('fx') || apHands('fx_amt') || apHands('fx_beat');
@@ -3098,7 +3170,8 @@
   // card draws it half as often and has more time for the AI
   const previewFps = () => outViewers > 0 && !bodyHas('hide') && !bodyHas('stage-only') ? 30 : 0;
   let smoothSentAt = 0;
-  Object.assign(ap, { fxSet: [], fxTarget: {}, fxAmts: {}, fxHist: [], fxPhrase: 0, fxSeed: 1, hueDeg: 0, inv: 0, invAt: -1e9 });
+  // fxFade: each effect's own slow fade (sets change softly); fxAmts: what is drawn – the fade or, if more, the dance (#235)
+  Object.assign(ap, { fxSet: [], fxTarget: {}, fxFade: {}, fxAmts: {}, fxHist: [], fxPhrase: 0, fxSeed: 1, hueDeg: 0, inv: 0, invAt: -1e9 });
   function apFxPick(byHand) {
     const L = byHand ? Math.max(0.6, apLevel()) : apLevel(), SOFT = ['waves', 'trails', 'mirror', 'mandala', 'kaleido', 'hue'];
     let pool = FX_POOL[ap.char] || FX_POOL[''];
@@ -3170,7 +3243,10 @@
     }
     // movement leads as much as "Direktheit" says (flowtrack on, someone there): a whip is a beat of its own
     const mo2 = motionFx(dt0, flowOn() ? touchAmt() : 0), lead = (flowOn() ? touchAmt() : 0) * mo2.on;
-    const pulse = Math.max((ap.pulse || 0) * (1 - 0.5 * lead), lead * mo2.imp * 1.2);
+    // #235: what the dance asks of the instant layer – its own beat pushes like the music's, each effect at least as
+    // strong as its row says (no fade of the effects' own: the row has its smoothing), turning turns them
+    const dn = danceTargets(dt0), dfx = e => dn['fx.' + e] || 0;
+    const pulse = Math.max((ap.pulse || 0) * (1 - 0.5 * lead), lead * mo2.imp * 1.2, dfx('pulse'));
     if (lead > 0.5 && mo2.imp > 0.97) wake = Math.max(wake, 0.3 + 0.4 * lead);   // and a flash of light
     if (!analyser) {                                   // no music: nobody else moves the stage, so the pulse does it here
       const punch = 1 + 0.6 * apPowerF();
@@ -3187,12 +3263,13 @@
     // every effect fades to its share of the strength in ~1.5 s: sets change softly (movement quicker)
     let top = 0;
     for (const e of DreamFx.ALL) {
-      const want = Math.min(1, (ap.fxTarget[e] || 0) * apFxAmt * moK + (e === 'rgb' || e === 'trails' ? 0.8 * own : 0)), cur = ap.fxAmts[e] || 0;
+      const want = Math.min(1, (ap.fxTarget[e] || 0) * Math.min(1, apFxAmt + dfx('amt')) * moK + (e === 'rgb' || e === 'trails' ? 0.8 * own : 0)), cur = ap.fxFade[e] || 0;
       const nxt = cur + (want - cur) * Math.min(1, dt0 * (2.5 + 6 * lead));
-      ap.fxAmts[e] = nxt < 0.005 && want === 0 ? 0 : nxt; top = Math.max(top, ap.fxAmts[e]);
+      ap.fxFade[e] = nxt < 0.005 && want === 0 ? 0 : nxt;
+      ap.fxAmts[e] = Math.min(1, Math.max(ap.fxFade[e], dfx(e))); top = Math.max(top, ap.fxAmts[e]);
     }
     const dir = lead > 0.3 ? mo2.dir : ap.rotSign || 1, quick = 1 + 2.5 * lead * mo2.sp;   // the hand's way round, its tempo
-    ap.spin = (ap.spin || 0) + (0.003 + 0.03 * pulse) * Math.max(apFxAmt, own) * dir * quick;
+    ap.spin = (ap.spin || 0) + (0.003 + 0.03 * pulse) * Math.max(apFxAmt, own) * dir * quick + 3 * dt0 * dfx('spin');
     ap.t = (ap.t || 0) + dt0 * (0.6 + Lv) * quick;
     ap.hueDeg = (ap.hueDeg + dt0 * (25 + 95 * Lv) * (1 + pulse)) % 360;
     ap.inv *= Math.pow(0.82, dt0 * 60);                  // a short negative, gone in ~0.3 s
@@ -3447,6 +3524,9 @@
       if (m.rule) { wake = Math.max(wake, 0.6); status(T('Movement rule: {r}', { r: m.rule })); }
       if (m.midi) showMidi(m.midi);
       if (m.sensors) showSensors(m.sensors);
+      if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
+      if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
+      if (m.dance && m.dance.map) { danceRows = m.dance.map; dancePanel.map(danceRows); }
       if (m.scene) {
         const sc = m.scene;
         if (sc.from) softPrompt(sc.fade, sc.from);     // the playlist's own fade time

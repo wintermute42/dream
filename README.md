@@ -52,6 +52,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Dreaming light trails (input “Light trails”)](#dreaming-light-trails-input-light-trails)
   - [Keep outlines (ControlNet)](#keep-outlines-controlnet)
   - [Pose shapes the figure (ControlNet)](#pose-shapes-the-figure-controlnet)
+- [Dance](#dance)
 - [MIDI controller](#midi-controller)
 - [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
 
@@ -1120,6 +1121,8 @@ remembers the switch across a restart, like the autopilot. Next to it the kind:
   offline.
 - **Fire/LED/light trails:** bright points in the picture, up to four. The threshold follows the room's brightness: in
   the dark a torch is enough, in a bright hall only really bright lights count.
+- **LED markers (2 colours):** a glowing marker on each hand, followed by its colour without any AI model – see
+  [Dance](#dance).
 
 **Calibrate (camera ↔ projector):** if the camera stands at an angle or to the side, effects, painting and light land
 a little beside the person without matching. **📐 Calibrate** in the Movement card (movement must be on, camera and
@@ -1212,7 +1215,10 @@ trail, all points and the cross the dream turns around, next to it speed, spread
 someone is there. The picture itself stays free; the display does not go to the output, Syphon or the AI. Switched
 off, it draws nothing and frees its memory. With the panel hidden (H) the diagnostics are not visible either.
 
-With the detection on, Dream reacts (switch “react to movement”, slider “Movement” up to 3× – also on the phone). The
+With the detection on, Dream reacts (switch “react to movement” – also on the phone): nobody there calms the dream,
+someone coming gives a light impulse, and the rules below apply. The **effects** follow movement at once through the
+card [Dance](#dance). The slow AI sliders follow only with “**Movement also moves the slow AI sliders**” (off by
+default; slider “Movement” up to 3×): then the
 movement makes a pull of its own around the tracked point – also in camera and video mode and when zoom and rotation
 are at 0; while moving, more of the previous dream picture flows along. The values are smoothed, a calm hand gives a
 calm dream:
@@ -1264,6 +1270,74 @@ strictly the posture is kept (0.8–1.2 good).
   dream; with a gentle one the picture stays as it is. For a clear figure: transformation 0.6+ and pose strength
   0.8–1.2.
 
+## Dance
+
+**Dance steers the effects** – at once, at the full frame rate, without waiting for the AI. With movement detection on
+(or a motion sensor on the arm) Dream turns what it sees into a **stream of features**, about as often as the camera
+delivers pictures, measured on the dancer's own body – where you stand in the picture and how near does not matter:
+
+| Feature | What it says |
+|---|---|
+| Energy | how much and how hard you move |
+| Tempo, phase, own beat | the tempo of your own repetition and where in it you are – a **movement clock** beside the music's beat clock |
+| Opening | how far apart the hands are |
+| Turning | a hand running in circles, and which way |
+| Height | hands down … up |
+| Stillness | you stand still |
+
+On top of them Dream recognises **gestures** – repeated, rhythmic movements: **throwing up** (both hands, or one),
+**accordion** (hands apart and together), **pushing** (both hands to the side and back), **circling** and an **arm
+wave** (one hand up while the other goes down). A gesture counts after two or three clean repetitions and ends with a
+little delay when you stop (hysteresis) – walking, waving to someone, talking with your hands, reaching for something
+once or swaying set nothing off. Its size becomes the effect's strength, its tempo the beat that pushes the effects.
+
+Card **“Dance”** in the panel:
+- **Dance steers the effects** – the switch for all of it.
+- **What Dream sees:** the features as bars (paler = less sure, with the source each came from: camera, marker,
+  light, sensor, hand AI), the recognised gesture with how sure Dream is, your tempo per minute and a dot that beats
+  with it.
+- **What a movement does** – the table: each row is “a movement → what it steers”, with a switch and a strength; the
+  green light shows a row at work. **+ Row** adds one, **✕** removes one, **Built-in table** brings the original back.
+  Built in: energy → afterglow and opening → kaleidoscope (both always on, each can be switched off), throwing up →
+  feedback, accordion → tunnel, pushing → RGB shift, circling → mandala, arm wave → waves, your own beat → the push on
+  the beat, turning → the turning of the effects. A target can be any effect, all effects together, the push on the
+  beat, the turning – or one of the slow **AI sliders** (transformation, dream share, zoom pull, rotation, colour
+  drift; they follow within half a second at the earliest and are added on top of the slider).
+  The table is saved in `~/.config/dream/dance.json`; only this Mac and Dream Control can change it.
+
+**The slow AI sliders keep still:** movement used to push transformation, zoom, rotation and colour drift – the AI
+needs a picture or two to show that, too late for dancing. That is off now; “**Movement also moves the slow AI
+sliders**” in the Movement card brings it back (then the slider “Movement” sets how strongly, as before).
+
+**Sources – camera, markers, sensor, alone or together:**
+- **Hands (AI):** the wrists of the body model; the body gives the measure. One visible hand is enough for throwing
+  up and circling.
+- **LED markers (2 colours)** – a kind of movement detection of its own, without any AI model: a glowing marker on
+  each hand (an LED wristband, a phone display) in two fixed colours – **cyan, magenta, green or blue**, by default
+  left cyan and right magenta; never red, orange or yellow, those are fire. Dream follows the brightest spot of each
+  colour in every camera picture, also in the dark; lamps, windows and fire are ignored. A fast hand smears its
+  marker into a streak: its length counts as tempo. Camera tips: 60 pictures a second and a short, fixed exposure
+  (the checkbox “short exposure”, where the camera allows it); colours that do not occur in the projection if the
+  camera sees it. Without the skeleton Dream judges size by how far the hands reached in the last seconds, and a
+  whole body swaying sideways looks like pushing.
+- **LED markers beside the hand AI** (checkbox, with “Hands (AI)”): both at once – where they agree they confirm
+  each other; in the dark and on fast moves the marker leads.
+- **Fire/LED:** the two largest lights count as two hands (energy, tempo, throwing up, circling – e.g. poi).
+- **Motion sensor** (the Dream Control phone in your hand with “🧭 Motion”, any phone app sending OSC, later a
+  wristband – see “Sensor input”): fast and independent of light. Alone it gives energy, stillness, tempo and beat,
+  and its strikes are the source “Strike (sensor)”; position, opening and the gestures need the camera. Together:
+  a sensor swinging in the tempo the camera sees confirms a gesture (a small movement then counts sooner), an arm at
+  rest doubts it, and when one source fails the other carries on.
+- **Fingers (hand AI, 21 points per hand)** (checkbox, with “Hands (AI)”; a second model, downloaded once, about
+  8 MB, it costs some of the graphics chip): per hand **fist ↔ open hand**, **fingers spread**, **pinch** (thumb on
+  index finger, held until they are clearly apart) and **snap** (the hand flying open). They are sources for the
+  table like all others, e.g. “Right hand: fist ↔ open hand → kaleidoscope”. Expect limits at a distance, in the dark
+  and on fast moves – the display shows when a hand is lost.
+
+Nothing of the camera is stored or sent anywhere for this: the features are numbers computed in the stage.
+
+<sub>[↑ Contents](#contents)</sub>
+
 ## MIDI controller
 
 A MIDI controller with faders and knobs (e.g. an older USB controller with 8 faders, a master fader, 24 knobs and
@@ -1306,6 +1380,11 @@ devices in the home network. Without an extra app: the Dream Control device itse
 2 seconds (e.g. arm up/down). Dream takes the reading that now moves clearly more than before. ⇅ reverses the
 direction, ✕ deletes. Every reading is smoothed and adapts its range by itself – no calibration. Saved in
 `~/.config/dream/sensors.json` (not in the repository).
+
+**Dance:** while “Dance steers the effects” is on, the gyroscope (an address with `gyro` or `rotation_rate` in it)
+also goes to the dance detection as it comes – energy, tempo and beat without a camera, and a second opinion with
+one (see [Dance](#dance)). Nothing has to be mapped for that. This also works when port 7020 is taken by another
+program: the Dream Control device's own motion comes over its connection.
 
 **Hit (whip):** a strong, jerky movement is an impulse (at most every 0.25 s). Under “Hit →” set what it triggers:
 flash, spin jolt, new motif, next scene or blackout; “Hit sensitivity” sets how strong it must be. **Swing** (how
@@ -1555,7 +1634,14 @@ in a noisy camera, a string of them, dimmed, with the phone touched or carried),
 noisy camera, the camera's exposure pumping, warm LEDs beating (slowly, fast, with bands running through, a string of
 them), a screen with warm moving pictures, an orange jacket and skin from pale to dark in warm light; the strength,
 flaring up, dying down, the gaze following within two samples, the moods taking turns and getting used to a steady
-fire. `node --test tests/js/eye.test.mjs` tests how often which hypnotic pupil comes. To see the eyes with a fire
+fire. `node --test tests/js/eye.test.mjs` tests how often which hypnotic pupil comes. `node --test tests/js/dance.test.mjs`
+(#235) tests the dance detection (`static/dance.js`) on a simulated dancer (`tests/js/dance-sim.mjs`): every gesture in
+144 variants of size, tempo, place and size of the body, jitter and frame rate (it prints the hit rate and how soon a
+gesture is recognised), the false alarms on standing, walking, waving, talking hands, a single reach, cheering and
+swaying (none), the movement clock against known tempos, markers alone, one hand alone, the sensor alone and with the
+camera, LED markers in painted pictures (lamps and fire are none) and the finger values on painted hands of every
+size and turn. `node --test tests/js/dancemap.test.mjs` tests the mapping table (`static/dancemap.js`: curve, ranges,
+smoothing, letting go when a source is not known) and what the dance card makes of a hand on a row. To see the eyes with a fire
 without lighting one: `node scripts/fire_video.mjs fire.y4m` writes a 70 s film of the same painted fire (about 90 MB),
 and a Chrome or Chromium started with `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
 --use-file-for-fake-video-capture=fire.y4m` shows it to Dreamy Eyes as its camera (a Dream started only for that:
@@ -1577,7 +1663,8 @@ the run. Let the model warm up first: the first seconds after a start are slower
 Where the code is, if you want to change something: `server.py` is what `./dream.sh` starts and only puts the parts
 together – one file each for painting (`render.py`, `render_api.py`, `flow.py` for the flow field between two pictures), the rights (`rights.py`: the roles and what each
 may do), the settings (`settings.py`: one table with every setting, its range and whether a guest may change it), the
-shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the
+shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the dance mapping table (`dance.py`; the detection itself is
+`static/dance.js`, the mapping `static/dancemap.js`, the card `static/dancepanel.js`), the
 outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the cloud GPU (`cloud.py`), measuring
 (`measure.py`), uploads and the gallery (`media.py`), voice (`voice.py`), and the pages with their links (`pages.py`,
 `net.py`). The pages are in `static/`; what they share is in `static/common.js`, the sliders of the panel and of Dream
@@ -1617,7 +1704,7 @@ use, and each comes with its own licence:
 | Style LoRA: sticker | style | MIT | yes |
 | [Whisper large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) (MLX) | speech | MIT | yes |
 | [Llama 3.2 3B](https://www.llama.com/llama3_2/license/) via Ollama (optional) | prompt ideas, playlists | Llama 3.2 Community License | yes (below 700 million monthly users; “Built with Llama”) |
-| [MediaPipe](https://ai.google.dev/edge/mediapipe) models (pose, face, segmentation) | movement, Dreamy Eyes | Apache 2.0 | yes |
+| [MediaPipe](https://ai.google.dev/edge/mediapipe) models (pose, hands, face, segmentation) | movement, Dreamy Eyes | Apache 2.0 | yes |
 
 The Python libraries (PyTorch, diffusers, transformers, FastAPI, uvicorn, Pillow, NumPy, cryptography, qrcode,
 python-osc, mido, python-rtmidi, syphon-python, mlx-whisper, psutil, …) are under permissive licences (BSD, MIT,

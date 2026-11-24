@@ -459,7 +459,7 @@ def test_ctl_reset_glides_home_and_undo_brings_everything_back(server, saved_sta
 ODD = [[], {}, [[]], {"a": [1]}, None, True, 0, -1, 1.5, 10 ** 400, float("nan"), float("inf"), "", "no-such", "x" * 3000]
 ODD_FIELDS = ["set", "cmd", "arg", "auto", "feed", "feed_end", "motion_in", "eyes_trance", "eyes_cfg", "eyes_mood",
               "seen", "arrived", "fire", "take_control", "renew_guest", "midi_learn", "midi_forget", "sensor_learn",
-              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "moved", "rule", "live",
+              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "moved", "rule", "live", "dance_map",
               "measure_report"]
 ODD_INSIDE = {"feed": ("cam", "motion", "facing"), "motion_in": ("acc", "gyro"), "eyes_cfg": ("trance_every",),
               "live": ("fps", "flow_rate"), "measure_report": ("kind", "fps", "ms_avg", "render")}
@@ -484,6 +484,7 @@ def test_ctl_ignores_invalid_values_and_stays_open(server, monkeypatch, saved_st
                        (server.hub, "live"), (server.measure, "measure")):
         monkeypatch.setattr(part, name, dict(getattr(part, name)))
     monkeypatch.setattr(server.inputs.sens, "sensitivity", server.inputs.sens.sensitivity)
+    monkeypatch.setattr(server.dance, "rows", list(server.dance.rows))
     monkeypatch.setitem(server.measure.measure, "run", True)       # reports are only read during a measurement run
     monkeypatch.setitem(server.measure.measure, "reports", {})
     monkeypatch.setattr(server.ctl, "renew_guest", lambda: asyncio.sleep(0))
