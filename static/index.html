@@ -702,10 +702,7 @@
   </div>
   <div class="row" id="cloudbox">
     <div class="btns cloudrow">
-      <select id="gpu" aria-label="Cloud GPU">
-        <optgroup label="Scaleway (Paris)"><option value="L4-1-24G">Scaleway · L4 · about €0.79/h</option><option value="L40S-1-48G">Scaleway · L40S · about €1.47/h</option><option value="H100-1-80G">Scaleway · H100 · about €2.87/h</option></optgroup>
-        <optgroup label="RunPod (Europe, own data centres)"><option value="runpod:RTX-4090">RunPod · RTX 4090 · about $0.70/h</option><option value="runpod:RTX-5090">RunPod · RTX 5090 · about $1.39/h</option><option value="runpod:H100">RunPod · H100 · about $4.39/h</option></optgroup><optgroup label="RunPod Community – private computers, cheaper (pictures at the outside provider)"><option value="runpod:RTX-4090-community">RunPod Community · RTX 4090 · from about $0.35/h</option><option value="runpod:RTX-5090-community">RunPod Community · RTX 5090 · from about $0.70/h</option><option value="runpod:H100-community">RunPod Community · H100 · from about $2.70/h</option></optgroup>
-      </select>
+      <select id="gpu" aria-label="Cloud GPU"></select><!-- #231: filled by DreamCommon.fillGpus -->
       <button class="btn" id="cloudstart">Start</button>
       <button class="btn" id="cloudstop">Delete</button>
     </div>
@@ -745,6 +742,7 @@
   const T = I18N.t;
   const num = (v, d) => { const s = (+v).toFixed(d); return I18N.lang === 'de' ? s.replace('.', ',') : s; };
   I18N.apply();
+  DreamCommon.fillGpus(document.getElementById('gpu'));   // #231: the cloud GPUs on offer, the default chosen
   document.documentElement.style.setProperty('--off-label', JSON.stringify(T('off')));   // the badge on idle cards
   document.querySelectorAll('.langsw button').forEach(b => {          // the header switch: the page reloads in it
     b.setAttribute('aria-pressed', b.dataset.lang === I18N.lang); b.onclick = () => I18N.setLang(b.dataset.lang); });
@@ -899,7 +897,7 @@
   }
 
   // ---------- connection ----------
-  // ---------- backend: local (this server) or a cloud GPU – Scaleway or RunPod (SSH tunnel on port 7861) ----------
+  // ---------- backend: local (this server) or a cloud GPU – RunPod or Scaleway (SSH tunnel on port 7861) ----------
   let backend = 'local', cloud = { state: 'off' }, cloudPort = 7861;
   function wsUrl() { return backend === 'cloud' ? `ws://127.0.0.1:${cloudPort}/ws` : `ws://${location.host}/ws`; }
   function connect() {
@@ -1822,7 +1820,7 @@
   document.querySelectorAll('#backends button').forEach(x => x.onclick = () => switchBackend(x.dataset.b));
 
   function fmtCloud(c) {
-    if (c.state === 'setup') return T('No cloud provider set up: Scaleway (“scw init”) or RunPod (key in the keychain, see README).');
+    if (c.state === 'setup') return T('No cloud provider set up: RunPod needs its key in the keychain (see README).');
     if (c.state === 'off' && c.fail) return cloudFailText(c.fail);
     if (c.state === 'off') return c.busy ? T('Working … {l}', { l: lastLine(c.log) }) : T('Off – nothing costs.');
     if (c.state === 'error') return T('Error: {e}', { e: (c.error || '') + (c.log ? ' · ' + lastLine(c.log) : '') });
@@ -1832,7 +1830,7 @@
     return T('Starting ({state}) · {money}', { state: c.state, money }) + (c.busy ? ' · ' + lastLine(c.log) : '');
   }
   const lastLine = t => ((t || '').trim().split('\n').pop() || '').slice(0, 140);
-  // #98: a failed start says why – most often the GPU quota at Scaleway is still 0
+  // #98: a failed start says why – at Scaleway most often the GPU quota is still 0
   const cloudFailText = f => f.kind === 'quota'
     ? T('Start failed: no GPU quota for {type} – ask the support in the Scaleway console under Organization → Quotas. Nothing costs.', { type: f.type + (f.zone ? ' in ' + f.zone : '') })
     : T('Start failed: {e}', { e: f.text });

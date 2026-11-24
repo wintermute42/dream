@@ -45,6 +45,7 @@
 <script src="/static/dreamlife.js"></script>
 <script src="/static/dreamyou.js"></script>
 <script src="/static/dreameye.js"></script>
+<script src="/static/dreamface.js"></script>
 <script src="/static/dreamstyle.js"></script>
 <script src="/static/world-classic.js"></script>
 <script src="/static/world-deepsea.js"></script>
@@ -198,7 +199,7 @@
     const b = c.blobs.slice().sort((p, q) => q.hits - p.hits)[0];
     fire.told = [`fire ${fire.on ? 'ON' : 'off'}   sure ${fire.sure.toFixed(2)} (on above 0.70)`, `strength ${fire.level.toFixed(2)}   fire light ${fire.e.toFixed(0)} px`,
       `warm patches ${c.blobs.length}${c.shift ? '   exposure shifts' : ''}`,
-      b ? `best: ${b.e.toFixed(0)} px, core ${Math.round(100 * b.core / b.n)} %, jumps ${b.hits.toFixed(1)} (fire above 4)${b.even ? ', even beat' : ''}${b.torn ? ', torn' : ''}` : 'no warm light'];
+      b ? `best: ${b.e.toFixed(0)} px, core ${Math.round(100 * b.core / b.n)} %, jumps ${b.hits.toFixed(1)} (fire above ${DreamFire.HITS[1]})${b.even ? ', even beat' : ''}${b.torn ? ', torn' : ''}` : 'no warm light'];
   }
   function fireDraw() {                                // as the camera sees it (not mirrored)
     const s = Math.max(1.5, Math.min(3, W / 400)), x = 8, y = 8, w = FW * s, h = FH * s;
@@ -238,6 +239,10 @@
       if (m.aimasks) {                                 // #160; #166: what the server dropped goes here too
         for (const k of Object.keys(aiFaces)) if (!(k in m.aimasks)) delete aiFaces[k];
         for (const [k, u] of Object.entries(m.aimasks)) aiFaceLoad(k, u);
+        for (const id of Object.keys(faceMarks)) if (!Object.values(m.aimasks).some(u => u.includes(id))) delete faceMarks[id];
+      }
+      if (m.marks && typeof m.marks === 'object') {    // #230: where a painted face has its eyes, brows and mouth – found once, on Dream's Mac
+        for (const [id, pts] of Object.entries(m.marks)) if (/^[0-9a-f]{12}$/.test(id) && Array.isArray(pts) && pts.length === 2 * DreamFace.PICK.length) faceMarks[id] = pts;
       }
       if (typeof m.world === 'string') { DreamStyle.use(m.world); if (vis.world !== DreamStyle.name) { vis.world = DreamStyle.name; vis.want = null; vis.face = DreamVis.turn(); } }   // #221: the style world to draw in – its own faces of light
       if (m.eyes_cfg) { trance.every = +m.eyes_cfg.trance_every || 0; tranceSchedule(performance.now(), true); }   // #172
@@ -569,7 +574,7 @@
       // where the painted face has its eyes: found once on the phone; a cat (no human face) keeps the usual place
       const fe = aiFaceEyes(img);
       aiFaces[kind] = { cv: c, img, found: !!fe || !!face.still, prev: before && before.cv, prevEyes: before && before.eyes,
-        eyes: fe || { x0: 0.375, x1: 0.625, y: 0.42 }, at: performance.now(), url };
+        eyes: fe || { x0: 0.375, x1: 0.625, y: 0.42 }, at: performance.now(), url, id: url.slice(11, 23) };
     };
     img.src = url;
   }
@@ -582,6 +587,33 @@
       return r.x - l.x > 0.08 ? { x0: l.x, x1: r.x, y: (l.y + r.y) / 2 } : null;
     } catch (e) { return null; }
   }
+  // #230: the painted face is alive, as in the dream windows. Where it has its eyes, brows and mouth comes from Dream
+  // (found once per face, by the stage on the Mac); these eyes only move the points and draw the net of triangles
+  // (static/dreamface.js) – it blinks, looks around, lifts its brows, smiles, turns its head a little. Without points
+  // (no stage open, no face found in the picture) it stays the still picture. One net at a time: the face that shows.
+  const faceMarks = {};                                // face id -> its points
+  const live = { f: null, pts: null, img: null, net: null, life: null, tier: 0, turn: 0, seen: -1e9, drawn: -1e9, at: 0 };
+  function aiFaceLive(f, t, open) {                    // open: 0 in the pupils (it looks straight out of them) … 1 the face is there
+    const pts = faceMarks[f.id];
+    if (!pts) return null;
+    const tier = perf > 45 ? 2 : perf > 30 ? 1 : 0;    // #188: a phone that runs short moves fewer pixels, less often
+    if (live.f !== f || t - live.seen > 1000) Object.assign(live, { f, tier, turn: tier ? 1 : 0, life: DreamFace.alive(t, true), drawn: -1e9, at: t });   // it comes anew
+    live.tier = Math.min(live.tier, tier);             // and if it runs short while the face is there, the face gets lighter at once
+    live.seen = t;
+    const n = [288, 384, 512][live.tier];
+    if (live.pts !== pts || live.img !== f.img || !live.net || (live.net.size || n) !== n) {   // its net: made once per visit
+      live.pts = pts; live.img = f.img; live.net = DreamFace.mesh(pts, f.img, n) || {};       // {}: points one cannot animate – still
+    }
+    if (!live.net.tris) return null;
+    if (t - live.drawn >= [110, 60, 33][live.tier]) {
+      const e = DreamFace.life(live.life, t, Math.min(0.2, (t - live.at) / 1000), { petted: touch.bliss > 0.3, pulse: dream.pulse });
+      live.at = live.drawn = t;
+      live.turn = lerp(live.turn, live.tier ? 1 : 0, 0.15);   // the weakest: no turn of the head
+      const turn = live.turn * open;
+      DreamFace.render(live.net, DreamFace.pose(live.net, { ...e, look: [e.look[0] * open, e.look[1] * open], turn: e.turn * turn, nod: e.nod * turn }), f.soft);
+    }
+    return live.net;
+  }
   // the painted face now and then takes the eyes' place: it appears in the pupils, as if seen through them, the two
   // windows grow, turn a little and merge until the face fills the screen – and later it shrinks back into the pupils
   const portal = { phase: 'off', t0: 0, kind: null, next: performance.now() + 120000, cv: document.createElement('canvas'), mk: document.createElement('canvas'), cl: document.createElement('canvas') };
@@ -590,7 +622,7 @@
   // drawn as in a dream (#229: wavering, running out into mist, the face clear for a moment; static/dreamyou.js).
   // Mirrored clearly in the iris now and then, and now
   // and then as a moment: through the pupils, large, and gone again. Nothing of it is sent – no picture, no word. ----------
-  const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 60000, moment: 0, momentNext: performance.now() + 90000,
+  const you = { iris: 0, irisUntil: 0, irisNext: performance.now() + 60000, moment: 0, momentNext: performance.now() + 150000, momentAt: -1e9,
     want: 0, clear: false, frame: null, cutAt: 0, d: DreamYou.create() };
   const youSrc = n => { const v = $('cam'); return { src: v, sw: v.videoWidth, sh: v.videoHeight, mask: seg.cv, stamp: seg.have, face, n }; };
   const youSize = () => (perf > 45 ? 448 : perf > 30 ? 352 : 256) * (dpr > 1 ? 1 : 0.8) | 0;   // #188: fewer pixels when the phone runs short
@@ -606,7 +638,7 @@
     const fresh = seg.have > 0 && t - seg.have < 1500 && $('cam').videoWidth > 0;
     if (you.want && (!present || !calm || t - you.want > 8000)) { you.want = 0; you.momentNext = t + 20000; }
     else if (you.want && fresh) {                      // it comes through the pupils like a painted face – and stays a little longer
-      you.want = 0; you.momentNext = t + (140000 + Math.random() * 120000) * pace(t);
+      you.want = 0; you.momentAt = t; you.momentNext = t + (240000 + Math.random() * 240000) * pace(t);   // rare: every 4–8 min
       you.frame = Math.random() < 0.4 ? DreamYou.FRAMES[Math.random() * DreamYou.FRAMES.length | 0] : null;   // now and then a frame
       you.d.crop = null;
       portal.kind = 'you'; portal.phase = 'in'; portal.t0 = t; portal.hold = 3000 + Math.random() * 1200;   // a glimpse, not a portrait: dreamy, clear for a moment, dreamy again (#229)
@@ -630,7 +662,8 @@
       else DreamFire.skip(fire.mind, t);               // no way through just now: the next mood
     }
     if (portal.phase === 'off' && kinds.length && t > portal.next && fx.sleep < 0.3 && !enchanted() && !you.want && !trance.on) {
-      portal.kind = kinds[Math.random() * kinds.length | 0]; portal.phase = 'in'; portal.t0 = t; portal.hold = 3000 + Math.random() * 2000;
+      portal.kind = kinds[Math.random() * kinds.length | 0]; portal.phase = 'in'; portal.t0 = t;
+      portal.hold = (faceMarks[aiFaces[portal.kind].id] ? 5000 : 3000) + Math.random() * 2000;   // #230: a living face stays a little longer
     }
     if (portal.phase === 'in' && t - portal.t0 > IN) { portal.phase = 'hold'; portal.t0 = t; }
     if (portal.phase === 'hold' && t - portal.t0 > portal.hold) { portal.phase = 'out'; portal.t0 = t; }
@@ -666,7 +699,9 @@
       DreamYou.compose(you.d, { ...youSrc(youSize()), dream: dream.cur, hue: hueOf(dream.col), t, frame: you.frame, level: Math.min(1, p * 1.6), leave,
         clear: portal.phase === 'hold' ? DreamYou.peak((t - portal.t0) / portal.hold) : 0, sparks: perf > 45 ? 24 : perf > 30 ? 14 : 8, strips: perf > 45 ? 112 : perf > 30 ? 72 : 44 });
     } else if (!f.soft) f.soft = feather(f.img);
-    const img = mine ? you.d.pic : f.soft, e = mine ? you.d.eyes : f.eyes;
+    // #230: alive if Dream knows its points – then its own eyes, exactly, come to lie on ours; else the still picture
+    const net = mine ? null : aiFaceLive(f, t, Math.max(0, Math.min(1, (p - 0.3) / 0.4)));
+    const img = mine ? you.d.pic : net ? net.cv : f.soft, e = mine ? you.d.eyes : net ? net.eyes : f.eyes;
     if (portal.cv.width !== W || portal.cv.height !== H) { portal.cv.width = portal.mk.width = portal.cl.width = W; portal.cv.height = portal.mk.height = portal.cl.height = H; }
     const pc = portal.cv.getContext('2d'), mk = portal.mk.getContext('2d'), cl = portal.cl.getContext('2d');
     // where the face sits: from "its eyes on ours" to a framed face in a cloud – not the whole screen (it stays sharp)
@@ -871,7 +906,7 @@
     if (present) you.wasPresent = true; else if (you.wasPresent) { you.wasPresent = false; you.goneAt = t; }
     if (arrived) {
       if ((you.greet = !you.greet)) { you.irisUntil = t + 4500; you.irisNext = t + (100000 + Math.random() * 100000) * pace(t); }
-      else you.momentNext = t + 1500;
+      else if (t - you.momentAt > 180000) you.momentNext = Math.min(you.momentNext, t + 1500);   // a greeting, but not right after the last one
     }
     youTick(t, present);
     const tt = tranceTick(t, dt, present);              // #172
@@ -1122,7 +1157,7 @@
     }
   };
   cv.addEventListener('pointerup', lift); cv.addEventListener('pointercancel', lift);
-  if (DEBUG) window.dreamyEyes = { st, dream, face, vis, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, portal, mirror, seg, segLoad, tempo, touch, fire, enchanted, you, trance, tranceStart, dreamIn: bm => { dream.prev = dream.cur; dream.cur = bm; dream.at = performance.now(); analyse(bm); glowIn(bm); }, eyesAt: () => eyesAt, res, dpr: () => dpr };   // for the tests only
+  if (DEBUG) window.dreamyEyes = { st, dream, face, vis, decor, fx, moodStart, spawn, bs, look, LOOKS, brow, feel, aiFaces, faceMarks, faceLive: live, portal, mirror, seg, segLoad, tempo, touch, fire, enchanted, you, trance, tranceStart, dreamIn: bm => { dream.prev = dream.cur; dream.cur = bm; dream.at = performance.now(); analyse(bm); glowIn(bm); }, eyesAt: () => eyesAt, res, dpr: () => dpr, get perf() { return perf; }, set perf(v) { perf = v; } };   // for the tests only
   view(); connect();
 })();
 </script>
