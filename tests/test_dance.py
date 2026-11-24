@@ -3,6 +3,9 @@ change it over /ctl – and what the motion sensor hands to the stage's dance de
 import asyncio
 import json
 import os
+import re
+import subprocess
+import sys
 
 import pytest
 
@@ -17,6 +20,7 @@ from test_rights import client, no_ghost_sockets, saved_state, wait_until, ws_ur
 def table(monkeypatch):
     """The table Dream holds comes back afterwards (its file is the sandbox's: conftest)."""
     monkeypatch.setattr(dance, "tables", dance.default_tables())
+    monkeypatch.setattr(dance, "sets", {})
     return dance
 
 
@@ -289,3 +293,137 @@ def test_marker_colours_are_never_fire_colours():
             settings.coerce("marker_l", bad)
     assert settings.coerce("flow_kind", "marker") == "marker"
 
+
+
+# ---------- #251: the clutch and the movement sets ----------
+def test_the_clutch_is_released_by_default_and_never_a_guests():
+    assert settings.DEFAULT_STATE["clutch"] is False and settings.DEFAULT_STATE["dance_set"] == ""
+    assert not {"clutch", "dance_set"} & settings.GUEST_KEYS
+
+
+def test_every_start_has_the_clutch_released(tmp_path):
+    """Dream starts with the dance's clutch released, whatever the last run left: it is engaged only on purpose."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env = {**os.environ, "DREAM_STATE_DIR": str(tmp_path / "state"), "DREAM_CONFIG_DIR": str(tmp_path / "config"),
+           "DREAM_SAVE_DIR": str(tmp_path / "save")}
+    os.makedirs(env["DREAM_STATE_DIR"])
+    with open(os.path.join(env["DREAM_STATE_DIR"], "state.json"), "w") as f:
+        json.dump({"clutch": True, "move_mode": "dance", "dance_set": "fire"}, f)
+    out = subprocess.run([sys.executable, "-c", "import hub; print(hub.state['clutch'], hub.state['move_mode'], hub.state['dance_set'])"],
+                         cwd=root, env=env, capture_output=True, text=True, timeout=60)
+    assert out.stdout.split() == ["False", "dance", "fire"], out.stderr      # the mode and the set are remembered, the clutch is not
+
+
+def test_the_pages_start_with_the_clutch_released_and_say_so():
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for page in ("index.html", "remote.html", "dance.html"):
+        with open(os.path.join(root, "static", page), encoding="utf-8") as f:
+            html = f.read()
+        (button,) = re.findall(r'<button[^>]*id="clutchbtn"[^>]*>[^<]*</button>', html)
+        assert 'aria-pressed="false"' in button and button.endswith(">Clutch: released</button>") and "clutchbtn on" not in button, page
+        assert re.search(r'</button>\s*<div class="clutchnote" id="clutchnote" role="status"[^>]*>Released: your dance does nothing yet', html), page
+        assert not re.search(r'id="clutch"[^>]*checked', html), page
+        assert "MoveCard.clutchShow(" in html, page
+    with open(os.path.join(root, "static", "movecard.css"), encoding="utf-8") as f:
+        assert '#clutchbtn[aria-pressed="false"]' in f.read()                # released looks different, not just reads different
+
+
+@pytest.mark.parametrize("name,ok", [("waves", True), ("My set 1", True), ("Fire+Water", True), ("a.b-c", True), ("Élan 2", True),
+                                     ("", True), (" lead", False), ("x" * 25, False), ("a/b", False), ("../x", False), ("a\nb", False), ("<b>", False)])
+def test_a_sets_name_is_a_short_plain_name(name, ok):
+    assert settings.coerce("dance_set", name) == (name if ok else "")
+    if name:
+        assert bool(dance.SET_NAME.fullmatch(name)) is ok
+
+
+def test_the_built_in_sets_are_valid_dance_tables():
+    sets = dance.builtin_sets()
+    assert list(sets) == ["standard", "waves", "fire"] and sets["standard"] == dance.default_tables()["dance"]
+    for name, rows in sets.items():
+        assert dance.clean_rows(rows) == rows and len({r["id"] for r in rows}) == len(rows), name
+        assert {r["id"] for r in dance.TOUCH_ROWS} <= {r["id"] for r in rows}, name   # the hands work in every set
+        assert not any(r["dst"].startswith("ai.") and r["on"] and r["dst"] != "ai.prompt" for r in rows), name
+    assert sets["waves"] != sets["fire"] != sets["standard"]
+
+
+def test_choosing_a_set_makes_it_the_dance_table_and_tuning_never_changes_the_set(table):
+    assert table.use_set("waves") and table.tables["dance"] == table.builtin_sets()["waves"]
+    table.set_rows([GOOD], "dance")                                      # tuned …
+    assert table.builtin_sets()["waves"] != [GOOD] and table.all_sets()["waves"] == table.builtin_sets()["waves"]   # … the set is as it was
+    for odd in ("no-such", "", None, 3, ["waves"], {"a": 1}):
+        assert table.use_set(odd) is False
+    assert table.tables["dance"] == [{**GOOD, "out": [0.0, 0.8]}]
+    assert table.tables["mood"] == table.default_tables()["mood"]        # a set is the dance's
+
+
+def test_an_own_set_is_kept_in_the_file_and_can_be_removed(table):
+    table.set_rows([GOOD], "dance")
+    assert table.save_set("My set 1") and list(table.all_sets()) == ["standard", "waves", "fire", "My set 1"]
+    with open(table.MAP_FILE) as f:
+        assert json.load(f)["sets"] == {"My set 1": [{**GOOD, "out": [0.0, 0.8]}]}
+    assert table.load_sets() == {"My set 1": [{**GOOD, "out": [0.0, 0.8]}]}
+    table.set_rows("reset", "dance")                                     # the table goes back to the built-in one, the set stays
+    assert os.path.exists(table.MAP_FILE) and table.use_set("My set 1") and table.tables["dance"] == [{**GOOD, "out": [0.0, 0.8]}]
+    # a built-in set is never overwritten, a name must be a name, and there is an end to them
+    for bad in ("waves", "standard", "", " x", "a/b", None, 7, ["x"]):
+        assert table.save_set(bad) is False, bad
+    for i in range(table.MAX_SETS + 5):
+        table.save_set(f"s{i}")
+    assert len(table.sets) == table.MAX_SETS and table.save_set("My set 1")   # an own one can always be kept again
+    assert table.delete_set("waves") is False and table.delete_set("nope") is False and table.delete_set(None) is False
+    for name in list(table.sets):
+        assert table.delete_set(name)
+    table.set_rows("reset", "dance")
+    assert table.sets == {} and not os.path.exists(table.MAP_FILE)       # nothing of the owner's left: the file goes
+
+
+def test_sets_in_a_broken_file_are_no_sets(table):
+    os.makedirs(os.path.dirname(table.MAP_FILE), exist_ok=True)
+    for broken in ('{"sets": 7}', '{"sets": {"waves": []}}', '{"sets": {"a/b": [], "ok": 7, "": []}}', '{"sets": []}'):
+        with open(table.MAP_FILE, "w") as f:
+            f.write(broken)
+        assert table.load_sets() == {}, broken
+    with open(table.MAP_FILE, "w") as f:
+        json.dump({"sets": {"mine": [GOOD, {"id": "x", "src": "energy", "dst": "nowhere"}]}}, f)
+    assert table.load_sets() == {"mine": [{**GOOD, "out": [0.0, 0.8]}]}
+
+
+@pytest.mark.parametrize("role,may", [("local", True), ("control", True), ("guest", False), ("eyes", False)])
+def test_only_control_and_this_mac_keep_remove_and_choose_sets(server, table, saved_state, role, may):
+    with client(server, role).websocket_connect(ws_url(server, "/ctl", role)) as ws:
+        assert ws.receive_json()["role"] == role
+        ws.send_text(json.dumps({"dance_map": [GOOD]}))
+        ws.send_text(json.dumps({"dance_set_save": "Mine"}))
+        ws.send_text(json.dumps({"set": {"dance_set": "fire", "clutch": True}}))
+        ws.send_text(json.dumps({"set": {"prompt": "after the sets"}}))
+        if role != "eyes":
+            wait_until(lambda: server.hub.state["prompt"] == "after the sets")
+        else:
+            ws.send_text(json.dumps({"feed": {"cam": False}}))
+    if may:
+        assert server.dance.sets == {"Mine": [{**GOOD, "out": [0.0, 0.8]}]}
+        assert server.dance.tables["dance"] == table.builtin_sets()["fire"]            # choosing the set made it the table
+        assert server.hub.state["dance_set"] == "fire" and server.hub.state["clutch"] is True
+    else:
+        assert server.dance.sets == {} and server.dance.tables == table.default_tables()
+        assert server.hub.state["dance_set"] == "" and server.hub.state["clutch"] is False
+
+
+def test_a_device_is_told_the_sets(server, table):
+    table.save_set("Mine")
+    with client(server, "control").websocket_connect(ws_url(server, "/ctl", "control")) as ws:
+        got = [ws.receive_json() for _ in range(7)]
+    (told,) = [m["dance"] for m in got if "dance" in m and "sets" in m["dance"]]
+    assert told["sets"] == ["standard", "waves", "fire", "Mine"] and told["own_sets"] == ["Mine"]
+    table.delete_set("Mine")
+
+
+def test_the_midi_button_walks_through_the_sets_and_a_scene_can_choose_one(server, table, saved_state, monkeypatch):
+    assert {"clutch", "dance_set"} <= set(server.inputs.midi.ACTIONS)
+    assert [server.inputs.next_set(n) for n in ("", "standard", "waves", "fire", "gone")] == ["standard", "waves", "fire", "standard", "standard"]
+    # whatever sets the setting – a MIDI button, a playlist scene, a page – makes the set the table
+    asyncio.run(server.hub.apply({"dance_set": "waves"}))
+    assert server.dance.tables["dance"] == table.builtin_sets()["waves"]
+    asyncio.run(server.hub.apply({"dance_set": "no such set"}))          # a name that is no set changes nothing
+    assert server.dance.tables["dance"] == table.builtin_sets()["waves"]
+    assert "dance_set" in server.settings.DEFAULT_STATE                  # so a scene's settings may carry it (scenes.py)

@@ -285,10 +285,15 @@
   </section>
 
   <section data-sec="dancelab" data-only="control">
-    <h2>🧪 Dance lab</h2>
+    <h2>Dream Dance</h2>
+    <!-- #251: the clutch and the movement set, as in the panel's Movement card -->
+    <button id="clutchbtn" class="big clutchbtn" aria-pressed="false" style="width:100%" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do.">Clutch: released</button>
+    <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
+    <input type="checkbox" id="clutch" hidden aria-hidden="true">
+    <select id="dance_set" aria-label="Movement set" style="margin-top:8px"><option value="">Set: your table</option></select>
     <div class="hint">Say how the dance control feels while you dance: Dream keeps the last seconds as numbers (what it detected, what the movement steered) – never a camera picture. The lab itself is on the Mac.</div>
     <div class="row" style="margin-top:8px"><button id="dl-good" class="big">👍 Good</button><button id="dl-bad" class="big">👎 Bad</button></div>
-    <div class="row" style="margin-top:8px"><button id="dl-rec" aria-pressed="false">● Record</button><button id="dl-open" aria-pressed="false">Lab on the stage</button></div>
+    <div class="row" style="margin-top:8px"><button id="dl-rec" aria-pressed="false">● Record</button><button id="dl-open" aria-pressed="false">Page on the Mac</button></div>
     <div id="dl-state" class="hint" role="status" aria-live="polite"></div>
   </section>
 
@@ -315,7 +320,7 @@
     <h2>MIDI · master</h2>
     <label>Master brightness (0 = black)</label><input type="range" id="master" min="0" max="1" step="0.01">
     <div id="midistate" class="hint">no MIDI device at the Mac</div>
-    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
+    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
   </section>
 
   <section data-key data-sec="motion" class="haschar">
@@ -430,7 +435,7 @@
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'drift', 'master']);
-  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion_sens', 'move_mode', 'drift', 'smooth', 'drift_prompt', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device'];
+  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion_sens', 'move_mode', 'drift', 'smooth', 'drift_prompt', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'clutch', 'dance_set'];
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount(document.getElementById('worldband'), { send: set => { Object.assign(state, set); send({ set }); } });   // (one word for all of them)
   let ws = null, state = {}, applying = false;
@@ -454,6 +459,10 @@
   const setKey = (k, v) => { state[k] = v; send({ set: { [k]: v } }); };
   // #250: the mode's buttons – the mode and the mood's strength are all of the movement card that is here; the pages
   // and the rest are the Mac's
+  // #251: the dance's clutch (the button on the phone) and the movement sets
+  let danceSets = [];
+  const clutchSync = () => MoveCard.clutchShow(document.getElementById('clutchbtn'), document.getElementById('clutch').checked, document.getElementById('clutchnote'));
+  document.getElementById('clutchbtn').onclick = () => { const c = document.getElementById('clutch'); c.checked = !c.checked; setKey('clutch', c.checked); clutchSync(); };
   const moveCard = MoveCard.mount(document.getElementById('movecard'), { send: set => Object.entries(set).forEach(([k, v]) => setKey(k, v)) });
 
   // #216: the sliders' drawing (sliders.js): what a setting "needs" to act is read from the shared state here
@@ -502,6 +511,8 @@
     if ('mode' in st) { seg('modes', 'm', st.mode); $('flowmode').classList.toggle('on', st.mode === 'flow'); }
     if ('music' in st) seg('musics', 'v', st.music);
     if ('move_mode' in st) moveCard.set({ move_mode: st.move_mode });   // #250
+    if ('clutch' in st) clutchSync();                  // #251
+    if ('dance_set' in st) { $('dance_set').dataset.want = st.dance_set; MoveCard.fillSets($('dance_set'), danceSets, st.dance_set); }
     if ('backend' in st) seg('backends', 'b', st.backend);
     if ('backend' in st || 'cloud_bridge' in st) showComputing();
     if ('running' in st) $('run').textContent = st.running ? '⏸ Pause' : T('▶ Go on');
@@ -851,6 +862,7 @@
       if (m.feeds) feedsOther(m.feeds, m.feeds_mine || []);
       if (m.sensors) devSensors(m.sensors);
       if (m.dance) danceLab(m.dance);                  // #243
+      if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; MoveCard.fillSets($('dance_set'), danceSets, $('dance_set').dataset.want || $('dance_set').value); }   // #251
       if (m.feed_taken) devStop(m.feed_taken, false, T('Another device took over.'));
       if (m.cams) fillCams(m.cams);
       if (m.schema) sliders.schema(m.schema);          // #216

@@ -19,6 +19,28 @@
   const DETECTS = new Map([['hand', () => T('Hands (AI)')], ['on', () => T('Fire/LED')], ['marker', () => T('LED markers')]]);
   function say(table, key, otherwise) { const text = table.get(key); return typeof text === 'function' ? text() : otherwise; }
   const name = mode => say(NAMES, mode, T('Off'));
+  // #251: the dance's clutch and the movement sets – what the panel, the page of Dream Dance and Dream Control show alike
+  // (released is how Dream starts: the button and the line below it say so plainly)
+  const clutchText = on => (on ? T('Clutch: engaged') : T('Clutch: released'));
+  const clutchNote = on => (on ? T('Engaged: your dance acts on top of the sliders and controllers.') : T('Released: your dance does nothing yet – engage the clutch to let it steer.'));
+  function clutchShow(btn, on, note) {
+    btn.setAttribute('aria-pressed', String(!!on)); btn.classList.toggle('on', !!on); btn.textContent = clutchText(on);
+    if (note) note.textContent = clutchNote(on);
+  }
+  const SETS = new Map([['standard', () => T('Standard')], ['waves', () => T('Waves')], ['fire', () => T('Fire')]]);
+  const setLabel = n => say(SETS, n, n);
+  // the choices of a set's select: "your table" (no set), then every set by its name; a name not in the list yet (Dream
+  // has not said so) stands as it is. Rebuilt only when something changed, so an open list is not torn away.
+  function fillSets(select, names, current) {
+    const want = [''].concat(names || []), cur = current == null ? '' : String(current);
+    if (cur && !want.includes(cur)) want.push(cur);
+    const key = want.join('\n');
+    if (select.dataset.filled !== key) {
+      select.dataset.filled = key; select.textContent = '';
+      for (const n of want) { const o = document.createElement('option'); o.value = n; o.textContent = n ? T('Set: {s}', { s: setLabel(n) }) : T('Set: your table'); select.append(o); }
+    }
+    if (select.value !== cur && document.activeElement !== select) select.value = cur;
+  }
 
   // the energy of the room in a word: {energy, conf} → text (nothing known: no source reports)
   function words(room) {
@@ -146,7 +168,7 @@
     };
   }
 
-  const api = { mount, words, chips, info, MODES, name };
+  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MoveCard = api;
 })(typeof window !== 'undefined' ? window : globalThis);

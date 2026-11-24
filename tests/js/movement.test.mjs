@@ -203,6 +203,54 @@ test('the built-in presets through the real tables: the mood has no gestures and
   assert.ok(out['stage.calm'] < 0.9, 'movement wakes it');
 });
 
+// ---------- #251: the clutch of the dance, and the dance on top of the base ----------
+test('the clutch: released, the dance is gone in a third of a second – engaged, back as softly', () => {
+  const eng = M.create({ maps: Map_ }), dt = 1 / 60;
+  run(eng, { mode: 'dance', rec: rec(0.8), clutch: true }, 0.3);
+  let was = eng.step({ mode: 'dance', tables: TABLES, rec: rec(0.8), clutch: true, dt })['fx.kaleido'], top = 0;
+  near(was, 0.8, 1e-3);
+  const at = {};
+  for (let t = dt; t <= 0.5; t += dt) {
+    const now = eng.step({ mode: 'dance', tables: TABLES, rec: rec(0.8), clutch: false, dt })['fx.kaleido'] || 0;
+    top = Math.max(top, Math.abs(now - was)); was = now;
+    if (t >= 0.15 && at.half === undefined) at.half = now;
+    if (t >= M.CLUTCH + dt && at.end === undefined) at.end = now;
+  }
+  assert.ok(top < 0.08, `largest step in one frame: ${top.toFixed(3)}`);
+  assert.ok(at.half > 0.2 && at.half < 0.6, `half way: ${at.half}`);
+  assert.equal(at.end, 0, 'after about 0.3 s only the base is left');
+  assert.equal(eng.hold, 0);
+  // engaged again: in again, as softly
+  top = 0; was = 0;
+  for (let t = 0; t < 0.5; t += dt) { const now = eng.step({ mode: 'dance', tables: TABLES, rec: rec(0.8), clutch: true, dt })['fx.kaleido'] || 0; top = Math.max(top, Math.abs(now - was)); was = now; }
+  assert.ok(top < 0.08); near(was, 0.8, 1e-3);
+  assert.ok(Math.abs(M.CLUTCH - 0.3) < 1e-9);
+});
+
+test('the clutch is the dance’s: the mood and flowtrack act whatever it says', () => {
+  for (const [mode, key] of [['mood', 'fx.pulse'], ['flowtrack', 'touch.paint']]) {
+    const eng = M.create({ maps: Map_ });
+    assert.ok(run(eng, { mode, rec: rec(0.8), clutch: false }, 0.5)[key] > 0.7, mode);
+  }
+  // a page that loads with the clutch released starts released – no flash of the dance
+  const eng = M.create({ maps: Map_ });
+  assert.equal(eng.step({ mode: 'dance', tables: TABLES, rec: rec(0.8), clutch: false, dt: 1 / 60 })['fx.kaleido'] || 0, 0);
+});
+
+test('the dance acts on top of the base: a controller moved while dancing shifts the base, the dance stays on top', () => {
+  near(M.onTop(0.2, 0.3), 0.5);
+  near(M.onTop(0.5, 0.3), 0.8);                        // the base moved up: the dance is still its 0.3 on top
+  near(M.onTop(0.5, 0), 0.5);                          // clutch released (the dance's part is 0): only the base
+  near(M.onTop(0.9, 0.3), 1);                          // never past the target's range
+  near(M.onTop(0.2, -0.5), 0);
+  near(M.onTop(0.1, -0.5, -1, 1), -0.4);               // a target that goes both ways
+  near(M.onTop(undefined, 0.3), 0.3); near(M.onTop(NaN, NaN), 0); near(M.onTop('0.25', 0.25), 0.5);
+  // through the engine: the same dance, two bases
+  const eng = M.create({ maps: Map_ });
+  const dance = run(eng, { mode: 'dance', rec: rec(0.4), clutch: true }, 0.2)['fx.kaleido'];
+  near(M.onTop(0.1, dance) - M.onTop(0.3, dance), -0.2);
+});
+
 test('a mode has its own detection: light chosen for flowtrack never becomes the dance\'s', () => {
   assert.equal(M.camKind('flowtrack', { flow: 'on', dance: 'hand' }), 'on');
   assert.equal(M.camKind('dance', { flow: 'on', dance: 'hand' }), 'hand', 'flowtrack with LEDs, then Dream Dance: hands');

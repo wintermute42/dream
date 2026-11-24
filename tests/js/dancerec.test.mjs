@@ -223,3 +223,26 @@ test('feedback without hands: a spoken word, and the wristband’s one button', 
   assert.equal(c.press(20), null); assert.equal(c.press(20.3), 'bad'); assert.equal(c.due(21), null);
   assert.equal(c.press(30), null); assert.equal(c.due(30.6), 'good'); assert.equal(c.press(30.7), null); assert.equal(c.due(31.3), 'good');
 });
+
+test('the lab says what a feature is made of, why there are no fingers and where the skeleton was lost', () => {
+  const o = L.origin('open', 'pose', 0.82);
+  assert.deepEqual([o.from, o.sure, o.known], ['skeleton (wrists)', 82, true]); assert.match(o.what, /distance between the two hands/);
+  assert.equal(L.origin('energy', 'pose+marker+sensor', 1).from, 'skeleton (wrists) + LED markers + motion sensor');
+  assert.equal(L.origin('energy', 'pose+pose', 0.5).from, 'skeleton (wrists)');
+  assert.deepEqual([L.origin('open', '', 0).from, L.origin('open', 'pose', 0).known, L.origin('open', 'pose', 0).sure], ['nothing detected', false, 0]);
+  assert.equal(L.origin('l.palm', 'hand', 0.9).from, 'hand model (21 points)'); assert.match(L.origin('r.spread', 'hand', 0.9).what, /angle/);
+  assert.equal(L.origin('tempo', undefined, 0.7).from, 'not kept in a session');
+  assert.equal(L.origin('energy', '__proto__+constructor', 1).from, '__proto__ + constructor');   // an unknown name stays a name
+  for (const k of ['energy', 'tempo', 'phase', 'open', 'turn', 'height', 'still']) assert.ok(L.origin(k, 'pose', 1).what, k);
+  // why the finger view is empty: the first thing that is missing
+  const det = { kind: 'hand', camera: 'running', fingers: true, ready: true };
+  assert.equal(L.fingerWhy(det), ''); assert.equal(L.fingerWhy(null), '');
+  assert.match(L.fingerWhy({ ...det, camera: 'camera' }), /camera is not running/);
+  assert.match(L.fingerWhy({ ...det, kind: 'marker' }), /need the detection “Hands \(AI\)”/);
+  assert.match(L.fingerWhy({ ...det, fingers: false }), /switch on “Fingers \(hand AI\)”/);
+  assert.match(L.fingerWhy({ ...det, ready: false }), /loading/);
+  // the stretches without a skeleton
+  const fr = (t, b) => ({ t, p: { b: b ? [0] : null } });
+  assert.deepEqual(L.lostSpans([fr(0, 1), fr(1, 0), fr(2, 0), fr(3, 1), fr(4, 1), fr(5, 0)]), [[1, 3], [5, 5]]);
+  assert.deepEqual(L.lostSpans([fr(0, 1), fr(1, 1)]), []); assert.deepEqual(L.lostSpans([]), []);
+});

@@ -1,15 +1,17 @@
 /* Dream – the dance lab (#243): see live what Dream makes of a dance, change the mapping while dancing, say "good" or
    "bad" without hands, record sessions and play them back.
 
-   An overlay over the stage, mounted by index.html. It shows the camera picture with the skeleton, the hands and the
-   LED markers (trails of the hands, a multiple exposure of the last poses), the output with its effects beside it, the
-   hand model's 21 points per hand large (with trails of the finger tips), and the feature stream of dance.js as
-   running curves – a gap where a value is not known. Below: one row of the mapping table to tune (target, curve,
+   A part of the page of Dream Dance (#251: static/dance.html – it reads the stage through the bridge of the window
+   that opened it). It shows the camera picture with the skeleton, the hands and the
+   LED markers (trails of the hands, a multiple exposure of the last poses) large, and right beside it the feature
+   stream of dance.js as running curves – a gap where a value is not known, a band where the skeleton was lost – with
+   what each feature is computed from, its source and how sure it is (`origin`); the output with its effects and the
+   hand model's 21 points per hand (with trails of the finger tips; `fingerWhy` says why there are none). Below: one row of the mapping table to tune (target, curve,
    ranges, smoothing – at once, undoable), and the sessions kept on this Mac.
    A session is numbers, never pictures (dancerec.js): the camera picture is drawn here and nowhere kept. Playing a
    session back puts its features in the place of the live ones, so settings can be tried without dancing again.
 
-   The lab does no work while it is closed and nothing is recorded. `tune` and `clock` are pure
+   The lab does no work while it is closed and nothing is recorded. `tune`, `clock`, `origin`, `fingerWhy` and `lostSpans` are pure
    (tests/js/dancerec.test.mjs). Looks: dancelab.css – only transform and opacity move. A global `DanceLab`. */
 (function (root) {
   'use strict';
@@ -47,6 +49,50 @@
     });
   }
 
+  // What a feature is computed from, in words, and the sources of the stream by their names.
+  const WHAT = {
+    energy: () => T('how fast the hands move, in shoulder widths a second'),
+    tempo: () => T('how often the hands’ path repeats'),
+    phase: () => T('where in its repetition the movement is'),
+    open: () => T('distance between the two hands, in shoulder widths'),
+    turn: () => T('a hand circling the middle of its own path'),
+    height: () => T('how high the hands are, measured from the shoulders'),
+    still: () => T('rest: hardly any energy for half a second'),
+    palm: () => T('how far the fingers are stretched'), spread: () => T('the angle between the fingers'), pinch: () => T('thumb on index finger'),
+  };
+  const SRC_NAMES = new Map([['pose', () => T('skeleton (wrists)')], ['marker', () => T('LED markers')], ['light', () => T('light spots')],
+    ['sensor', () => T('motion sensor')], ['hand', () => T('hand model (21 points)')], ['eyes', () => 'Dreamy Eyes'], ['camera', () => T('Mac camera')]]);
+  // origin(key, src, conf): one feature for the display – {what, from, sure (0 … 100), known}. src is the stream's
+  // source name ("pose", "pose+marker", "marker+sensor" …); undefined: not kept (a session keeps values, not sources).
+  function origin(key, src, conf) {
+    const k = String(key).replace(/^[lr]\./, ''), what = Object.prototype.hasOwnProperty.call(WHAT, k) ? WHAT[k]() : '';
+    const known = conf > 0, parts = [...new Set(String(src || '').split('+').filter(Boolean))];
+    const from = src === undefined ? T('not kept in a session') : !known || !parts.length ? T('nothing detected')
+      : parts.map(n => { const f = SRC_NAMES.get(n); return typeof f === 'function' ? f() : n; }).join(' + ');
+    return { what, from, sure: known ? Math.round(clamp(conf, 0, 1) * 100) : 0, known };
+  }
+  // Why the finger view has no hands. det: {kind, fingers, ready, camera} – what the stage detects with (null in a
+  // playback: the session has what it has). Returns a text for the whole view, or '' (then each hand speaks for itself).
+  function fingerWhy(det) {
+    if (!det) return '';
+    if (det.camera !== 'running') return T('The camera is not running.');
+    if (det.kind !== 'hand') return T('Fingers need the detection “Hands (AI)” – LED markers have no fingers.');
+    if (!det.fingers) return T('Fingers are off: switch on “Fingers (hand AI)” below – the hand model is loaded once (about 8 MB).');
+    if (!det.ready) return T('The hand model is loading (once, about 8 MB) …');
+    return '';
+  }
+  // The stretches without a skeleton: frames [{t, p: {b}}] → [[t0, t1], …] (a frame without body points, up to the next
+  // frame that has them).
+  function lostSpans(frames) {
+    const out = []; let from = null;
+    for (const f of frames) {
+      if (!f.p.b && from == null) from = f.t;
+      if (f.p.b && from != null) { out.push([from, f.t]); from = null; }
+    }
+    if (from != null && frames.length) out.push([from, frames[frames.length - 1].t]);
+    return out;
+  }
+
   function mount(box, opts) {
     const { keys, fxNames = {}, targets = {} } = opts, label = n => (root.DancePanel ? root.DancePanel.label(n, fxNames) : n);
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -58,7 +104,7 @@
     const HAND_COL = { cyan: '#35e6f0', magenta: '#f040dc', green: '#59e06a', blue: '#5b8cff' };
     const handCol = h => HAND_COL[(opts.colours() || {})[h]] || (h === 'l' ? HAND_COL.cyan : HAND_COL.magenta);
 
-    box.classList.add('dl'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', T('Dance lab')); box.hidden = true; box.textContent = '';
+    box.classList.add('dl'); box.setAttribute('role', 'region'); box.setAttribute('aria-label', T('Dance lab')); box.hidden = true; box.textContent = '';
     // ---------- the bar: what the lab is doing, record, feedback ----------
     const bar = el('header', 'dl-bar'), title = el('h2', '', T('🧪 Dance lab')), modeTxt = el('span', 'dl-mode'), tools = el('div', 'btns dl-tools');
     modeTxt.setAttribute('role', 'status');
@@ -67,8 +113,7 @@
     const voiceBtn = btn('🎙', T('Hold and say “good” or “bad” (or key V)')); voiceBtn.setAttribute('aria-label', T('Feedback by voice: hold and say “good” or “bad”'));
     const secsLab = el('label', 'dl-secs'), secsIn = el('input'), secsVal = el('span', 'val');
     secsIn.type = 'range'; secsIn.min = 1; secsIn.max = 15; secsIn.step = 1; secsLab.append(T('a feedback keeps the last'), secsIn, secsVal);
-    const closeBtn = btn(T('✕ Close'), T('Close the lab (key L or Esc)'));
-    tools.append(recBtn, goodBtn, badBtn, voiceBtn, secsLab, closeBtn); bar.append(title, modeTxt, tools);
+    tools.append(recBtn, goodBtn, badBtn, voiceBtn, secsLab); bar.append(title, modeTxt, tools);
     // ---------- the three views ----------
     const views = el('div', 'dl-views');
     const [camFig, camCv] = view(T('Camera, skeleton and markers'), T('The camera picture with the detected skeleton, the hands and the LED markers'));
@@ -77,14 +122,28 @@
     const camOpts = el('div', 'dl-opts'), [camL, camOn] = check(T('Camera picture'), true, T('Off: only skeleton, hands and markers on black')),
       [multiL, multiOn] = check(T('Multiple exposure'), false, T('Several poses of the last seconds (in playback: of the looped stretch) pale over each other')),
       [trailL, trailOn] = check(T('Hand trails'), true, T('The way of each hand as a fading line in its marker colour'));
-    camOpts.append(camL, multiL, trailL); camFig.append(camOpts);
-    const finVals = el('div', 'dl-fvals'); finFig.append(finVals);
-    views.append(camFig, outFig, finFig);
+    const camState = el('div', 'dl-camstate'); camState.setAttribute('role', 'status');
+    camOpts.append(camL, multiL, trailL); camFig.append(camState, camOpts); camFig.classList.add('dl-cam');
+    const finVals = el('div', 'dl-fvals'), finOpts = el('div', 'dl-opts'),
+      [finL, finOn] = check(T('Fingers (hand AI)'), false, T('A second model finds 21 points per hand – fist, spread fingers, pinch. Needs the detection “Hands (AI)”; loaded once, about 8 MB.'));
+    finOpts.append(finL); finFig.append(finVals, finOpts);
+    finOn.onchange = () => { if (opts.setFingers) opts.setFingers(finOn.checked); };
+    views.append(outFig, finFig);
     // ---------- the curves ----------
     const curves = el('figure', 'dl-curves'), cvCap = el('figcaption', '', T('Feature stream')), gestTxt = el('span', 'dl-gesture'), cvCv = el('canvas');
     gestTxt.setAttribute('role', 'status'); gestTxt.setAttribute('aria-live', 'polite'); cvCap.append(' ', gestTxt);
     cvCv.setAttribute('role', 'img'); cvCv.setAttribute('aria-label', T('Running curves of energy, tempo, phase, opening, turning, height and stillness; a gap where a value is not known'));
-    curves.append(cvCap, cvCv);
+    const lostKey = el('span', 'dl-lostkey', T('▮ skeleton lost')); lostKey.hidden = true; cvCap.append(' ', lostKey);
+    // what every curve is made of: its source and how sure it is, in words beside the picture
+    const srcBox = el('table', 'dl-srcs'), srcHead = el('thead'), srcBody = el('tbody'), srcRows = {};
+    { const tr = el('tr'); for (const h of [T('Feature'), T('Computed from'), T('Source now'), T('Sure')]) { const th = el('th', '', h); th.scope = 'col'; tr.append(th); } srcHead.append(tr); }
+    for (const k of STRIPS) {
+      const tr = el('tr'), name = el('th', '', label(k)), what = el('td', 'dl-srcwhat', origin(k, '', 0).what), from = el('td', 'dl-srcfrom', '–'), sure = el('td', 'dl-srcsure'), bar = el('i'), num = el('span', '', '–');
+      name.scope = 'row'; bar.setAttribute('aria-hidden', 'true'); sure.append(bar, num); tr.append(name, what, from, sure); srcBody.append(tr); srcRows[k] = { tr, from, bar, num, shown: '' };
+    }
+    const srcCap = el('caption', '', T('What each feature is computed from')); srcBox.append(srcCap, srcHead, srcBody);
+    curves.append(cvCap, cvCv, srcBox);
+    const main = el('div', 'dl-main'); main.append(camFig, curves);
     // ---------- the time line (playback) ----------
     const time = el('div', 'dl-time'); time.hidden = true;
     const playBtn = btn('⏸', T('Play / pause')), seek = el('input'), timeTxt = el('span', 'dl-clock'), band = el('canvas', 'dl-band');
@@ -118,12 +177,12 @@
     listBox.append(el('h3', '', T('Sessions and feedback')), listState, list);
     const marksList = el('ul', 'dl-list'); marksBox.append(el('h3', '', T('Feedback moments of this session')), marksList);
     cols.append(tuneBox, listBox, marksBox);
-    box.append(bar, views, curves, time, cols);
+    box.append(bar, main, views, time, cols);
     const toast = el('div', 'dl-toast'); toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); document.body.append(toast);
 
     // ---------- state ----------
     const rng = R.ring(30), press = R.clutch(0.5), undo = []; let spans = [];
-    let open = false, rec = null, player = null, raf = 0, lastT = 0, lastPack = 0, lastDraw = 0, lastOut = 0, lastVals = 0, shown = null, toastTimer = 0, undoAt = 0, undoKey = '', tuneId = null, drawnRows = '';
+    let liveSrc = null, open = false, rec = null, player = null, raf = 0, lastT = 0, lastPack = 0, lastDraw = 0, lastOut = 0, lastVals = 0, shown = null, toastTimer = 0, undoAt = 0, undoKey = '', tuneId = null, drawnRows = '';
     const active = () => open || !!rec;
     const state = () => opts.state({ open, rec: !!rec, play: !!player });
     function say(text) {
@@ -174,6 +233,11 @@
       c.fillStyle = '#000'; c.fillRect(0, 0, w, h);
       if (!player && camOn.checked && opts.video && opts.video.videoWidth) { c.globalAlpha = 0.6; c.drawImage(opts.video, 0, 0, w, h); c.globalAlpha = 1; }
       if (!f) { c.fillStyle = C.muted; c.font = '13px system-ui'; c.textAlign = 'center'; c.fillText(T('nothing detected – is “Movement” on?'), w / 2, h / 2); return; }
+      if (skeletonWanted(frames) && !f.p.b) {            // this frame has no skeleton: plain to see, in the picture itself
+        c.strokeStyle = C.warn; c.lineWidth = 4; c.strokeRect(2, 2, w - 4, h - 4);
+        c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(0, 0, w, 30); c.fillStyle = C.warn; c.font = '600 14px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(T('Skeleton lost – no body found in this picture'), w / 2, 15); c.textBaseline = 'alphabetic';
+      }
       if (trailOn.checked) {
         for (const hnd of ['l', 'r']) {
           const tr = frames.filter(x => f.t - x.t <= 1.5).map(x => R.wrist(x, hnd)); c.strokeStyle = handCol(hnd); c.lineWidth = 3; c.lineCap = 'round';
@@ -188,6 +252,35 @@
       }
       figure(c, w, h, f, 1, false);
     }
+    // Is a skeleton to be expected? Live: when the stage detects with the body model; in a session: when it has one anywhere in view.
+    const detect = () => (player || !opts.detect ? null : opts.detect());
+    function skeletonWanted(frames) { const d = detect(); return d ? d.kind === 'hand' : frames.some(x => x.p.b); }
+    const KIND_NAMES = new Map([['hand', () => T('Hands (AI)')], ['marker', () => T('LED markers')], ['on', () => T('Fire/LED')]]);
+    // the line below the camera: what Dream detects with, and what it found in the newest frame
+    function camLine(frames, f) {
+      const d = detect(), kind = d && KIND_NAMES.get(d.kind), parts = [];
+      if (d) parts.push(d.camera === 'running' ? T('Detects with: {k}', { k: typeof kind === 'function' ? kind() : T('nothing') }) : d.status || T('The camera is not running.'));
+      else if (player) parts.push(T('Playback of a session'));
+      if (f) {
+        if (skeletonWanted(frames)) parts.push(f.p.b ? T('skeleton found') : T('skeleton lost'));
+        for (const hnd of ['l', 'r']) {
+          const c0 = f.i.h[hnd][0], name = hnd === 'l' ? T('left hand') : T('right hand');
+          parts.push(c0 ? T('{h}: {s} ({p} %)', { h: name, s: origin('', R.SRC[c0[3]] || 'pose', 1).from, p: Math.round(c0[2] * 100) }) : T('{h}: not seen', { h: name }));
+        }
+      }
+      const t = parts.join(' · ');
+      if (camState.textContent !== t) camState.textContent = t;
+      camState.classList.toggle('warn', !!f && skeletonWanted(frames) && !f.p.b);
+    }
+    // the table of sources: live from the stream's record, in a playback from the session (values and confidences only)
+    function drawSources(f, src) {
+      for (const k of STRIPS) {
+        const row = srcRows[k], i = keys.indexOf(k), o = origin(k, player ? undefined : (src && src[k]) || '', f ? f.c[i] : 0), key = o.from + '|' + o.sure;
+        if (row.shown === key) continue;
+        row.shown = key; row.from.textContent = o.from; row.num.textContent = o.known ? o.sure + ' %' : '–';
+        row.bar.style.transform = `scaleX(${(o.sure / 100).toFixed(2)})`; row.tr.classList.toggle('unknown', !o.known);
+      }
+    }
     function drawOut(now) {
       if (now - lastOut < 66) return; lastOut = now;       // the output beside it: fifteen times a second is plenty
       const g = ctxOf(outCv); if (!g) return; const [c, w, h] = g;
@@ -197,11 +290,19 @@
     function drawFingers(frames) {
       const g = ctxOf(finCv); if (!g) return; const [c, w, h] = g, f = frames[frames.length - 1], asp = f ? f.i.a : 16 / 9;
       c.fillStyle = '#000'; c.fillRect(0, 0, w, h); c.lineCap = 'round';
+      const why = fingerWhy(detect());
+      if (why) {                                         // no fingers at all, and why: across the whole view, in lines that fit
+        c.fillStyle = C.muted; c.font = '13px system-ui'; c.textAlign = 'center';
+        const lines = []; let line = '';
+        for (const word of why.split(' ')) { const next = line ? line + ' ' + word : word; if (c.measureText(next).width > w - 32 && line) { lines.push(line); line = word; } else line = next; }
+        lines.push(line); lines.forEach((l, n) => c.fillText(l, w / 2, h / 2 + (n - (lines.length - 1) / 2) * 18));
+        return;
+      }
       ['l', 'r'].forEach((hnd, n) => {
         const x0 = n * w / 2, bw = w / 2, pts = f && R.hand21(f, hnd);
         c.strokeStyle = C.line; c.lineWidth = 1; c.strokeRect(x0 + 4.5, 4.5, bw - 9, h - 9);
         c.fillStyle = C.muted; c.font = '12px system-ui'; c.textAlign = 'left'; c.fillText(hnd === 'l' ? T('Left hand') : T('Right hand'), x0 + 12, 22);
-        if (!pts) { c.textAlign = 'center'; c.fillText(T('no hand'), x0 + bw / 2, h / 2); return; }
+        if (!pts) { c.textAlign = 'center'; c.fillText(player ? T('no hand') : T('no hand in the picture'), x0 + bw / 2, h / 2); return; }
         // each pose is placed by its own wrist and palm, so the fingers' movement shows – not the hand's way through the picture
         const place = p => { const palm = Math.hypot((p[9][0] - p[0][0]) * asp, p[9][1] - p[0][1]) || 1e-6, k = 0.26 * h / palm;
           return p.map(q => [x0 + bw / 2 + (q[0] - p[0][0]) * asp * k, h * 0.86 + (q[1] - p[0][1]) * k]); };
@@ -221,7 +322,7 @@
     function drawCurves(frames, t1, cursor, marks) {
       const g = ctxOf(cvCv); if (!g) return; const [c, w, h] = g, idx = k => keys.indexOf(k);
       const hands = ['l', 'r'].filter(hd => frames.some(f => f.c[idx(hd + '.palm')] > 0));
-      const strips = [...STRIPS, ...hands.flatMap(hd => FINGER_STRIPS.map(k => hd + '.' + k))], top = 20, sh = (h - top) / strips.length, x0 = 86, x1 = w - 46;
+      const strips = [...STRIPS, ...hands.flatMap(hd => FINGER_STRIPS.map(k => hd + '.' + k))], top = 20, sh = (h - top) / strips.length, x0 = hands.length ? 150 : 86, x1 = w - 46;   // room for a finger strip's longer name
       const X = t => x1 - (t1 - t) / WINDOW * (x1 - x0);
       c.clearRect(0, 0, w, h); c.font = '11px system-ui'; c.textBaseline = 'middle';
       // the band of recognised gestures along the top, and the feedback marks through everything
@@ -229,6 +330,12 @@
       const flush = end => { if (!run) return; c.globalAlpha = 0.35; c.fillRect(X(run.t0), 2, Math.max(2, X(end) - X(run.t0)), top - 6); c.globalAlpha = 1; c.fillStyle = C.text; c.textAlign = 'left'; c.fillText(label('g.' + run.g), Math.max(x0, X(run.t0)) + 4, top / 2 - 1); c.fillStyle = C.accent; run = null; };
       for (const f of frames) { if (run && f.g !== run.g) flush(f.t); if (f.g && !run) run = { g: f.g, t0: f.t }; }
       if (frames.length) flush(frames[frames.length - 1].t);
+      // where the skeleton was lost: a band through all curves – what they show there comes without a body
+      const lost = skeletonWanted(frames) ? lostSpans(frames) : [];
+      lostKey.hidden = !lost.length;
+      c.fillStyle = C.warn; c.globalAlpha = 0.16;
+      for (const [a, b] of lost) { const xa = Math.max(x0, X(a)), xb = Math.min(x1, Math.max(X(b), X(a) + 2)); if (xb > xa) c.fillRect(xa, top, xb - xa, h - top); }
+      c.globalAlpha = 1;
       strips.forEach((k, n) => {
         const y0 = top + n * sh, mid = k === 'turn', i = idx(k), base = mid ? y0 + sh / 2 : y0 + sh - 3, amp = mid ? sh / 2 - 3 : sh - 6, fing = k.includes('.');
         c.strokeStyle = C.line; c.lineWidth = 1; c.beginPath(); c.moveTo(x0, base + 0.5); c.lineTo(x1, base + 0.5); c.stroke();
@@ -403,7 +510,7 @@
     loopB.onclick = () => { if (player && loopFrom != null && player.pos > loopFrom) player.setLoop(loopFrom, player.pos); };
     loopOff.onclick = () => { if (player) { player.setLoop(null); loopFrom = null; } };
     liveBtn.onclick = live;
-    recBtn.onclick = () => record(); goodBtn.onclick = () => feedback('good', 'panel'); badBtn.onclick = () => feedback('bad', 'panel'); closeBtn.onclick = () => show(false);
+    recBtn.onclick = () => record(); goodBtn.onclick = () => feedback('good', 'panel'); badBtn.onclick = () => feedback('bad', 'panel');
     secsIn.oninput = () => { opts.setSecs(+secsIn.value); secsVal.textContent = T('{n} s', { n: secsIn.value }); };
     voiceBtn.addEventListener('mousedown', () => opts.voice(true)); voiceBtn.addEventListener('mouseup', () => opts.voice(false)); voiceBtn.addEventListener('mouseleave', () => opts.voice(false)); voiceBtn.addEventListener('blur', () => opts.voice(false));
     voiceBtn.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); opts.voice(true); } });
@@ -431,7 +538,7 @@
       } else {
         const s = opts.live();
         if (s && now - lastPack >= 1000 / R.RATE - 2) {
-          lastPack = now; const f = R.pack(now / 1000, keys, s.rec, s.input, s.landmarks, s.out); rng.push(f);
+          lastPack = now; liveSrc = s.rec.src; const f = R.pack(now / 1000, keys, s.rec, s.input, s.landmarks, s.out); rng.push(f);
           if (rec && !rec.add(now / 1000, t => ({ ...f, t: Math.round(t * 1e5) / 1e5 }))) { record(false); say(T('The recording is full ({t}) – it was kept.', { t: clock(R.MAX_SECONDS) })); }
         }
         frames = shown = rng.tail(WINDOW); t1 = now / 1000;     // time runs on: when nothing comes, the curves end and the gap grows
@@ -444,11 +551,13 @@
         if (gestTxt.textContent !== g) gestTxt.textContent = g;
         drawTune(rowsNow()); drawTuneCurve(f);
         if (now - lastVals > 200) {
-          lastVals = now; mode();
-          const i = k => keys.indexOf(k), pc = v => Math.round(v * 100) + ' %';
-          finVals.textContent = f ? ['l', 'r'].map(hd => (f.c[i(hd + '.palm')] > 0
+          lastVals = now; mode(); camLine(shown, f); drawSources(f, liveSrc);
+          const i = k => keys.indexOf(k), pc = v => Math.round(v * 100) + ' %', det = detect(), why = fingerWhy(det);
+          if (det && document.activeElement !== finOn) finOn.checked = !!det.fingers;
+          finOn.disabled = !!player || !opts.setFingers || (!!det && det.kind !== 'hand');
+          finVals.textContent = why || !f ? why : ['l', 'r'].map(hd => (f.c[i(hd + '.palm')] > 0
             ? `${hd === 'l' ? T('Left hand') : T('Right hand')}: ${label('palm')} ${pc(f.v[i(hd + '.palm')])} · ${label('spread')} ${pc(f.v[i(hd + '.spread')])}${f.v[i(hd + '.pinch')] > 0.5 ? ' · ' + label('pinch') : ''}${f.v[i(hd + '.snap')] > 0.3 ? ' · ' + label('snap') : ''} (${pc(f.c[i(hd + '.palm')])})`
-            : `${hd === 'l' ? T('Left hand') : T('Right hand')}: ${T('lost')}`)).join('\n') : '';
+            : `${hd === 'l' ? T('Left hand') : T('Right hand')}: ${player ? T('lost') : T('no hand in the picture')}`)).join('\n');
         }
         if (player) {
           if (document.activeElement !== seek) seek.value = player.pos;
@@ -458,12 +567,11 @@
     }
     function show(on = !open) {
       if (on === open) return;
-      open = on; box.hidden = !on; document.body.classList.toggle('dancelab-open', on);
-      if (on) { secsIn.value = opts.secs(); secsVal.textContent = T('{n} s', { n: secsIn.value }); drawnRows = ''; mode(); refresh(); loop(); closeBtn.focus(); }
+      open = on; box.hidden = !on;
+      if (on) { secsIn.value = opts.secs(); secsVal.textContent = T('{n} s', { n: secsIn.value }); drawnRows = ''; mode(); refresh(); loop(); }
       else { live(); if (!rec) rng.clear(); }
       state();
     }
-    document.addEventListener('keydown', e => { if (open && e.key === 'Escape') { e.stopPropagation(); show(false); } });
 
     return { show, record, feedback, refresh, get open() { return open; }, get active() { return active(); }, get recording() { return !!rec; }, get playing() { return !!player; },
       // a wristband's one button: one press "good", two right after each other "bad"
@@ -473,7 +581,7 @@
       secs(v) { if (document.activeElement !== secsIn) { secsIn.value = v; secsVal.textContent = T('{n} s', { n: Math.round(v) }); } } };
   }
 
-  const api = { mount, tune, clock };
+  const api = { mount, tune, clock, origin, fingerWhy, lostSpans };
   if (node) module.exports = api;
   else root.DanceLab = api;
 })(typeof window !== 'undefined' ? window : globalThis);
