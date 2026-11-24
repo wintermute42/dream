@@ -1,0 +1,230 @@
+"""The movement engine in Dream itself (#249): the modes as presets, the register of the sources that are not in the
+stage (movement.py), what Dreamy Eyes may say of the movement in front of them (ctl.py), the senders of sensor values
+as sources (sensors.py, inputs.py), and the settings of earlier versions carried over (settings.moved)."""
+import asyncio
+import json
+
+import pytest
+
+import dance
+import movement
+import sensors
+import settings
+from test_rights import client, no_ghost_sockets, saved_state, wait_until, ws_url  # noqa: F401  (the roles' devices; nothing left behind)
+
+
+def state(**changes) -> dict:
+    return {**settings.DEFAULT_STATE, **changes}
+
+
+# ---------- the modes ----------
+def test_the_modes_are_one_list_everywhere():
+    assert tuple(movement.MODES) == settings.MOVE_MODES == ("off", "mood", "flowtrack", "dance")
+    assert set(dance.MODES) == set(settings.MOVE_MODES) - {"off"}                # every mode but "off" has its table
+    assert settings.SETTINGS["move_mode"].choices == settings.MOVE_MODES      # one setting: the modes exclude each other
+    assert not any("window" in k for k in settings.MOVE_SOURCES)                # dream windows are no source
+
+
+def test_the_macs_camera_runs_only_for_a_mode_that_needs_it():
+    assert not movement.camera_on(state())                                       # off: no camera
+    assert movement.camera_on(state(move_mode="flowtrack")) and movement.camera_on(state(move_mode="dance"))
+    assert not movement.camera_on(state(move_mode="mood"))                      # the mood runs without it …
+    assert movement.camera_on(state(move_mode="mood", move_cam=True))           # … unless asked
+    assert not movement.camera_on(state(move_mode="off", move_cam=True))
+    assert not movement.camera_on(state(move_mode="dance", move_off="camera"))  # switched off is off
+    assert not movement.camera_on(state(move_mode="who-knows"))                 # fail closed
+
+
+def test_a_mode_listens_only_to_its_sources():
+    mood, flow = state(move_mode="mood"), state(move_mode="flowtrack")
+    assert [k for k in settings.MOVE_SOURCES if movement.uses(mood, k)] == ["eyes", "phone", "band"]
+    assert [k for k in settings.MOVE_SOURCES if movement.uses(flow, k)] == ["camera", "phone", "band"]   # the eyes: the mood's
+    assert not any(movement.uses(state(), k) for k in settings.MOVE_SOURCES)
+    assert not movement.uses(state(move_mode="mood", move_off="eyes+band"), "eyes")
+    assert movement.uses(state(move_mode="mood", move_off="eyes+band"), "phone")
+
+
+def test_the_switched_off_sources_are_known_kinds_each_once():
+    assert settings.coerce("move_off", "band+eyes+band+window+../x") == "band+eyes"
+    assert settings.coerce("move_off", "") == "" and settings.coerce("move_off", "nothing") == ""
+    assert movement.off_kinds({"move_off": None}) == set() and movement.off_kinds({}) == set()
+
+
+# ---------- the register ----------
+def test_a_source_has_a_name_a_kind_and_a_state():
+    reg, st = movement.Sources(), state(move_mode="mood")
+    for i in range(11):                                                          # five values a second for two seconds
+        assert reg.report("eyes:1", "eyes", "Dreamy Eyes 1", 0.4, 0.8, now=100 + i * 0.2)
+    (s,) = reg.listing(st, now=102.1)
+    assert s == {"id": "eyes:1", "kind": "eyes", "name": "Dreamy Eyes 1", "on": True, "used": True, "active": True,
+                 "rate": 5.0, "conf": 0.8, "energy": 0.4}
+    (s,) = reg.listing(st, now=102.0 + movement.FRESH + 0.1)                     # silent: it says so, and keeps no energy
+    assert (s["active"], s["rate"], s["conf"], s["energy"]) == (False, 0.0, 0.0, 0.0)
+    assert reg.listing(st, now=102.0 + movement.GONE + 1) == []                  # and after a while it is gone
+    assert reg.report("eyes:1", "eyes", "Dreamy Eyes 1", 0.4, now=200) and reg.listing(state(move_off="eyes"), now=200)[0]["on"] is False
+    assert reg.listing(state(move_mode="dance"), now=200)[0]["used"] is False    # the dance does not listen to the eyes
+    reg.drop("eyes:1")
+    assert reg.listing(st, now=200) == []
+
+
+@pytest.mark.parametrize("energy,conf", [(None, 1), ("0.5", 1), (True, 1), (float("nan"), 1), (float("inf"), 1), (10 ** 400, 1),
+                                         ([0.5], 1), ({}, 1), (0.5, None), (0.5, "x"), (0.5, float("nan")), (0.5, [1])])
+def test_a_value_that_is_no_number_is_not_taken(energy, conf):
+    reg = movement.Sources()
+    assert reg.report("eyes:1", "eyes", "x", energy, conf, now=1) is False and reg.items == {}
+
+
+def test_values_are_held_in_their_range_and_kinds_and_the_list_have_an_end():
+    reg = movement.Sources()
+    assert reg.report("a", "eyes", "n" * 500, 7, -3, now=1)
+    assert (reg.items["a"]["energy"], reg.items["a"]["conf"], len(reg.items["a"]["name"])) == (1.0, 0.0, 40)
+    assert reg.report("b", "window", "a dream window", 0.5, now=1) is False      # no such kind of source
+    for i in range(100):
+        reg.report(f"e{i}", "eyes", "x", 0.1, now=1)
+    assert len(reg.items) == movement.MAX_SOURCES
+    assert reg.report("late", "eyes", "x", 0.1, now=2 + movement.GONE)           # the silent ones make room
+
+
+def test_the_rooms_energy_is_a_mean_weighted_by_confidence():
+    src = lambda e, c, **k: {"energy": e, "conf": c, "active": True, "used": True, **k}   # noqa: E731
+    assert movement.room_energy([]) == (0.0, 0.0)
+    e, c = movement.room_energy([src(0.8, 1.0), src(0.2, 1.0)])
+    assert e == pytest.approx(0.5) and c == pytest.approx(1.0)
+    e, c = movement.room_energy([src(1.0, 0.1), src(0.0, 0.9)])                  # an unsure wild one does not rule a calm room
+    assert e == pytest.approx(0.1) and c == pytest.approx(0.91)
+    quiet = [src(0.05, 0.8) for _ in range(5)]
+    assert movement.room_energy(quiet + [src(1.0, 0.8)])[0] < 0.25               # one lively phone among five quiet ones
+    # what is silent, switched off or not the mode's does not count
+    assert movement.room_energy([src(1.0, 1.0, active=False), src(1.0, 1.0, used=False), src(1.0, 0.0), src(0.3, 0.5)])[0] == pytest.approx(0.3)
+
+
+# ---------- Dreamy Eyes: a number, never a picture ----------
+@pytest.fixture
+def register(server, monkeypatch):
+    monkeypatch.setattr(server.movement, "sources", movement.Sources())
+    monkeypatch.setattr(server.ctl, "eyes_ids", {})
+    return server.movement.sources
+
+
+def test_dreamy_eyes_report_their_energy_and_nothing_else(server, register, saved_state):
+    server.hub.state.update(move_mode="mood", move_off="", prompt="before")
+    with client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes")) as ws:
+        assert ws.receive_json()["role"] == "eyes"
+        ws.send_text(json.dumps({"move": {"e": 0.6, "c": 0.9, "picture": "x" * 100, "name": "someone"},
+                                 "set": {"prompt": "from the eyes", "move_mode": "off"}, "dance_map": []}))
+        wait_until(lambda: register.items)
+        (item,) = register.items.values()
+        assert (item["kind"], item["energy"], item["conf"]) == ("eyes", 0.6, 0.9)
+        assert set(item) == {"kind", "name", "at", "energy", "conf", "n", "rate", "since"}   # nothing of the person, no picture
+        assert item["name"].startswith("Dreamy Eyes ")
+        assert server.hub.state["prompt"] == "before" and server.hub.state["move_mode"] == "mood"   # the eyes set nothing
+        assert server.dance.tables == server.dance.default_tables()
+        for odd in ([], "x", None, 3, {"e": "0.5"}, {"e": [1]}, {"c": 1}, {"e": float("inf")}):
+            ws.send_text(json.dumps({"move": odd}))
+        ws.send_text(json.dumps({"move": {"e": 0.6}, "seen": "last"}))
+    wait_until(lambda: not register.items)                                       # gone with the page
+    assert server.ctl.eyes_ids == {}
+
+
+def test_only_dreamy_eyes_pages_are_eyes(server, register, saved_state):
+    """A guest (or Dream Control as a remote) cannot pose as a pair of eyes: `move` is read from Dreamy Eyes pages only."""
+    for role in ("guest", "control"):
+        with client(server, role).websocket_connect(ws_url(server, "/ctl", role)) as ws:
+            assert ws.receive_json()["role"] == role
+            ws.send_text(json.dumps({"move": {"e": 1.0, "c": 1.0}}))
+            ws.send_text(json.dumps({"set": {"prompt": "mark " + role}}))
+            wait_until(lambda: server.hub.state["prompt"] == "mark " + role)
+        assert register.items == {}, role
+
+
+def test_a_device_is_told_the_sources_but_the_eyes_are_not(server, register, saved_state):
+    register.report("eyes:9", "eyes", "Dreamy Eyes 9", 0.3, 0.7)
+    with client(server, "control").websocket_connect(ws_url(server, "/ctl", "control")) as ws:
+        got = [ws.receive_json() for _ in range(7)]
+    (told,) = [m["move"] for m in got if "move" in m]
+    assert [s["id"] for s in told["sources"]] == ["eyes:9"]
+    with client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes")) as ws:
+        got = [ws.receive_json() for _ in range(2)]
+    assert not any("move" in m for m in got)
+
+
+# ---------- phones and wristbands ----------
+def test_every_sender_of_sensor_values_is_a_source(server, register, monkeypatch):
+    sens = sensors.Sensors()
+    monkeypatch.setattr(server.inputs, "sens", sens)
+    monkeypatch.setattr(server.inputs, "sources_told", {"msg": None})
+    monkeypatch.setitem(server.hub.state, "move_mode", "dance")
+    monkeypatch.setitem(server.hub.state, "move_off", "")
+    sent = []
+
+    async def broadcast(msg, exclude=None, only=None):
+        sent.append(msg)
+    monkeypatch.setattr(server.hub, "broadcast", broadcast)
+    for _ in range(20):
+        sens.on_osc("/device/gyroscope", [4.0, 0.0, 0.0], server.inputs.SENDER_PHONE)
+        sens.on_osc("/band/gyro", [0.0, 8.0, 0.0], "192.0.2.7")
+        sens.on_osc("/band/accelerometer", [0.0, 9.8, 0.0], "192.0.2.7")       # no swing: it changes nothing of the energy
+    asyncio.run(server.inputs.sources_tell())
+    by = {s["id"]: s for s in sent[-1]["move"]["sources"]}
+    assert set(by) == {"phone:Dream Control", "band:192.0.2.7"}
+    assert by["phone:Dream Control"]["kind"] == "phone" and by["band:192.0.2.7"]["kind"] == "band"
+    assert by["phone:Dream Control"]["energy"] == pytest.approx(0.5, abs=0.01) and by["band:192.0.2.7"]["energy"] == pytest.approx(1.0, abs=0.01)
+    assert all(s["active"] and s["used"] and s["on"] for s in by.values())
+    asyncio.run(server.inputs.sources_tell())
+    assert len(sent) == 1                                                        # told only when something changed
+    monkeypatch.setitem(server.hub.state, "move_off", "band")
+    asyncio.run(server.inputs.sources_tell())
+    assert {s["id"]: s["on"] for s in sent[-1]["move"]["sources"]} == {"phone:Dream Control": True, "band:192.0.2.7": False}
+
+
+def test_the_senders_have_an_end():
+    sens = sensors.Sensors()
+    for i in range(50):
+        sens.on_osc("/x/gyro", [1.0, 1.0, 1.0], f"192.0.2.{i}")
+    assert len(sens.by) == 8
+
+
+def test_presence_and_rules_count_only_while_the_camera_runs(server, monkeypatch, saved_state):
+    seen = []
+
+    async def note(*a):
+        seen.append(a)
+    monkeypatch.setattr(server.inputs, "on_presence", note)
+    monkeypatch.setattr(server.inputs, "on_rule", note)
+    for mode, cam, counts in (("off", False, 0), ("mood", False, 0), ("mood", True, 2), ("dance", False, 2), ("flowtrack", False, 2)):
+        seen.clear()
+        server.hub.state.update(move_mode=mode, move_cam=cam, move_off="", prompt="")
+        with client(server, "local").websocket_connect(ws_url(server, "/ctl", "local") + "?role=stage") as ws:
+            assert ws.receive_json()["role"] == "local"
+            ws.send_text(json.dumps({"moved": True, "rule": "Fire on"}))
+            ws.send_text(json.dumps({"set": {"prompt": "mark"}}))
+            wait_until(lambda: server.hub.state["prompt"] == "mark")
+        assert len(seen) == counts, (mode, cam)
+
+
+# ---------- settings of earlier versions ----------
+@pytest.mark.parametrize("old,mode,kind", [
+    ({"flowtrack": "off", "flow_kind": "marker"}, "off", "marker"),              # the switch was off: movement is off
+    ({"flowtrack": "hand"}, "dance", "hand"),                                    # hands, dance on (it was the default)
+    ({"flowtrack": "hand", "dance": True}, "dance", "hand"),
+    ({"flowtrack": "marker", "dance": False}, "flowtrack", "marker"),            # the dance was switched off
+    ({"flowtrack": "on", "dance": True, "flow_kind": "hand"}, "flowtrack", "on"),   # fire and LEDs: flowtrack
+    ({"flowtrack": "maybe"}, "off", "hand"), ({"flowtrack": ["hand"]}, "off", "hand"), ({}, "off", "hand"),
+])
+def test_the_old_movement_switch_becomes_the_mode(old, mode, kind):
+    got = settings.loaded({**old, "motion_sens": 1.7, "touch_amt": 0.4, "touch_paint": False})
+    assert (got["move_mode"], got["flow_kind"]) == (mode, kind)
+    assert (got["motion_sens"], got["touch_amt"]) == (1.7, 0.4)                  # what stays a setting stays as it was
+    assert set(got) == set(settings.DEFAULT_STATE)                               # the old keys are gone
+
+
+def test_a_state_of_today_is_left_alone():
+    got = settings.loaded({"move_mode": "mood", "flowtrack": "hand", "flow_kind": "on"})
+    assert (got["move_mode"], got["flow_kind"]) == ("mood", "on")
+    assert settings.moved({"move_mode": "off", "flowtrack": "on"}) == {"move_mode": "off", "flowtrack": "on"}
+
+
+def test_the_old_settings_are_no_settings_any_more():
+    gone = {"flowtrack", "dance", "motion", "motion_ai", "touch_paint", "touch_warp", "touch_content", "touch_impulse", "touch_light"}
+    assert not gone & set(settings.SETTINGS)
+    assert set(dance.OLD_SWITCHES) <= gone and {"paint", "warp", "content", "impulse", "light"} == set(dance.OLD_SWITCHES.values())

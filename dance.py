@@ -1,16 +1,17 @@
-"""Dance steers the dream (#235): the mapping table – which movement does what – as data, kept in one file.
+"""Movement steers the dream (#235, #249): the mapping tables – which movement does what – as data, kept in one file.
 
-The stage detects the movement (static/dance.js: a stream of continuous features and gestures) and applies the table
-every frame (static/dancemap.js); this module owns the table: its built-in rows, what a row may say, and the file
-`~/.config/dream/dance.json` the owner's changes are kept in (never in the repository). A row:
+The stage detects the movement (static/dance.js: a stream of continuous features and gestures, fed by every source of
+the register – static/movement.js) and applies a table every frame (static/dancemap.js); this module owns the tables:
+one per movement mode (#249: a mode is nothing but its table – mood, flowtrack, dance), their built-in rows, what a
+row may say, and the file `~/.config/dream/dance.json` the owner's changes are kept in (never in the repository). A row:
 
   {"id": "throw", "on": true, "src": "g.throw", "dst": "fx.feedback", "curve": "lin",
    "in": [0, 1], "out": [0, 1], "smooth": 0.15, "origin": "fixed"}
 
-`src` is a name in the feature stream (a feature, "g.<gesture>", "<hand>.<finger value>"; gestures taught later and
-glove sensors add names of the same kind), `dst` a target of the one interface for the instant layer and the AI
-sliders, `origin` who filled the row: "fixed" (built in), "own" (set by hand), "taught" (a taught gesture) or
-"learned" (learned by showing) – all of them are rows of this one table.
+`src` is a name in the feature stream (a feature, "g.<gesture>", "<hand>.<finger value>", "present": someone is
+there; gestures taught later and glove sensors add names of the same kind), `dst` a target of the one interface for
+the instant layer, the direct interaction and the AI sliders, `origin` who filled the row: "fixed" (built in), "own"
+(set by hand), "taught" (a taught gesture) or "learned" (learned by showing) – all of them are rows of these tables.
 Nothing here loads PyTorch."""
 import json
 import math
@@ -24,10 +25,15 @@ MAP_FILE = os.path.join(paths.config_dir(), "dance.json")
 MAX_ROWS = 64
 CURVES = ("lin", "soft", "hard", "s")
 ORIGINS = ("fixed", "own", "taught", "learned")
-# the one target interface: the instant layer (an effect's amount, all effects, the beat's push, turning) and the slow
-# AI sliders (added on top of the slider)
-TARGETS = (("fx.amt", "fx.pulse", "fx.spin") + tuple("fx." + e for e in playlists.FX)
-           + ("ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue"))
+MODES = ("mood", "flowtrack", "dance")              # the movement modes that have a table ("off" has none)
+# the one target interface: the instant layer (an effect's amount, all effects, the beat's push, turning, the tempo of
+# the picture's own motion, how calm the dream is), the direct interaction (#249: what the hands do to the picture –
+# paint, stir, impulses, light in the dark, and whether movement shapes the effects) and the slow AI sliders (added on
+# top of the slider; "ai.prompt": the prompt between its calm and its wild words, "ai.react": speed and place of the
+# movement push transformation, zoom, rotation and colour drift)
+TARGETS = (("fx.amt", "fx.pulse", "fx.spin", "fx.speed") + tuple("fx." + e for e in playlists.FX)
+           + ("stage.calm", "touch.paint", "touch.warp", "touch.impulse", "touch.light", "touch.shape")
+           + ("ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue", "ai.prompt", "ai.react"))
 SRC = re.compile(r"[a-z][a-z0-9_]{0,23}(\.[a-z0-9_]{1,24})?")
 ID = re.compile(r"[a-z0-9_-]{1,24}")
 
@@ -50,6 +56,35 @@ DEFAULT_ROWS = [
     _row("pulse", "pulse", "fx.pulse", out=1.0, smooth=0.0),
     {**_row("turn", "turn", "fx.spin", lo=-1.0, hi=1.0, smooth=0.2), "out": [-1.0, 1.0]},
 ]
+
+
+# #249: the direct interaction as rows – part of the flowtrack and of the dance preset. While someone is there the
+# hands paint, stir and set off impulses and the movement shapes the effects; the energy blends the prompt between
+# its calm and its wild words. Light in the dark and the push on the AI sliders wait to be switched on.
+TOUCH_ROWS = [
+    _row("paint", "present", "touch.paint", smooth=0.3),
+    _row("warp", "present", "touch.warp", smooth=0.3),
+    _row("impulse", "present", "touch.impulse", smooth=0.3),
+    _row("light", "present", "touch.light", smooth=0.3, on=False),
+    _row("shape", "present", "touch.shape", smooth=0.3),
+    _row("content", "energy", "ai.prompt", lo=0.05, hi=0.7, smooth=0.6),
+    _row("react", "present", "ai.react", on=False),
+]
+# #249: the mood – only energy and stillness, no gestures. Energy acts at once on the pulse, the afterglow and the
+# picture's tempo, gently on the transformation and the prompt; a still room calms the dream.
+MOOD_ROWS = [
+    _row("pulse", "energy", "fx.pulse", lo=0.15, hi=0.9, out=0.8, curve="soft", smooth=0.1),
+    _row("glow", "energy", "fx.trails", lo=0.1, hi=0.8, out=0.6, curve="soft", smooth=0.3),
+    _row("speed", "energy", "fx.speed", lo=0.05, hi=0.8, smooth=0.3),
+    _row("change", "energy", "ai.strength", lo=0.1, hi=0.9, out=0.5, smooth=1.5),
+    _row("content", "energy", "ai.prompt", lo=0.1, hi=0.8, smooth=2.0),
+    _row("calm", "still", "stage.calm", lo=0.5, hi=1.0, smooth=3.0),
+]
+DEFAULT_TABLES = {"mood": MOOD_ROWS, "flowtrack": TOUCH_ROWS, "dance": DEFAULT_ROWS + TOUCH_ROWS}
+
+
+def default_tables() -> dict:
+    return {m: [dict(r) for r in rows] for m, rows in DEFAULT_TABLES.items()}
 
 
 def _num(v, lo, hi):
@@ -89,43 +124,95 @@ def clean_rows(rows) -> list:
     return out
 
 
-def load_rows() -> list:
-    """The owner's table, or the built-in one while there is none (or the file is broken)."""
+def load_tables() -> dict:
+    """The owner's tables, or the built-in ones while there are none (or the file is broken). A file of the version
+    before the modes (#235: one table, "rows") is the dance table; the rows of the direct interaction join it."""
+    out = default_tables()
     try:
         with open(MAP_FILE) as f:
             data = json.load(f)
-        if isinstance(data, dict) and isinstance(data.get("rows"), list):
-            return clean_rows(data["rows"])
+        if isinstance(data, dict) and isinstance(data.get("tables"), dict):
+            out.update({m: clean_rows(data["tables"][m]) for m in MODES if isinstance(data["tables"].get(m), list)})
+        elif isinstance(data, dict) and isinstance(data.get("rows"), list):
+            rows = clean_rows(data["rows"])
+            have = {r["id"] for r in rows}
+            out["dance"] = (rows + [dict(r) for r in TOUCH_ROWS if r["id"] not in have])[:MAX_ROWS]
     except (FileNotFoundError, ValueError, OSError, RecursionError):
         pass
-    return [dict(r) for r in DEFAULT_ROWS]
+    return out
 
 
-def save_rows(rows: list) -> None:
+def is_current() -> bool:
+    """Whether the file already has a table per mode (#249)."""
+    try:
+        with open(MAP_FILE) as f:
+            data = json.load(f)
+        return isinstance(data, dict) and isinstance(data.get("tables"), dict)
+    except (FileNotFoundError, ValueError, OSError, RecursionError):
+        return False
+
+
+def save_tables() -> None:
     os.makedirs(os.path.dirname(MAP_FILE), exist_ok=True)
     tmp = MAP_FILE + ".tmp"
     with open(tmp, "w") as f:
-        json.dump({"version": 1, "rows": rows}, f, ensure_ascii=False, indent=1)
+        json.dump({"version": 2, "tables": tables}, f, ensure_ascii=False, indent=1)
     os.replace(tmp, MAP_FILE)
 
 
-rows: list = load_rows()
+tables: dict = load_tables()
 
 
-def set_rows(new) -> list:
-    """The table from a page: "reset" brings the built-in rows back (the file goes), a list replaces the table."""
-    global rows
+def set_rows(new, mode: str = "dance") -> list:
+    """A mode's table from a page: "reset" brings its built-in rows back, a list replaces the table. When every table
+    is the built-in one again, the file goes."""
+    if mode not in MODES:
+        return []
     if new == "reset":
+        tables[mode] = [dict(r) for r in DEFAULT_TABLES[mode]]
+    elif isinstance(new, list):
+        tables[mode] = clean_rows(new)
+    else:
+        return tables[mode]
+    if tables == default_tables():
         try:
             os.remove(MAP_FILE)
         except OSError:
             pass
-        rows = [dict(r) for r in DEFAULT_ROWS]
-    elif isinstance(new, list):
-        rows = clean_rows(new)
-        save_rows(rows)
-    return rows
+    else:
+        save_tables()
+    return tables[mode]
+
+
+# #249: the switches of the cards "Direct interaction" and "Movement" of earlier versions → the row each one is now
+OLD_SWITCHES = {"touch_paint": "paint", "touch_warp": "warp", "touch_impulse": "impulse", "touch_light": "light",
+                "touch_content": "content"}
+
+
+def adopt(old: dict) -> bool:
+    """#249, once: a state saved before the modes (it has the movement switch "flowtrack" and no mode) hands its
+    switches to the rows of the flowtrack and the dance table – what was ticked stays on, what was not stays off; "react
+    to movement" together with "movement also moves the slow AI sliders" is the row "react". Done only while the file
+    has no table per mode yet, so a later start never undoes the owner's rows."""
+    global tables
+    if not isinstance(old, dict) or "flowtrack" not in old or "move_mode" in old or is_current():
+        return False
+    tables = load_tables()                           # the dance table of #235, if there is one, with the new rows
+    want = {row: old[k] is not False for k, row in OLD_SWITCHES.items() if isinstance(old.get(k), bool)}
+    want["react"] = old.get("motion") is not False and old.get("motion_ai") is True
+    for mode in ("flowtrack", "dance"):
+        for r in tables[mode]:
+            if r["id"] in want:
+                r["on"] = want[r["id"]]
+    save_tables()
+    return True
+
+
+def row_on(mode: str, dst: str) -> bool:
+    """Whether a row of this mode's table that is switched on moves this target."""
+    return any(r["on"] and r["dst"] == dst for r in tables.get(mode, ()))
 
 
 def msg() -> dict:
-    return {"dance": {"map": rows}}
+    """The tables for the pages: every mode's (the stage, the panel), and the dance table by its own name (#235)."""
+    return {"dance": {"map": tables["dance"], "tables": tables}}

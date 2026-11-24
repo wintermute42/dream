@@ -53,6 +53,7 @@
 <script src="/static/world-etching.js"></script>
 <script src="/static/world-aurora.js"></script>
 <script src="/static/dreamfire.js"></script>
+<script src="/static/movement.js"></script>
 <script>
   const T = I18N.t;
   I18N.apply();
@@ -173,6 +174,7 @@
   const enchanted = () => fire.on && fire.awe > 0.35;  // the fire has them – not once it only burns on in the background
   // the fire spirit may come through the pupils: freshly painted for this fire, and not again right away
   const spiritReady = t => !!aiFaces.flame && aiFaces.flame.at > fire.since - 60000 && t - fire.since > 5000 && t - (fire.spiritAt || -1e9) > 45000 && portal.phase === 'off' && !trance.on;
+  const moveSight = Object.assign(DreamMove.sight(), { sentAt: 0 });
   function fireTick(t) {
     const v = $('cam');
     if (!v.videoWidth || t - fire.tick < 62) return;
@@ -181,6 +183,10 @@
     fireCv[1].drawImage(fireCv[0].canvas, 0, 0, FW, FH);
     const wasOn = fire.on, seen = face.seen && t - face.seen < 700;   // a face it has found: there, only very fiery light counts
     const sample = fireCv[1].getImageData(0, 0, FW, FH);
+    // #249: how much moves in front of them, for the mood of the dream – worked out here, from this small sample; only
+    // the number goes to the Mac (about five times a second), the picture never does for it
+    const moved = moveSight.look(sample.data, FW, FH, t / 1000);
+    if (t - moveSight.sentAt > 200) { moveSight.sentAt = t; send({ move: moved }); }
     DreamFire.look(fire, sample.data, FW, FH, t, seen ? { x: face.x, y: face.y, w: face.size, h: face.h } : null);
     if (fireSeen) fireShow(sample);
     DreamFire.think(fire.mind, fire, t, Math.random, { spirit: spiritReady(t) });
