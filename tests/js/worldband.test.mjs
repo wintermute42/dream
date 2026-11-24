@@ -159,6 +159,7 @@ test('the band of worlds in a browser', { skip: chrome ? false : 'no Chrome or C
   // the drift: a switch and three paces
   assert.deepEqual(r.auto, { role: 'switch', on: 'true', label: 'Wander through the worlds by itself', group: 'radiogroup',
     paces: [['slow', '300', 'false', false], ['calm', '120', 'true', false], ['lively', '45', 'false', false]] });
+  assert.deepEqual(r.own, ['false', 'false', 'true'], 'a tapped pace shows at once – Dream never echoes a change to the page that asked');
   assert.deepEqual(r.off.sent, [{ world_auto: 45 }, { world_auto: 0 }], 'a pace, then the switch: off');
   assert.deepEqual([r.off.on, r.off.paces, r.off.status, r.off.dead], ['false', [['false', true], ['false', true], ['false', true]], 'Classic · wandering off', 0]);
   assert.deepEqual(r.back, [{ world_auto: 45 }], 'on again: the pace it had');

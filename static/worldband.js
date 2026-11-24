@@ -139,7 +139,19 @@
     const id = 'wb' + (++count), st = { world: 'classic', world_to: 'classic', world_mix: 0, world_auto: 0 };
     let worlds = [], drift = { wait: 0, next: null, idle: false }, heard = performance.now(), last = PACE, said = '';
     let watch = null;
-    const send = changes => { if (changes && o.send) o.send(changes); };
+    // Dream echoes a change to every page but the one that asked (hub.apply's exclude), so the band takes its own
+    // wish at once – otherwise a tap on a pace or the switch would not show until something else changed
+    const take = changes => {
+      for (const k of ['world', 'world_to', 'world_mix', 'world_auto']) if (k in changes) st[k] = k === 'world_mix' || k === 'world_auto' ? +changes[k] || 0 : String(changes[k]);
+      if (st.world_auto > 0) last = st.world_auto;
+    };
+    // (not the mix: a dragging hand shows its own value, and a late word of its own must not overwrite Dream's answer)
+    const send = changes => {
+      if (!changes) return;
+      if (o.send) o.send(changes);
+      const own = { ...changes }; delete own.world_mix;
+      if (Object.keys(own).length) { take(own); show(); }
+    };
     const make = (tag, cls, attrs = {}, text) => { const n = document.createElement(tag); if (cls) n.className = cls; for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); if (text != null) n.textContent = text; return n; };
     el.classList.add('wb'); el.textContent = '';
     const head = make('div', 'wb-head');
@@ -263,8 +275,7 @@
     return {
       // Dream's settings, all or some of them
       set(changes) {
-        for (const k of ['world', 'world_to', 'world_mix', 'world_auto']) if (k in changes) st[k] = k === 'world_mix' || k === 'world_auto' ? +changes[k] || 0 : String(changes[k]);
-        if (st.world_auto > 0) last = st.world_auto;
+        take(changes);
         show();
       },
       // Dream's list of worlds

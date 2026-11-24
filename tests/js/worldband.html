@@ -96,7 +96,7 @@
     // the drift: its switch, its pace
     report.auto = { role: sw.getAttribute('role'), on: sw.getAttribute('aria-checked'), label: $(sw.getAttribute('aria-labelledby')).textContent,
       paces: paces().map(b => [b.textContent, b.dataset.v, b.getAttribute('aria-checked'), b.disabled]), group: el.querySelector('.wb-pace').getAttribute('role') };
-    paces()[2].click(); band.set({ world_auto: 45 });
+    paces()[2].click(); report.own = paces().map(b => b.getAttribute('aria-checked')); band.set({ world_auto: 45 });   // no echo yet: Dream answers every page but this one
     sw.click(); band.set({ world_auto: 0 });
     report.off = { sent: sent.splice(0), on: sw.getAttribute('aria-checked'), paces: paces().map(b => [b.getAttribute('aria-checked'), b.disabled]), status: line() };
     paces()[0].click(); report.off.dead = sent.length;
