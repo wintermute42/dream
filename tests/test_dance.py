@@ -325,7 +325,7 @@ def test_the_pages_start_with_the_clutch_released_and_say_so():
         assert not re.search(r'id="clutch"[^>]*checked', html), page
         assert "MoveCard.clutchShow(" in html, page
     with open(os.path.join(root, "static", "movecard.css"), encoding="utf-8") as f:
-        assert '.clutchbtn[aria-pressed="false"]' in f.read()                # released looks different, not just reads different
+        assert '#clutchbtn[aria-pressed="false"]' in f.read()                # released looks different, not just reads different
 
 
 @pytest.mark.parametrize("name,ok", [("waves", True), ("My set 1", True), ("Fire+Water", True), ("a.b-c", True), ("Élan 2", True),
