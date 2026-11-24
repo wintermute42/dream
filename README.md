@@ -311,8 +311,9 @@ together with the GPU, which makes the run itself a little slower than usual. On
   100 %, music and movement reaction 1×, directness, outline and pose strength, effect strength –, the effects fade
   out and the autopilot goes off. The **style** goes too – no style model, no style reference picture, both strengths
   at their defaults – in one step at the start, not gliding, so the model is rebuilt only once; and the music
-  **pattern** goes back to “Automatic”. **What stays:** prompt, model, quality, resolution, format, input and cameras,
-  MIDI and sensor assignments, playlist, outputs, cloud, master brightness, the keys, and every other switch (touch
+  **pattern** goes back to “Automatic”. The **master brightness** is back at 100 % at once (a dimmed or blacked-out
+  stage is lit again). **What stays:** prompt, model, quality, resolution, format, input and cameras,
+  MIDI and sensor assignments, playlist, outputs, cloud, the keys, and every other switch (touch
   options, pulse on the beat, snap to the beat, outlines and pose on or off …). For 10 seconds the button reads
   **“Reset · ↶ Undo”** (a bar runs out underneath): one tap and everything glides back to exactly what it was (style
   and pattern come back in one step as well). No question is asked. A slider you move yourself during the glide is
@@ -716,8 +717,10 @@ Dream Control (over https, see above) has a card **“This device”**:
   camera.
 - **🧭 Motion** sends the device's sensors (acceleration, rotation, tilt) like a sensor on the arm (see “Sensor input”):
   choose what it steers, tap **📡 Learn** and move the device for 2 seconds; **a strike** (swinging the device
-  sharply) becomes an impulse (flash, spin jolt, new motif, next scene, blackout). The stage shows “📱 Motion: Dream
-  Control”; the learned assignments appear in the panel under “Control (MIDI, sensors, master)” like those of OSC.
+  sharply) becomes an impulse (flash, spin jolt, new motif, next scene, blackout); the 🧭 button gives a little jolt
+  when the Mac took a strike. The flash is a light pulse on the stage, with or without music. The stage shows
+  “📱 Motion: Dream Control”; the learned assignments appear in the panel under “Control (MIDI, sensors, master)” like
+  those of OSC.
 - **Always one device:** live camera and motion come from one device only – the one that is Dream Control. Taking over
   Dream Control on another device ends both on the first. Guests cannot send either.
 - Over plain http the card explains that the browser releases camera and motion only over https.
@@ -1117,7 +1120,11 @@ Switch it on and off in the panel or on the phone with the big switch **“Movem
 remembers the switch across a restart, like the autopilot. Next to it the kind:
 - **Hands (AI):** a body model (MediaPipe Pose, runs on the graphics chip) finds both hands, also in half-light. The
   very first time Dream downloads the model once (about 15 MB, to `~/.cache/dream/mediapipe`), then everything works
-  offline.
+  offline. The point follows one hand: when the model loses it for a moment it does not jump to the other hand, and a
+  point that turns up far away for a single frame is ignored; “someone came / left” waits a moment, so a hand lost for
+  a few frames gives no light pulse. The model needs the upper body in the picture; if the hands still jump, look with
+  **D** (diagnostics) at what the camera sees – a screen or the projection in the picture can show figures it takes for
+  a person.
 - **Fire/LED/light trails:** bright points in the picture, up to four. The threshold follows the room's brightness: in
   the dark a torch is enough, in a bright hall only really bright lights count.
 
@@ -1303,12 +1310,22 @@ devices in the home network. Without an extra app: the Dream Control device itse
 3. In the panel under **Sensor input** “… values/s from …” appears, below it the readings as bars.
 
 **Mapping:** choose a target (e.g. zoom pull), click **📡 Learn** and make exactly the movement it should control for
-2 seconds (e.g. arm up/down). Dream takes the reading that now moves clearly more than before. ⇅ reverses the
-direction, ✕ deletes. Every reading is smoothed and adapts its range by itself – no calibration. Saved in
-`~/.config/dream/sensors.json` (not in the repository).
+2 seconds (e.g. arm up/down, or tilt the phone). Dream takes the reading that now moves clearly more than in the moment
+before – a device that was swung or turned a while earlier learns just as well. A steady turn or tilt (orientation)
+wins over a shake, and an angle over the accelerometer, which every strike shakes; rotation rate and acceleration
+without gravity are only taken when nothing else moved, as they jump around zero. The movement you showed is the
+whole range of the slider (at least about 10° of tilt, so a tiny learning movement does not let the sensor's noise
+steer), and a small dead zone keeps the slider still while the device rests – put down on the table, it stays where it
+is. Learning a target again replaces its
+reading (one reading per target). ⇅ reverses the direction, ✕ deletes. Saved in `~/.config/dream/sensors.json` (not
+in the repository); assignments learned with an earlier version keep the old self-adapting range (now never narrower
+than the sensor's noise) – learn them again for the steadiest result.
 
 **Hit (whip):** a strong, jerky movement is an impulse (at most every 0.25 s). Under “Hit →” set what it triggers:
-flash, spin jolt, new motif, next scene or blackout; “Hit sensitivity” sets how strong it must be. **Swing** (how
+flash, spin jolt, new motif, next scene or blackout; “Hit sensitivity” sets how strong it must be – even at the top a
+hit has to stand clearly above the device's own trembling, so a phone on the table sets off nothing. The panel counts
+the hits beside the values/s (“· strikes 3”): if the stage flashes without a hit, that number shows whether it came
+from the sensor. **Swing** (how
 fast the wrist turns) shows in the panel. The values run through the same soft gliding as with the MIDI controller.
 
 Ideas: arm height → zoom pull or master brightness, turning the wrist (roll) → rotation, tilting → colour drift,
