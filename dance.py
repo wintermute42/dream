@@ -114,7 +114,15 @@ BAND_ROWS = [
     {**_row("armspin", "spin", "fx.spin", lo=-1.0, hi=1.0, smooth=0.25), "out": [-0.8, 0.8]},
     _row("armforce", "force", "fx.hue", lo=0.1, hi=0.9, out=0.8, curve="soft", smooth=0.4),
 ]
-DEFAULT_TABLES = {"mood": MOOD_ROWS, "flowtrack": TOUCH_ROWS + BAND_ROWS, "dance": DEFAULT_ROWS + TOUCH_ROWS}
+# #253: what a performer's profile adds to flowtrack (static/flowprofile.js) – one of the person's own figures is being
+# made ("figure", as large as they make it), and how round the prop's path is ("round": a circle seen face-on … a
+# line; it waits to be switched on). The rows rest while no profile is chosen (their sources are not known then).
+PROFILE_ROWS = [
+    _row("figure", "figure", "fx.mandala", out=0.8, smooth=0.2),
+    _row("round", "round", "fx.tunnel", lo=0.3, hi=0.9, out=0.6, curve="s", smooth=0.3, on=False),
+]
+DEFAULT_TABLES = {"mood": MOOD_ROWS, "flowtrack": TOUCH_ROWS + BAND_ROWS + PROFILE_ROWS, "dance": DEFAULT_ROWS + TOUCH_ROWS}
+VERSION = 3                                         # of the file: 2 – a table per mode (#249), 3 – the profiles' rows (#253)
 
 
 def default_tables() -> dict:
@@ -167,13 +175,18 @@ def clean_rows(rows) -> list:
 
 def load_tables() -> dict:
     """The owner's tables, or the built-in ones while there are none (or the file is broken). A file of the version
-    before the modes (#235: one table, "rows") is the dance table; the rows of the direct interaction join it."""
+    before the modes (#235: one table, "rows") is the dance table; the rows of the direct interaction join it. A file
+    of the version before the performers' profiles (#253) gets their rows into its flowtrack table – once: the file is
+    written as the new version with the next change, and a row the owner deletes then stays deleted."""
     out = default_tables()
     try:
         with open(MAP_FILE) as f:
             data = json.load(f)
         if isinstance(data, dict) and isinstance(data.get("tables"), dict):
             out.update({m: clean_rows(data["tables"][m]) for m in MODES if isinstance(data["tables"].get(m), list)})
+            if data.get("version") == 2:            # #253: kept before the profiles – their rows join the flowtrack table, once
+                have = {r["id"] for r in out["flowtrack"]}
+                out["flowtrack"] = (out["flowtrack"] + [dict(r) for r in PROFILE_ROWS if r["id"] not in have])[:MAX_ROWS]
         elif isinstance(data, dict) and isinstance(data.get("rows"), list):
             rows = clean_rows(data["rows"])
             have = {r["id"] for r in rows}
@@ -211,7 +224,7 @@ def save_tables() -> None:
     os.makedirs(os.path.dirname(MAP_FILE), exist_ok=True)
     tmp = MAP_FILE + ".tmp"
     with open(tmp, "w") as f:
-        json.dump({"version": 2, "tables": tables, **({"sets": sets} if sets else {})}, f, ensure_ascii=False, indent=1)
+        json.dump({"version": VERSION, "tables": tables, **({"sets": sets} if sets else {})}, f, ensure_ascii=False, indent=1)
     os.replace(tmp, MAP_FILE)
 
 

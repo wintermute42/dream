@@ -41,6 +41,19 @@
     }
     if (select.value !== cur && document.activeElement !== select) select.value = cur;
   }
+  // #253: the choices of the performer's select: "no profile", then every profile by the name its user gave it; an id
+  // not in the list yet (Dream has not said so) stands as it is. Rebuilt only when something changed.
+  function fillProfiles(select, profiles, current) {
+    const list = (Array.isArray(profiles) ? profiles : []).filter(p => p && typeof p.id === 'string').map(p => [p.id, String(p.name || p.id)]);
+    const cur = current == null ? '' : String(current);
+    if (cur && !list.some(p => p[0] === cur)) list.push([cur, '…']);
+    const key = JSON.stringify(list);
+    if (select.dataset.filled !== key) {
+      select.dataset.filled = key; select.textContent = '';
+      for (const [id, name] of [['', ''], ...list]) { const o = document.createElement('option'); o.value = id; o.textContent = id ? T('Performer: {n}', { n: name }) : T('Performer: no profile'); select.append(o); }
+    }
+    if (select.value !== cur && document.activeElement !== select) select.value = cur;
+  }
 
   // the energy of the room in a word: {energy, conf} → text (nothing known: no source reports)
   function words(room) {
@@ -168,7 +181,7 @@
     };
   }
 
-  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets };
+  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets, fillProfiles };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MoveCard = api;
 })(typeof window !== 'undefined' ? window : globalThis);

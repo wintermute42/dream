@@ -11,6 +11,8 @@
 //   edge of the picture (the audience) is ignored.
 // - the calibration: the camera's view is compared with the one it had when it was calibrated; when it no longer
 //   matches, the automatic says so (it never calibrates by itself).
+// #253: a performer's profile tunes it (`tune`): how far that person reaches, how long they may be out of sight (a prop
+// behind the body), and the kind of detection they were learned with – it is taken at once and given up reluctantly.
 (function (root) {
   'use strict';
   const node = typeof module === 'object' && module.exports;
@@ -22,6 +24,8 @@
   const SETTLE = 3;                                    // seconds a new proposal must hold before the kind changes
   const EDGE = 0.14;                                   // this near the left or right edge is "at the edge"
   const REACH = 0.3;                                   // what belongs to the person: this near its middle (picture widths)
+  const HOLD = 2.5;                                    // seconds the person may be out of sight before someone else can step in
+  const SETTLE_KNOWN = 1, SETTLE_AWAY = 8;             // #253: … to the kind a performer's profile was learned with, and away from it
   const GW = 16, GH = 9;                               // the view's signature: a grid of mean brightnesses
 
   // ---------- what a camera picture shows, in a few numbers ----------
@@ -109,10 +113,17 @@
   // ---------- the automatic ----------
   function create() {
     let kind = null, want = null, wantAt = 0, room = null, litAt = null, centre = null, lostAt = null, loneAt = null, off = 0, viewCode = 'calibNone';
+    let reach = REACH, hold = HOLD, expect = null;
+    // what a performer's profile says of them ({reach, hold, kind} – flowprofile.js `auto`), or nothing: the built-in values
+    function tune(o) {
+      o = o || {};
+      reach = Number.isFinite(o.reach) ? clamp(o.reach, 0.15, 0.5) : REACH; hold = Number.isFinite(o.hold) ? clamp(o.hold, 1, 10) : HOLD;
+      expect = KINDS.includes(o.kind) ? o.kind : null;
+    }
 
     // obs: a survey; now: {kind, short, hand} – what the camera is set to, and whether the kind was chosen by hand;
-    // t: seconds. Returns {kind: {value, code, vars}, short: {value, code}} – the kind and the exposure the automatic
-    // would choose. The exposure goes with the kind that really runs: a kind chosen by hand gets the exposure it needs.
+    // t: seconds. Returns {kind: {value, code, vars}, short: {value, code}, known} – the kind and the exposure the
+    // automatic would choose, and whether that kind is the one the performer's profile was learned with. The exposure goes with the kind that really runs: a kind chosen by hand gets the exposure it needs.
     function look(obs, now, t) {
       if (!now.short || room == null) room = obs.lum;   // under a short exposure every room is black: the last known brightness counts
       const lit = obs.bright > 0.0008, two = obs.markers.length >= 2;
@@ -124,14 +135,14 @@
       if (!kind) kind = p;                             // the first look decides at once
       else if (p.value === kind.value) { want = null; if (p.code !== 'wait') kind = p; }
       else if (!want || want.value !== p.value) { want = p; wantAt = t; }
-      else if (t - wantAt >= SETTLE) { kind = p; want = null; }
+      else if (t - wantAt >= (!expect ? SETTLE : p.value === expect ? SETTLE_KNOWN : kind.value === expect ? SETTLE_AWAY : SETTLE)) { kind = p; want = null; }
       // the exposure
       if (lit || now.kind === 'hand') litAt = t; else if (litAt == null) litAt = t;
       let short; const runs = now.hand && KINDS.includes(now.kind) ? now.kind : kind.value;
       if (runs === 'hand') short = { value: false, code: 'normalHand' };
       else if (t - litAt > 20) short = { value: false, code: 'normalLook' };   // lights gone for long: look at the room again
       else short = { value: true, code: obs.clipped > 0.002 && !now.short ? 'shortBurnt' : 'shortLights' };
-      return { kind, short, room };
+      return { kind, short, room, known: expect != null && kind.value === expect };
     }
 
     // The one person. cands: [{x, y, w}] – what was detected (0 … 1 in the camera picture; w: how much it weighs).
@@ -140,7 +151,7 @@
       const ok = (cands || []).map((c, i) => ({ ...c, i })).filter(c => Number.isFinite(c.x + c.y));
       const edge = c => c.x < EDGE || c.x > 1 - EDGE;
       if (centre) {
-        const mine = ok.filter(c => Math.hypot(c.x - centre[0], c.y - centre[1]) <= REACH);
+        const mine = ok.filter(c => Math.hypot(c.x - centre[0], c.y - centre[1]) <= reach);
         if (mine.length) {
           lostAt = null;
           const mx = mine.reduce((s, c) => s + c.x, 0) / mine.length, my = mine.reduce((s, c) => s + c.y, 0) / mine.length;
@@ -149,7 +160,7 @@
           return { centre, keep: mine.map(c => c.i), ignored, code: ignored ? 'edge' : 'one', vars: { n: ignored } };
         }
         if (lostAt == null) lostAt = t;
-        if (t - lostAt < 2.5) return { centre, keep: [], ignored: ok.length, code: ok.length ? 'edge' : 'one', vars: { n: ok.length } };   // gone for a moment: nobody else steps in
+        if (t - lostAt < hold) return { centre, keep: [], ignored: ok.length, code: ok.length ? 'edge' : 'one', vars: { n: ok.length } };   // gone for a moment: nobody else steps in
         centre = null; lostAt = null;
       }
       const inner = ok.filter(c => !edge(c));
@@ -178,11 +189,11 @@
       viewCode = off >= 3 ? 'calibMoved' : 'calibOk';
       return { code: viewCode, hint: off >= 3, score: s.score };
     }
-    return { look, person, view, reset() { kind = null; want = null; room = null; litAt = null; centre = null; lostAt = null; loneAt = null; off = 0; viewCode = 'calibNone'; },
+    return { look, person, view, tune, get reach() { return reach; }, get hold() { return hold; }, reset() { kind = null; want = null; room = null; litAt = null; centre = null; lostAt = null; loneAt = null; off = 0; viewCode = 'calibNone'; },
       get kind() { return kind; }, get centre() { return centre; } };
   }
 
-  const api = { create, survey, signature, sameView, inQuad, why, KINDS, DARK, LIGHT, SETTLE, EDGE, REACH, GW, GH };
+  const api = { create, survey, signature, sameView, inQuad, why, KINDS, DARK, LIGHT, SETTLE, SETTLE_KNOWN, SETTLE_AWAY, EDGE, REACH, HOLD, GW, GH };
   if (node) module.exports = api;
   else root.DreamFlowAuto = api;
 })(typeof window !== 'undefined' ? window : globalThis);

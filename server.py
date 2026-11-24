@@ -21,6 +21,7 @@ This file only puts the parts together (#189):
                scenes.py       playlists and scenes
                inputs.py       MIDI controllers, motion sensors (OSC), movement rules
                dancemoves.py   the dance moves the dancer taught (#236), kept on this Mac
+               flowprofiles.py Flowtrack's performers (#253): what was learned of a person's way of moving
                movement.py     the movement modes and the register of movement sources (dance.py: their tables)
                output.py       Syphon, the output windows and previews (/out, /view)
                eyes.py         Dreamy Eyes: painted faces, portraits, trance
@@ -65,6 +66,7 @@ if config.ROLE == "app":
     import dancelab
     import dancemoves
     import eyes
+    import flowprofiles
     import hub
     import inputs
     import measure

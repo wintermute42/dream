@@ -18,6 +18,7 @@
     energy: () => T('Energy'), tempo: () => T('Tempo'), phase: () => T('Phase'), pulse: () => T('Own beat'), open: () => T('Opening'),
     turn: () => T('Turning'), height: () => T('Height'), still: () => T('Stillness'), impulse: () => T('Strike (sensor)'), present: () => T('Someone is there'),
     spin: () => T('Arm rotation (sensor)'), force: () => T('Pull on the arm (sensor)'),
+    figure: () => T('A figure of the performer (profile)'), round: () => T('Roundness of the path (profile)'),
     'g.throw': () => T('Throwing up'), 'g.accordion': () => T('Accordion'), 'g.push': () => T('Pushing'), 'g.circle': () => T('Circling'), 'g.wave': () => T('Arm wave'),
     palm: () => T('fist ↔ open hand'), spread: () => T('fingers spread'), pinch: () => T('pinch'), snap: () => T('snap'),
   };

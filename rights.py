@@ -149,7 +149,9 @@ CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r
                 # #243: the dance lab's sessions (trajectories of the owner's dance, kept on this Mac)
                 ("GET", r"/dance/sessions(/[^/]+)?"), ("POST", r"/dance/sessions(/[^/]+/export)?"), ("DELETE", r"/dance/sessions/[^/]+"),
                 # #236: the dance moves the dancer taught (trajectories too, kept on this Mac)
-                ("GET", r"/dance/moves(/[^/]+)?"), ("POST", r"/dance/moves(/[^/]+)?"), ("DELETE", r"/dance/moves/[^/]+")]
+                ("GET", r"/dance/moves(/[^/]+)?"), ("POST", r"/dance/moves(/[^/]+)?"), ("DELETE", r"/dance/moves/[^/]+"),
+                # #253: Flowtrack's performers (what was learned of a person's way of moving, kept on this Mac)
+                ("GET", r"/flow/profiles"), ("POST", r"/flow/profiles(/[^/]+(/export)?)?"), ("DELETE", r"/flow/profiles/[^/]+")]
 # #251, #252: the pages of Dream Dance and Flowtrack are this Mac's (they steer the stage in the window that opened them)
 LOCAL_ONLY = [("POST", r"/gallery"), ("GET", r"/dance"), ("GET", r"/flowtrack")]
 
