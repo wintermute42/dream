@@ -466,11 +466,11 @@ def test_ctl_reset_glides_home_and_undo_brings_everything_back(server, saved_sta
 ODD = [[], {}, [[]], {"a": [1]}, None, True, 0, -1, 1.5, 10 ** 400, float("nan"), float("inf"), "", "no-such", "x" * 3000]
 ODD_FIELDS = ["set", "cmd", "arg", "auto", "feed", "feed_end", "motion_in", "eyes_trance", "eyes_cfg", "eyes_mood",
               "seen", "arrived", "fire", "take_control", "renew_guest", "midi_learn", "midi_forget", "sensor_learn",
-              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "moved", "rule", "live", "dance_map", "dance_lab",
+              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "rule", "live", "dance_map", "dance_lab", "move", "mode",
               "measure_report"]
 ODD_INSIDE = {"feed": ("cam", "motion", "facing"), "motion_in": ("acc", "gyro"), "eyes_cfg": ("trance_every",),
               "live": ("fps", "flow_rate"), "measure_report": ("kind", "fps", "ms_avg", "render"),
-              "dance_lab": ("open", "rec", "play")}
+              "dance_lab": ("open", "rec", "play"), "move": ("e", "c")}
 ODD_FRAMES = ["", "{not json", "[1]", '"text"', "null", "[" * 100000]
 
 
@@ -492,7 +492,7 @@ def test_ctl_ignores_invalid_values_and_stays_open(server, monkeypatch, saved_st
                        (server.hub, "live"), (server.measure, "measure")):
         monkeypatch.setattr(part, name, dict(getattr(part, name)))
     monkeypatch.setattr(server.inputs.sens, "sensitivity", server.inputs.sens.sensitivity)
-    monkeypatch.setattr(server.dance, "rows", list(server.dance.rows))
+    monkeypatch.setattr(server.dance, "tables", server.dance.default_tables())
     monkeypatch.setitem(server.measure.measure, "run", True)       # reports are only read during a measurement run
     monkeypatch.setitem(server.measure.measure, "reports", {})
     monkeypatch.setattr(server.ctl, "renew_guest", lambda: asyncio.sleep(0))
@@ -502,7 +502,7 @@ def test_ctl_ignores_invalid_values_and_stays_open(server, monkeypatch, saved_st
     noted = []
     note = server.eyes.eyes_note
     monkeypatch.setattr(server.eyes, "eyes_note", lambda msg: (note(msg), noted.append(msg))[0])
-    server.hub.state.update(flowtrack="on", prompt="before", mode="dream")
+    server.hub.state.update(move_mode="flowtrack", prompt="before", mode="dream")
     url = ws_url(server, "/ctl", role) + ("?role=stage" if role == "local" else "")   # this Mac: as the stage
     with client(server, role).websocket_connect(url) as ws:
         assert ws.receive_json()["role"] == role
@@ -519,7 +519,7 @@ def test_ctl_ignores_invalid_values_and_stays_open(server, monkeypatch, saved_st
             wait_until(lambda: server.hub.state["prompt"] == "still here")
     assert server.hub.state["mode"] in server.settings.CHOICES["mode"]
     if role == "guest":
-        assert server.hub.state["mode"] == "dream" and server.hub.state["flowtrack"] == "on"
+        assert server.hub.state["mode"] == "dream" and server.hub.state["move_mode"] == "flowtrack"
 
 
 def test_ctl_second_control_is_a_guest_until_it_takes_over(server):

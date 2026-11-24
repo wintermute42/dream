@@ -6,6 +6,8 @@ import json
 import os
 import time
 
+import dance
+import movement
 import outbox
 import playlists
 import rights
@@ -16,14 +18,16 @@ STATE_FILE = os.path.join(STATE_DIR, "state.json")
 
 try:
     with open(STATE_FILE) as f:
-        state = settings.loaded(json.load(f))
+        saved = json.load(f)
+    state = settings.loaded(saved)
+    dance.adopt(saved)                             # #249: the switches of the old movement cards → rows, once
 except (FileNotFoundError, ValueError):
     state = dict(settings.DEFAULT_STATE)
 # #133: values saved by earlier, German versions in today's English
 state["playlist"] = playlists.new_name(str(state["playlist"]))
 state["music_pattern"] = playlists.OLD_PATTERNS.get(state["music_pattern"], state["music_pattern"])
 state["style"] = playlists.OLD_STYLES.get(state["style"], state["style"])
-# the movement switch ("flowtrack": off | on | hand) is remembered like every other setting (#90)
+# the movement mode is remembered like every other setting (#90, #249)
 state["backend"] = "local"        # #102: every start computes on this Mac; the cloud (it costs) only when chosen
 if state.get("cam_device") == "device":          # #146: a device's live camera never outlives the run it was sent in
     state["cam_device"] = ""
@@ -101,7 +105,7 @@ async def broadcast(msg: dict, exclude=None, only=None):
 def status_msg() -> dict:
     live["stages"] = sum(1 for k in clients.values() if k == "stage")
     live["remotes"] = sum(1 for k in clients.values() if k == "remote")
-    flow = round(live.get("flow_rate", 0)) if state["flowtrack"] != "off" else 0
+    flow = round(live.get("flow_rate", 0)) if movement.camera_on(state) else 0
     return {"live": {**{k: live[k] for k in ("fps", "stages", "remotes")}, "flowtrack": flow,
                      "viewers": len(viewers), "previews": len(previews), "windows": len(windows), "beats": len(beats),
                      "midi": midi_ports}}

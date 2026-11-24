@@ -1,4 +1,4 @@
-// #240: "Hands (AI)" (static/motion.js) – which detected hand is followed, and presence as the server hears it. No
+// #240: "Hands (AI)" (static/motion.js) – which detected hand is followed. No
 // browser, no model: the pose results are played in as numbers.
 // Run: node --test tests/js/motion.test.mjs   (the CI runs it too)
 import assert from 'node:assert/strict';
@@ -41,14 +41,17 @@ test('a single guessed point far away is not followed, a hand that really is the
   assert.deepEqual(follow(moved).at(-1), [0.2, 0.4]);    // there twice in a row: followed
 });
 
-test('presence does not flicker when the hand is lost for a few frames', () => {
-  const p = new M.Presence(), changes = [];
-  let was = false;
-  for (let i = 0; i < 90; i++) {                         // 3 s: seen, but every third frame missed
-    const now = p.update(i % 3 !== 2, i / 30);
-    if (now !== was) { changes.push([i, now]); was = now; }
-  }
-  assert.deepEqual(changes.map(c => c[1]), [true]);
-  for (let i = 90; i < 150; i++) p.update(false, i / 30);   // then 2 s nobody
-  assert.equal(p.state, false);
+test('a hand that appears far from a stale point and keeps moving is taken up, not waited for', () => {
+  // the point rests at the left edge; the hand is seen on the right and moves on by more than the confirmation
+  // distance with every detection – it never "confirms" where it was first seen, and never comes near the old point
+  const far = Array.from({ length: 12 }, (_, i) => [[0.6 + 0.13 * (i % 3), 0.2 + 0.13 * ((i + 1) % 3), 2]]);
+  const pts = follow([...Array(10).fill([[0.05, 0.65, 2]]), ...far]);
+  assert.deepEqual(pts[10], [0.05, 0.65]);                // the first sight alone: not yet
+  assert.ok(pts[12][0] > 0.5, `after three detections in a row the point is with the hand, got ${pts[12]}`);
+  assert.ok(pts.at(-1)[0] > 0.5);
+});
+
+test('moving pixels stand in for the hand only shortly after the model saw it', () => {
+  assert.equal(M.blurOk(10.1, 10), true);
+  assert.equal(M.blurOk(10 + M.BLUR_S + 0.01, 10), false, 'something moving near the old point must not hold the point there');
 });

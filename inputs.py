@@ -1,5 +1,5 @@
-"""What steers the dream besides the pages: MIDI controllers, motion sensors over OSC, and the movement the stage
-detects (presence, rules)."""
+"""What steers the dream besides the pages: MIDI controllers, motion sensors over OSC, the rules of the movement the
+stage detects, and whether someone is there in front of Dreamy Eyes."""
 import asyncio
 import ipaddress
 import json
@@ -12,6 +12,7 @@ import dance
 import hub
 import i18n
 import midi
+import movement
 import paths
 import playlists
 import scenes
@@ -19,9 +20,10 @@ import sensors
 import settings
 
 
-async def on_presence(present: bool):
-    """Movement (#85): nobody there – the dream calms down; someone comes – a light impulse."""
-    await hub.broadcast({"cmd": "wake" if present else "calm"})
+async def on_presence(word: str):
+    """Nobody in front of Dreamy Eyes – the dream calms down ("calm"); someone comes – a light impulse ("wake"); no
+    eyes report any more – the calm ends quietly ("rest"). Never from the Mac's camera (movement.Presence)."""
+    await hub.broadcast({"cmd": word})
 
 
 # ---------- MIDI controller: faders, knobs and buttons (mappings in ~/.config/dream/midi.json) ----------
@@ -146,10 +148,13 @@ async def sensor_loop():
         print(f"Sensors over OSC on {host}:{SENSOR_PORT}", flush=True)
     except OSError as e:                           # the port is taken: Dream Control's own sensors still come over /ctl
         print(f"Sensor port {SENSOR_PORT} not available: {e}", flush=True)
-    shown_at, sent = 0.0, {}
+    shown_at, told_at, sent = 0.0, 0.0, {}
     while True:
         await asyncio.sleep(1 / 30)
         await sensor_dance()
+        if time.monotonic() - told_at > 0.25:      # #249: the register of sources, four times a second
+            told_at = time.monotonic()
+            await sources_tell()
         for target, value in sens.values(midi.TARGETS).items():
             lo, hi = midi.TARGETS[target]
             if abs(value - sent.get(target, 1e9)) > 0.003 * (hi - lo):   # only real changes
@@ -174,21 +179,52 @@ async def sensor_loop():
             await hub.broadcast({"sensors": sens.live()})
 
 
+SENDER_PHONE = "Dream Control"                     # what ctl.feed_motion names the phone that lends its motion
+
+
+def sensor_kind(sender: str) -> str:
+    """#249: the kind of source a sender of sensor values is – the phone that lends its motion, or a wristband or
+    glove (anything that sends OSC)."""
+    return "phone" if sender == SENDER_PHONE else "band"
+
+
 async def sensor_dance():
-    """#235: the stage's dance detection gets the sensor's movement as it comes (~30 times a second, only while
-    dance is on and something was sent): the camera and the sensor on the arm confirm each other there."""
-    m = sens.motion() if hub.state["dance"] else None
+    """#235: the stage's detection gets the sensor's movement as it comes (~30 times a second, only while a movement
+    mode listens to that kind of source and something was sent): the camera and the sensor on the arm confirm each
+    other there."""
+    m = sens.motion() if movement.uses(hub.state, sensor_kind(sens.source)) else None
     if m:
         await hub.broadcast({"sensors": {"dance": m}}, only="stage")
 
 
-def dance_map(new) -> dict:
-    """#235: Dream Control or this Mac changed the mapping table (or asked for the built-in one)."""
-    dance.set_rows(new)
+sources_told: dict = {"msg": None}
+
+
+async def sources_tell():
+    """#249: every sender of sensor values is a source of the register; the list goes to the pages when it changed."""
+    now, wall = time.monotonic(), time.time()
+    for sender, (at, energy) in list(sens.by.items()):
+        if wall - at < 0.5:
+            kind = sensor_kind(sender)
+            movement.sources.report(f"{kind}:{sender}", kind, sender or "OSC", energy, 0.9, now)
+        elif wall - at > movement.GONE:
+            sens.by.pop(sender, None)
+    msg = movement.msg(hub.state, now)
+    if msg != sources_told["msg"]:
+        sources_told["msg"] = msg
+        await hub.broadcast(msg)
+    word = movement.presence.step(msg["move"]["sources"], now)
+    if word:
+        await on_presence(word)
+
+
+def dance_map(new, mode: str = "dance") -> dict:
+    """#235, #249: Dream Control or this Mac changed a mode's mapping table (or asked for the built-in one)."""
+    dance.set_rows(new, mode)
     return dance.msg()
 
 
-# ---------- movement (#85): the stage detects it and reports presence changes and rules ----------
+# ---------- movement (#85): the stage detects it and reports rules ----------
 def load_rule_actions() -> dict:
     """Optional ~/.config/dream/motion.json: {"rules": {"<flowtrack rule name>": "next" | {"playlist": "Feuer"} | {"prompt": "…"}}}"""
     try:

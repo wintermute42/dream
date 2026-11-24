@@ -15,16 +15,20 @@
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   const SRC = {
     energy: () => T('Energy'), tempo: () => T('Tempo'), phase: () => T('Phase'), pulse: () => T('Own beat'), open: () => T('Opening'),
-    turn: () => T('Turning'), height: () => T('Height'), still: () => T('Stillness'), impulse: () => T('Strike (sensor)'),
+    turn: () => T('Turning'), height: () => T('Height'), still: () => T('Stillness'), impulse: () => T('Strike (sensor)'), present: () => T('Someone is there'),
     'g.throw': () => T('Throwing up'), 'g.accordion': () => T('Accordion'), 'g.push': () => T('Pushing'), 'g.circle': () => T('Circling'), 'g.wave': () => T('Arm wave'),
     palm: () => T('fist ↔ open hand'), spread: () => T('fingers spread'), pinch: () => T('pinch'), snap: () => T('snap'),
   };
   const DST = {
     'fx.amt': () => T('All effects: strength'), 'fx.pulse': () => T('Push on the beat'), 'fx.spin': () => T('Turning of the effects'),
+    'fx.speed': () => T('Tempo of the picture'), 'stage.calm': () => T('Calm the dream'),
+    'touch.paint': () => T('Paint: hands draw light trails'), 'touch.warp': () => T('Touch: hands push and swirl'), 'touch.impulse': () => T('Impulses: a wave at the hand'),
+    'touch.light': () => T('Light in the dark'), 'touch.shape': () => T('Movement shapes the effects'),
+    'ai.prompt': () => T('Content by energy (calm ↔ wild)'), 'ai.react': () => T('Movement pushes the AI sliders'),
     'ai.strength': () => T('Transformation'), 'ai.mix': () => T('Dream share'), 'ai.zoom': () => T('Zoom pull'), 'ai.rot': () => T('Rotation'), 'ai.hue': () => T('Colour drift'),
   };
   const HAND = { l: () => T('Left hand'), r: () => T('Right hand') };
-  const FROM = { pose: () => T('camera'), marker: () => T('marker'), light: () => T('light'), sensor: () => T('sensor'), hand: () => T('hand AI') };
+  const FROM = { pose: () => T('camera'), marker: () => T('marker'), light: () => T('light'), sensor: () => T('sensor'), hand: () => T('hand AI'), camera: () => T('camera'), eyes: () => 'Dreamy Eyes' };
   // a source's or a target's name as a person reads it; one nobody named yet (a taught gesture): as it is
   // the name a table has for a key, or null: only the table's own entries, whatever the key says
   const texts = new Map([SRC, DST, HAND, FROM].map(t => [t, new Map(Object.entries(t))]));

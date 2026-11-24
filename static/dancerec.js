@@ -32,7 +32,10 @@
   // `step`); landmarks: the pose model's 33 points (or null); out: what the mapping asked of the targets; t: seconds
   // since the session began.
   function pack(t, keys, rec, input, landmarks, out) {
-    const cand = c => [r4(c.x), r4(c.y), r3(c.c), Math.max(0, SRC.indexOf(c.src)), r4(c.len || 0)];
+    // a candidate that says when it was measured keeps how old it was (seconds) – so a session fed to a detector again
+    // knows a repeated measurement as the live stream did
+    const age = c => (Number.isFinite(c.at) && input && Number.isFinite(input.t) ? [r4(Math.max(0, input.t - c.at))] : []);
+    const cand = c => [r4(c.x), r4(c.y), r3(c.c), Math.max(0, SRC.indexOf(c.src)), r4(c.len || 0), ...age(c)];
     const hand = h => { const c = input && input.hands && input.hands[h]; return (Array.isArray(c) ? c : c ? [c] : []).map(cand); };
     const asp = (input && input.aspect) || 16 / 9, fing = h => input && input.fingers && input.fingers[h];
     const b = input && input.body, s = input && input.sensor;
@@ -53,7 +56,7 @@
   // … and what the detector was fed in that frame: feeding a session's inputs to a fresh detector gives its features again
   function input(frame) {
     const i = frame.i, asp = i.a || 16 / 9;
-    const hand = h => i.h[h].map(([x, y, c, s, len]) => ({ x, y, c, src: SRC[s] || 'pose', len }));
+    const hand = h => i.h[h].map(([x, y, c, s, len, age]) => ({ x, y, c, src: SRC[s] || 'pose', len, ...(Number.isFinite(age) ? { at: frame.t - age } : {}) }));
     const fing = h => (frame.p[h] && i.f[h] ? { pts: pairs(frame.p[h], asp), c: i.f[h] } : null);
     return { t: frame.t, hands: { l: hand('l'), r: hand('r') }, body: i.b ? { x: i.b[0], y: i.b[1], s: i.b[2], c: i.b[3] } : null,
       fingers: { l: fing('l'), r: fing('r') }, sensor: i.s ? { g: i.s, age: 0 } : null, dark: !!i.d, aspect: asp };
