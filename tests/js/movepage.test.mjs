@@ -51,7 +51,7 @@ test('the two clocks: who gives the beat', () => {
   assert.equal(P.agree(c(240), c(118)), 'together', 'double time too');
   assert.equal(P.agree(c(100), c(128)), 'apart');
   assert.equal(P.clockText(c(96.4)), '96 a minute'); assert.equal(P.clockText(c(0, false)), '–'); assert.equal(P.clockText(null), '–');
-  assert.match(P.agreeText(c(120), c(121)), /both clocks agree/);
+  assert.match(P.agreeText(c(120), c(121)), /both beats agree/);
   const dot = { style: {} };
   P.beat(dot, { on: true, bpm: 100, pulse: 1 }); assert.deepEqual(dot.style, { opacity: '1.00', transform: 'scale(1.20)' });
   P.beat(dot, { on: true, bpm: 100, pulse: 0 }); assert.deepEqual(dot.style, { opacity: '0.30', transform: 'scale(0.75)' });
@@ -89,6 +89,13 @@ test('the page of Dream Dance reads the stage and never talks to Dream itself', 
   assert.ok(html.includes("MovePage.link('dance'"));
   assert.ok(!/new WebSocket|fetch\(|XMLHttpRequest|getUserMedia/.test(html), 'no connection and no camera of its own');
   for (const part of ['id="clutchbtn"', 'id="dance_set"', 'id="setsave"', 'id="dot-move"', 'id="dot-music"', 'id="dancelab"']) assert.ok(html.includes(part), part);
+  // the detection is chosen on the page itself: the dance's own (hands or markers – never light), and the camera
+  const kind = html.match(/<select id="dance_kind"[^]*?<\/select>/)[0];
+  assert.ok(kind.includes('value="hand"') && kind.includes('value="marker"') && !kind.includes('value="on"'));
+  assert.ok(html.includes('id="flow_device"') && html.includes('bridge.setKind(') && html.includes('id="detectstate"'));
+  assert.ok(html.includes('<h2>Beat</h2>') && !/Clocks?</.test(html), 'the card is called “Beat”');
+  const bridge = read('static/index.html');
+  for (const part of ['setKind:', 'setCam:', 'setFingers:', 'detect:']) assert.ok(bridge.includes(part), part);
   // the stage has no lab of its own any more: the lab is the page
   const stage = read('static/index.html');
   assert.ok(!stage.includes('dancelab.js') && !stage.includes('id="dancelab"'));

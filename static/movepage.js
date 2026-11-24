@@ -41,13 +41,13 @@
     return near(r) || near(r * 2) || near(r / 2) ? 'together' : 'apart';
   }
   const AGREE = {
-    none: () => T('No beat yet – effects on the beat wait for your movement or the music.'),
-    move: () => T('Your movement gives the beat.'),
+    none: () => T('No beat yet – effects on the beat wait for your dance or the music.'),
+    move: () => T('Your dance gives the beat.'),
     music: () => T('The music gives the beat.'),
-    apart: () => T('Two beats: your movement and the music each push the effects.'),
-    together: () => T('You dance on the music’s beat – both clocks agree.'),
+    apart: () => T('Two beats: your dance and the music each push the effects.'),
+    together: () => T('You dance on the music’s beat – both beats agree.'),
   };
-  const agreeText = (move, music) => AGREE[agree(move, music)]();
+  const agreeText = (move, music) => { switch (agree(move, music)) { case 'move': return AGREE.move(); case 'music': return AGREE.music(); case 'apart': return AGREE.apart(); case 'together': return AGREE.together(); default: return AGREE.none(); } };
   const clockText = c => (c && c.on && c.bpm > 0 ? T('{n} a minute', { n: Math.round(c.bpm) }) : '–');
   // a dot that beats: its look for a pulse 0 … 1 (only transform and opacity)
   function beat(dot, c) {

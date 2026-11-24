@@ -3216,13 +3216,21 @@
       play: rec => { dancePlay = rec; },
       secs: () => danceFbSecs, setSecs: v => { danceFbSecs = v; sendCtl({ set: { dance_fb_secs: v } }); },
       colours: () => ({ l: $('marker_l').value, r: $('marker_r').value }),
+      // what the stage detects with right now – the lab says why a view is empty – and the fingers' switch
+      detect: () => ({ kind: flowOn() ? tracker.kind : 'off', camera: flowOn() ? tracker.status.code : 'off', status: flowOn() ? tracker.status.text || FLOW_STATE[tracker.status.code] || '' : T('Movement off'),
+        fingers: $('flow_fingers').checked, ready: tracker.fingersReady }),
+      setFingers: on => { $('flow_fingers').checked = !!on; $('flow_fingers').dispatchEvent(new Event('change', { bubbles: true })); },
       state: st => sendCtl({ dance_lab: st }),
       voice: on => (on ? startVoice(null, 'feedback') : stopVoice()) },
     attach(api) { labApi = api; sendCtl({ dance_lab: labState() }); },
     detach() { labApi = null; dancePlay = null; sendCtl({ dance_lab: labState() }); },
     // what the page shows beside the lab: the mode, the clutch (and how far the dance is in), the sets, the two clocks
     state: () => ({ mode: moveMode(), clutch: clutchOn(), hold: mover.hold, set: $('dance_set').value, sets: danceSets, own: danceOwnSets,
-      move: moveClock(), music: musicClock(), camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang }),
+      move: moveClock(), music: musicClock(), camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang,
+      // the dance's own detection (the setting), what the camera really runs, and the cameras to choose from
+      kind: $('dance_kind').value, tracking: flowOn() ? tracker.kind : 'off', cam: $('flow_device').value, cams: [...$('flow_device').options].map(o => [o.value, o.textContent]) }),
+    setKind: v => { if (DreamMove.DANCE_KINDS.includes(v)) { $('dance_kind').value = v; $('dance_kind').dispatchEvent(new Event('change', { bubbles: true })); } },
+    setCam: v => { $('flow_device').value = v; $('flow_device').dispatchEvent(new Event('change', { bubbles: true })); },
     setMode: m => { $('move_mode').value = m; $('move_mode').dispatchEvent(new Event('change', { bubbles: true })); },
     setClutch, setSet: name => { $('dance_set').value = name; $('dance_set').dispatchEvent(new Event('change', { bubbles: true })); },
     // kept first, chosen second: choosing a set loads its rows, and they must be the ones just kept

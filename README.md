@@ -1442,7 +1442,7 @@ Dream Dance in a window of its own – put it on a second screen. It is this Mac
 it), and it is an extra view: everything that steers the show is in the panel too. The page reads the stage in the
 window that opened it; it has no connection and no camera of its own, so open it from the panel, not by its address.
 If the stage is reloaded, the page finds it again by itself. If the browser blocks the window, allow pop-ups for
-Dream. On the page: the clutch, the movement sets, the two clocks, and below them the dance lab.
+Dream. On the page: the clutch, the detection, the movement sets, the beat, and below them the dance lab.
 
 **The clutch** decides whether your dance acts. What the sliders, the panel and a MIDI controller set is the **base**;
 the dance acts **on top of it** – an effect at 30 % by hand and 40 % by the dance shows at 70 %, and a fader moved
@@ -1474,8 +1474,13 @@ On the page, **Keep as set** keeps the table as it is now under a name of your o
 `. + -`, at most 24 characters, up to 24 sets); **Remove this set** removes one of your own. Your sets are saved with
 the tables in `~/.config/dream/dance.json`.
 
-**Clocks.** The page shows the dancer's own clock (the tempo of your repetition) and the music's beat clock side by
-side, each with a dot that beats, and says who gives the beat: your movement, the music, both together (also at half
+**Detection.** The card “Detection” on the page chooses what Dream Dance detects with – **Dance: Hands (AI)** or
+**Dance: LED markers (2 colours)** – and the camera, and says what runs right now. It is the dance's own choice (the
+same one as in the Movement card); what Flowtrack detects with stays Flowtrack's. Only you change the detection: not
+the autopilot, not “Relieve”, not a change of mode.
+
+**Beat.** The page shows your beat (the tempo of your repetition) and the music beat side by
+side, each with a dot that beats, and says who gives the beat: your dance, the music, both together (also at half
 or double time) or two different beats. Effects on the beat are pushed by both – the row “Own beat → Push on the
 beat” of the table for your movement, the music's beat as always.
 
@@ -1488,16 +1493,24 @@ dancing:
 - **Camera, skeleton and markers:** the camera picture with the detected skeleton, the hands and the LED markers;
   **Hand trails** draw each hand's way as a fading line in its marker colour, **Multiple exposure** lays several poses
   of the last two seconds pale over each other, so a sequence shows at a glance; **Camera picture** off leaves only the
-  figure on black.
-- **Output with effects** beside it: what the audience sees.
-- **Fingers (hand AI):** the 21 points of each hand enlarged as a hand skeleton (with “Fingers” switched on in the
-  Movement card), with fine trails of the finger tips and – with multiple exposure – the last hand poses pale behind
-  it (a snap becomes a visible sequence); below it fist ↔ open hand, spread, pinch and snap with how sure the hand AI
-  is, or “lost”.
+  figure on black. It is the large view on the left, right beside the feature stream, so you can compare what Dream
+  detects with what the stream makes of it. The line below it says what Dream detects with and what it found in this
+  picture (skeleton found or lost, each hand with its source and how sure it is); a picture **without a skeleton**
+  gets a red frame and “Skeleton lost”.
+- **Output with effects:** what the audience sees.
+- **Fingers (hand AI):** the 21 points of each hand enlarged as a hand skeleton, with fine trails of the finger tips
+  and – with multiple exposure – the last hand poses pale behind it (a snap becomes a visible sequence); below it
+  fist ↔ open hand, spread, pinch and snap with how sure the hand AI is. The switch **Fingers (hand AI)** sits right
+  below the view (the same one as in the Movement card). An empty view says why: fingers need the detection
+  “Hands (AI)”, the switch is off, the hand model is still loading (once, about 8 MB), or there is no hand in the
+  picture.
 - **Feature stream:** energy, tempo, phase, opening, turning, height and stillness as running curves over the last 12
   seconds, the recognised gesture as a band above them, and – once a hand was seen – the finger values per hand. Where
   a value is not known (a hand lost, no rhythm) the curve has a **gap**, marked by a dashed red line: that is where
-  the limits of distance, light and tempo show.
+  the limits of distance, light and tempo show. Where the **skeleton was lost**, a pale red band runs through all
+  curves. The table below the curves says for every feature **what it is computed from** (e.g. opening: the distance
+  between the two hands in shoulder widths), its **source right now** (skeleton, LED markers, motion sensor …) and
+  **how sure** it is. In a playback the sources are not shown – a session keeps values and confidences only.
 - **Tune a row:** pick a row of the table and change its target, its curve (straight, early, late, S), from where to
   where the movement comes in (the lower end is the threshold), from where to where the effect goes out, and the
   smoothing. A small picture shows the curve with the live value as a dot. Every change **applies at once**, Dream
