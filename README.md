@@ -1353,8 +1353,7 @@ The card Computing shows what is happening; **Delete** ends it at once.
 
 ### Who computes right now
 
-A cloud GPU costs from the moment it starts, but it paints only minutes later – and it pauses again when it compiles
-anew. The **badge** at the top of the card Computing, the same in Dream Control, says what is true this moment:
+A cloud GPU costs from the moment it starts, but it paints only minutes later. The **badge** at the top of the card Computing, the same in Dream Control, says what is true this moment:
 
 | Badge | What it means |
 |---|---|
@@ -1362,6 +1361,7 @@ anew. The **badge** at the top of the card Computing, the same in Dream Control,
 | **The Mac bridges – cloud: … · about X min left (it costs already)** | “Cloud GPU” is chosen, but the cloud sends no pictures yet: the Mac paints meanwhile. |
 | **The cloud prepares: … · no pictures until then** | The same with bridging switched off: the picture holds. |
 | **Computing now: Cloud ✓** | The cloud GPU paints. |
+| **Computing now: Cloud · not optimised (a little slower)** | The cloud GPU paints, but this kind of picture was not prepared at its start (see below): the same look, no pause, somewhat fewer pictures per second. |
 | **Cloud not reachable – the Mac computes** | A machine is there (and costs), but does not answer. “Start” connects again, “Delete” ends the costs. |
 | **No cloud GPU started – the Mac computes** | “Cloud GPU” is chosen, none runs. |
 
@@ -1369,12 +1369,20 @@ anew. The **badge** at the top of the card Computing, the same in Dream Control,
   loads → Is optimised → Ready*, and a rough time until pictures come. A fresh machine downloads the model on every
   start (SD-Turbo about 2.6 GB, SDXL-Turbo about 7 GB). No line of a log is shown; what `dream-cloud` last said is in
   the tooltip of the line under the buttons while it works.
-- **“Is optimised” also later:** a compiled model compiles again by itself when something new arrives – another size
-  above all – and sends no pictures for minutes. The renderer on the machine notices that (a picture that takes
-  longer than 3 seconds on a compiled model) and says so; the badge shows the step, and the Mac bridges.
+- **“Is optimised” happens only at the start, never on stage.** Before its first picture the cloud GPU compiles the
+  model for the usual pictures (512 and 384 px, each square and 16:9 – 896×512 and 704×384; with the reference picture's technique if a reference picture
+  was chosen at the start) – it cannot paint during that, so this is a step of the start and the Mac bridges it.
+  Afterwards nothing is compiled any more: when something arrives the model was not prepared for – another size, the
+  16:9 format, pose or outlines, the first reference picture, a model switched to on stage – the **cloud paints on
+  uncompiled**: no pause, the same look, a little slower, and the Mac does **not** step in. The badge then says
+  “Cloud · not optimised (a little slower)”. It may say so for a size that in fact still runs compiled (PyTorch
+  decides picture by picture and does not tell). **Limit:** an unprepared kind of picture stays unoptimised until the
+  machine is deleted; optimising it while the cloud paints is not possible on one machine (measured on an RTX 4090:
+  0.2–0.4 pictures/s and broken pictures meanwhile).
 - **Bridge on the Mac automatically** (switch in the card and in Dream Control, on unless you switch it off): while
-  the chosen cloud GPU starts, downloads, loads or optimises – or does not answer – the Mac paints, and the cloud takes
-  over by itself as soon as it delivers pictures. Mind: the Mac is **slower** (SDXL-Turbo very much so), and it **loads
+  the chosen cloud GPU cannot paint – it starts, downloads, loads, optimises before its first picture, or does not
+  answer – the Mac paints, and the cloud takes over by itself as soon as it delivers pictures. It never steps in while
+  the cloud paints, optimised or not. Mind: the Mac is **slower** (SDXL-Turbo very much so), and it **loads
   its own model** for it (some seconds to a minute; the very first time a download) – which then stays loaded, so the
   next bridge starts at once. The look can differ a little between the two. With the switch off nothing is painted
   until the cloud is ready.
@@ -1391,10 +1399,15 @@ anew. The **badge** at the top of the card Computing, the same in Dream Control,
 **Compiling and the compile cache:** on the cloud GPU the model is compiled for the card before its first picture
 (torch.compile, TF32), slim in one variant. `dream-cloud` brings the compiled code to the Mac as a **cache**
 (`~/.cache/dream/compile`, per GPU type, PyTorch version and model) and takes it to the next machine: the **first**
-start on a GPU type takes a good 6 minutes until the first picture, later ones about 4 (measured on an RTX 4090). With
+start on a GPU type takes about 7 minutes until the first picture, later ones about 1.5 (measured on an RTX 4090 with
+SDXL-Turbo, square and 16:9 at 512 and 384 px: the step “Is optimised” took about 5 minutes without the cache and
+half a minute with it; the first start after this change compiles anew, the earlier cache does not hold the 16:9
+pictures). With
 a style reference picture in the cloud, its technique comes with the first reference picture; the cloud then paints
 uncompiled (measured about 4.5 instead of 5 pictures/s) – if a reference picture is chosen at the next start, it is
-compiled in at once. If compiling fails, the model simply runs normally (switch it off: `DREAM_COMPILE=0`).
+compiled in at once. If compiling fails, the model simply runs normally (switch it off: `DREAM_COMPILE=0`). After
+this one compile PyTorch only runs what is compiled and compiles nothing new (`eager_on_recompile`), so no picture
+ever waits for a compile – see “[Who computes right now](#who-computes-right-now)”.
 
 **Overlapping pictures:** with live inputs (camera, video, light trails) two to three pictures are on their way at the
 same time, so the GPU does not wait for the way over the internet; with “Dream only” and “Picture” each picture builds

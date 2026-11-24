@@ -140,45 +140,89 @@ def pipeline(key: str):
                     styles.prime(p)                   # #131: before compiling, so a style switch needs no new compile
                 except Exception as e:
                     print(f"style models not primed: {e!r}", flush=True)
-            _speed_up(key, p)
+            if model_state["active"] in (None, key):  # #238: never beside a model that paints (it then runs uncompiled)
+                _speed_up(key, p)
             _render(key, Image.new("RGB", (512, 512), (40, 20, 60)), "psychedelic colors", 0.5, 2, 1)  # warm up
             print(f"{key} ready.", flush=True)
     return _pipes[key]
 
 
 COMPILE_CACHE = os.environ.get("DREAM_COMPILE_CACHE", os.path.join(config.HERE, "compile-cache"))
-# #238: what the worker tells about compiling. A compiled model compiles again by itself, inside a picture, when
-# something it was not compiled for arrives (another size, a new style): that picture then takes minutes instead of a
-# fraction of a second – a picture of a compiled model that has been in work for RECOMPILE_AFTER seconds is that.
-compile_state = {"since": None, "cached": False}      # the compile before a model's first picture: since when, from the cache?
-_compiled: set = set()                                # the models that paint compiled
+# #238: a model is compiled only before its first picture, while nothing paints – never on stage. Compiling beside a
+# model that paints is not usable in one process (cloud test 2026-11-17: 0.2–0.4 pictures/s, because the compiler holds
+# Python's lock, and broken pictures, because its tracing patches every module call of the process), and compiling
+# inside a picture holds the stage for minutes. So after the compile PyTorch only runs what is compiled
+# ("eager_on_recompile"): a picture the model was not compiled for (another size or format, pose or outlines, the
+# reference picture's adapter) is painted uncompiled at once – the same look, somewhat slower, no pause.
+compile_state = {"since": None, "cached": False, "shapes": None}   # the compile under way: since when, from the cache,
+#                                                       and the kinds of pictures (_shape) painted during it
+_compiled: dict = {}                                  # model -> the kinds of pictures it was compiled for
+_plain = {"key": None}                                # the model whose last picture was painted uncompiled, compiling being on
+_run_only = {"on": False}                             # PyTorch runs compiled code and compiles nothing new
 RECOMPILE_AFTER = 3.0
+# The pictures a model is compiled for at the start: the usual sizes, square and 16:9 (the stage widens a size to the
+# next multiple of 64: static/index.html, dims()). Every one makes the start longer, so only these.
+START_SIZES = (512, 384)
+START_SHAPES = tuple((w, h) for wide in (False, True) for h in START_SIZES
+                     for w in [round(h * 16 / 9 / 64) * 64 if wide else h])
+
+
+def _compile_wanted() -> bool:
+    return device == "cuda" and os.environ.get("DREAM_COMPILE", "1") != "0"
+
+
+def _stance(run_only: bool) -> None:
+    """Whether PyTorch may compile (before a model's first picture) or only runs what is compiled (on stage)."""
+    try:
+        torch.compiler.set_stance("eager_on_recompile" if run_only else "default")
+        _run_only["on"] = run_only
+    except Exception as e:                            # a PyTorch without stances: as before #238, see compiling()
+        _run_only["on"] = False
+        print(f"compile stance not set ({str(e).splitlines()[0][:120]})", flush=True)
+
+
+def _shape(img, control: bool, ref: bool) -> tuple:
+    """What a compiled model is compiled for: the picture's size, pose/outlines on top, the reference adapter."""
+    return (*img.size, bool(control), bool(ref))
+
+
+def _note_shape(key, img, control, ref) -> None:
+    """Notes what kind of picture is painted now: during the compile what the model is compiled for, afterwards
+    whether this one is painted uncompiled. Only where models are compiled (the cloud GPU)."""
+    if compile_state["shapes"] is not None:           # the compile's own pictures
+        compile_state["shapes"].add(_shape(img, control, ref))
+    elif _compile_wanted():
+        _plain["key"] = key if _shape(img, control, ref) not in _compiled.get(key, ()) else None
 
 
 def compiling(now: float | None = None) -> float | None:
-    """Since when (time.time()) a model is being compiled, or None: nothing compiles."""
+    """Since when (time.time()) a model is being compiled, or None: nothing compiles. Without stances (an older
+    PyTorch) a compiled model compiles again by itself, inside a picture, when something it was not compiled for
+    arrives: a picture of a compiled model that has been in work for RECOMPILE_AFTER seconds is that."""
     if compile_state["since"]:
         return compile_state["since"]
     key, since = _busy["key"], _busy["since"]
     now = time.time() if now is None else now
-    return since if key in _compiled and since and now - since > RECOMPILE_AFTER else None
+    stuck = not _run_only["on"] and key in _compiled and since and now - since > RECOMPILE_AFTER
+    return since if stuck else None
 
 
 def _cache_file(key, p):
     """#131: the compiled code depends on GPU, PyTorch, model and adapter – one cache file for each such combination."""
     gpu = re.sub(r"[^A-Za-z0-9]+", "-", torch.cuda.get_device_name(0)).strip("-")
     ref = "-ref" if getattr(p, "_dream_ip", False) else ""
-    return os.path.join(COMPILE_CACHE, f"{gpu}-torch{torch.__version__.split('+')[0]}-{key}{ref}.bin")
+    shapes = f"-{len(START_SHAPES)}shapes"               # a cache of fewer shapes would never be completed (it is saved once)
+    return os.path.join(COMPILE_CACHE, f"{gpu}-torch{torch.__version__.split('+')[0]}-{key}{ref}{shapes}.bin")
 
 
 def _speed_up(key, p):
     """#100/#131: on an NVIDIA GPU (the cloud) the model is compiled before its first picture: torch.compile of the
     UNet and the tiny decoder, channels-last memory and TF32, one variant (the reference adapter only if it was in
     use). The compiled code is kept as a cache file that dream-cloud brings to the Mac and back to the next GPU of the
-    same type: the first start on a GPU type compiles for some minutes, later ones about one. (Compiling while
-    painting was tried and is not usable: 0.2–0.4 pictures/s and broken pictures, cloud test 2026-11-17.)
+    same type: the first start on a GPU type compiles for some minutes, later ones about one. #238: afterwards nothing
+    compiles any more (see above) – what was not compiled here is painted uncompiled.
     If compiling fails, the model simply runs as before. DREAM_COMPILE=0 switches it off."""
-    if device != "cuda" or os.environ.get("DREAM_COMPILE", "1") == "0":
+    if not _compile_wanted():
         return
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
@@ -199,22 +243,24 @@ def _speed_up(key, p):
         print(f"{key}: compiling for this GPU type for the first time (some minutes; later starts about one) …", flush=True)
     eager = (p.unet, p.vae.decoder)
     t0 = time.time()
-    compile_state.update(since=t0, cached=cache_hit)     # #238: /health and /stats say that it compiles, and since when
+    compile_state.update(since=t0, cached=cache_hit, shapes=set())   # #238: /health and /stats say that it compiles
+    _stance(run_only=False)
     try:
         p.unet.to(memory_format=torch.channels_last)
         p.unet = torch.compile(p.unet, fullgraph=False)
         p.vae.decoder = torch.compile(p.vae.decoder, fullgraph=False)
         look = {"ref": ""} if getattr(p, "_dream_ip", False) else None   # with the adapter: its one variant
-        for size in (512, 384):                          # the usual sizes, compiled now and not on stage
-            _render(key, Image.new("RGB", (size, size), (40, 20, 60)), "psychedelic colors", 0.5, 2, 1, look=look)
-        _compiled.add(key)
+        for shape in START_SHAPES:                       # the usual pictures, compiled now – nothing is compiled on stage
+            _render(key, Image.new("RGB", shape, (40, 20, 60)), "psychedelic colors", 0.5, 2, 1, look=look)
+        _compiled[key] = compile_state["shapes"]
         print(f"{key}: compiled for the GPU in {time.time() - t0:.0f} s", flush=True)
     except Exception as e:                               # compiling is a bonus: without it Dream still works
         p.unet, p.vae.decoder = eager
         print(f"{key}: compiling failed, running uncompiled ({str(e).splitlines()[0][:160]})", flush=True)
         return
     finally:
-        compile_state.update(since=None, cached=False)
+        compile_state.update(since=None, cached=False, shapes=None)
+        _stance(run_only=True)                           # from here on: compiled code is run, nothing new is compiled
     if not cache_hit:
         try:
             art = torch.compiler.save_cache_artifacts()
@@ -372,7 +418,7 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
             if look.get("ref") and not getattr(p, "_dream_ip", False):
                 styles.ip_load_later(p)                       # first reference picture: the adapter comes in the background
                 if getattr(p, "_dream_ip", False) and hasattr(p.unet, "_orig_mod"):
-                    _compiled.discard(key)
+                    _compiled.pop(key, None)
                     p.unet = p.unet._orig_mod                 # #131: with the adapter it paints uncompiled (a new
                     for (k, _), cp in _ctl_pipes.items():     # compile would hold the stage for minutes); the next
                         if k == key:                          # cloud start compiles it with the adapter
@@ -387,6 +433,7 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
             if edges > 0:
                 kinds.append("edges"); imgs.append(edge_map(img)); scales.append(float(edges))
             pp = _ctl_pipes[(key, tuple(kinds))]
+            _note_shape(key, img, True, "ip_adapter_image_embeds" in args)
             if _perf["on"]:
                 _perf_wrap(pp.controlnet, "forward", "controlnet")
             one = len(kinds) == 1
@@ -394,6 +441,7 @@ def _render_now(key, img, prompt, strength, steps, seed, pose, pose_scale, seed2
                 out = pp(control_image=imgs[0] if one else imgs,
                          controlnet_conditioning_scale=scales[0] if one else scales, **args)
         else:
+            _note_shape(key, img, False, "ip_adapter_image_embeds" in args)
             with _blended_noise(p, seed, seed2, st):
                 out = p(**args)
     return out.images[0]
@@ -422,7 +470,7 @@ def release(key):
     with _build_lock, _load_lock, gpu_lock:
         for d in (_pipes, _t2i, _full_vae):
             d.pop(key, None)
-        _compiled.discard(key)
+        _compiled.pop(key, None)
         for d in (_cn_models, _ctl_pipes):
             for k in [k for k in d if k[0] == key]:
                 d.pop(k, None)
@@ -484,7 +532,9 @@ def downloaded_gb(repo: str, cache: str | None = None) -> float | None:
 
 def progress(now: float | None = None) -> dict:
     """#238: where the renderer stands, for /health and /stats – so a cloud GPU that loads or compiles says so itself
-    instead of just sending no pictures. "ready": the next picture comes at once."""
+    instead of just sending no pictures. "ready": the next picture comes at once. "painting": a model is there and
+    paints (while it is compiled before its first picture it does not); "unoptimized": it painted its last picture
+    uncompiled, because it was not compiled for that kind of picture – slower, but without a pause."""
     now = time.time() if now is None else now
     loading, since = model_state["loading"], compiling(now)
     out = {"model": model_state["active"], "loading": loading, "model_error": model_state["error"],
@@ -498,6 +548,8 @@ def progress(now: float | None = None) -> dict:
     paints = _ready(model_state["active"])            # the model in use paints on while another one loads
     out["failed"] = bool(model_state["error"]) and not _pipes and not loading   # nothing to paint with, nothing coming
     out["ready"] = since is None and (paints or not loading) and not out["failed"]
+    out["painting"] = paints and since is None
+    out["unoptimized"] = out["painting"] and _plain["key"] is not None and _plain["key"] == model_state["active"]
     return out
 
 
