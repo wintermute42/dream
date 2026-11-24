@@ -1400,6 +1400,12 @@ once or swaying set nothing off. Its size becomes the effect's strength, its tem
 needs a picture or two to show that, too late for dancing. That is off now; the row “**Movement pushes the AI
 sliders**” of the table brings it back (its slider sets how strongly).
 
+**Dream Dance has its own detection:** what the Mac's camera detects is chosen per mode. Dream Dance detects with
+“Dance: Hands (AI)” (the default) or “Dance: LED markers (2 colours)”; Flowtrack and the mood keep their own choice
+(hands, fire/LED or markers). Choosing fire/LED for Flowtrack and then switching to Dream Dance gives the dance its
+hands again – the dance never runs on plain light, where a lamp or a bright window would stand in for the hands. The
+Movement card shows the choice of the mode in use.
+
 **Sources – camera, markers, sensor, alone or together:**
 - **Hands (AI):** the wrists of the body model; the body gives the measure. One visible hand is enough for throwing
   up and circling.

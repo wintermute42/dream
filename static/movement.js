@@ -38,6 +38,14 @@
   }
   // the Mac's camera runs only for a mode that needs it
   const cameraOn = (mode, opts) => uses(mode, 'camera', opts);
+  // What the Mac's camera detects in a mode ('hand' | 'on' | 'marker'): the dance has its own choice (hands or LED
+  // markers – never light: a lamp or a bright window would stand in for the hands), every other mode the camera's.
+  // kinds: {flow, dance} – the settings flow_kind and dance_kind.
+  const DANCE_KINDS = ['hand', 'marker'];
+  function camKind(mode, kinds = {}) {
+    if (modeOf(mode) === 'dance') return DANCE_KINDS.includes(kinds.dance) ? kinds.dance : 'hand';
+    return ['hand', 'on', 'marker'].includes(kinds.flow) ? kinds.flow : 'hand';
+  }
 
   // The room's energy from many sources: [{energy, conf}] → {energy, conf}. A mean weighted by confidence, so one
   // lively device does not rule a quiet room; how sure the room is rises with every source that agrees to be there.
@@ -144,7 +152,7 @@
     });
   }
 
-  const api = { create, uses, cameraOn, room, sight, byKind, modeOf, MODES, TABLES, KINDS, FADE };
+  const api = { create, uses, cameraOn, camKind, DANCE_KINDS, room, sight, byKind, modeOf, MODES, TABLES, KINDS, FADE };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamMove = api;
 })(typeof window !== 'undefined' ? window : globalThis);

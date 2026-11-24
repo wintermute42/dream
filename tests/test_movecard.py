@@ -31,6 +31,9 @@ def test_one_card_holds_all_of_movement():
     assert {"move_mode", "motion_sens", "move_cam", "movepage", "flow_kind", "flow_device", "flow_color", "flow_short",
             "marker_l", "marker_r", "flow_markers", "flow_fingers", "fastbtn", "calibgo", "calibreset", "flow_unproject",
             "diagon", "pose", "pose_scale", "dancelabbtn", "touch_amt", "touch_mirror"} <= ids(card)
+    # the dance's own detection sits in the dance's part of the card, in sight – not folded away with the camera's
+    dance_part = card[card.index('data-for="dance"'):card.index('class="movesrc"')]
+    assert 'id="dance_kind"' in dance_part and 'value="hand"' in dance_part and 'value="on"' not in dance_part
     for element in ('id="movesources"', 'id="moveenergy"', 'id="dancepanel"', 'role="meter"'):
         assert element in card, element
     # the modes: every mode Dream knows, and a part of the card for each

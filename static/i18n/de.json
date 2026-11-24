@@ -1267,5 +1267,9 @@
  "good great yes nice super top right": "gut gute super ja top richtig prima",
  "bad no nope wrong": "schlecht nein mies falsch",
  "not": "nicht kein keine",
- "Nothing kept: open the lab on the live dance or record first.": "Nichts gespeichert: erst das Labor im Live-Tanz öffnen oder aufnehmen."
+ "Nothing kept: open the lab on the live dance or record first.": "Nichts gespeichert: erst das Labor im Live-Tanz öffnen oder aufnehmen.",
+ "Dance: Hands (AI)": "Tanz: Hände (KI)",
+ "Dance: LED markers (2 colours)": "Tanz: Leucht-Marker (2 Farben)",
+ "What Dream Dance detects": "Was Dream Dance erkennt",
+ "What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice.": "Was Dream Dance erkennt: deine Hände und deinen Körper (KI) oder zwei Leucht-Marker, eine Farbe je Hand. Flowtrack behält seine eigene Wahl."
 }
