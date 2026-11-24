@@ -1186,6 +1186,13 @@ how sure each one is – one lively phone does not rule a quiet room.
 calms the dream. **Strength** in the card sets how much of all that (0 = nothing … 3×; a MIDI controller can turn
 it: target “Mood: strength”). It needs no camera on the Mac: Dreamy Eyes or a phone are enough.
 
+**Nobody there, someone comes** – that is Dreamy Eyes' alone, and only in the mood (the mode that listens to them):
+when nothing has moved in front of any pair of eyes for about 12 seconds the dream calms down (slower, softer), and
+when someone comes it wakes with a light impulse. Dream reads it from the energy the eyes send anyway – a number,
+nothing else of the person. The Mac's camera never does this: a performer who steps out of its picture does not calm
+the dream, and stepping in gives no impulse. Without Dreamy Eyes (or with the eyes switched off as a source) there
+is neither.
+
 **Settings of earlier versions** are carried over on the first start: the switch “Movement: ON” becomes the mode
 (fire/LED → Flowtrack; hands or markers → Dream Dance, or Flowtrack if “Dance steers the effects” was off), and what
 was ticked in “Direct interaction” and “react to movement” stays on as rows of the table.
@@ -1194,8 +1201,7 @@ Beside the mode the kind of detection for the Mac's camera:
 - **Hands (AI):** a body model (MediaPipe Pose, runs on the graphics chip) finds both hands, also in half-light. The
   very first time Dream downloads the model once (about 15 MB, to `~/.cache/dream/mediapipe`), then everything works
   offline. The point follows one hand: when the model loses it for a moment it does not jump to the other hand, and a
-  point that turns up far away for a single frame is ignored; “someone came / left” waits a moment, so a hand lost for
-  a few frames gives no light pulse. The model needs the upper body in the picture; if the hands still jump, look with
+  point that turns up far away for a single frame is ignored. The model needs the upper body in the picture; if the hands still jump, look with
   **D** (diagnostics) at what the camera sees – a screen or the projection in the picture can show figures it takes for
   a person.
 - **Fire/LED/light trails:** bright points in the picture, up to four. The threshold follows the room's brightness: in
@@ -1296,8 +1302,9 @@ trail, all points and the cross the dream turns around, next to it speed, spread
 someone is there. The picture itself stays free; the display does not go to the output, Syphon or the AI. Switched
 off, it draws nothing and frees its memory. With the panel hidden (H) the diagnostics are not visible either.
 
-While the Mac's camera runs, Dream reacts: nobody there calms the dream, someone coming gives a light impulse, and
-the rules below apply. The **effects** follow movement at once through the table (see [Dance](#dance)). The slow AI
+While the Mac's camera runs, the rules below apply (who is there – “nobody there calms the dream, someone coming
+gives an impulse” – is not the Mac camera's business but Dreamy Eyes', see [Movement](#movement)). The **effects**
+follow movement at once through the table (see [Dance](#dance)). The slow AI
 sliders follow only with the row “**Someone is there → Movement pushes the AI sliders**” switched on (off by default;
 the row's own slider sets how strongly): then the
 movement makes a pull of its own around the tracked point – also in camera and video mode and when zoom and rotation
@@ -1306,7 +1313,6 @@ calm dream:
 - **x/y** of the tracked point becomes the centre of zoom pull and rotation – the dream swirls around fire, poi or hand.
 - **speed** → stronger transformation, faster rotation and colour drift.
 - **spread** (distance of props/hands) → more zoom.
-- **present** → nobody there: calm; someone comes: a light impulse.
 - **Rules** trigger scene changes if you want: “Fire on” (someone/something there, 0.3 s), “Fire off” (2 s nothing),
   “Fast” (speed above 1 for 0.5 s, at most every 4 s), in `~/.config/dream/motion.json`:
 
@@ -1814,8 +1820,9 @@ held and that Dream Control offers nothing of movement the panel lacks.
 Mac's camera, the room's energy as a mean weighted by confidence, Dreamy Eyes alone or with the camera in one stream,
 a mode as nothing but its table, the change of mode without a step from one frame to the next, and the energy Dreamy
 Eyes work out from two small pictures (noise is no movement, only two numbers come out). `tests/test_movement.py`
-checks Dream's part: the register of sources, that Dreamy Eyes can report a number and nothing else, and that the
-settings of earlier versions are carried over once.
+checks Dream's part: the register of sources, that Dreamy Eyes can report a number and nothing else, that “nobody
+there / someone comes” is read from Dreamy Eyes only and never from the Mac's camera, and that the settings of earlier
+versions are carried over once.
 `node --test tests/js/dancerec.test.mjs` (#243) tests the dance lab's sessions (`static/dancerec.js`): a recorded
 simulated dance plays back the very features it was made from and holds nothing but numbers, feeding its inputs to a
 fresh detector gives the same gestures, a feedback keeps exactly its seconds, playback (pause, slow motion, jumps, a
