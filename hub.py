@@ -133,6 +133,10 @@ async def apply(changes: dict, exclude=None, persist=True, by=None):
             if not outbox.post(v, json.dumps({"master": state["master"]})):
                 viewers.discard(v)
     await broadcast({"set": clean, **({"by": by} if by else {})}, exclude=exclude)
+    # #247: whoever asked for a value a stepped setting does not have hears what it became (the others hear it anyway)
+    snapped = {k: v for k, v in clean.items() if settings.SETTINGS[k].steps and v != changes[k]}
+    if snapped and exclude in clients and not rights.can(roles.get(exclude), "eyes_only"):
+        outbox.post(exclude, json.dumps({"set": snapped}))
 
 
 # ---------- #216: reset – the picture's settings glide home, and back again for a few seconds ----------

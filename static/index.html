@@ -1126,11 +1126,9 @@
 
   // ---------- building the next input frame ----------
   // Picture size: the chosen resolution is the height; 16:9 widens it (multiple of 64, as the model likes it).
+  // #247: never read from the list alone – a list without a choice gave a picture of 0×0 and the stage stood still.
   const wide = () => $('aspect').value === 'wide';
-  function dims() {
-    const h = +ui.size.value;
-    return { w: wide() ? Math.round(h * 16 / 9 / 64) * 64 : h, h };
-  }
+  const dims = () => DreamCommon.picSize(ui.size.value, wide());
   function seedNoise(w, h) {
     // a soft colourful start for the pure prompt dream
     const g = wctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
