@@ -43,8 +43,18 @@ from web import app
 
 print(f"Dream ({config.ROLE}) on {render.device}.", flush=True)
 
+
+class Static(StaticFiles):
+    """#232: the pages' scripts and styles are checked with Dream before a browser uses its copy (ETag, so mostly a
+    short "not modified") – after an update an open page never runs an old script beside a new page."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
 if config.ROLE == "app":
-    app.mount("/static", StaticFiles(directory=os.path.join(config.HERE, "static")), name="static")
+    app.mount("/static", Static(directory=os.path.join(config.HERE, "static")), name="static")
     # every part of the app (each hangs its routes on `app` when it is loaded), also the ones only other parts use:
     # `server.<part>` is where a test or a script finds it
     import cloud

@@ -72,3 +72,5 @@ jobs:
         run: node --test tests/js/you.test.mjs
       - name: Dream windows (several of them in the runner's Chrome)
         run: node --test tests/js/window.test.mjs
+      - name: Dreamy Eyes move the painted face in their pupils (in the runner's Chrome)
+        run: node --test tests/js/eyes-face.test.mjs

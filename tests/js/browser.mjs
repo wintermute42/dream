@@ -3,6 +3,7 @@
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +24,19 @@ export function findChrome() {
     }
   }
   return mac.find(existsSync) || '';
+}
+
+// a test that is a page's Dream speaks WebSocket by hand (Node brings no server for it): the answer to a page that
+// connects, and one message to it – text or binary, not masked
+export function wsAccept(req, socket) {
+  const accept = createHash('sha1').update(req.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+  socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+  socket.on('data', () => {}); socket.on('error', () => {});
+}
+export function wsFrame(data) {
+  const text = typeof data === 'string', body = Buffer.from(data), n = body.length;
+  if (n >= 65536) throw new Error('a message of a test is never that long');
+  return Buffer.concat([n < 126 ? Buffer.from([text ? 0x81 : 0x82, n]) : Buffer.from([text ? 0x81 : 0x82, 126, n >> 8, n & 255]), body]);
 }
 
 // serves the test page (a file of tests/js) and static/, starts the browser on it and waits for the page's report
