@@ -339,7 +339,7 @@
 
       // ---- the grid: trajectories at a fixed rate, whatever the camera's ----
       if (st.grid == null) st.grid = t;
-      while (st.grid + 1 / RATE <= t + 1e-9) {
+      while (st.grid + 1 / RATE <= t + 1e-4) {         // a tenth of a millisecond of slack: a clock kept in decimals ticks the same
         st.grid += 1 / RATE; st.tick++;
         for (const h of HANDS) {
           const hd = st.hand[h], bu = st.b['u' + h], bv = st.b['v' + h], bw = st.b['w' + h], seen = st.seen[h];
