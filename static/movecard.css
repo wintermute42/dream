@@ -52,6 +52,6 @@ details.sub[open] > summary { color: var(--text); }
    dashed button with a line below that says the dance does nothing */
 .clutchbtn { width: 100%; min-height: 44px; font-weight: 700; }
 .clutchbtn[aria-pressed="true"] { background: var(--ok); color: #0b1a10; border-color: transparent; }
-.clutchbtn[aria-pressed="false"] { background: transparent; color: var(--warn); border: 2px dashed var(--warn); }
+#clutchbtn[aria-pressed="false"] { background: transparent; color: var(--warn); border: 2px dashed var(--warn); }
 .clutchnote { color: var(--muted); font-size: .82em; line-height: 1.35; margin-top: 4px; }
-.clutchbtn[aria-pressed="false"] + .clutchnote { color: var(--warn); }
+#clutchbtn[aria-pressed="false"] + .clutchnote { color: var(--warn); }
