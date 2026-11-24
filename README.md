@@ -823,6 +823,20 @@ eyes** that invite people to step up and play:
     sleep is a poppy's head nodding and letting a few seeds go. No line is finer than about 1.2 px, so the plate holds
     on coarse outputs. Measured as above (processor slowed four times): Dreamy Eyes about 25 frames a second, a dream
     window 6 (Classic: 39 and 8 in the same run).
+  - **Aurora** (#226) – curtains of northern light over a field of stars: slow, luminous, cold greens and violets with a
+    warm lower edge; the calmest world. A curtain is a line with rays standing on it, their height and brightness
+    wandering along it. The eye is a piece of night sky with light standing on its lower lid, rays rising from the upper
+    lid for lashes, a thin corona around the iris; the brow is a small arc of rays. Around the eyes: a small drifting
+    curtain, a halo with its mock moons, a small corona, light pillars over ice dust, a shooting star, diamond dust, a
+    quiet arc. The faces of light are *veil*, *crown* and *pillars* (a brighter light on the forehead and, fainter, a low band along the jaw – the face's outline – with the hints;
+    veils where hair would fall, a warm light for the mouth and the nose – a slim pillar
+    of light with a star on its tip – only in the rare moment). In a window the dream is seen in great curtains,
+    around an auroral corona – rays streaming out of a dark disc with the eye or the folded dream in it; the impossible
+    shapes have edges of light. Fire is a red aurora rising from the horizon; where Classic shows a heart there is a
+    small warm sun dog, where it shows stars ice dust glitters, and in sleep pillars dim one after the other while snow
+    sinks. Measured as above (processor slowed four times): Dreamy Eyes about 25 frames a second, a dream window 3 at
+    full resolution (Classic: 35 and 8 in the same run) – this world's windows are the most costly so far and rely on
+    the page lowering its resolution on a weak device.
 - **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
   come only with the hints** (see above) and show a feeling then: surprise (someone very close, waking up, a dream turning
