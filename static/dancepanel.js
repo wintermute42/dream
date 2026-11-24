@@ -16,6 +16,7 @@
   const SRC = {
     energy: () => T('Energy'), tempo: () => T('Tempo'), phase: () => T('Phase'), pulse: () => T('Own beat'), open: () => T('Opening'),
     turn: () => T('Turning'), height: () => T('Height'), still: () => T('Stillness'), impulse: () => T('Strike (sensor)'), present: () => T('Someone is there'),
+    spin: () => T('Arm rotation (sensor)'), force: () => T('Pull on the arm (sensor)'),
     'g.throw': () => T('Throwing up'), 'g.accordion': () => T('Accordion'), 'g.push': () => T('Pushing'), 'g.circle': () => T('Circling'), 'g.wave': () => T('Arm wave'),
     palm: () => T('fist ↔ open hand'), spread: () => T('fingers spread'), pinch: () => T('pinch'), snap: () => T('snap'),
   };
@@ -42,7 +43,7 @@
     return name;
   }
   const from = src => (src || '').split('+').map(s => named(FROM, s) || s).join(' + ');
-  const BIPOLAR_SRC = new Set(['turn']);
+  const BIPOLAR_SRC = new Set(['turn', 'spin']);
   // the table after a hand changed one thing of a row: {on}, {src}, {dst}, {amount} (its strength 0 … 1) or {remove}.
   // A source that goes both ways (turning) takes the whole input range and steers both ways; the row is the owner's now.
   function edit(rows, id, change) {

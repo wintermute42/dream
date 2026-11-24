@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dream · Flowtrack</title>
+<link rel="icon" type="image/svg+xml" href="/static/icons/logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="stylesheet" href="/static/movepage.css">
+<link rel="stylesheet" href="/static/movecard.css">
+<link rel="stylesheet" href="/static/dancelab.css">
+</head>
+<body class="mp-body">
+<!-- #252: the page of the mode Flowtrack – on this Mac only, in a window of its own beside the stage. An automatic
+     sets everything for following one performer; here you see what it chose and why, and take over where you want. -->
+<header class="mp-head">
+  <h1>Flowtrack</h1>
+  <div class="mp-status" id="pagestate" role="status"></div>
+</header>
+<div class="mp-note" id="nostage">
+  <span>This page shows the movement of the stage that opened it. Open it from the panel: card “Movement” → Flowtrack → “Page ↗” (or key L on the stage).</span>
+</div>
+<div class="mp-note mp-old" id="oldstage" role="alert" hidden>
+  <span>The stage window is from before an update of Dream – this page needs the new one. Reload the stage (the picture pauses for a moment); this page comes back by itself.</span>
+  <button type="button" class="btn" id="stagereload">Reload the stage</button>
+</div>
+<main id="page" hidden>
+  <div class="mp-note" id="nomode" hidden>
+    <span id="nomode-text"></span>
+    <button type="button" class="btn" id="tomode">Switch to Flowtrack</button>
+  </div>
+  <section class="mp-top" aria-label="Automatic and effect">
+    <div class="mp-card">
+      <h2>Automatic</h2>
+      <button type="button" class="btn clutchbtn on" id="autobtn" aria-pressed="true" title="The automatic sets everything for following one performer. Off: every choice is yours.">Automatic: ON</button>
+      <div class="mp-choices">
+        <div class="mp-choice" id="c-kind">
+          <h3>Detection: <span class="mp-value" id="kind-value">–</span> <span class="mp-tag" id="kind-tag">by hand</span></h3>
+          <div class="mp-by"><select id="kind-by" aria-label="Kind of detection, by hand"><option value="on">Fire/LED</option><option value="marker">LED markers</option><option value="hand">Hands (AI)</option></select>
+            <button type="button" class="btn" id="kind-auto" title="Give this choice back to the automatic">↺ Auto</button></div>
+          <div class="hint" id="kind-why" role="status"></div>
+        </div>
+        <div class="mp-choice" id="c-short">
+          <h3>Exposure: <span class="mp-value" id="short-value">–</span> <span class="mp-tag" id="short-tag">by hand</span></h3>
+          <div class="mp-by"><select id="short-by" aria-label="Exposure, by hand"><option value="1">short</option><option value="0">normal</option></select>
+            <button type="button" class="btn" id="short-auto" title="Give this choice back to the automatic">↺ Auto</button></div>
+          <div class="hint" id="short-why" role="status"></div>
+        </div>
+        <div class="mp-choice" id="c-person">
+          <h3>Person: <span class="mp-value" id="person-value">–</span> <span class="mp-tag" id="person-tag">by hand</span></h3>
+          <div class="mp-by"><select id="person-by" aria-label="The one person, by hand"><option value="1">only the performer</option><option value="0">everyone counts</option></select>
+            <button type="button" class="btn" id="person-auto" title="Give this choice back to the automatic">↺ Auto</button></div>
+          <div class="hint" id="person-why" role="status"></div>
+        </div>
+        <div class="mp-choice" id="c-calib">
+          <h3>Calibration: <span class="mp-value" id="calib-value">–</span></h3>
+          <div class="mp-by"><button type="button" class="btn" id="calib-go" title="Match camera and projector: the projector shows four points one after another">📐 Calibrate</button></div>
+          <div class="hint" id="calib-why" role="status"></div>
+          <label class="movecheck" style="grid-column:1/-1" title="Needs the calibration: Dream subtracts its own projector picture from the camera picture, so the projection does not count as movement or light"><input type="checkbox" id="unproject"> Subtract the projection <span id="unproject-state"></span></label>
+        </div>
+      </div>
+    </div>
+    <div class="mp-card">
+      <h2>Effect</h2>
+      <div class="hint">What the performer's movement does, one slider per target. In the camera picture below: the dashed frame is where Dream's picture lies (the calibration), the green circle is the one person.</div>
+      <div class="mp-effects" id="effects"></div>
+    </div>
+  </section>
+  <section id="dancelab" hidden></section>
+</main>
+<script src="/static/i18n.js"></script>
+<script src="/static/dancemap.js"></script>
+<script src="/static/dancepanel.js"></script>
+<script src="/static/dancerec.js"></script>
+<script src="/static/dancelab.js"></script>
+<script src="/static/movecard.js"></script>
+<script src="/static/movepage.js"></script>
+<script>
+(() => {
+  const T = I18N.t, $ = id => document.getElementById(id);
+  I18N.apply();
+  let bridge = null, lab = null, shown = {}, drawn = '';
+  const say = (id, text) => { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } };
+  const KIND = { on: T('Fire/LED'), marker: T('LED markers'), hand: T('Hands (AI)') };
+
+  // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
+  // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
+  const NEEDS = { calls: ['attach', 'detach', 'state', 'setAuto', 'setMode', 'setKind', 'setShort', 'setPerson', 'release', 'calibrate', 'setUnproject', 'setRows'],
+    state: ['mode', 'auto', 'kind', 'short', 'person', 'calib', 'rows', 'held', 'camera', 'status', 'rate', 'present'] };
+  MovePage.link('flowtrack', {
+    needs: NEEDS,
+    old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },
+    on(b) {
+      bridge = b; $('nostage').hidden = true; $('oldstage').hidden = true; $('page').hidden = false;
+      lab = DanceLab.mount($('dancelab'), b.lab); lab.show(true); b.attach(lab);
+    },
+    lost() { bridge = null; $('nostage').hidden = false; $('oldstage').hidden = true; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
+  });
+  addEventListener('pagehide', () => { try { if (bridge) bridge.detach(); } catch (e) { /* the stage is gone already */ } });
+
+  $('autobtn').onclick = () => bridge && bridge.setAuto($('autobtn').getAttribute('aria-pressed') !== 'true');
+  $('stagereload').onclick = () => { if (MovePage.reloadStage()) say('pagestate', T('The stage is loading anew …')); };
+  $('tomode').onclick = () => bridge && bridge.setMode('flowtrack');
+  $('kind-by').onchange = () => bridge && bridge.setKind($('kind-by').value);
+  $('short-by').onchange = () => bridge && bridge.setShort($('short-by').value === '1');
+  $('person-by').onchange = () => bridge && bridge.setPerson($('person-by').value === '1');
+  for (const k of ['kind', 'short', 'person']) $(k + '-auto').onclick = () => { if (!bridge) return; bridge.release(k); if (k === 'person') bridge.setPerson(true); };
+  $('calib-go').onclick = () => bridge && bridge.calibrate();
+  $('unproject').onchange = () => bridge && bridge.setUnproject($('unproject').checked);
+  addEventListener('keydown', e => {
+    if (!bridge || !lab || MovePage.typing(e)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'g') lab.feedback('good', 'key'); else if (k === 'b') lab.feedback('bad', 'key'); else if (k === 'r') lab.record();
+  });
+
+  // the effect: one row per target of the flowtrack table – built anew only when the table's shape changed
+  let rowsNow = [];
+  function effects(rows) {
+    rowsNow = rows;
+    const shape = JSON.stringify(rows.map(r => [r.id, r.dst, r.src, r.on]));
+    const box = $('effects');
+    if (shape !== drawn) {
+      drawn = shape;
+      const keep = document.activeElement && box.contains(document.activeElement) ? [document.activeElement.closest('.mp-effect').dataset.id, document.activeElement.type] : null;
+      box.textContent = '';
+      for (const r of rows) {
+        const row = document.createElement('div'), on = document.createElement('input'), lab = document.createElement('label'), amt = document.createElement('input'), live = document.createElement('i');
+        row.className = 'mp-effect' + (r.on ? '' : ' off'); row.dataset.id = r.id;
+        const name = DancePanel.label(r.dst, bridge.lab.fxNames), from = DancePanel.label(r.src, bridge.lab.fxNames);
+        on.type = 'checkbox'; on.checked = r.on; on.id = 'fx-on-' + r.id; on.setAttribute('aria-label', T('{t}: on', { t: name }));
+        lab.htmlFor = on.id; lab.textContent = name; lab.title = T('{s} → {t}', { s: from, t: name });
+        amt.type = 'range'; amt.min = 0; amt.max = 1; amt.step = 0.05; amt.value = Math.abs(r.out[1]); amt.setAttribute('aria-label', T('{t}: strength', { t: name }));
+        live.setAttribute('aria-hidden', 'true');
+        on.onchange = () => bridge.setRows(DancePanel.edit(rowsNow, r.id, { on: on.checked }));
+        amt.oninput = () => bridge.setRows(DancePanel.edit(rowsNow, r.id, { amount: +amt.value }));
+        row.append(on, lab, amt, live); box.append(row);
+      }
+      if (keep) { const again = box.querySelector(`[data-id="${keep[0]}"] input[type="${keep[1]}"]`); if (again) again.focus(); }
+    } else for (const r of rows) { const s = box.querySelector(`[data-id="${r.id}"] input[type=range]`); if (s && document.activeElement !== s) s.value = Math.abs(r.out[1]); }
+  }
+  function choice(key, c, value, auto) {
+    say(key + '-value', value); say(key + '-why', auto ? (c.hand ? T('Chosen by hand.') : c.why) : T('Automatic off – your choice.'));
+    $(key + '-tag').classList.toggle('on', auto && c.hand);
+    $(key + '-auto').disabled = !(auto && c.hand);
+  }
+  (function tick() {
+    requestAnimationFrame(tick);
+    if (!bridge) return;
+    let st; try { st = bridge.state(); } catch (e) { return; }   // the stage is reloading: `link` notices
+    const b = $('autobtn');
+    if (b.getAttribute('aria-pressed') !== String(st.auto)) { b.setAttribute('aria-pressed', String(st.auto)); b.classList.toggle('on', st.auto); b.textContent = st.auto ? T('Automatic: ON') : T('Automatic: OFF'); }
+    const flowing = st.mode === 'flowtrack', auto = st.auto && flowing;
+    choice('kind', st.kind, KIND[st.kind.value] || st.kind.value, auto);
+    MovePage.pick($('kind-by'), st.kind.value);
+    choice('short', st.short, st.short.supported === false ? T('fixed by the camera') : st.short.value ? T('short') : T('normal'), auto);
+    if (document.activeElement !== $('short-by')) $('short-by').value = st.short.value ? '1' : '0';
+    $('short-by').disabled = st.short.supported === false;
+    if (st.short.supported === false) say('short-why', T('This camera does not let Dream set its exposure.'));
+    choice('person', st.person, st.person.value ? T('{k} of {n} counted', { k: st.person.kept, n: st.person.n }) : T('everyone counts'), auto);
+    if (document.activeElement !== $('person-by')) $('person-by').value = st.person.value ? '1' : '0';
+    say('calib-value', st.calib.busy ? T('calibrating …') : st.calib.on ? T('done') : T('none'));
+    say('calib-why', st.calib.busy ? st.calib.text : st.calib.why);
+    $('calib-why').classList.toggle('mp-warn', !!st.calib.hint);
+    $('unproject').disabled = !st.calib.on; if (document.activeElement !== $('unproject')) $('unproject').checked = st.calib.unproject;
+    say('unproject-state', st.calib.unproject && st.calib.amount != null ? T('({p} % of the picture taken out)', { p: Math.round(st.calib.amount * 100) }) : '');
+    effects(st.rows);
+    for (const r of st.rows) { const dot = $('effects').querySelector(`[data-id="${r.id}"] i`); if (dot) dot.style.opacity = Math.min(1, Math.abs(st.held(r.id)) * 1.5).toFixed(2); }
+    $('nomode').hidden = flowing;
+    if (!flowing) say('nomode-text', T('The movement mode is “{m}” – this page steers the mode Flowtrack.', { m: MoveCard.name(st.mode) }));
+    say('pagestate', !flowing ? '' : st.camera === 'running' ? T('{n} values/s', { n: st.rate }) + ' · ' + (st.present ? T('someone there') : T('nobody')) : st.status || T('The camera is not running yet.'));
+  })();
+})();
+</script>
+</body>
+</html>
