@@ -46,6 +46,20 @@ command line for now, #231) via `dream-cloud`.
   `tests/js/you.test.mjs`). What Dreamy Eyes take for fire in their camera and what it does to them (#218) is `static/dreamfire.js`: pure, tested on painted camera pictures (`tests/js/fire.test.mjs`). A Dream started only to try Dreamy Eyes (a sandbox, a test in a browser) is started with `DREAM_AIMASK=0`: otherwise the eyes make it load the image model for their painted faces. Who computes right now (#238) is `static/compute.js` and `compute.css`: from the owner's choice, the cloud's status (`cloud.py` makes one step of what `dream-cloud status` and the renderer's `/health` report: `render.progress`) and the bridge switch it tells where the stage's pictures are painted and draws the badge of the panel and of Dream Control – no page shows a line of a log (`tests/test_compute.py`, `tests/js/compute.test.mjs`). A model is compiled (torch.compile) only before its first picture, never beside or inside a picture: in one process that gave 0.2–0.4 pictures/s and broken pictures (cloud test 2026-11-17); afterwards PyTorch only runs what is compiled (`render._stance`), anything else is painted uncompiled and told as `unoptimized` – the Mac bridges only while the cloud cannot paint. `tls.py` makes the certificates for https in the home network (#145); `outbox.py` is the send queue of
   every connected device (#187: messages to control clients and viewers are queued with `outbox.post`/`post_frame`,
   never awaited). `dream-cloud` starts/stops the cloud GPU (scw CLI or `cloud_runpod.py`, SSH tunnel).
+- Movement is one engine (#249): every source – the Mac's camera in the stage, Dreamy Eyes (the energy is worked out on
+  the phone, `DreamMove.sight`; only that number travels), a phone that lends its motion, a wristband over OSC – feeds
+  the one feature stream (`static/dance.js`), every effect runs through the one mapping table (`static/dancemap.js`,
+  kept by `dance.py`), and a mode (`settings.MOVE_MODES`: off, mood, flowtrack, dance – one at a time) is only a preset:
+  its sources, whether it opens the Mac's camera, its table (`dance.tables[mode]`). `static/movement.js` is the engine in
+  the stage (register, the room's energy, the fade between modes; `tests/js/movement.test.mjs`), `movement.py` the modes
+  and the register of the sources outside the stage. What moves the picture by movement is a target of the table, never
+  a switch of its own; a new source reports to the register, a new effect is a new target. Dream windows are no source.
+  The movement detection kind (`flow_kind`, `dance_kind`) and its camera are only changed by the user, or by the
+  Flowtrack automatic in Flowtrack mode (which the user can switch off) – never by relieve, the autopilot, a mode change
+  or any other automatic (`tests/test_movement.py`).
+  "Nobody there – the dream calms down, someone comes – an impulse" is Dreamy Eyes' alone (`movement.Presence`: read
+  from the energy they report, only while the mode listens to them); the Mac's camera in the stage never says who is
+  there.
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
   whether a MIDI controller or sensor can move it; #216: its `weight` – how strongly it shapes the picture – and the
   setting it `needs` to act); the defaults, ranges, guests' keys, `midi.TARGETS`, what "Reset" brings home

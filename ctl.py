@@ -20,6 +20,7 @@ import inputs
 import measure
 import media
 import midi
+import movement
 import outbox
 import rights
 import scenes
@@ -69,6 +70,9 @@ async def ctl(sock: WebSocket):
         outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
         # #235: the dance mapping table; #243: whether the dance lab is open, records or plays
         outbox.post(sock, json.dumps({"dance": {**dance.msg()["dance"], "lab": hub.live.get("dance_lab") or {}}}))
+        outbox.post(sock, json.dumps(movement.msg(hub.state)))   # #249: the register of movement sources
+        if kind == "stage" and movement.presence.calm:   # nobody in front of Dreamy Eyes: a stage that comes now is calm too
+            outbox.post(sock, json.dumps({"cmd": "calm"}))
         outbox.post(sock, json.dumps({"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
                                          "cams": hub.live.get("cams", []), "lan": config.LAN,
                                          "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
@@ -91,6 +95,7 @@ async def ctl(sock: WebSocket):
                 continue
             if sock in eyes.eyes_pages or rights.can(hub.roles.get(sock), "eyes_only"):   # #166: also eyes on a Control device
                 eyes.eyes_note(msg)
+                eyes_energy(sock, msg.get("move"))     # #249: the energy in front of the eyes – a number, never a picture
                 if msg.get("eyes_mood") in windows.WINDOW_MOODS:  # #201: the dream windows feel with the eyes
                     await windows.windows_mood(msg["eyes_mood"])
             mr = msg.get("measure_report")             # #180: a device's frames during a measurement run
@@ -161,7 +166,8 @@ async def ctl(sock: WebSocket):
                 hub.live["dance_lab"] = lab
                 await hub.broadcast({"dance": {"lab": lab}}, exclude=sock)
             if "dance_map" in msg and rights.can(hub.roles.get(sock), "control"):   # #235: never a guest
-                await hub.broadcast(inputs.dance_map(msg["dance_map"]))
+                mode = msg.get("mode") if is_name(msg.get("mode")) and msg["mode"] in dance.MODES else "dance"   # #249
+                await hub.broadcast(inputs.dance_map(msg["dance_map"], mode))
             if "midi_forget" in msg:
                 inputs.midi_map.pop(str(msg["midi_forget"]), None)
                 midi.save_map(inputs.midi_map)
@@ -169,10 +175,7 @@ async def ctl(sock: WebSocket):
             if "cams" in msg and kind == "stage" and isinstance(msg["cams"], list):   # the Mac's cameras, by name
                 hub.live["cams"] = [str(c)[:200] for c in msg["cams"][:12]]
                 await hub.broadcast({"cams": hub.live["cams"]}, exclude=sock)
-            if "moved" in msg and kind == "stage" and hub.state["flowtrack"] != "off":   # movement: someone came or left
-                if hub.state["motion"]:
-                    await inputs.on_presence(bool(msg["moved"]))
-            if "rule" in msg and kind == "stage" and hub.state["flowtrack"] != "off":
+            if "rule" in msg and kind == "stage" and movement.camera_on(hub.state):
                 for name in msg["rule"] if isinstance(msg["rule"], list) else [msg["rule"]]:
                     await inputs.on_rule(str(name)[:60])
             if isinstance(msg.get("live"), dict) and kind == "stage":   # the stage reports fps
@@ -189,9 +192,28 @@ async def ctl(sock: WebSocket):
         hub.roles.pop(sock, None)
         hub.key_roles.pop(sock, None)
         eyes.eyes_pages.discard(sock)
+        movement.sources.drop(eyes_ids.pop(sock, ["", 0])[0])
         outbox.drop(sock)
         await feeds_end(sock)
         await hub.broadcast(hub.status_msg())
+
+
+eyes_ids: dict = {}         # #249: a Dreamy Eyes page's socket → [its id in the register of movement sources, last value at]
+eyes_seq = {"n": 0}
+
+
+def eyes_energy(sock, m) -> None:
+    """#249: Dreamy Eyes report how much moves in front of them – {"e": energy, "c": confidence}, both 0 … 1, worked
+    out on the phone. Nothing else of it is taken, and not more often than about twelve times a second."""
+    if not isinstance(m, dict):
+        return
+    now = time.monotonic()
+    if sock not in eyes_ids:
+        eyes_seq["n"] += 1
+        eyes_ids[sock] = [f"eyes:{eyes_seq['n']}", -1e9]
+    mine = eyes_ids[sock]
+    if now - mine[1] >= 0.08 and movement.sources.report(mine[0], "eyes", f"Dreamy Eyes {mine[0][5:]}", m.get("e"), m.get("c", 1.0), now):
+        mine[1] = now
 
 
 def is_name(v) -> bool:

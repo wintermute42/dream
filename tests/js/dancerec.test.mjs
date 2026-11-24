@@ -85,6 +85,9 @@ test('the points of the skeleton and of the hands are kept for the stick figure,
     { hands: { l: [{ x: 0.3, y: 0.4, c: 0.9, src: 'marker', len: 0.05 }], r: null }, body: null }, null, {});
   assert.equal(R.body(m), null); assert.deepEqual(R.wrist(m, 'l'), [0.3, 0.4]); assert.equal(R.wrist(m, 'r'), null);
   assert.deepEqual(R.input(m).hands.l[0], { x: 0.3, y: 0.4, c: 0.9, src: 'marker', len: 0.05 });
+  // a measurement that says when it was taken keeps its age: fed to a detector again it is the same repeat or new point
+  const aged = R.pack(2, KEYS, D.create().step({ t: 2, hands: { l: null, r: null }, body: null }), { t: 2, hands: { l: [{ x: 0.3, y: 0.4, c: 0.9, src: 'pose', at: 1.95 }], r: null }, body: null }, null, {});
+  assert.ok(Math.abs(R.input(aged).hands.l[0].at - 1.95) < 1e-3); assert.equal(aged.i.h.l[0].length, 6);
 });
 
 test('a feedback keeps the last seconds: its window, the mark at its end, the mapping in use', () => {
