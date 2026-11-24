@@ -65,8 +65,7 @@ async def midi_loop():
             elif a == "next":
                 await scenes.next_scene(force=True)
             elif a == "blackout":
-                hub.live["master_before"] = hub.state["master"] if hub.state["master"] > 0.05 else hub.live.get("master_before", 1.0)
-                await hub.apply({"master": 0.0 if hub.state["master"] > 0.05 else hub.live["master_before"]})
+                await hub.blackout()
             elif a == "reseed":
                 await hub.apply({"seed": secrets.randbelow(99999) + 1})
             elif a == "restart":

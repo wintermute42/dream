@@ -153,6 +153,8 @@ async def ctl(sock: WebSocket):
             if is_name(msg.get("cmd")):            # one-off actions, handled by the stage
                 if msg["cmd"] == "next":
                     await scenes.next_scene(force=True)
+                elif msg["cmd"] == "blackout":         # #241: the server keeps what the master was before
+                    await hub.blackout(by=kind)
                 else:
                     await hub.broadcast({"cmd": msg["cmd"], "arg": msg.get("arg")}, exclude=sock)
             if "midi_learn" in msg:                # the next touched MIDI control gets this target

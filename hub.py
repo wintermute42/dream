@@ -144,6 +144,16 @@ async def apply(changes: dict, exclude=None, persist=True, by=None):
         outbox.post(exclude, json.dumps({"set": snapped}))
 
 
+async def blackout(by=None) -> None:
+    """#241: the master to black and back – the panel's and Dream Control's "Blackout", a MIDI button, a strike. Back is
+    the brightness it had before (or full, if it was already dark)."""
+    if state["master"] > 0.05:
+        live["master_before"] = state["master"]
+        await apply({"master": 0.0}, by=by)
+    else:
+        await apply({"master": live.get("master_before", 1.0)}, by=by)
+
+
 # ---------- #216: reset – the picture's settings glide home, and back again for a few seconds ----------
 # The server steps the values (about twelve a second, eased): every page shows its sliders gliding, the stage gets them
 # like a hand on a slider – nothing more for the AI to do – and it works from Dream Control without a detour.
