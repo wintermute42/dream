@@ -132,7 +132,12 @@ def about(sid: str, s: dict) -> dict:
 
 
 def _path(sid: str, meta: bool = False) -> str:
-    return os.path.join(DIR, sid + (".meta.json" if meta else ".json"))
+    """A session's file – inside the sessions' folder, or ValueError (an id is checked before; this holds whatever comes)."""
+    root = os.path.normpath(DIR)
+    path = os.path.normpath(os.path.join(root, sid + (".meta.json" if meta else ".json")))
+    if not ID.fullmatch(sid) or not path.startswith(root + os.sep):
+        raise ValueError(sid)
+    return path
 
 
 def save(s: dict) -> dict:
@@ -165,6 +170,8 @@ def listing() -> list:
 
 
 def delete(sid: str) -> bool:
+    if not ID.fullmatch(sid):
+        return False
     done = False
     for path in (_path(sid), _path(sid, True)):
         try:

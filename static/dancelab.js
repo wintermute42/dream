@@ -22,7 +22,7 @@
   const FINGER_STRIPS = ['palm', 'spread', 'pinch'];
   const WINDOW = 12;                                   // seconds of curves in view
   const CURVE_NAMES = { lin: () => T('straight'), soft: () => T('early (soft start)'), hard: () => T('late (needs more)'), s: () => T('S (soft both ends)') };
-  const SPOKEN = { good: () => T('👍 Good'), bad: () => T('👎 Bad') };
+  const spoken = mark => (mark === 'good' ? T('👍 Good') : mark === 'bad' ? T('👎 Bad') : '');
   // the words a spoken feedback is made of: English, and the page's language beside it (each a list in the translations)
   const words = () => ({ good: [...R.WORDS.good, ...T('good great yes nice super top right').split(' ')], bad: [...R.WORDS.bad, ...T('bad no nope wrong').split(' ')],
     not: [...R.WORDS.not, ...T('not').split(' ')] });
@@ -63,7 +63,7 @@
     const bar = el('header', 'dl-bar'), title = el('h2', '', T('🧪 Dance lab')), modeTxt = el('span', 'dl-mode'), tools = el('div', 'btns dl-tools');
     modeTxt.setAttribute('role', 'status');
     const recBtn = btn(T('● Record'), T('Record a session: the features and the points of skeleton and hands – numbers only, no camera picture (key R)')); recBtn.setAttribute('aria-pressed', 'false');
-    const goodBtn = btn(SPOKEN.good(), T('That felt right: keep the last seconds (key G)')), badBtn = btn(SPOKEN.bad(), T('That did not work: keep the last seconds (key B)'));
+    const goodBtn = btn(spoken('good'), T('That felt right: keep the last seconds (key G)')), badBtn = btn(spoken('bad'), T('That did not work: keep the last seconds (key B)'));
     const voiceBtn = btn('🎙', T('Hold and say “good” or “bad” (or key V)')); voiceBtn.setAttribute('aria-label', T('Feedback by voice: hold and say “good” or “bad”'));
     const secsLab = el('label', 'dl-secs'), secsIn = el('input'), secsVal = el('span', 'val');
     secsIn.type = 'range'; secsIn.min = 1; secsIn.max = 15; secsIn.step = 1; secsLab.append(T('a feedback keeps the last'), secsIn, secsVal);
@@ -354,15 +354,15 @@
     }
     // mark: 'good' | 'bad'; by: who said it ('panel', 'key', 'button', 'voice', 'control', 'midi')
     function feedback(mark, by) {
-      if (!SPOKEN[mark]) return false;
+      if (!spoken(mark)) return false;
       if (!active() || player) {                        // said so only to a hand at this Mac – never onto the audience's picture for a pedal
         if (by === 'panel' || by === 'key' || by === 'voice') say(T('Feedback needs the dance lab open on the live dance, or a recording.'));
         return false;
       }
       const secs = opts.secs(), m = R.moment(rng, mark, by, secs, rowsNow(), keys, 16 / 9);
       if (rec) rec.mark(performance.now() / 1000, mark, by, secs);
-      if (m.frames.length < 5) { say(T('{m} – but nothing was detected in the last seconds', { m: SPOKEN[mark]() })); return true; }
-      keep(m, T('{m} – the last {n} s are kept', { m: SPOKEN[mark](), n: Math.round(m.seconds) }));
+      if (m.frames.length < 5) { say(T('{m} – but nothing was detected in the last seconds', { m: spoken(mark) })); return true; }
+      keep(m, T('{m} – the last {n} s are kept', { m: spoken(mark), n: Math.round(m.seconds) }));
       return true;
     }
     let asked = 0;
