@@ -91,6 +91,7 @@ SETTINGS: dict[str, Setting] = {
     # the Mac's camera (cam, flow) only on Control's or the stage's word
     "mode": text("dream", choices=("dream", "cam", "img", "vid", "flow"), guest=frozenset({"dream", "img", "vid"})),
     "backend": text("local", choices=("local", "cloud")),
+    "cloud_bridge": flag(True),                                 # #238: while the cloud GPU sends no pictures, the Mac paints
     "model": text("sd-turbo", choices=models.MODELS),
     "running": flag(True),
     "strength": num(0.45, 0.0, 0.95, guest=True, target=True, weight=1.0),
