@@ -39,6 +39,7 @@ async def ctl(sock: WebSocket):
         hub.live["midi"] = asyncio.create_task(inputs.midi_loop())
         hub.live["sensors"] = asyncio.create_task(inputs.sensor_loop())
         hub.live["aimask"] = asyncio.create_task(eyes.aimask_loop())   # #160
+        hub.live["worlds"] = asyncio.create_task(eyes.world_loop())    # #224
     key_role = rights.ws_role(sock)
     role = key_role
     if role == "control" and "control" in hub.roles.values():
@@ -67,7 +68,8 @@ async def ctl(sock: WebSocket):
         outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
         outbox.post(sock, json.dumps({"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
                                          "cams": hub.live.get("cams", []), "lan": config.LAN,
-                                         "schema": settings.page_schema(), **hub.status_msg()}, ensure_ascii=False))
+                                         "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
+                                         **eyes.drift_msg(time.monotonic()), **hub.status_msg()}, ensure_ascii=False))
     await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
     try:

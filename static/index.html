@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/static/qrbox.css">
 <link rel="stylesheet" href="/static/sliders.css">
+<link rel="stylesheet" href="/static/worldband.css">
 <link rel="stylesheet" href="/static/signs.css">
 <style>
   :root { --ap: rgba(80,190,255,.16); --apline: rgba(80,190,255,.55); --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --panel: rgba(20,18,30,.9); --panelsolid: #141220; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
@@ -591,7 +592,7 @@
     <label>MIDI controller <span class="val" id="v-master"></span></label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
-      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option></select>
+      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
@@ -680,8 +681,9 @@
       <button class="btn" id="guestnew" title="The phones of the guests lose access and need the new QR code">↻ New guest code</button>
       <button class="btn" id="trancego" title="Dreamy Eyes go into trance – a third eye opens (key E)">👁 Trance now</button>
       <select id="trancefreqm" aria-label="How often the trance of Dreamy Eyes may come by itself" title="How often the trance of Dreamy Eyes may come by itself"><option value="0">Trance: only by hand</option><option value="25">Trance: rarely</option><option value="12">Trance: now and then</option><option value="5">Trance: often</option></select>
-      <select id="world" aria-label="Style world: how Dreamy Eyes and the dream windows are drawn" title="Style world: how Dreamy Eyes and the dream windows are drawn"><option value="classic">Style world: Classic</option><option value="deepsea">Style world: Bioluminescence</option><option value="ink">Style world: Ink & watercolour</option><option value="etching">Style world: Engraving</option><option value="aurora">Style world: Aurora</option></select>
     </div>
+    <!-- #224: the band of worlds (static/worldband.js): a picture per style world, the crossfade, the drift -->
+    <div id="worldband"></div>
     <div id="guestnewq" class="btns" hidden role="group" aria-label="New guest code?">
       <span class="muted">All guests lose access and need the new QR code. Renew it?</span>
       <button class="btn" id="guestyes">Renew</button><button class="btn" id="guestno">Cancel</button>
@@ -728,6 +730,7 @@
 <script src="/static/measure.js"></script>
 <script src="/static/qrbox.js"></script>
 <script src="/static/sliders.js"></script>
+<script src="/static/worldband.js"></script>
 <script src="/static/signs.js"></script>
 <script src="/static/morph.js"></script>
 <script src="/static/fx.js"></script>
@@ -1882,7 +1885,9 @@
     motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
-    fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt', world: 'world' };
+    fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
+  // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
+  const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
   let ctl = null, applying = false;
   const sendCtl = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };
@@ -1917,6 +1922,7 @@
           o.textContent = v + (camList.length && !camId(v) ? T(' (not connected)') : '');
         }
         if (BIND[k]) { const el = $(BIND[k]); if (el.type === 'checkbox') el.checked = !!v; else el.value = v; }
+        if (k.startsWith('world')) worldBand.set({ [k]: v });
         if (k === 'mode' && v !== mode) origSetMode(v);
         if (k === 'backend') switchBackend(v);
         if (k === 'music' && v !== $('music').value) { $('music').value = v; startMusic(v); }
@@ -3402,6 +3408,8 @@
       if (m.eyes_cfg) $('trancefreqm').value = String(m.eyes_cfg.trance_every);
       if (m.gallery) renderGallery(m.gallery);
       if (m.schema) sliders.schema(m.schema);          // #216
+      if (m.worlds) worldBand.worlds(m.worlds);             // #224
+      if (m.world_drift) worldBand.drift(m.world_drift);
       if (m.reset) resetMsg(m.reset);
       if (m.state) applyState(m.state);
       if (m.set && m.by) Object.keys(m.set).forEach(apManual);     // changed by hand on the phone, MIDI, …

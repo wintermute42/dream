@@ -75,9 +75,9 @@ async def midi_loop():
                 cur = hub.state.get("music_pattern", "auto")
                 await hub.apply({"music_pattern": order[(order.index(cur) + 1) % len(order)] if cur in order else "auto"}, by="midi")
             elif a == "world":                         # #221: the next style world of Dreamy Eyes and the dream windows
-                order = settings.WORLDS
-                cur = hub.state.get("world")
-                await hub.apply({"world": order[(order.index(cur) + 1) % len(order)] if cur in order else order[0]}, by="midi")
+                s = hub.state                          # #224: … after the one that shows most, and all of it
+                cur = s["world_to"] if s["world_mix"] > 0.5 else s["world"]
+                await hub.apply({"world": settings.world_next(cur), "world_mix": 0.0}, by="midi")
             elif a.startswith("fx_"):                  # effects: the stage knows which ones go together
                 await hub.broadcast({"cmd": "fx", "arg": a[3:]}, only="stage")
         if learned:

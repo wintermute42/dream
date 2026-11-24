@@ -159,7 +159,7 @@ def test_one_table_feeds_every_view():
     assert set(settings.RANGES) == {k for k, s in table.items() if s.number}
     assert midi.TARGETS is settings.TARGETS
     assert set(midi.TARGETS) == {"strength", "mix", "zoom", "rot", "hue", "drift", "smooth", "sens", "motion_sens",
-                                 "pose_scale", "master", "fx_amt"}
+                                 "pose_scale", "master", "fx_amt", "world_mix"}
     for k, s in table.items():
         assert s.kind in ("bool", "int", "float", "text"), k
         if s.number:
@@ -420,5 +420,8 @@ def test_the_style_world_is_one_entry_in_the_table():
         with open(os.path.join(here, "static", page), encoding="utf-8") as f:
             src = f.read()
         assert '<option value="world">Button: next style world</option>' in src
-        offered = re.findall(r'<option value="([^"]+)"', re.search(r'<select id="world"[^>]*>(.*?)</select>', src).group(1))
-        assert tuple(offered) == settings.WORLDS, page
+        # #224: the worlds are offered by the band of worlds, from Dream's own list (told over /ctl) – no list in a page
+        assert '<div id="worldband"></div>' in src and "worldBand.worlds(m.worlds)" in src and '<select id="world"' not in src, page
+    with open(os.path.join(here, "static", "worldband.js"), encoding="utf-8") as f:
+        names = re.search(r"const NAMES = \{(.*?)\n  \};", f.read(), re.S).group(1)
+    assert tuple(re.findall(r"^\s+([a-z][a-z0-9-]*): \(\) => T\(", names, re.M)) == settings.WORLDS   # each with its name

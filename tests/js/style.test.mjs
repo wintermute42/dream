@@ -44,13 +44,13 @@ test('every world Dream can name is a file that registers itself, and the pages 
   for (const page of ['static/eyes.html', 'static/window.html']) {
     const src = read(page), at = name => src.indexOf(`<script src="/static/${name}.js"></script>`);
     for (const w of worlds) assert.ok(at(`world-${w}`) > at('dreamstyle') && at('dreamstyle') > at('dreambrush') && at('dreambrush') >= 0, `${page} loads the brushes, the layer, then world-${w}.js`);
-    assert.ok(/typeof m\.world === 'string'\) \{? ?DreamStyle\.use\(m\.world\)/.test(src), `${page} takes the world Dream names`);
+    assert.ok(/typeof m\.world === 'string'\) \{ DreamStyle\.blend\(m\.world, /.test(src), `${page} takes the world Dream names (#224: and the one it fades to)`);
     assert.ok(!/DreamEye\.(draw|irisWorld|pupilShape)\(|DreamLife\.draw\(/.test(src), `${page} draws through the style layer only`);
   }
-  for (const page of ['static/index.html', 'static/remote.html']) {
-    const sel = /<select id="world"[^>]*>(.*?)<\/select>/.exec(read(page))[1];
-    assert.deepEqual([...sel.matchAll(/<option value="([^"]+)"/g)].map(m => m[1]), worlds, `${page} offers every world, in Dream's order`);
-  }
+  // the panel and Dream Control offer every world Dream names (#224: the band of worlds, with a name for each)
+  const names = /const NAMES = \{(.*?)\n {2}\};/s.exec(read('static/worldband.js'))[1];
+  assert.deepEqual([...names.matchAll(/^\s+([a-z][a-z0-9-]*): \(\) => T\(/gm)].map(m => m[1]), worlds, 'static/worldband.js names every world, in Dream\'s order');
+  for (const page of ['static/index.html', 'static/remote.html']) assert.ok(read(page).includes('worldBand.worlds(m.worlds)'), `${page} offers the worlds Dream names`);
 });
 
 function compare(a, b) {                               // two small pictures (RGB bytes): how far apart, on average and at worst

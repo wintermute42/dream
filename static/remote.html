@@ -12,6 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="/static/qrbox.css">
 <link rel="stylesheet" href="/static/sliders.css">
+<link rel="stylesheet" href="/static/worldband.css">
 <link rel="stylesheet" href="/static/signs.css">
 <style>
   :root { --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --card: #17141f; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
@@ -289,8 +290,9 @@
     <label id="trancelbl" style="margin-top:8px;display:block">The trance – a third eye opens – comes at most</label>
     <div class="seg" id="trancefreq" role="group" aria-labelledby="trancelbl" style="--n:4"><button data-v="0">only by hand</button><button data-v="25">rarely</button><button data-v="12">now and then</button><button data-v="5">often</button></div>
     <div id="trancestate" class="hint" role="status" aria-live="polite"></div>
-    <label for="world" style="margin-top:8px">Style world – how Dreamy Eyes and the dream windows are drawn</label>
-    <select id="world"><option value="classic">Classic – glowing lines and soft light</option><option value="deepsea">Bioluminescence – lights of the deep sea, no outlines</option><option value="ink">Ink & watercolour – light pigment on black paper, brushed lines</option><option value="etching">Engraving – an old engraved plate come alive, Art Nouveau lines</option><option value="aurora">Aurora – curtains of northern light over a field of stars</option></select>
+    <!-- #224: the band of worlds (static/worldband.js): a picture per style world, the crossfade, the drift -->
+    <div id="worldband"></div>
+    <div class="hint">Tap a world to fade over to it; the wandering then waits three minutes. A MIDI knob can turn the crossfade. Old phones show one world at a time and change over in a short fade.</div>
   </section>
 
   <section data-sec="windows" data-only="control">
@@ -303,7 +305,7 @@
     <h2>MIDI · master</h2>
     <label>Master brightness (0 = black)</label><input type="range" id="master" min="0" max="1" step="0.01">
     <div id="midistate" class="hint">no MIDI device at the Mac</div>
-    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
+    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
   </section>
 
   <section data-key data-sec="motion" class="haschar">
@@ -375,6 +377,7 @@
 <script src="/static/measure.js"></script>
 <script src="/static/qrbox.js"></script>
 <script src="/static/sliders.js"></script>
+<script src="/static/worldband.js"></script>
 <script src="/static/signs.js"></script>
 <script>
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
@@ -417,7 +420,9 @@
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master']);
-  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast', 'world'];
+  const FIELDS = ['prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast'];
+  // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
+  const worldBand = WorldBand.mount(document.getElementById('worldband'), { send: set => { Object.assign(state, set); send({ set }); } });   // (one word for all of them)
   let ws = null, state = {}, applying = false;
   // the one movement switch (state key "flowtrack"; off = no movement effect)
   function updFlowSwitch() {
@@ -489,6 +494,7 @@
       Object.assign(state, st); fillCams(cams);
     }
     Object.assign(state, st);
+    worldBand.set(st);
     for (const k of FIELDS) {
       if (!(k in st)) continue;
       const el = $(k);
@@ -815,6 +821,8 @@
       if (m.feed_taken) devStop(m.feed_taken, false, T('Another device took over.'));
       if (m.cams) fillCams(m.cams);
       if (m.schema) sliders.schema(m.schema);          // #216
+      if (m.worlds) worldBand.worlds(m.worlds);             // #224
+      if (m.world_drift) worldBand.drift(m.world_drift);
       if (m.reset) resetMsg(m.reset);
       if (m.state) apply(m.state);
       if (m.set) apply(m.set);
