@@ -161,7 +161,8 @@ async def sensor_loop():
                     await hub.broadcast({"cmd": action, "arg": ev[1]})
                 elif action:
                     midi_thr.act(action)
-                await hub.broadcast({"sensors": {"impulse": ev[1]}}, only="stage")
+                # the stage shows it, and the phone that was swung gives a little jolt (#240: it never heard of it)
+                await hub.broadcast({"sensors": {"impulse": ev[1]}})
             elif ev[0] == "button":                # #235: a wristband's button – the stage decides what it means
                 await hub.broadcast({"sensors": {"button": ev[1]}}, only="stage")
             elif ev[0] == "learned":

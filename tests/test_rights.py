@@ -414,9 +414,9 @@ def quick_glide(server, monkeypatch):
 
 CHANGED = {"zoom": -0.03, "rot": 2.5, "strength": 0.9, "smooth": 0.9, "fx": "tunnel+waves", "fx_amt": 0.2, "auto": True,
            "style": "watercolour", "style_amt": 1.6, "style_ref": "0123456789ab", "style_ref_amt": 0.4,
-           "music_pattern": "Flow"}
+           "music_pattern": "Flow", "master": 0.4}
 KEPT = {"prompt": "a quiet lake at dawn", "model": "sdxl-turbo", "quality": 3, "size": 768, "aspect": "wide", "mode": "img",
-        "cam_device": "Camera A", "flow_device": "Camera B", "playlist": "", "syphon": True, "master": 0.4, "seed": 77,
+        "cam_device": "Camera A", "flow_device": "Camera B", "playlist": "", "syphon": True, "seed": 77,
         "running": False, "music": "mic", "interval": 30,
         "music_patterns": False, "fx_beat": False, "beat_snap": "beat"}
 
@@ -447,6 +447,7 @@ def test_ctl_reset_glides_home_and_undo_brings_everything_back(server, saved_sta
         assert {k: s[k] for k in server.settings.RESET} == server.settings.RESET     # home, exactly
         assert (s["fx"], s["auto"], s["fx_amt"]) == ("", False, defaults["fx_amt"])
         assert (s["style"], s["style_amt"], s["style_ref"], s["style_ref_amt"], s["music_pattern"]) == ("", 1.0, "", 0.8, "auto")
+        assert s["master"] == 1.0                                                     # #240: full brightness again
         assert {k: s[k] for k in KEPT} == KEPT                                        # and nothing else moved
         ws.send_text(json.dumps({"reset": "undo"}))
         wait_until(lambda: s["zoom"] == CHANGED["zoom"] and not server.hub.gliding["task"])
