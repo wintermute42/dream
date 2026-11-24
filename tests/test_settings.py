@@ -33,7 +33,7 @@ def test_coerce_number_huge_int_overflows(server):
     ("seed", 7.6, 8),
     ("quality", 2.4, 2),
     ("quality", 99, 4),
-    ("size", 5, 256),
+    ("size", 5, 384),
     ("interval", 1, 5),
     ("master", 2, 1.0),
     ("pose_scale", 0, 0.2),
