@@ -65,7 +65,9 @@ test('the line that says what is going on', () => {
   assert.equal(german(() => W.status({ ...st, world_mix: 0 }, { wait: 0, next: 40 }, 12.3)), 'gerade: Klassisch · nächste Welt in 0:28', 'it counts down by itself');
   assert.equal(german(() => W.status({ ...st, world_mix: 0 }, { wait: 0, next: 40 }, 99)), 'gerade: Klassisch · nächste Welt in 0:00');
   assert.equal(german(() => W.status({ ...st, world: 'deepsea', world_to: 'ink', world_mix: 0 }, { wait: 180, next: null }, 20)), 'Biolumineszenz gewählt · Wandern pausiert noch 2:40');
-  assert.equal(german(() => W.status({ ...st, world_mix: 0.8 }, { wait: 61 }, 0)), 'Biolumineszenz gewählt · Wandern pausiert noch 1:01', 'a hand on the mix: the world that shows most');
+  assert.equal(german(() => W.status({ ...st, world_mix: 0.8 }, { wait: 61 }, 0)), 'Mischung von Hand · Wandern pausiert noch 1:01', 'a hand on the mix');
+  assert.equal(german(() => W.status({ ...st, world_mix: 0.3 }, { wait: 180 }, 20)), 'Mischung von Hand · Wandern pausiert noch 2:40');
+  assert.equal(german(() => W.status({ ...st, world_mix: 1 }, { wait: 61 }, 0)), 'Biolumineszenz gewählt · Wandern pausiert noch 1:01', 'dragged all the way: that world is chosen');
   assert.equal(german(() => W.status({ ...st, world_mix: 0.8 }, { wait: 61 }, 61)), 'gerade: Klassisch → Biolumineszenz · 80 %', 'the wait is over: it goes on from there');
   assert.equal(german(() => W.status({ ...st, world_auto: 0 }, { wait: 99, next: 5 }, 0)), 'Klassisch · Wandern aus');
   assert.equal(german(() => W.status({ ...st, world_mix: 0.9, world_auto: 0 }, {}, 0)), 'Biolumineszenz · Wandern aus');
@@ -75,7 +77,8 @@ test('the line that says what is going on', () => {
   assert.deepEqual([W.clock(0), W.clock(0.2), W.clock(59.5), W.clock(160), W.clock(-4)], ['0:00', '0:01', '1:00', '2:40', '0:00']);
   // said aloud: the same without the clock, so a screen reader hears a change and not every second
   assert.equal(german(() => W.spoken({ ...st, world_mix: 0 }, { wait: 0, next: 40 })), 'gerade: Klassisch');
-  assert.equal(german(() => W.spoken(st, { wait: 170 })), 'Klassisch gewählt · Wandern pausiert');
+  assert.equal(german(() => W.spoken(st, { wait: 170 })), 'Mischung von Hand · Wandern pausiert');
+  assert.equal(german(() => W.spoken({ ...st, world_mix: 0 }, { wait: 170 })), 'Klassisch gewählt · Wandern pausiert');
   assert.ok(!/\d/.test(W.spoken(st, { wait: 0 })) && !/\d/.test(W.spoken({ ...st, world_auto: 0 }, {})));
 });
 
@@ -104,6 +107,16 @@ test('the panel and Dream Control show the band of worlds instead of lists and a
   assert.match(css, /prefers-reduced-motion: reduce/);
 });
 
+test('a hand on the crossfade: the mix it asks for, the keys of the slider', () => {
+  const st = { world: 'classic', world_to: 'deepsea', world_mix: 0.2, world_auto: 120 };
+  assert.deepEqual(W.mixTo(st, 0.304), { world_mix: 0.3 });
+  assert.deepEqual([W.mixTo(st, -1), W.mixTo(st, 7), W.mixTo(st, NaN)], [{ world_mix: 0 }, { world_mix: 1 }, { world_mix: 0 }]);
+  assert.equal(W.mixTo({ ...st, world_to: 'classic' }, 0.5), null, 'one world: nothing to mix');
+  assert.deepEqual(['ArrowRight', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].map(k => Math.round(W.mixKey(0.5, k) * 100)), [52, 52, 48, 48, 60, 40, 0, 100]);
+  assert.deepEqual([W.mixKey(0.99, 'ArrowRight'), W.mixKey(0.01, 'PageDown'), W.mixKey(0.5, 'a'), W.mixKey(0.5, 'Tab')], [1, 0, null, null]);
+  assert.ok(W.MIX_EVERY >= 60 && W.MIX_EVERY <= 80, 'about 15 words a second');
+});
+
 test('the band of worlds in a browser', { skip: chrome ? false : 'no Chrome or Chromium found (CHROME_BIN names one)' }, async () => {
   const r = await runPage(chrome, 'worldband.html', { gl: false });
   assert.equal(r.error, '');
@@ -118,9 +131,26 @@ test('the band of worlds in a browser', { skip: chrome ? false : 'no Chrome or C
   // the world that shows is marked, the one it is blended with dashed; one of them takes the focus
   assert.deepEqual(r.chips.map(c => [c.checked, c.next, c.tab]), [['true', false, 0], ['false', true, -1], ['false', false, -1], ['false', false, -1], ['false', false, -1]]);
   assert.deepEqual(r.past.slice(0, 2), [['false', true], ['true', false]], 'past the middle the other world is the one that shows');
-  // the crossfade is shown, not set here
-  assert.deepEqual(r.mixing, { status: 'now: Classic → Bioluminescence · 32 %', now: '32', text: 'Classic → Bioluminescence · 32 %', role: 'progressbar',
-    label: 'Crossfade from the style world to the second one', from: 'Classic', to: 'Bioluminescence', fill: 'scaleX(0.32)', live: 'now: Classic → Bioluminescence', slider: false });
+  // the crossfade: a slider of the band's own, saying how much of the second world shows
+  assert.deepEqual(r.mixing, { status: 'now: Classic → Bioluminescence · 32 %', now: '32', text: '32 % Bioluminescence', role: 'slider', tab: 0, min: '0', max: '100',
+    label: 'Crossfade from the style world to the second one', from: 'Classic', to: 'Bioluminescence', fill: 'scaleX(0.32)', knob: 'translateX(32%)', live: 'now: Classic → Bioluminescence', slider: false });
+  // a hand drags it: the band follows at once, Dream hears the mix – never more than about 15 times a second, and where it ends
+  assert.ok(r.drag.sent.length >= 2 && r.drag.sent.length <= Math.ceil(r.drag.ms / W.MIX_EVERY) + 1, `${r.drag.sent.length} words in ${r.drag.ms} ms`);
+  assert.ok(r.drag.sent.every(m => Object.keys(m).join() === 'world_mix' && m.world_mix >= 0 && m.world_mix <= 1), 'only the mix is set');
+  assert.ok(r.drag.gaps.every(g => g >= W.MIX_EVERY - 2), `words too close: ${r.drag.gaps}`);
+  assert.equal(r.drag.sent.at(-1).world_mix, 0.75, 'the last word is where the hand let go');
+  assert.deepEqual(r.drag.mid, { dragging: true, now: '50', fill: 'scaleX(0.5)', text: '50 % Bioluminescence' }, 'shown at once, before Dream answers');
+  assert.deepEqual(r.drag.end, { dragging: false, now: '75', checked: ['false', 'true'] });
+  assert.equal(r.drag.echo, '75', 'an echo of an earlier mix does not pull it back');
+  assert.equal(r.drag.settled, '40', 'afterwards the band shows what Dream says again');
+  assert.deepEqual(r.barTap, [{ world_mix: 0.25 }], 'a tap on the bar puts the mix there');
+  assert.deepEqual(r.scrolled, [], 'a finger that hardly moves sideways and is taken away by the page sets nothing');
+  // … and holds it: the drift pauses as after a tap, and the line says so
+  assert.equal(r.held, 'Mix by hand · wandering paused for another 3:00');
+  // the keyboard on the slider
+  assert.deepEqual(r.sliderKeys, { right: '42', left: '40', pageUp: '50', home: '0', end: '100', sent: 0.4, last: { world_mix: 1 }, other: 0 });
+  assert.deepEqual(r.one, { disabled: 'true', text: 'Classic', sent: 0 }, 'one world only: nothing to mix');
+  assert.equal(r.sliderRing, 'solid', 'the slider shows its focus');
   // a tap is one word to Dream
   assert.deepEqual(r.taps, [{ world: 'etching', world_to: 'aurora', world_mix: 0 }, { world: 'aurora', world_to: 'classic', world_mix: 0 }, { world: 'classic', world_to: 'deepsea', world_mix: 0 }]);
   // the keyboard: arrows move the focus round and round without choosing, a press chooses
@@ -129,6 +159,7 @@ test('the band of worlds in a browser', { skip: chrome ? false : 'no Chrome or C
   // the drift: a switch and three paces
   assert.deepEqual(r.auto, { role: 'switch', on: 'true', label: 'Wander through the worlds by itself', group: 'radiogroup',
     paces: [['slow', '300', 'false', false], ['calm', '120', 'true', false], ['lively', '45', 'false', false]] });
+  assert.deepEqual(r.own, ['false', 'false', 'true'], 'a tapped pace shows at once – Dream never echoes a change to the page that asked');
   assert.deepEqual(r.off.sent, [{ world_auto: 45 }, { world_auto: 0 }], 'a pace, then the switch: off');
   assert.deepEqual([r.off.on, r.off.paces, r.off.status, r.off.dead], ['false', [['false', true], ['false', true], ['false', true]], 'Classic · wandering off', 0]);
   assert.deepEqual(r.back, [{ world_auto: 45 }], 'on again: the pace it had');
