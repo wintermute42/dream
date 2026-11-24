@@ -11,6 +11,19 @@ body.hide .dl, body.stage-only .dl { left: 0; }
 .dl .btn { min-height: 40px; padding: 5px 12px; }
 .dl-secs { display: inline-flex; align-items: center; gap: 6px; font-size: .8em; color: var(--muted); margin: 0; white-space: nowrap; }
 .dl-secs input { width: 7em; } .dl-secs .val { min-width: 2.6em; color: var(--text); font-variant-numeric: tabular-nums; }
+.dl-main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 900px) { .dl-main { grid-template-columns: minmax(0, 1fr); } }
+.dl-camstate { margin-top: 6px; font-size: .82em; color: var(--muted); min-height: 2.7em; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.dl-camstate.warn { color: var(--warn); font-weight: 600; }
+.dl-lostkey { font-weight: 400; color: var(--warn); margin-left: 8px; } .dl-lostkey[hidden] { display: none; }
+.dl-srcs { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .76em; font-variant-numeric: tabular-nums; }
+.dl-srcs caption { text-align: left; font-size: 1.05em; font-weight: 700; padding-bottom: 4px; }
+.dl-srcs th, .dl-srcs td { text-align: left; padding: 3px 8px 3px 0; border-top: 1px solid var(--line); vertical-align: top; font-weight: 400; }
+.dl-srcs thead th { color: var(--muted); border-top: 0; } .dl-srcs tbody th { font-weight: 700; white-space: nowrap; }
+.dl-srcwhat { color: var(--muted); } .dl-srcs .unknown .dl-srcfrom { color: var(--warn); }
+.dl-srcsure { white-space: nowrap; width: 6.5em; }
+.dl-srcsure i { display: inline-block; width: 3em; height: 6px; border-radius: 3px; margin-right: 6px; background: var(--ok); transform: scaleX(0); transform-origin: left center; transition: transform .2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .dl-srcsure i { transition: none; } }
 .dl-views { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .dl-view, .dl-curves { margin: 0; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: rgba(255,255,255,.03); min-width: 0; }
 .dl figcaption { font-size: .8em; font-weight: 700; margin-bottom: 6px; }

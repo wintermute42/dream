@@ -40,3 +40,18 @@ test('a single guessed point far away is not followed, a hand that really is the
   const moved = [...Array(10).fill([R(0.7)]), ...Array(5).fill([[0.2, 0.4, 2]])];
   assert.deepEqual(follow(moved).at(-1), [0.2, 0.4]);    // there twice in a row: followed
 });
+
+test('a hand that appears far from a stale point and keeps moving is taken up, not waited for', () => {
+  // the point rests at the left edge; the hand is seen on the right and moves on by more than the confirmation
+  // distance with every detection – it never "confirms" where it was first seen, and never comes near the old point
+  const far = Array.from({ length: 12 }, (_, i) => [[0.6 + 0.13 * (i % 3), 0.2 + 0.13 * ((i + 1) % 3), 2]]);
+  const pts = follow([...Array(10).fill([[0.05, 0.65, 2]]), ...far]);
+  assert.deepEqual(pts[10], [0.05, 0.65]);                // the first sight alone: not yet
+  assert.ok(pts[12][0] > 0.5, `after three detections in a row the point is with the hand, got ${pts[12]}`);
+  assert.ok(pts.at(-1)[0] > 0.5);
+});
+
+test('moving pixels stand in for the hand only shortly after the model saw it', () => {
+  assert.equal(M.blurOk(10.1, 10), true);
+  assert.equal(M.blurOk(10 + M.BLUR_S + 0.01, 10), false, 'something moving near the old point must not hold the point there');
+});

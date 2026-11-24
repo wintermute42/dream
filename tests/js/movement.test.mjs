@@ -250,3 +250,13 @@ test('the dance acts on top of the base: a controller moved while dancing shifts
   const dance = run(eng, { mode: 'dance', rec: rec(0.4), clutch: true }, 0.2)['fx.kaleido'];
   near(M.onTop(0.1, dance) - M.onTop(0.3, dance), -0.2);
 });
+
+test('a mode has its own detection: light chosen for flowtrack never becomes the dance\'s', () => {
+  assert.equal(M.camKind('flowtrack', { flow: 'on', dance: 'hand' }), 'on');
+  assert.equal(M.camKind('dance', { flow: 'on', dance: 'hand' }), 'hand', 'flowtrack with LEDs, then Dream Dance: hands');
+  assert.equal(M.camKind('dance', { flow: 'marker', dance: 'hand' }), 'hand');
+  assert.equal(M.camKind('dance', { flow: 'hand', dance: 'marker' }), 'marker', 'markers only when chosen for the dance');
+  assert.equal(M.camKind('mood', { flow: 'marker', dance: 'hand' }), 'marker');
+  assert.equal(M.camKind('dance', { flow: 'on', dance: 'on' }), 'hand', 'the dance never runs on light');
+  assert.equal(M.camKind('dance', {}), 'hand'); assert.equal(M.camKind('flowtrack', { flow: '__proto__' }), 'hand');
+});
