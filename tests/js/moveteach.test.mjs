@@ -107,6 +107,6 @@ test('the page loads what the card needs, in an order that works, and the stage 
   assert.ok(page.includes('href="/static/moveteach.css"'));
   // only transform and opacity move
   const css = readFileSync(new URL('../../static/moveteach.css', import.meta.url), 'utf8');
-  for (const m of css.matchAll(/transition:([^;}]+)/g)) assert.match(m[1], /^(\s*(transform|opacity)[^,]*,?)+$/);
+  for (const m of css.matchAll(/transition:([^;}]+)/g)) for (const part of m[1].split(',')) assert.match(part.trim(), /^(transform|opacity)\b/);
   for (const m of css.matchAll(/@keyframes[^{]+\{((?:[^{}]*\{[^{}]*\})+)/g)) for (const p of m[1].matchAll(/([a-z-]+)\s*:/g)) assert.ok(['opacity', 'transform'].includes(p[1]), p[1]);
 });

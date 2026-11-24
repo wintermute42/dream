@@ -21,6 +21,7 @@
   const MV_MAX = 24;                                   // as many moves as Dream keeps (dancemoves.py)
   const COUNT = 3, MAX_TAKE = 12;                      // seconds: the countdown, and the longest take
   const r4 = x => Math.round(x * 10000) / 10000, r5 = x => Math.round(x * 100000) / 100000;
+  let mounted = 0;
   const NAME_OK = /^[\p{L}\p{N}][\p{L}\p{N}_ .+-]{0,31}$/u;
 
   // ---------- a take in the making ----------
@@ -140,7 +141,7 @@
     const repList = el('ul', 'mt-reps'); repList.setAttribute('aria-label', T('The repetitions of this take'));
     const form = el('div', 'mt-form'); form.hidden = true;
     const nameIn = el('input'), dstSel = el('select'), pieceIn = el('input'), keepBtn = btn(T('Keep the move'), T('Keep this move on this Mac – numbers only, no camera picture'), 'on');
-    const uid = 'mt' + Math.random().toString(36).slice(2, 7);
+    const uid = 'mt' + (++mounted);                  // the fields' ids, one set per card
     const field = (text, input, id) => { const l = el('label', 'mt-field'); input.id = id; l.htmlFor = id; l.append(el('span', '', text), input); return l; };
     nameIn.type = 'text'; nameIn.maxLength = 32; nameIn.placeholder = T('e.g. Lasso'); nameIn.autocomplete = 'off';
     pieceIn.type = 'text'; pieceIn.maxLength = 80; pieceIn.placeholder = T('e.g. fire, glowing embers'); pieceIn.autocomplete = 'off';
