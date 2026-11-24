@@ -60,6 +60,9 @@ command line for now, #231) via `dream-cloud`.
   "Nobody there – the dream calms down, someone comes – an impulse" is Dreamy Eyes' alone (`movement.Presence`: read
   from the energy they report, only while the mode listens to them); the Mac's camera in the stage never says who is
   there.
+  The panel has one card for it (#250, `static/movecard.js` and `movecard.css`: the mode's buttons, the part of the mode
+  in use, the sources); Dream Control has the mode and the mood's strength, and nothing of movement the panel lacks
+  (`tests/test_movecard.py`).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
   whether a MIDI controller or sensor can move it; #216: its `weight` – how strongly it shapes the picture – and the
   setting it `needs` to act); the defaults, ranges, guests' keys, `midi.TARGETS`, what "Reset" brings home

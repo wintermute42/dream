@@ -1,0 +1,50 @@
+/* The movement card (movecard.js, #250) – in the colours of the page it stands on (--accent, --text, --muted, --line,
+   --ok). Only transform and opacity are animated; nothing holds up a click. */
+.movecard, .movecard * { box-sizing: border-box; }
+.movecard { display: grid; gap: 8px; margin: 4px 0 6px; }
+/* the four modes side by side where there is room, two by two in a narrow card – a name never breaks inside a word */
+.movehead { display: grid; gap: 6px; }
+.movehead .movemodes { grid-template-columns: repeat(auto-fit, minmax(7.5em, 1fr)); }
+.movemodes button { min-width: 0; min-height: 44px; padding-left: 4px; padding-right: 4px; font-weight: 600; }
+.movepage { justify-self: end; white-space: nowrap; min-height: 32px; padding-top: 2px; padding-bottom: 2px; }
+.movepage:disabled { opacity: .45; cursor: default; }
+/* the parts of the modes lie on top of each other: the card keeps its height, the part of the mode in use fades in */
+.moveparts { display: grid; }
+.movepart { grid-area: 1 / 1; display: grid; gap: 4px; align-content: start; opacity: 0; visibility: hidden; pointer-events: none;
+  transform: translateY(6px); transition: opacity .25s ease-out, transform .25s ease-out, visibility 0s linear .25s; }
+.movepart.on { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-delay: 0s; }
+.movepart > label { margin: 0; }
+.movecheck { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; min-height: 28px; }
+.moveinfo { font-weight: 600; font-size: .9em; min-height: 2.8em; line-height: 1.4; font-variant-numeric: tabular-nums; }
+/* the energy of the room: a bar that follows at once and a mark that remembers the last peak for a moment */
+.moveenergy { display: grid; grid-template-columns: auto 1fr 5.5em; gap: 8px; align-items: center; font-size: .85em; color: var(--muted); min-height: 24px; }
+.movemeter { position: relative; display: block; height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.movemeter .fill { position: absolute; inset: 0; border-radius: 6px; background: linear-gradient(90deg, var(--ok), var(--accent)); transform: scaleX(0); transform-origin: left center; will-change: transform; }
+.movemeter .peak { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; transform: translateX(-100%); will-change: transform; }
+.movemeter .peak::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 3px; border-radius: 2px; background: var(--text); opacity: .85; }
+.movemeter.unknown .fill, .movemeter.unknown .peak { opacity: 0; }
+.movemeter-word { color: var(--text); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* the sources: one chip per kind – its light is on while values come; a tap switches the kind off or on */
+.movesrc { display: grid; gap: 4px; font-size: .85em; color: var(--muted); }
+.movesources { display: flex; flex-wrap: wrap; gap: 4px; min-height: 68px; align-content: flex-start; }
+.movesources button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line);
+  background: rgba(255,255,255,.05); color: var(--text); font: inherit; font-size: .92em; cursor: pointer; transition: transform .08s ease-out, opacity .2s; }
+.movesources button:hover { background-color: rgba(255,255,255,.13); }
+.movesources button:active { transform: scale(.95); }
+.movesources button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.movesources button[aria-pressed="false"] { opacity: .6; text-decoration: line-through; }
+.movesources button.unused { opacity: .6; }
+.movesources .dot { position: relative; width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--muted); flex: none; }
+.movesources .dot::after { content: ''; position: absolute; inset: -1px; border-radius: 50%; background: var(--ok); opacity: 0; transform: scale(.4); transition: opacity .3s, transform .3s; }
+.movesources .live .dot::after { opacity: 1; transform: none; }
+.movesources .live .dot { border-color: transparent; }
+.movesources .rate { color: var(--muted); font-variant-numeric: tabular-nums; }
+/* folded away below the card: the camera's settings and the table */
+details.sub { border-top: 1px solid var(--line); margin-top: 6px; }
+details.sub > summary { cursor: pointer; color: var(--muted); padding: 8px 0; font-size: .92em; min-height: 36px; display: flex; align-items: center; }
+details.sub > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+details.sub[open] > summary { color: var(--text); }
+@media (prefers-reduced-motion: reduce) {
+  .movepart { transition: none; transform: none; }
+  .movesources button, .movesources .dot::after { transition: none; }
+}

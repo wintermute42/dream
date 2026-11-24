@@ -164,7 +164,7 @@ DREAM_PORT=7860
 
 The panel is a wide column on the left, the preview sits next to it on the right (key H hides the panel, then the
 preview fills the screen). Drag the edge to change the width; it is remembered. The areas (Input & prompt · Dream ·
-Scenes & playlists · Movement · Direct interaction · Music · Output · Computing) are open cards in columns side by
+Scenes & playlists · Movement · Music · Output · Computing) are open cards in columns side by
 side. The layout fits the screen so that everything is visible without scrolling: the cards are spread over the
 columns as evenly as possible in their order, the panel's type gets a little smaller if needed (down to 12 px), and
 if that is not enough, the panel gets a little wider and the preview smaller (only on very small screens does the
@@ -622,8 +622,8 @@ There are two keys, so the audience may play along without being able to cost yo
   new seed, sliders (transformation, zoom, drift …), styles, effects, music reaction, pattern and tap, making
   pictures and clips, using pictures from the gallery. A guest cannot: pause, “New”, the QR code on the stage, blackout
   or master brightness, the autopilot, the Mac's camera (inputs “Camera” and “Light trails”), removing the picture or
-  video you set, the playlist (choice, interval, random), the whole movement card (movement steers the dream, painting,
-  touching, directness, content, impulses at the hand, light in the dark, mirror, movement reaction, the pose), the music's automatic pattern change and
+  video you set, the playlist (choice, interval, random), the whole movement card (the movement mode, the mood's
+  strength, the sources, directness, mirror, the table of what a movement does, the pose), the music's automatic pattern change and
   “Drop → next scene”, uploading, MIDI, Syphon, model, quality, size, the cloud GPU, editing or keeping playlists,
   saving or deleting in the gallery. The remote shows a guest only what a
   guest may use, and the server refuses the rest anyway (“Only Dream Control may do this.”).
@@ -1136,6 +1136,27 @@ source feeds one stream of features (energy, tempo, opening … – see [Dance](
 movement does. A **mode** is nothing but a preset of that table – which sources it listens to, which targets it
 moves, at which thresholds. Choose it in the Movement card (also in Dream Control); the modes exclude each other:
 
+**The Movement card** – one card for all of it (it replaces the earlier cards “Movement”, “Dance” and “Direct
+interaction”):
+- **Off · Mood · Flowtrack · Dream Dance** – four buttons, one mode at a time (arrow keys walk through them). The
+  part of the card below changes with the mode and keeps its height:
+  - **Mood:** the slider **Strength** (0 = nothing … 3×), the **Energy** bar of the room (it follows at once; a small
+    mark holds the last peak for a moment; beside it a word: still, calm, moving, lively, wild – or “no source”) and
+    “**also use the Mac's camera**”. Switching the mood on and off is one click on **Mood** or **Off**.
+  - **Flowtrack:** what Dream detects right now – the kind, values a second, whether someone is there.
+  - **Dream Dance:** the recognised gesture with how sure Dream is, and your tempo.
+- **Page ↗** opens the page of the mode in a window of its own, for a second screen, for the modes that have one
+  (Dream Dance: the dance lab).
+- **Sources** – one chip per kind, see below.
+- Folded away below: **Camera and detection** (the kind of detection, the camera, light and marker colours, fingers,
+  ⚡ Fast, calibrating, subtracting the projection, diagnostics, the pose) and **What a movement does** (what Dream
+  sees, the table of the mode in use, the dance lab, the directness of the hands and “Mirror”).
+- **Dream Control** has only the four mode buttons and the mood's strength (“Mood – strength”). The kind of
+  detection, the camera for movement, ⚡ Fast, the directness, “Mirror” and the pose are set in the panel on the Mac
+  (the main control), and the pages are the Mac's. Whatever Dream Control offers of movement, the panel offers too
+  (a test checks it).
+
+
 | Mode | What it is for | Listens to | Mac camera |
 |---|---|---|---|
 | **Off** | movement does nothing, no camera, no work | – | off |
@@ -1147,9 +1168,11 @@ A change of mode fades: the old mode's effect goes out while the new one's comes
 jolt. The Mac's camera is opened only for a mode that needs it and closed when none does. Dream remembers the mode
 across a restart, like the autopilot.
 
-**Sources.** Below the mode the card lists what can send movement, each kind with a light (values are coming), how
-many values a second and how sure they are, and a tick to switch that kind off:
-- **Mac camera** – hands, pose and fingers, fire and LEDs, LED markers (the kind is chosen beside the mode).
+**Sources.** The card shows what can send movement as chips, one per kind: its light is on while values come (with
+how many a second; how sure they are is in the tooltip), a tap switches that kind off or on again, and a kind the
+mode in use does not listen to stands pale:
+- **Mac camera** – hands, pose and fingers, fire and LEDs, LED markers (the kind is chosen under “Camera and
+  detection”).
 - **Dreamy Eyes** – each phone works out on itself how much moves in front of its front camera and sends only that
   number (about five times a second); no picture is sent or kept for it. Several eyes count as several sources.
 - **Phone (Dream Control)** – the phone that lends its motion ([Live camera and motion](#live-camera-and-motion-of-the-control-device)).
@@ -1160,8 +1183,8 @@ how sure each one is – one lively phone does not rule a quiet room.
 
 **Mood** in short: energy acts at once on the push of the picture, the afterglow and the tempo of the effects, gently
 (over a second or two) on the transformation and on the prompt between its calm and its wild words; a still room
-calms the dream. The slider “Movement – how strongly it steers the dream” is its strength (0 = nothing … 3×). It
-needs no camera on the Mac: Dreamy Eyes or a phone are enough.
+calms the dream. **Strength** in the card sets how much of all that (0 = nothing … 3×; a MIDI controller can turn
+it: target “Mood: strength”). It needs no camera on the Mac: Dreamy Eyes or a phone are enough.
 
 **Nobody there, someone comes** – that is Dreamy Eyes' alone, and only in the mood (the mode that listens to them):
 when nothing has moved in front of any pair of eyes for about 12 seconds the dream calms down (slower, softer), and
@@ -1187,7 +1210,7 @@ Beside the mode the kind of detection for the Mac's camera:
   [Dance](#dance).
 
 **Calibrate (camera ↔ projector):** if the camera stands at an angle or to the side, effects, painting and light land
-a little beside the person without matching. **📐 Calibrate** in the Movement card (movement must be on, camera and
+a little beside the person without matching. **📐 Calibrate** in the Movement card under “Camera and detection” (movement must be on, camera and
 projector fixed): stage and output window turn black and show four white points one after another; Dream finds each
 point itself in the camera picture (it compares the picture with and without the point) and measures the delay
 projector → camera on the way. If the camera does not see the projector (infrared camera), hold a lamp at the point or
@@ -1204,7 +1227,7 @@ itself and subtracts it from the light detection and the movement tracking. The 
 projection the false detection fell from over 80 % of the pictures to 0 %, a light point was still always found. An
 infrared camera does not need it (it does not see the projector at all).
 
-**Camera for movement** (next to the switch, also on the phone): “as picture” or its own, e.g. an infrared camera
+**Camera for movement** (next to the switch, in the panel): “as picture” or its own, e.g. an infrared camera
 with an IR lamp that sees in the dark and does not notice the projection, while the normal camera gives the picture.
 Dream remembers the cameras by name, also across a restart. If a chosen camera is not connected, it stands in the list
 with “(not connected)”, Dream takes the default camera meanwhile and says so; when it is plugged in, Dream switches by
@@ -1228,7 +1251,7 @@ the computing time (at most 150 ms, so a jolt does not overshoot).
 **Delay (latency) – where it comes from and what helps:** the last line of the diagnostics (D) shows how old the
 camera picture is, how long the detection computes, the measured delay projector → camera (after calibrating) and the
 prediction.
-- **⚡ Fast (dance/flow)** in the Movement card (also on the phone): the movement values follow at once instead of
+- **⚡ Fast (dance/flow)** in the Movement card under “Camera and detection” (in the panel only): the movement values follow at once instead of
   calmly smoothed, smoothing off, 1 step and 384 px (more AI pictures per second), little dream share. Pressing again
   restores the previous values; the switch survives a restart.
 - **Visible at once** are the effects, touching and light (60 pictures/s, to the output window 60 times a second).
@@ -1249,9 +1272,9 @@ speed, values per second, light (how much brightened), “fast (blurred)” when
 and the model's computing time.
 
 **Direct interaction** (modes Flowtrack and Dream Dance): the hands act exactly where they are – at once and fitting
-the content. Each of the following is a **target of the table** (card “Dance”: rows “Someone is there → Paint …”,
-with a switch and a strength each), so a mode's preset decides what the hands do; the card “Direct interaction”
-keeps the overall directness and the mirror.
+the content. Each of the following is a **target of the table** (“What a movement does” in the Movement card: rows
+“Someone is there → Paint …”, with a switch and a strength each), so a mode's preset decides what the hands do;
+“Directness of the hands” and “Mirror” stand below the table.
 - **Paint:** the hands draw glowing trails in the colours of the picture under the hand (faster = wider and brighter).
   The trails appear at once and go into the next AI picture – the AI dreams them on to fit the prompt: with fire into
   tongues of flame, with an ocean into waves, with cosmos into star trails. They fade after about a second.
@@ -1280,9 +1303,10 @@ someone is there. The picture itself stays free; the display does not go to the 
 off, it draws nothing and frees its memory. With the panel hidden (H) the diagnostics are not visible either.
 
 While the Mac's camera runs, the rules below apply (who is there – “nobody there calms the dream, someone coming
-gives an impulse” – is not the Mac camera's business but Dreamy Eyes', see [Movement](#movement)). The **effects** follow movement at once through the table (card [Dance](#dance)). The slow AI
+gives an impulse” – is not the Mac camera's business but Dreamy Eyes', see [Movement](#movement)). The **effects**
+follow movement at once through the table (see [Dance](#dance)). The slow AI
 sliders follow only with the row “**Someone is there → Movement pushes the AI sliders**” switched on (off by default;
-slider “Movement” up to 3×): then the
+the row's own slider sets how strongly): then the
 movement makes a pull of its own around the tracked point – also in camera and video mode and when zoom and rotation
 are at 0; while moving, more of the previous dream picture flows along. The values are smoothed, a calm hand gives a
 calm dream:
@@ -1354,7 +1378,7 @@ wave** (one hand up while the other goes down). A gesture counts after two or th
 little delay when you stop (hysteresis) – walking, waving to someone, talking with your hands, reaching for something
 once or swaying set nothing off. Its size becomes the effect's strength, its tempo the beat that pushes the effects.
 
-Card **“Dance”** in the panel:
+**“What a movement does”** in the Movement card:
 - It shows and changes **the table of the mode in use** (Mood, Flowtrack or Dream Dance; with movement off: the
   table of Dream Dance). The mode is the switch for all of it.
 - **What Dream sees:** the features as bars (paler = less sure, with the source each came from: camera, marker,
@@ -1374,7 +1398,7 @@ Card **“Dance”** in the panel:
 
 **The slow AI sliders keep still:** movement used to push transformation, zoom, rotation and colour drift – the AI
 needs a picture or two to show that, too late for dancing. That is off now; the row “**Movement pushes the AI
-sliders**” of the table brings it back (then the slider “Movement” sets how strongly, as before).
+sliders**” of the table brings it back (its slider sets how strongly).
 
 **Dream Dance has its own detection:** what the Mac's camera detects is chosen per mode. Dream Dance detects with
 “Dance: Hands (AI)” (the default) or “Dance: LED markers (2 colours)”; Flowtrack and the mood keep their own choice
@@ -1411,7 +1435,7 @@ Nothing of the camera is stored or sent anywhere for this: the features are numb
 
 ### Dance lab
 
-The **🧪 Dance lab** (button in the Dance card, or key **L**; **Esc** closes it) lays itself over the stage – also on a
+The **🧪 Dance lab** (**Page ↗** in the mode Dream Dance, the button under “What a movement does”, or key **L**; **Esc** closes it) lays itself over the stage – also on a
 projector showing the stage – and shows live what Dream makes of your dance, so the dance control can be tuned while
 dancing:
 
@@ -1793,7 +1817,11 @@ gesture is recognised), the false alarms on standing, walking, waving, talking h
 swaying (none), the movement clock against known tempos, markers alone, one hand alone, the sensor alone and with the
 camera, LED markers in painted pictures (lamps and fire are none) and the finger values on painted hands of every
 size and turn. `node --test tests/js/dancemap.test.mjs` tests the mapping table (`static/dancemap.js`: curve, ranges,
-smoothing, letting go when a source is not known) and what the dance card makes of a hand on a row.
+smoothing, letting go when a source is not known) and what the table's display makes of a hand on a row.
+`node --test tests/js/movecard.test.mjs` (#250) tests the movement card (`static/movecard.js`): the same modes in
+both pages, the energy in a word, the chips of the sources, the line that says what Dream detects, and that its
+styles move only transform and opacity; `tests/test_movecard.py` that the one card holds everything the three cards
+held and that Dream Control offers nothing of movement the panel lacks.
 `node --test tests/js/movement.test.mjs` (#249) tests the movement engine (`static/movement.js`): which mode opens the
 Mac's camera, the room's energy as a mean weighted by confidence, Dreamy Eyes alone or with the camera in one stream,
 a mode as nothing but its table, the change of mode without a step from one frame to the next, and the energy Dreamy
