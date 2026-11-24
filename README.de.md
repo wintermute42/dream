@@ -841,6 +841,27 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
     aufsteigenden Flammenstrichen; wo Klassisch ein Herz zeigt, blüht ein Tropfen rotes Pigment, wo es Sterne zeigt, ist
     es ein Spritzer, und Schlaf sind langsame Ringe aus Lavierung. Gemessen wie oben (Prozessor vierfach gebremst):
     Dreamy Eyes etwa 20 Bilder pro Sekunde, ein Traum-Fenster 4 (Klassisch im selben Lauf: 36 und 8).
+  - **Kupferstich** (#225) – eine alte Kupferplatte, die lebendig wird, mit den langen Linien des Jugendstils. Es gibt
+    nur Linie – Striche, die an- und abschwellen, Schraffur, Punktierung – in knochenfarbener Tinte mit Grünspan,
+    Altrosa und ein wenig Goldlicht, das hin und wieder eine Linie entlangläuft. Das Auge: Das Weiße sind feine Linien,
+    die dem Augapfel folgen, das Lid eine schwellende Linie, die in einer Ranke endet, einzelne Wimpern; der Traum
+    selbst ist in die Iris gestochen, die Striche so dick, wie er dort hell ist. Um die Augen und durch die Fenster: ein
+    Farn, dessen Wedel sich entrollt, eine Ranke, die sich selbst zeichnet und hinter deren Spitze Blätter aufgehen,
+    eine Pusteblume, deren Samen davonfliegen, eine Lilie, die sich öffnet, ein Nachtfalter wie aus einer
+    Naturkundetafel mit schraffierten Flügeln, schraffierte Tautropfen, Flügelsamen, die ein Auge umkreisen, eine Wolke
+    aus Punkten. Die Lichtgesichter heißen *lily* (ein Edelstein an feiner Kette auf der Stirn; selten Haar in Bündeln
+    mit Locken am Ende, Lilien an den Schläfen, ein offener Heiligenschein mit Teilstrichen), *fern* (ein junger
+    Farnwedel auf der Stirn; selten Ranken als Haar, ein Blätterkranz) und *moth* (ein ruhender
+    Falter auf der Stirn; selten ein Schleier feiner Linien, ein Heiligenschein aus Punkten) – mit den Andeutungen auch, zarter, die Kieferlinie (der Umriss des Gesichts; beim Farn gepunktet); geschlossene,
+    schraffierte Lippen und die Nase (eine Seite mit anschwellender Linie gestochen und im Schatten schraffiert, die
+    andere nur gepunktet) nur im seltenen Moment. Im Fenster ist der Traum
+    eine Rosette, in ein Medaillon mit Teilstrichen gestochen, um dessen Rahmen Ranken wachsen; das dritte Auge sitzt
+    mitten in einer Pusteblume; die unmöglichen Figuren sind Fläche für Fläche schraffiert, und ein Samen steigt die
+    Treppe hinauf; der Himmel ist punktiert, in den Farben des Traums. Feuer sind gestochene Flammen mit Gold darin.
+    Statt eines Herzens gibt es eine Knospe, statt Sternen eine Pusteblume und treibende Samen, und Schlaf ist eine
+    Mohnkapsel, die nickt und ein paar Samen fallen lässt. Keine Linie ist feiner als etwa 1,2 px, damit die Platte auch
+    auf groben Ausgaben hält. Gemessen wie oben (Prozessor vierfach gebremst): Dreamy Eyes etwa 25 Bilder pro Sekunde,
+    ein Traum-Fenster 6 (Klassisch im selben Lauf: 39 und 8).
 - **Weibliche Augen:** eine Mandelform mit leicht angehobenem äußerem Augenwinkel, ein zarter rosé-violetter Lidschatten
   mit etwas Schimmer, ein Lidstrich mit kleinem Flügel, volle Wimpern, die zum äußeren Winkel hin länger und geschwungener
   werden (unten ein paar feine). **Die Brauen kommen nur mit den Andeutungen** (siehe oben) und zeigen dann ein Gefühl: Staunen (jemand ganz
