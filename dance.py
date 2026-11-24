@@ -30,10 +30,11 @@ MODES = ("mood", "flowtrack", "dance")              # the movement modes that ha
 # the picture's own motion, how calm the dream is), the direct interaction (#249: what the hands do to the picture –
 # paint, stir, impulses, light in the dark, and whether movement shapes the effects) and the slow AI sliders (added on
 # top of the slider; "ai.prompt": the prompt between its calm and its wild words, "ai.react": speed and place of the
-# movement push transformation, zoom, rotation and colour drift)
+# movement push transformation, zoom, rotation and colour drift; #236 "ai.piece": the piece of prompt a taught move
+# brings along, blended in by as much as the row says)
 TARGETS = (("fx.amt", "fx.pulse", "fx.spin", "fx.speed") + tuple("fx." + e for e in playlists.FX)
            + ("stage.calm", "touch.paint", "touch.warp", "touch.impulse", "touch.light", "touch.shape")
-           + ("ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue", "ai.prompt", "ai.react"))
+           + ("ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue", "ai.prompt", "ai.react", "ai.piece"))
 SRC = re.compile(r"[a-z][a-z0-9_]{0,23}(\.[a-z0-9_]{1,24})?")
 ID = re.compile(r"[a-z0-9_-]{1,24}")
 
@@ -271,6 +272,20 @@ def set_rows(new, mode: str = "dance") -> list:
     else:
         save_tables()
     return tables[mode]
+
+
+def drop_source(src: str) -> bool:
+    """#236: a source is gone for good (a taught move was deleted) – the rows that had it leave every table and every
+    set of the owner's. Whether anything changed."""
+    new_tables = {m: [r for r in rows if r["src"] != src] for m, rows in tables.items()}
+    new_sets = {k: [r for r in rows if r["src"] != src] for k, rows in sets.items()}
+    if new_tables == tables and new_sets == sets:
+        return False
+    sets.clear()
+    sets.update(new_sets)
+    tables.update(new_tables)
+    set_rows(tables["dance"], "dance")                # writes the file anew
+    return True
 
 
 # #249: the switches of the cards "Direct interaction" and "Movement" of earlier versions → the row each one is now

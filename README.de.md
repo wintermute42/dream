@@ -51,6 +51,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Flowtrack](#flowtrack)
 - [Tanz](#tanz)
   - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
+  - [Eigene Bewegungen](#eigene-bewegungen)
   - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
@@ -1578,7 +1579,8 @@ zum Schlag, der die Effekte anstößt.
   langsamen **KI-Regler** (Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift; sie folgen frühestens in einer
   halben Sekunde und kommen auf den Regler obendrauf).
   Weitere Ziele: das Tempo der Bewegung im Bild, den Traum beruhigen, die direkte Interaktion (Malen, Anfassen,
-  Impulse, Licht im Dunkeln, Bewegung formt die Effekte), der Inhalt nach Energie und der Schub auf die KI-Regler.
+  Impulse, Licht im Dunkeln, Bewegung formt die Effekte), der Inhalt nach Energie, der Schub auf die KI-Regler und
+  das Prompt-Stück einer eigenen Bewegung (siehe [Eigene Bewegungen](#eigene-bewegungen)).
   Die Tabellen – eine je Modus – liegen in `~/.config/dream/dance.json`; nur dieser Mac und Dream Control können sie
   ändern.
 
@@ -1630,7 +1632,8 @@ Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine 
 Kamera (nur die Sessions des Labors gehen direkt an Dream und zurück) – öffne sie also aus dem Bedienfeld, nicht über
 ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
 selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
-Erkennung, die Bewegungs-Sets, der Takt und darunter das Tanz-Labor.
+Erkennung, die Bewegungs-Sets, der Takt, darunter deine eigenen Bewegungen (siehe
+[Eigene Bewegungen](#eigene-bewegungen)) und das Tanz-Labor.
 
 **Die Kupplung** entscheidet, ob dein Tanz wirkt. Was Regler, Bedienfeld und ein MIDI-Controller einstellen, ist die
 **Grundlage**; der Tanz wirkt **obendrauf** – ein Effekt mit 30 % von Hand und 40 % vom Tanz zeigt sich mit 70 %, und
@@ -1681,6 +1684,55 @@ funktionierender Bedienelemente (das Bild setzt kurz aus, die Seite kommt von se
 nebeneinander, je mit einem Punkt, der mitschlägt, und sagt, wer den Takt gibt: dein Tanz, die Musik, beide
 zusammen (auch im halben oder doppelten Tempo) oder zwei verschiedene Takte. Effekte auf dem Schlag stoßen beide
 an – die Zeile „Eigener Schlag → Schub auf den Schlag“ der Tabelle für deine Bewegung, der Schlag der Musik wie immer.
+
+### Eigene Bewegungen
+
+Auf der Seite von Dream Dance, zwischen den Karten oben und dem Tanz-Labor, steht **🕺 Eigene Bewegungen**: Bring
+Dream eine Tanzbewegung bei, indem du sie vormachst, und sag, was sie bewirkt.
+
+- **Eine Bewegung** ist eine rhythmische Bewegung deiner Hände, wie die eingebauten Gesten: derselbe Weg immer
+  wieder, eine Wiederholung in einer Drittelsekunde bis gut einer Sekunde (0,3–1,25 s). Eine Hand oder beide; gemessen
+  wird am eigenen Körper, es ist also egal, wo du im Bild stehst und wie nah. Es geht mit allem, was Dream Dance
+  erkennt (Hände per KI oder Leucht-Marker) – lerne eine Bewegung mit der Erkennung an, mit der du sie tanzen wirst.
+- **Neue Bewegung anlernen** (oder Taste **T**): drei Sekunden Countdown, dann läuft die Aufnahme. Mach deine
+  Bewegung **drei- bis fünfmal hintereinander** vor – die große Zeile zählt die Wiederholungen, die Dream gesehen hat,
+  und die Aufnahme endet von selbst (nach genug Wiederholungen, spätestens nach 12 Sekunden; **■ Fertig** beendet sie
+  früher, **Verwerfen** oder **Esc** bricht ab). Mach eine Wiederholung mehr, als du brauchst: Die erste und die
+  letzte, bei denen die Arme hoch- und wieder heruntergehen, zählen oft nicht. Dream findet die Wiederholungen selbst
+  und **zeigt sie sofort**, jede als kleines Skelett in Endlosschleife mit den Bahnen der Hände in Farbe; **✕**
+  verwirft eine, die danebenging (drei müssen übrig bleiben). Wird aus einer Aufnahme keine Bewegung, sagt die Zeile,
+  warum: zu kurz, Hände nicht gesehen, kaum Bewegung, keine Wiederholung gefunden, weniger als drei Wiederholungen.
+- **Bewegung behalten** mit einem **Namen** (Buchstaben, Ziffern, Leerzeichen und `. + -`, höchstens 32 Zeichen) und
+  – wenn du magst – mit dem, was sie **steuert**, und einem **Prompt-Stück**. Höchstens 24 Bewegungen werden
+  gespeichert.
+- **Erkennung.** Von da an erkennt die Bühne die Bewegung wie eine eingebaute Geste: Sie vergleicht die letzten zwei
+  Wiederholungen deiner Hände per Dynamic Time Warping mit der Bewegung, so dass auch eine Variante passt – etwas
+  schneller oder langsamer (etwa das 0,7- bis 1,4-Fache des angelernten Tempos), größer oder kleiner, an jeder Stelle
+  der Wiederholung –, ein anderer Weg der Hände, derselbe Weg im doppelten Tempo oder eine Schulterbreite höher aber
+  nicht. Sie kommt nach **zwei bis drei Wiederholungen** und geht mit derselben Hysterese wie die eingebauten Gesten;
+  immer nur eine Geste zur Zeit. Die Größe der Bewegung ist ihre Stärke: so groß wie angelernt ist alles, kleiner ist
+  weniger, und weniger als etwa die halbe Größe ist nicht die Bewegung. Eine Bewegung, die einer eingebauten Geste
+  ähnelt, geht ihr vor. Der Balken unter jeder Bewegung in der Liste zeigt, wie sicher Dream sie gerade erkennt; der
+  Rahmen wird grün, solange sie die erkannte ist.
+- **Was sie steuert**, ist eine Zeile der Tabelle („Was eine Bewegung bewirkt“), wie alles, was eine Bewegung bewirkt
+  – wähle das Ziel in der Liste, oder ändere Schalter, Ziel und Stärke der Zeile im Bedienfeld, wo die Bewegung unter
+  „Eigene Bewegungen“ mit ihrem Namen erscheint. Eine Bewegung wirkt also **nur bei eingelegter Kupplung**, und sie
+  gehört zum **Bewegungs-Set**: „Als Set behalten“ behält die Tabelle mit den Zeilen deiner Bewegungen; ein
+  eingebautes Set hat keine davon (die Bewegung bleibt in der Liste und zeigt „– noch nichts –“, bis du ihr in dieser
+  Tabelle ein Ziel gibst).
+- **Prompt-Stück.** Eine Bewegung kann ein Stück Prompt mitbringen (z. B. `fire, glowing embers`; in der Sprache
+  deiner Prompts): Mit dem Ziel **„Prompt-Stück der Bewegung“** wird es in den Prompt eingeblendet, so stark, wie die
+  Bewegung erkannt wird und wie groß du sie machst – langsam, wie jedes KI-Ziel (frühestens in einer halben Sekunde).
+  Die Zeile „Die KI bekommt:“ unter dem Prompt zeigt es, mit ✕ zum Ausschalten der Zeile. Solange ein Prompt-Stück
+  wirkt, steht es an der Stelle der Energie-Wörter („Inhalt nach Energie“).
+- **Umbenennen, ändern, löschen** in der Liste: Name und Prompt-Stück sind Textfelder (gespeichert, wenn du das Feld
+  verlässt), **🗑** löscht nach einer Rückfrage auf dem Knopf selbst. Das Löschen einer Bewegung entfernt ihre Zeilen
+  aus den Tabellen und aus deinen eigenen Sets.
+- **Was gespeichert wird:** je Wiederholung die Merkmale, was die Quellen von den Händen sahen, die Punkte des
+  Skeletts, die Hände in Körpereinheiten und ob die Kupplung eingelegt war, jeweils mit Zeit – die Frames einer
+  Tanz-Session – und der mittlere Weg der Hände als Vorlage. **Nur Zahlen, nie ein Kamerabild.** Die Bewegungen
+  liegen in `~/.local/state/dream/dance/moves/` auf diesem Mac; nur dieser Mac und Dream Control können sie lesen oder
+  ändern, und nichts davon verlässt den Mac.
 
 ### Tanz-Labor
 
@@ -2152,6 +2204,14 @@ nächsten und die Energie, die Dreamy Eyes aus zwei kleinen Bildern rechnen (Rau
 kommen nur zwei Zahlen). `tests/test_movement.py` prüft Dreams Teil: das Quellen-Register, dass Dreamy Eyes eine Zahl
 melden können und sonst nichts, dass „niemand da / jemand kommt“ nur von den Dreamy Eyes gelesen wird und nie von der
 Mac-Kamera, und dass die Einstellungen früherer Versionen einmal übertragen werden.
+`node --test tests/js/dancemoves.test.mjs` (#236) prüft die eigenen Bewegungen (`static/dancemoves.js`, erkannt in
+`static/dance.js`) auf dieselbe Art: Der simulierte Tänzer lernt vier Bewegungen an, die keine eingebaute Geste sind,
+und tanzt jede in 108 Varianten (Größe, Tempo, Ort, Körpergröße, Zittern, Bildrate) – die Trefferquote, die
+Fehlalarme bei Gehen, Winken, redenden Händen und Ähnlichem (keine), die eingebauten Gesten neben den angelernten,
+Wiederholungen und Hysterese, die Grenzen der Toleranz und wie eine Aufnahme in ihre Wiederholungen geschnitten wird.
+`node --test tests/js/moveteach.test.mjs` prüft die Teile der Anlern-Karte ohne Seite (eine Aufnahme, die Datei, die
+gespeichert wird, die Zeile der Tabelle, die Kupplung); `tests/test_dancemoves.py`, was Dream von einer Bewegung
+speichert, wer sie erreicht und dass das Löschen ihre Zeilen entfernt.
 `node --test tests/js/dancerec.test.mjs` (#243) prüft die Sessions des Tanz-Labors (`static/dancerec.js`): Ein
 aufgenommener simulierter Tanz gibt beim Abspielen genau die Merkmale wieder, aus denen er gemacht wurde, und enthält
 nichts als Zahlen; seine Eingaben, einem frischen Erkenner gefüttert, ergeben dieselben Gesten; ein Feedback behält

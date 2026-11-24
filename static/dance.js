@@ -16,6 +16,8 @@
 // through the mapping table (dancemap.js) – a gesture is the source "g.<name>" there, nothing else knows the names.
 (function (root) {
   'use strict';
+  // #236: moves of one's own are matched by dancemoves.js (a page that has none of them does not load it)
+  const MV = typeof module === 'object' && module.exports ? require('./dancemoves.js') : root.DreamMoves;
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
   const gate = (x, a, b) => clamp((x - a) / (b - a), 0, 1);
   const wrap = x => x - Math.round(x);                 // a phase difference in −0.5 … 0.5
@@ -32,6 +34,7 @@
   const LAG_MIN = Math.round(0.3 * RATE), LAG_MAX = Math.round(1.25 * RATE);   // a repetition: 0.3 … 1.25 s (200 … 48 a minute)
   const ON = 0.6, OFF = 0.35, HOLD = 0.4;              // a gesture's hysteresis: on, off, and seconds it outlasts a dip
   // how large a movement must be (half its swing, in shoulder widths) to count at all … and to count fully
+  const MAX_MOVES = 24;                                // #236: taught moves looked for at a time
   const SIZE = { throw: [0.3, 0.6], accordion: [0.35, 0.7], push: [0.3, 0.6], wave: [0.4, 0.8], circle: [0.15, 0.3] };
 
   // ---------- the body: where it is and how big, from the pose model's 33 points ----------
@@ -207,12 +210,13 @@
   }
 
   function create({ aspect = 16 / 9 } = {}) {
-    let st;
+    let st, moves = [];                                // #236: the taught moves (compiled templates), gestures like the built-in ones
+    const names = () => (moves.length ? [...GESTURES, ...moves.map(m => m.id)] : GESTURES);
     const buf = () => ({ ul: [], vl: [], ur: [], vr: [], sg: [], wl: [], wr: [] });
     function reset() {
       st = { t: null, grid: null, tick: 0, centre: null, S: 0, reach: 0, hand: { l: null, r: null }, b: buf(),
         seen: { l: [], r: [] }, ok: { l: 0, r: 0 }, rad: { l: 0, r: 0 }, bodyAt: -1e9, still: 0, eCam: 0, eSens: 0,
-        clock: { period: 0, phase: 0, c: 0, agree: 0, beatAt: -1e9, lost: 0 }, g: Object.fromEntries(GESTURES.map(g => [g, 0])),
+        clock: { period: 0, phase: 0, c: 0, agree: 0, beatAt: -1e9, lost: 0 }, g: Object.fromEntries(names().map(g => [g, 0])),
         active: null, below: 0, size: 0, turn: 0, impulse: 0, spin: 0, force: 0, sens: { at: -1e9, axis: 0, level: [0, 0, 0] },
         arm: { l: null, r: null },
         fing: Object.fromEntries(HANDS.map(h => [h, { palm: 0, spread: 0, pinch: 0, snap: 0, on: false, was: [], snapAt: -1e9, c: 0 }])) };
@@ -288,17 +292,26 @@
         score.wave = sz('wave', amp('d')) * rr('d') * gate(-corr(b.vl, b.vr, from('d')), 0.2, 0.6) * gate(amp('d') / Math.max(1e-6, 2 * amp('h')), 1.0, 1.5) * round;
       }
       // the sensor on the arm confirms a rhythm the camera sees (same tempo) and doubts a gesture while the arm rests
-      let best = GESTURES.reduce((a, g) => (score[g] > score[a] ? g : a));
-      const per = best === 'circle' ? (Math.abs(rev) > 0.1 ? 1.5 / Math.abs(rev) : 0) : (o[{ throw: 'h', accordion: 'o', push: 'x', wave: 'd' }[best]] || {}).period || 0;
+      // #236: the taught moves – the last two repetitions of the hands against each template. One that is clear goes
+      // before a built-in gesture that looks alike: it is the more special one, and the dancer taught it on purpose.
+      const all = names(), tempo = {};
+      let own = null;
+      for (const m of moves) {
+        const r = long ? MV.match(m, b, st.ok) : { score: 0, size: 0, tempo: 0 };
+        score[m.id] = r.score; size[m.id] = r.size; tempo[m.id] = r.tempo > 0 ? m.period / r.tempo : 0;
+        if (r.score >= 0.5 && (!own || r.score > score[own])) own = m.id;
+      }
+      let best = own || all.reduce((a, g) => (score[g] > score[a] ? g : a));
+      const per = best in tempo ? tempo[best] : best === 'circle' ? (Math.abs(rev) > 0.1 ? 1.5 / Math.abs(rev) : 0) : (o[{ throw: 'h', accordion: 'o', push: 'x', wave: 'd' }[best]] || {}).period || 0;
       if (sens && score[best] > 0) {
         if (sens.r > 0.5 && per && Math.abs(sens.period - per) / per < 0.15) score[best] = Math.min(1, score[best] + 0.2);
         else if (st.eSens < 0.04) score[best] *= 0.6;
       }
-      for (const g of GESTURES) {
+      for (const g of all) {
         const s = g === best ? score[g] : 0;           // one gesture at a time: the clearest
         st.g[g] += (s - st.g[g]) * (s > st.g[g] ? 0.3 : 0.15);
       }
-      const lead = GESTURES.reduce((a, g) => (st.g[g] > st.g[a] ? g : a));
+      const lead = all.reduce((a, g) => (st.g[g] > st.g[a] ? g : a));
       if (st.active && st.g[st.active] < OFF) { st.below += 2 / RATE; if (st.below > HOLD) { out.events.push('end:' + st.active); st.active = null; } } else st.below = 0;
       if (st.g[lead] >= ON && st.active !== lead) { if (st.active) out.events.push('end:' + st.active); st.active = lead; st.below = 0; out.events.push('gesture:' + lead); }
       if (st.active && size[st.active] != null) st.size += (size[st.active] - st.size) * 0.3;
@@ -444,7 +457,7 @@
       set('impulse', st.impulse, sensFresh ? 0.9 : 0, sensFresh ? 'sensor' : '');
       set('spin', sensFresh ? st.spin : 0, sensFresh ? 0.9 : 0, sensFresh ? 'sensor' : '');
       set('force', sensFresh && st.sens.force ? st.force : 0, sensFresh && st.sens.force ? 0.9 : 0, sensFresh && st.sens.force ? 'sensor' : '');
-      for (const g of GESTURES) { out.g[g] = +st.g[g].toFixed(3); set('g.' + g, st.active === g ? st.size : 0, st.g[g], camSrc); }
+      for (const g of names()) { out.g[g] = +st.g[g].toFixed(3); set('g.' + g, st.active === g ? st.size : 0, st.g[g], camSrc); }
       out.gesture = st.active; out.gc = st.active ? out.g[st.active] : 0; out.size = +st.size.toFixed(3);
 
       // ---- fingers, per hand ----
@@ -466,11 +479,20 @@
       }
       return out;
     }
-    return { step, reset, kick(strength = 1) { st.impulse = Math.max(st.impulse, clamp(+strength || 0, 0, 1)); },
+    // #236: the taught moves to recognise from now on: [compiled template] (DreamMoves.compile). The stream goes on –
+    // what a move that stays was at stays, one that is gone ends without a word.
+    function setMoves(list) {
+      moves = MV ? (Array.isArray(list) ? list : []).filter(m => m && typeof m.id === 'string' && !GESTURES.includes(m.id) && Array.isArray(m.pts)).slice(0, MAX_MOVES) : [];
+      const keep = names();
+      for (const k of Object.keys(st.g)) if (!keep.includes(k)) delete st.g[k];
+      for (const k of keep) if (!(k in st.g)) st.g[k] = 0;
+      if (st.active && !keep.includes(st.active)) { st.active = null; st.size = 0; }
+    }
+    return { step, reset, setMoves, kick(strength = 1) { st.impulse = Math.max(st.impulse, clamp(+strength || 0, 0, 1)); },
       get clock() { return { period: st.clock.period, phase: st.clock.phase, c: st.clock.c }; } };
   }
 
-  const api = { create, bodyFrom, findMarkers, fuseHand, armMarker, fingerValues, osc, phaseOf, FEATURES, FINGERS, GESTURES, SOURCES, HANDS, MARKER_HUES, RATE };
+  const api = { create, bodyFrom, findMarkers, fuseHand, armMarker, fingerValues, osc, phaseOf, FEATURES, FINGERS, GESTURES, SOURCES, HANDS, MARKER_HUES, RATE, MAX_MOVES };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamDance = api;
 })(typeof window !== 'undefined' ? window : globalThis);

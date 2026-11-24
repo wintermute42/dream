@@ -376,7 +376,7 @@
     // ---------- tune a row ----------
     const rowsNow = () => opts.rows();
     function drawTune(rows) {
-      const shape = JSON.stringify(rows.map(r => [r.id, r.src, r.dst]));
+      const shape = JSON.stringify(rows.map(r => [r.id, label(r.src), r.dst]));   // the name too: a taught move can be renamed (#236)
       if (shape !== drawnRows) {
         drawnRows = shape; rowSel.textContent = '';
         for (const r of rows) { const o = el('option', '', `${label(r.src)} → ${label(r.dst)}`); o.value = r.id; rowSel.append(o); }
