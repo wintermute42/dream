@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dreamy Eyes – a painted face in the pupils, driven by the test</title>
+<style>body { margin: 0; background: #222; } iframe { border: 0; margin: 4px; background: #000; }</style>
+</head>
+<body>
+<script>
+// #230: Dreamy Eyes as a phone shows them (tests/js/eyes-face.test.mjs is their Dream: it serves the page and hands over
+// two painted faces, one with its points). The test lets a face come through the pupils by the page's debug hook and
+// reads what the page makes of it.
+(async () => {
+  'use strict';
+  const report = { error: '' };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    const frame = document.createElement('iframe'); frame.width = 390; frame.height = 700; frame.src = '/eyes?debug'; document.body.append(frame);
+    const until = async (what, cond, secs = 40) => {
+      const end = performance.now() + secs * 1000;
+      while (performance.now() < end) { try { if (cond()) return; } catch (e) { /* not there yet */ } await sleep(30); }
+      throw new Error('waited in vain for: ' + what);
+    };
+    let de = null;
+    await until('the eyes with their two faces', () => (de = frame.contentWindow.dreamyEyes) && de.aiFaces.goddess && de.aiFaces.cat && de.dream.cur);
+    frame.contentWindow.addEventListener('error', e => { report.error += ` page error: ${e.message}`; });
+    const clock = () => frame.contentWindow.performance.now();   // the page's own clock: it started later than this one
+    const AT = frame.contentWindow.DreamFace.AT, live = de.faceLive, cv = frame.contentWindow.document.getElementById('eyes');
+    const small = document.createElement('canvas'), sg = small.getContext('2d', { willReadFrequently: true });
+    const lit = () => {                                // how much of the middle of the screen is not dark
+      small.width = small.height = 32; sg.drawImage(cv, cv.width * 0.25, cv.height * 0.3, cv.width * 0.5, cv.height * 0.4, 0, 0, 32, 32);
+      const d = sg.getImageData(0, 0, 32, 32).data; let on = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 90) on++;
+      return on / 1024;
+    };
+    const shot = () => { small.width = small.height = 64; sg.clearRect(0, 0, 64, 64); sg.drawImage(live.net.cv, 0, 0, 64, 64); return sg.getImageData(0, 0, 64, 64).data; };
+    // the page measures its own pace and takes the face's tier from it: the test holds the pace where it wants it, so
+    // that the speed of the test's browser decides nothing
+    let pace = 0, early = false;                       // early: the face is kept in the pupils, at the start of its way
+    const come = (kind, perf, hold) => { clearInterval(pace); de.perf = perf; pace = setInterval(() => { de.perf = perf; if (early) de.portal.t0 = clock() - 400; }, 4); Object.assign(de.portal, { kind, phase: 'in', t0: clock(), hold }); };
+    const gone = async () => { Object.assign(de.portal, { phase: 'off', next: 1e12 }); await sleep(1300); };   // the next one is a new visit
+    const moved = (i, axis) => live.net.out[2 * i + axis] - live.net.base[2 * i + axis];
+    report.marks = Object.keys(de.faceMarks);
+
+    // 1: the face without points: the still picture, as before
+    come('cat', 600, 60000);
+    await until('the still face to be there', () => de.portal.phase === 'hold');
+    report.still = { net: !!(live.net && live.f === de.aiFaces.cat), lit: lit() };
+    await gone();
+
+    // 2: the face with its points. In the pupils: its own eyes on ours, looking straight out
+    early = true; come('goddess', 600, 60000);
+    await until('its net', () => live.f === de.aiFaces.goddess && live.net && live.net.tris);
+    live.life.blinkAt = 1e12;                         // (a blink would take the irises down with the lids)
+    const n = live.net.size, inPupils = { off: 0, p: 0, frames: 0 };
+    for (let k = 0; k < 8; k++) {
+      const at = live.drawn;
+      await until('the next picture of the face', () => live.drawn !== at, 10);
+      if (de.portal.phase !== 'in') break;
+      inPupils.p = Math.max(inPupils.p, (clock() - de.portal.t0) / 2600); inPupils.frames++;
+      for (const i of [AT.iris[0], AT.iris[5]]) inPupils.off = Math.max(inPupils.off, Math.hypot(moved(i, 0), moved(i, 1)));
+    }
+    report.inPupils = inPupils; report.eyes = live.net.eyes; early = false;
+    await until('the living face to be there', () => de.portal.phase === 'hold');
+    const calm = shot();
+    Object.assign(live.life, { smileUntil: 1e12, browUntil: 1e12, browWant: [1, 1] });   // it smiles, lifts its brows – and blinks, below
+    const a = { size: n, moved: 0, mouthUp: 0, browUp: 0, lidDown: 0, turned: 0, changed: 0 };
+    let now = calm;
+    for (let k = 0; k < 50; k++) {
+      await sleep(50);
+      live.life.blinkAt = k > 10 && k < 22 ? clock() - 90 : 1e12;   // its lids stay down for a moment: no slow browser misses the blink
+      a.moved = Math.max(a.moved, live.net.drawn); a.mouthUp = Math.max(a.mouthUp, -moved(AT.lips[0], 1), -moved(AT.lips[4], 1));
+      a.browUp = Math.max(a.browUp, -moved(AT.browA[2], 1)); a.lidDown = Math.max(a.lidDown, moved(AT.eyeA[2], 1));
+      a.turned = Math.max(a.turned, Math.hypot(moved(AT.nose[2], 0), moved(AT.nose[2], 1)));
+      if (k === 49) now = shot();
+    }
+    for (let i = 0; i < calm.length; i += 4) if (Math.abs(calm[i] - now[i]) + Math.abs(calm[i + 1] - now[i + 1]) + Math.abs(calm[i + 2] - now[i + 2]) > 24) a.changed += 1 / 4096;
+    report.alive = { ...a, smile: live.life.smile, lit: lit() };
+    await gone();
+
+    // 3: a phone that runs short
+    come('goddess', -600, 60000);
+    await until('the face again', () => live.tier === 0 && de.portal.phase === 'hold' && live.net.size !== n);
+    Object.assign(live.life, { smileUntil: 1e12 });
+    const w = { size: live.net.size, moved: 0, turned: 0, every: 1e9 };
+    let last = live.drawn;
+    for (let k = 0; k < 80; k++) {
+      await sleep(25);
+      w.moved = Math.max(w.moved, live.net.drawn); w.turned = Math.max(w.turned, Math.hypot(moved(AT.nose[2], 0), moved(AT.nose[2], 1)));
+      if (live.drawn !== last) { w.every = Math.min(w.every, live.drawn - last); last = live.drawn; }
+    }
+    report.weak = w; clearInterval(pace);
+  } catch (e) { report.error += ' ' + (e && e.message || e); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>
