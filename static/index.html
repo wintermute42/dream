@@ -1701,7 +1701,8 @@
   }
   const sens = () => (analyser ? +$('sens').value : 0);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  // Installation: nobody there → calm (slower, softer); somebody arrives → a short wake-up pulse.
+  // Installation: nobody in front of Dreamy Eyes → calm (slower, softer); somebody arrives → a short wake-up pulse.
+  // Dream says so (movement.Presence, from the eyes' energy) – never this page's own camera.
   // #249: … and a still room calms it by as much as the mode's table says ("stage.calm")
   let calm = false, wake = 0;
   const damp = f => { const c = Math.max(calm ? 1 : 0, moveGain('stage.calm')); return 1 - c * (1 - f); };
@@ -2388,7 +2389,7 @@
     if (keep) { const again = box.querySelector(`[data-kind="${keep}"]`); if (again) again.focus(); }
   }
   setInterval(showSources, 500);
-  // the detection itself (static/motion.js): it reports like flowtrack did; presence and rules go to the server
+  // the detection itself (static/motion.js): it reports like flowtrack did; its rules go to the server
   const FLOW_STATE = { off: T('Movement off'), camera: T('Opening the camera …') };
   const tracker = DreamMotion.create({
     picture: (ctx, w, h) => {                          // what the beamer shows now: the picture and the effects over it
@@ -2400,7 +2401,6 @@
       const k = $('fast').checked ? 0.6 : 0.25;          // "Schnell": the dream follows the tempo at once
       msm.speed += ((+f.speed || 0) - msm.speed) * k; msm.spread += ((+f.spread || 0) - msm.spread) * k;
     },
-    onPresence: present => sendCtl({ moved: present }),
     onRule: names => sendCtl({ rule: names }),
     onStatus: st => {
       if (st.code === 'running' && camMissing(flowCam())) status(T('Camera “{c}” not found – movement takes the default camera.', { c: flowCam() }));
@@ -3587,8 +3587,9 @@
     }
     if (c === 'vidclear') $('vidclear').click();
     if (c === 'qr') guestCode();
-    if (c === 'calm') calm = true;                     // movement: nobody there – the dream calms down
-    if (c === 'wake') { calm = false; wake = 1; }
+    if (c === 'calm') calm = true;                     // nobody in front of Dreamy Eyes – the dream calms down
+    if (c === 'wake') { calm = false; wake = 1; }      // someone came
+    if (c === 'rest') calm = false;                    // no eyes report any more: the calm ends without an impulse
     if (c === 'media' && arg) {
       // setMode (not origSetMode): the phone shows the new source too
       srcUrl = arg.url; srcFrom = arg.url.startsWith('/media/g-') ? 'gallery' : 'phone';

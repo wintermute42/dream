@@ -55,26 +55,11 @@
     if (pend && Math.hypot(b[0] - pend[0], b[1] - pend[1]) <= CONFIRM) return { blobs: ordered, pend: null };
     return { blobs: [], pend: [b[0], b[1]] };
   }
-  // #240: presence as the server hears it: there after 0.15 s of detections, gone after 1 s without one. A hand the
-  // model loses for a frame no longer reports "gone" and "came" – each "came" was a light pulse and each "gone"
-  // calmed the dream.
-  class Presence {
-    constructor(on = 0.15, off = 1.0) { Object.assign(this, { on, off }); this.reset(); }
-    reset() { this.state = false; this.since = null; this.seenAt = -1e9; }
-    update(seen, t) {
-      if (seen) {
-        if (this.since === null || t - this.seenAt > 0.25) this.since = t;
-        this.seenAt = t;
-        if (!this.state && t - this.since >= this.on) this.state = true;
-      } else if (this.state && t - this.seenAt >= this.off) this.state = false;
-      return this.state;
-    }
-  }
   const MIN_VIS = 0.3;          // pose points count from this visibility on (low: poor light)
   const LEAD = 0.08;            // seconds of prediction without a measured delay (flowtrack: lead_ms 80); see lead()
 
   // picture(ctx, w, h): draws what Dream shows right now (for the projection's subtraction, #93)
-  function create({ onFrame = () => {}, onPresence = () => {}, onRule = () => {}, onStatus = () => {}, picture = null } = {}) {
+  function create({ onFrame = () => {}, onRule = () => {}, onStatus = () => {}, picture = null } = {}) {
     const video = document.createElement('video'); video.muted = true; video.playsInline = true;
     const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
     const prep = mk(320, 180), pctx = prep.getContext('2d');                       // brightened picture for the model
@@ -105,9 +90,8 @@
     function setLead(ms) { lat.lead = clamp(ms, 40, 150); }
     const st = { present: false, x: 0.5, y: 0.5, speed: 0, spread: 0, count: 0, points: [], rate: 0, lum: 0.5, gain: 1,
       blur: false, kind: 'off', landmarks: null, at: 0, dance: null };
-    let prev = null, vel = [0, 0], lastSeen = 0, nDet = 0, rateAt = performance.now(), wasPresent = false, trailsOn = false;
+    let prev = null, vel = [0, 0], lastSeen = 0, nDet = 0, rateAt = performance.now(), trailsOn = false;
     let pend = null;
-    const presence = new Presence();
     const ruleState = RULES.map(() => ({ since: null, fired: false, at: -1e9 }));
     // calibration (#92): camera picture → Dream's picture (as the beamer shows it); without one they are the same
     let H = null, Hinv = null;
@@ -182,10 +166,10 @@
       vfc = 0;
       if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; video.srcObject = null; }
       prevGray = null; prev = null; fx.reset(); fy.reset();
-      if (st.present) { st.present = false; onPresence(false); }
+      st.present = false;
       Object.assign(st, { speed: 0, count: 0, points: [], spread: 0, landmarks: null, rate: 0, dance: null });
       Object.assign(hands21, { l: null, r: null, at: 0 }); Object.assign(lights, { l: null, r: null }); mark.found = { l: null, r: null };
-      wasPresent = false; pend = null; presence.reset(); say('off', '');
+      pend = null; say('off', '');
     }
     function loop(now, meta) {
       if (!running) return;
@@ -470,8 +454,6 @@
       } else { f.speed *= 0.9; f.spread = 0; }
       if (now - rateAt >= 1000) { f.rate = nDet * 1000 / (now - rateAt); nDet = 0; rateAt = now; }
       f.at = now;
-      const there = presence.update(f.present, t);
-      if (there !== wasPresent) { wasPresent = there; onPresence(there); }
       RULES.forEach((r, i) => {
         const rs = ruleState[i];
         if (!r.when(f)) { rs.since = null; rs.fired = false; return; }
@@ -547,6 +529,6 @@
       trails(on) { trailsOn = on; if (!on) tctx.clearRect(0, 0, trails.width, trails.height); return glow; },
     };
   }
-  return { create, OneEuro, pickHand, Presence };
+  return { create, OneEuro, pickHand };
 })();
 if (typeof module === 'object' && module.exports) module.exports = globalThis.DreamMotion;   // tests/js/motion.test.mjs

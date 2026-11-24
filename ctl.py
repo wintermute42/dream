@@ -71,6 +71,8 @@ async def ctl(sock: WebSocket):
         # #235: the dance mapping table; #243: whether the dance lab is open, records or plays
         outbox.post(sock, json.dumps({"dance": {**dance.msg()["dance"], "lab": hub.live.get("dance_lab") or {}}}))
         outbox.post(sock, json.dumps(movement.msg(hub.state)))   # #249: the register of movement sources
+        if kind == "stage" and movement.presence.calm:   # nobody in front of Dreamy Eyes: a stage that comes now is calm too
+            outbox.post(sock, json.dumps({"cmd": "calm"}))
         outbox.post(sock, json.dumps({"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
                                          "cams": hub.live.get("cams", []), "lan": config.LAN,
                                          "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
@@ -173,8 +175,6 @@ async def ctl(sock: WebSocket):
             if "cams" in msg and kind == "stage" and isinstance(msg["cams"], list):   # the Mac's cameras, by name
                 hub.live["cams"] = [str(c)[:200] for c in msg["cams"][:12]]
                 await hub.broadcast({"cams": hub.live["cams"]}, exclude=sock)
-            if "moved" in msg and kind == "stage" and movement.camera_on(hub.state):   # movement: someone came or left
-                await inputs.on_presence(bool(msg["moved"]))
             if "rule" in msg and kind == "stage" and movement.camera_on(hub.state):
                 for name in msg["rule"] if isinstance(msg["rule"], list) else [msg["rule"]]:
                     await inputs.on_rule(str(name)[:60])

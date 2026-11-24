@@ -54,6 +54,9 @@ command line for now, #231) via `dream-cloud`.
   the stage (register, the room's energy, the fade between modes; `tests/js/movement.test.mjs`), `movement.py` the modes
   and the register of the sources outside the stage. What moves the picture by movement is a target of the table, never
   a switch of its own; a new source reports to the register, a new effect is a new target. Dream windows are no source.
+  "Nobody there – the dream calms down, someone comes – an impulse" is Dreamy Eyes' alone (`movement.Presence`: read
+  from the energy they report, only while the mode listens to them); the Mac's camera in the stage never says who is
+  there.
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
   whether a MIDI controller or sensor can move it; #216: its `weight` – how strongly it shapes the picture – and the
   setting it `needs` to act); the defaults, ranges, guests' keys, `midi.TARGETS`, what "Reset" brings home
