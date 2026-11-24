@@ -49,6 +49,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Umrisse erhalten (ControlNet, #113)](#umrisse-erhalten-controlnet-113)
   - [Pose formt die Figur (ControlNet)](#pose-formt-die-figur-controlnet)
 - [Flowtrack](#flowtrack)
+  - [Personen: ein Profil je Person](#personen-ein-profil-je-person)
 - [Tanz](#tanz)
   - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
   - [Eigene Bewegungen](#eigene-bewegungen)
@@ -1512,10 +1513,13 @@ diese bittet sie, ein Bühnenfenster neu zu laden, das vor einem Update von Drea
   Person; daneben die Ausgabe; und die Kurven von Energie, Tempo, Öffnung (der Abstand der Props bzw. Hände), Drehung,
   Höhe und Ruhe.
 - **Sessions** – **● Aufnehmen** speichert eine Session im Format des Tanz-Labors (nur Zahlen, nie ein Kamerabild;
-  siehe [Tanz-Labor](#tanz-labor)) zum Abspielen, Wiederholen und Exportieren – die Grundlage für spätere Profile einer
-  Person.
+  siehe [Tanz-Labor](#tanz-labor)) zum Abspielen, Wiederholen und Exportieren – und um daraus das Profil einer
+  Person zu lernen (unten).
+- **Personen** – lernen, wie sich eine Person bewegt, und Flowtrack auf sie abstimmen: siehe
+  [Personen: ein Profil je Person](#personen-ein-profil-je-person).
 
-Im Bedienfeld: **Automatik: AN/AUS** und die Zeile darunter, die sagt, was erkannt wurde und warum.
+Im Bedienfeld: **Automatik: AN/AUS**, die Zeile darunter, die sagt, was erkannt wurde und warum, und **Person: …** –
+das Profil, auf das Flowtrack abgestimmt ist.
 
 **Die Regeln** aus dem Abschnitt Bewegung („Feuer an“, „Feuer aus“, „Schnell“ → Szenenwechsel) gelten in diesem Modus
 wie bisher.
@@ -1538,6 +1542,71 @@ Naturfaser tragen als am Handgelenk neben einem Docht. Halte Brennstoff weit weg
 Kabel, Ladegeräte – und von dort, wo das Publikum steht; ein Handy, das Brennstoff abbekommen hat, wird gereinigt und
 gelüftet, bevor es wieder benutzt wird. Dream schaut nur zu: Es ersetzt keine Aufsicht, keine Löschdecke und nicht
 die Regeln des Veranstaltungsorts.
+
+### Personen: ein Profil je Person
+
+Zwei Menschen bewegen sich nicht gleich: Die eine dreht Poi schnell und weit, der andere bewegt sich klein und
+langsam. Ohne Profil misst Flowtrack alle an denselben festen Maßstäben – bei der Schnellen stehen die Effekte
+dauernd auf voller Stärke, der Sanfte erreicht sie kaum. Ein **Profil** ist, was Dream über die Art **einer** Person,
+sich zu bewegen, gelernt hat; ist es gewählt, reagiert Flowtrack auf diese Person: Ihr Ruhig ist ruhig, ihr Wild ist
+wild.
+
+**Eines lernen** (Seite von Flowtrack, Karte **Personen**): Gib ihm einen Namen – zum Beispiel „Anna – Poi“ –, wähle,
+woraus gelernt wird, und drücke **Lernen**.
+- **live** – Dream nimmt auf, was die Kamera ab jetzt sieht. Lass die Person spielen wie im Auftritt, ruhig und wild,
+  ein bis zwei Minuten (mindestens 15 Sekunden Bewegung; nach drei Minuten stoppt es von selbst), dann drücke den
+  Knopf noch einmal. Die Aufnahme bleibt im Speicher der Seite und ist nach dem Lernen weg – sie wird nicht als
+  Session gespeichert.
+- **eine Session** – eine, die **● Aufnehmen** der Seite vorher gespeichert hat (mindestens 15 Sekunden lang).
+
+Was gelernt wird und in der Liste als Zeile aus Worten steht, daneben die Energiekurve der Session:
+
+| Gelernt | Wofür |
+|---|---|
+| **Geschwindigkeit** – wie schnell Hände oder Props sind, bis zur Spitzengeschwindigkeit dieser Person | die Energie: Sie ist voll bei **ihrer** Spitzengeschwindigkeit, nicht bei einer festen |
+| **Größe** – wie weit die Hände auseinander und wie hoch sie sind, in ihrem eigenen Bereich | „Öffnung“ und „Höhe“ laufen von ihrem Kleinsten bis zu ihrem Weitesten |
+| **Drehung** – wie schnell, in welche Richtung, wie viel der Zeit | „Drehung“ ist voll bei ihrer schnellsten Drehung |
+| **Tempo** – der Tempobereich ihrer Wiederholung | „Tempo“ deckt ihren Bereich ab; die Glättung der Effekte folgt ihm (eine schnelle Person bekommt eine schnellere Antwort, zwischen dem 0,6- und dem 1,25-Fachen der Glättung der Tabelle) |
+| **Ebenen** – Kreise von vorn gesehen (Wandebene), aufrechte oder liegende Linien (eine Ebene von der Kante gesehen) | steht in der Liste; live sagt die neue Quelle **Rundheit der Bahn**, wie rund die Bahn des Props gerade ist |
+| **Figuren** – bis zu drei wiederholte Figuren, zu denen die Person zurückkommt (gefunden und erkannt mit dem Code der [eigenen Bewegungen](#eigene-bewegungen)) | die neue Quelle **Eine Figur der Person**: so groß, wie die Figur gemacht wird, solange sie gemacht wird |
+| **der Blick** – wie weit sie im Kamerabild reicht, wie lange sie aus dem Blick gerät, mit welcher Art der Erkennung sie gelernt wurde | die Automatik (unten) |
+| **das Prop** – Poi, Stab, Hoop, Fächer, Hände oder etwas anderes: Dream schlägt eines vor, du sagst, was es ist | die Drehung eines Stabs wird aus der Linie zwischen seinen zwei Enden gelesen; bei Poi und Hoop (oft hinter dem Körper) wartet die Automatik anderthalbmal so lang |
+
+**Wählen** in der Karte Bewegung des Bedienfelds (**Person: …**, unter der Automatik) oder auf der Seite („Flowtrack
+ist abgestimmt auf“ oder **Verwenden** in der Liste). Unter der Wahl sagt die Seite in Sätzen, was das Profil ändert.
+„Person: kein Profil“ ist Flowtrack wie bisher. Die Wahl ist eine Einstellung von Dream: Sie übersteht einen
+Neustart, und sie wirkt nur im Modus Flowtrack – Dream Dance und die Stimmung lesen sie nie.
+
+**Die Wirkung** bleibt eine Zeile der Flowtrack-Tabelle wie alles, was eine Bewegung bewirkt. Zwei Zeilen sind neu:
+„Eine Figur der Person → Mandala“ (an) und „Rundheit der Bahn → Tunnel“ (aus, bis du sie einschaltest); sie ruhen,
+solange kein Profil gewählt ist, und eine Flowtrack-Tabelle, die du vor dieser Version geändert hast, bekommt die zwei
+Zeilen einmal dazu.
+
+**Die Automatik mit Profil** folgt der Person ruhiger: Sie zählt zur Person, was in **ihrer** Reichweite liegt, wartet
+so lange, wie **sie** typischerweise aus dem Blick gerät (mindestens 2,5, höchstens 8 Sekunden), bevor jemand anderes
+die Person werden kann, und behandelt die Art der Erkennung, mit der sie gelernt wurde, als erwartet – sie wechselt
+nach einer Sekunde dorthin statt nach drei und verlässt sie erst nach acht (die Begründung endet dann mit „Wie für …
+gelernt“). Jede Wahl kannst du weiter selbst übernehmen, und bei ausgeschalteter Automatik ändert ein Profil nichts
+an der Erkennung.
+
+**Umbenennen, Prop ändern, löschen** in der Liste (🗑 fragt noch einmal nach). Wird das Profil in Gebrauch gelöscht,
+läuft Flowtrack ohne Profil weiter.
+
+**Datenschutz.** Ein Profil sind persönliche Daten: der Name, den du eingetippt hast, und Zahlen, gemessen an der
+Bewegung einer Person – kein Kamerabild, kein Skelett, keine Aufnahme (die Figuren sind je 24 Punkte des Wegs der
+Hände durch eine Wiederholung). Es liegt in `~/.local/state/dream/dance/profiles/` auf diesem Mac; nur dieser Mac und
+Dream Control können Profile auflisten oder ändern, ein Gast, Dreamy Eyes und ein Traumfenster sehen sie nie, und
+nichts wird irgendwohin gesendet. **⬇** schreibt eine Kopie nach
+`~/.local/state/dream/dance/exports/flow-profile-<id>.json` und nirgendwohin sonst – um ein Profil auf einen anderen
+Mac mitzunehmen, lies diese Datei dort mit **Profil-Datei einlesen …** ein. **Echte Profile kommen nie in Dreams
+Code-Ordner oder ein öffentliches Repository** (dieses enthält nur erfundene Test-Personen); bewahre einen Export an
+einem privaten Ort auf.
+
+**Grenzen.** Ein Profil passt am besten zu dem Aufbau, in dem es gelernt wurde: Bei Feuer und LEDs hat Dream keinen
+Körper als Maß und nimmt die Reichweite der Lichter als Größe, „wie weit sie reicht“ setzt also etwa denselben Abstand
+zur Kamera voraus. Lerne neu, wenn die Person das Prop wechselt. Eine Minute ruhige **und** wilde Bewegung gibt
+bessere Bereiche als fünfzehn Sekunden; ein Profil, das nur aus ruhiger Bewegung gelernt wurde, lässt alles wild
+aussehen. Bis zu 48 Profile werden gespeichert.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2187,6 +2256,18 @@ halten muss, bevor die Art wechselt; die Belichtung (auch dass eine kurze Belich
 nicht für einen dunklen halten lässt); die eine Person, der bis an den Rand gefolgt wird, während Zuschauer dort
 ignoriert werden; und die Kalibrierung – derselbe Blick in anderem Licht ist derselbe Blick, eine gedrehte Kamera
 nicht, ein dunkler Raum behauptet nichts.
+`node --test tests/js/flowprofile.test.mjs` (#253) prüft die Profile der Personen (`static/flowprofile.js`) an
+synthetischen Personen – erfundenen Menschen mit einer eigenen Art, sich zu bewegen (`tests/js/flow-sim.mjs`; niemand
+Echtes): Ein Profil wird aus einem Auftritt gelernt und bei einem anderen derselben Person verwendet (anderer Ort im
+Bild, andere Größe, anderes Rauschen). Gemessen: Die Wirkung folgt einer großen, schnellen und einer kleinen, sanften
+Person mit ihrem Profil in mindestens 90 % der Bilder und ohne in höchstens 60 %; was gelernt wird (Geschwindigkeit,
+Drehung, Ebenen, Tempo, die Energiekurve, der Blick, ein Vorschlag fürs Prop); eine Figur, zu der die Person
+zurückkommt, wird in mindestens 90 % ihrer Bilder beantwortet, und andere Bewegung wird nicht dafür gehalten; ein
+Profil enthält nur Zahlen und den gewählten Namen; was kein Profil ist, wird abgelehnt.
+`tests/js/flowprofiles.test.mjs` prüft, was die Seite über ein Profil sagt und dass ihr Teil nur die Profile und die
+Sessions des Labors erreicht; `tests/js/flowauto.test.mjs` auch, dass eine auf eine Person abgestimmte Automatik auf
+sie wartet und ihre Art der Erkennung hält; `tests/test_flowprofiles.py`, was Dream von einem Profil speichert, wer es
+erreicht, wohin ein Export geht und dass ein gelöschtes Profil nicht mehr in Gebrauch ist.
 `node --test tests/js/movepage.test.mjs` (#251) prüft, was die Seiten der Modi teilen (`static/movepage.js`): Die
 Seite findet die Bühne, die sie geöffnet hat, und merkt, wenn sie neu geladen wird; wer den Schlag gibt, wenn die Uhr
 des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keinen eigenen Socket und keine

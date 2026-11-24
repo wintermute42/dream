@@ -335,7 +335,7 @@ def test_the_wristband_moves_the_picture_without_gestures():
     assert {(r["src"], r["dst"]) for r in band.values()} == {("energy", "fx.speed"), ("spin", "fx.spin"), ("force", "fx.hue")}
     assert band["armspin"]["in"] == [-1.0, 1.0] and band["armspin"]["out"][0] < 0 < band["armspin"]["out"][1]   # it turns both ways
     flow = dance.DEFAULT_TABLES["flowtrack"]
-    assert [r["id"] for r in flow] == [r["id"] for r in dance.TOUCH_ROWS + dance.BAND_ROWS]
+    assert [r["id"] for r in flow] == [r["id"] for r in dance.TOUCH_ROWS + dance.BAND_ROWS + dance.PROFILE_ROWS]
     assert not any(r["src"].startswith("g.") for r in flow), "no gesture triggers"
     assert dance.clean_rows(flow) == flow
     assert not any(r["id"] in band for r in dance.DEFAULT_TABLES["dance"])       # the dance has its own table
