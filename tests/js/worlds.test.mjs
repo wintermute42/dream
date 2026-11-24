@@ -87,6 +87,14 @@ test('the worlds, drawn in a browser', { skip: chrome ? false : 'no Chrome or Ch
       }
       assert.ok(w.browShows > 50, `the eye's brow comes with the hints (${w.browShows})`);
     });
+    if (w.weak) await t.test(`${name}: lighter on a weak device, and all of it again on one that keeps up`, () => {
+      const { calls, motif, back } = w.weak;
+      t.diagnostic(`${name}: drawings by tier – scenes ${calls[2]} / ${calls[1]} / ${calls[0]}, a window's motif ${motif[2].calls} / ${motif[1].calls} / ${motif[0].calls}`);
+      assert.ok(calls[1] < calls[2] * 0.9 && calls[0] < calls[1] * 0.9 && calls[0] < calls[2] * 0.65, `fewer drawings the weaker the device: ${calls[2]}, ${calls[1]}, ${calls[0]}`);
+      assert.ok(motif[1].calls < motif[2].calls * 0.5 && motif[0].calls < motif[2].calls * 0.5, `a window's motif: ${motif[2].calls}, ${motif[1].calls}, ${motif[0].calls}`);
+      for (const tier of [1, 0]) assert.ok(motif[tier].lit > motif[2].lit * 0.6 && motif[tier].lit < motif[2].lit * 1.4, `the motif is as large at tier ${tier}: ${motif[tier].lit} lit pixels (all of it: ${motif[2].lit})`);
+      assert.deepEqual(back, [], 'told that the device keeps up, every scene is the picture it was');
+    });
     await t.test(`${name}: none of today's signs – a form of its own for each, no letters`, () => {
       assert.deepEqual(w.borrowed, { life: [], pupils: [] }, 'nothing drawn by today\'s look where it draws a heart, a star, a letter');
       assert.equal(w.letters, 0);
