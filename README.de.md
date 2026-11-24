@@ -210,6 +210,20 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   `dream-cloud`, Autostart) folgen der Systemsprache bzw. `DREAM_LANG=de`. Was die Bühne ans Handy meldet
   (Autopilot-Zeile, „Jetzt läuft“), kommt in der Sprache der Bühne. Prüfen: `python3 scripts/i18n_check.py` meldet
   jeden Text ohne deutsche Fassung.
+- **Das Bedienfeld ist die Hauptkontrolle (#241):** Alles, was Dream Control einstellen oder auslösen kann, kann auch
+  das Bedienfeld auf dem Mac – beschriftet und in der Karte, in die es gehört. Dream Control kann nie mehr; nur was das
+  Handy selbst beiträgt (seine eigene Kamera, seine Bewegung und seinen leuchtenden Bildschirm leihen, Karte „Dieses
+  Gerät“) und wie die Seite auf dem Handy aussieht (Schriftgröße, Nachtfarben, ihre Live-Vorschau), bleibt Dream
+  Control vorbehalten. Ein Test (`tests/test_panel_parity.py`) hält das fest. Seit #241 hat das Bedienfeld außerdem:
+  - **Master-Helligkeit und ■ Blackout** zusammen oben in der Karte **„Ausgabe“**, wie ein Master-Fader am Pult: Sie
+    wirken nur auf das, was Publikum, Beamer und Syphon sehen. Blackout fährt den Master auf Schwarz und, noch einmal
+    gedrückt, zurück auf die Helligkeit davor (solange es schwarz ist, leuchtet der Knopf; der Chip sagt „■ Blackout“).
+    Derselbe Knopf steht in Dream Control in der Karte „Ausgabe“ und in der Show-Leiste, und eine MIDI-Taste kann es
+    auch; „↺ Zurücksetzen“ bringt den Master auf 100 %.
+  - **■ Beenden** unter der Kamera-Wahl (Karte „Eingang & Prompt“), solange ein anderes Gerät seine Live-Kamera leiht
+    (Dream Control, Dreamy Eyes): Es sagt, wer es ist, und beendet sie.
+  - **👍 Gut · 👎 Schlecht · ● Aufnehmen** fürs Tanz-Labor im Teil „Dream Dance“ der Bewegungskarte, solange das Labor
+    auf seiner Seite offen ist.
 - Die Handy-Fernbedienung hat Show, A−/A+ und 🌙 weiterhin; ihre Abschnitte lassen sich durch Tippen auf die Überschrift zuklappen.
 
 - **Rechnen auf:** „Lokal (Mac)“ oder „Cloud-GPU“. Umschalten geht jederzeit, ohne Neustart. Das **Abzeichen** oben
@@ -742,7 +756,8 @@ unten):
   freiwillig – die Fernbedienung bleibt eine normale Webseite.
 - **Der Bildschirm bleibt an,** solange die Fernbedienung offen ist (Wake Lock, wo der Browser es anbietet, sonst eine
   winzige stumme Video-Schleife).
-- **Blackout** in der Leiste setzt Master auf 0 und zurück, wie die MIDI-Taste.
+- **Blackout** in der Leiste (und in der Karte „Ausgabe“ neben der Master-Helligkeit) setzt Master auf 0 und zurück auf
+  die Helligkeit davor – wie der Knopf im Bedienfeld und die MIDI-Taste.
 
 ### Live-Kamera und Bewegung des Control-Geräts
 
@@ -757,7 +772,7 @@ Dream Control (über https, siehe oben) hat eine Karte **„Dieses Gerät“**:
   Gerät kräftig schwingen) wird zum Impuls (Blitz, Dreh-Ruck, neues Motiv, nächste Szene, Blackout); der 🧭-Knopf
   ruckt kurz, wenn der Mac einen Schlag erkannt hat. Der Blitz ist ein Lichtpuls auf der Bühne, mit und ohne Musik. Die
   Bühne zeigt „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI,
-  Sensoren, Master)“ wie die von OSC.
+  Sensoren)“ wie die von OSC.
 - **💡 Als Leucht-Marker leuchten** (erscheint, solange 🧭 Bewegung an ist): Das Handy, das seine Bewegung leiht, ist
   zugleich der Leucht-Marker der Hand, die es hält. Farbe wählen – **Cyan, Grün, Blau oder Magenta** (kein Rot, Orange
   oder Gelb: das ist Feuer) – und den Schalter tippen: Der ganze Bildschirm leuchtet in dieser Farbe, die Bewegung
@@ -1159,7 +1174,8 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   die Bilder und (#230), wo jedes Augen, Brauen, Mund und Umriss hat – sonst nichts. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
   eigenem Cookie – die Augen auf dem eigenen Handy auszuprobieren, ersetzt also nie Dream Control.
 - **Immer nur eine Kamera:** Die Bühne zeigt „👀 Live-Kamera: Dreamy Eyes“. In Dream Control sagt die Karte „Dieses Gerät“,
-  wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp), und die eigene
+  wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp; das Bedienfeld hat dasselbe
+  **■ Beenden** unter der Kamera-Wahl), und die eigene
   Live-Kamera zu starten, übernimmt. Die Bühne geht dann zurück zum Traum, nie von selbst auf die Kamera des Macs.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
@@ -1837,7 +1853,8 @@ beim Tanzen abstimmen lässt:
   **↶ Rückgängig** nimmt sie Schritt für Schritt zurück (bis zu 30 Schritte).
 - **Feedback ohne Hände – „gut“ / „schlecht“:** Jedes speichert die **letzten Sekunden** (Regler, 1–15 s,
   standardmäßig 4) als Feedback-Moment: die Merkmale, die erkannte Geste, den Stand jedes Ziels und die benutzte
-  Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen: die Knöpfe **👍 Gut / 👎 Schlecht** oder die
+  Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen: die Knöpfe **👍 Gut / 👎 Schlecht** (auf der Seite, und
+  in der Bewegungskarte des Bedienfelds, solange das Labor offen ist) oder die
   Tasten **G / B**; **per Sprache** – **🎙** halten (oder Taste V bei offenem Labor) und „gut“ oder „schlecht“ sagen;
   die Karte **„Dream Dance“** in Dream Control; eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
   gut / schlecht“); die **Taste eines Armbands** per OSC (eine Adresse mit `btn` oder `button` darin, Wert 1 solange
@@ -1879,7 +1896,7 @@ Ausgabe auf dem Beamer. USB-Controller, die macOS ohne Treiber erkennt („class
 unter Audio-MIDI-Setup → Fenster → MIDI-Studio einblenden. Geräte mit runden 5-pol-Buchsen brauchen ein
 USB-MIDI-Interface. Ein- und Ausstecken im Betrieb geht; Dream sucht alle 3 s nach Geräten.
 
-**Zuordnen (MIDI-Learn):** Im Bedienfeld unter „MIDI-Controller“ (oder am Handy unter „MIDI · Master“) ein Ziel
+**Zuordnen (MIDI-Learn):** Im Bedienfeld unter „MIDI-Controller“ (oder am Handy unter „MIDI“) ein Ziel
 wählen, **🎛 Lernen** klicken, dann am Controller den Regler drehen bzw. die Taste drücken – fertig. Die Liste darunter
 zeigt alle Zuordnungen, ✕ löscht eine. Gespeichert wird in `~/.config/dream/midi.json` (nicht im Repository), sie
 gelten also auch nach einem Neustart. Welche Nummern der Controller sendet, hängt von seinem Preset ab – einfach
