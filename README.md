@@ -1151,8 +1151,10 @@ interaction”):
 - Folded away below: **Camera and detection** (the kind of detection, the camera, light and marker colours, fingers,
   ⚡ Fast, calibrating, subtracting the projection, diagnostics, the pose) and **What a movement does** (what Dream
   sees, the table of the mode in use, the dance lab, the directness of the hands and “Mirror”).
-- **Dream Control** has the four mode buttons and the mood's strength (“Mood – strength”); the pages are the Mac's.
-  Whatever Dream Control offers of movement, the panel offers too (a test checks it).
+- **Dream Control** has only the four mode buttons and the mood's strength (“Mood – strength”). The kind of
+  detection, the camera for movement, ⚡ Fast, the directness, “Mirror” and the pose are set in the panel on the Mac
+  (the main control), and the pages are the Mac's. Whatever Dream Control offers of movement, the panel offers too
+  (a test checks it).
 
 
 | Mode | What it is for | Listens to | Mac camera |
@@ -1219,7 +1221,7 @@ itself and subtracts it from the light detection and the movement tracking. The 
 projection the false detection fell from over 80 % of the pictures to 0 %, a light point was still always found. An
 infrared camera does not need it (it does not see the projector at all).
 
-**Camera for movement** (next to the switch, also on the phone): “as picture” or its own, e.g. an infrared camera
+**Camera for movement** (next to the switch, in the panel): “as picture” or its own, e.g. an infrared camera
 with an IR lamp that sees in the dark and does not notice the projection, while the normal camera gives the picture.
 Dream remembers the cameras by name, also across a restart. If a chosen camera is not connected, it stands in the list
 with “(not connected)”, Dream takes the default camera meanwhile and says so; when it is plugged in, Dream switches by
@@ -1243,7 +1245,7 @@ the computing time (at most 150 ms, so a jolt does not overshoot).
 **Delay (latency) – where it comes from and what helps:** the last line of the diagnostics (D) shows how old the
 camera picture is, how long the detection computes, the measured delay projector → camera (after calibrating) and the
 prediction.
-- **⚡ Fast (dance/flow)** in the Movement card under “Camera and detection” (also on the phone): the movement values follow at once instead of
+- **⚡ Fast (dance/flow)** in the Movement card under “Camera and detection” (in the panel only): the movement values follow at once instead of
   calmly smoothed, smoothing off, 1 step and 384 px (more AI pictures per second), little dream share. Pressing again
   restores the previous values; the switch survives a restart.
 - **Visible at once** are the effects, touching and light (60 pictures/s, to the output window 60 times a second).

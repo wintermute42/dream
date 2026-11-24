@@ -50,13 +50,22 @@ def test_no_setting_of_the_old_cards_is_left_in_a_page():
 
 def test_dream_control_has_the_mode_and_the_moods_strength_and_no_pages():
     control, panel = read("remote.html"), read("index.html")
-    card = control[control.index('id="movecard"'):control.index('id="flow_kind"')]
+    card = control[control.index('id="movecard"'):control.index("\n  </section>", control.index('id="movecard"'))]
     assert ids(card) == {"move_mode", "motion_sens"}
     assert 'data-only="control"' in card[:60]                                   # never a guest's
     assert "movepage" not in control and "/dance" not in control and "/flowtrack" not in control
     # the panel is the main control: whatever Dream Control offers of movement, the panel offers too
     theirs = ids(section(control, "motion", "section"))
     assert theirs <= ids(panel), theirs - ids(panel)
+    # the camera's and the detection's settings, "Fast", the hands' directness, "Mirror" and the pose are the panel's
+    # alone (the server still takes them from the control key: only the controls are gone)
+    for key in ("flow_kind", "flow_device", "fast", "touch_amt", "touch_mirror", "pose", "pose_scale"):
+        assert f'id="{key}"' not in control and f"'{key}'" not in control, key
+        assert f'id="{key}"' in panel or key == "fast", key
+    assert 'id="fastbtn"' in panel
+    # what is left of the mode: the four buttons and the one slider
+    assert control.count('data-mode="') == len(settings.MOVE_MODES)
+    assert '<input type="range" id="motion_sens"' in card
     # and both pages name the modes alike
     names = lambda html: re.findall(r'<button type="button" data-mode="\w+"[^>]*>([^<]+)</button>', html)   # noqa: E731
     assert names(control) == names(panel) == ["Off", "Mood", "Flowtrack", "Dream Dance"]
