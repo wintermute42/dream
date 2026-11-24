@@ -1383,7 +1383,7 @@ dancing:
   play/pause, **1× · ½× · ¼×**, a position slider (a click on the band jumps there), **[ from here** / **to here ]**
   loop over a stretch (the multiple exposure then shows the poses of that stretch), **↩ Live** ends it. **Feedback
   moments of this session** lists each mark with what was recognised and what the movement steered; a click jumps
-  there and loops over its seconds. **⬇** saves a session as a **test file** for the detection (see “Tests”), **🗑**
+  there and loops over its seconds. **⬇** writes a session as a **test file** for the detection to `~/.local/state/dream/dance/exports/` on the Mac (real movement: keep it private, never in the public repository – see “Tests”), **🗑**
   deletes it (asks once more on the button).
 
 **What is kept, and where:** numbers only – features, confidences, the points of the skeleton and of the hands
@@ -1721,12 +1721,17 @@ smoothing, letting go when a source is not known) and what the dance card makes 
 simulated dance plays back the very features it was made from and holds nothing but numbers, feeding its inputs to a
 fresh detector gives the same gestures, a feedback keeps exactly its seconds, playback (pause, slow motion, jumps, a
 loop), the list of feedback moments, and the test files: every file in `tests/js/dance-sessions/` is run through the
-detection and must do what it expects. **A test file from your own dance:** in the lab, **⬇** on a session writes
-`dance-<id>.json` – what the detector was fed, and per feedback mark what is expected: after a “good” the gesture that
-was recognised then (or `none`), after a “bad” `"want": null` with what was recognised in `was` – write the gesture
-it should have been (or `"none"`) into `want`. Put the file into `tests/js/dance-sessions/` and the test checks it
-from then on. It holds the trajectories of your hands and body (no picture) – your decision whether that belongs in a
-public repository. To see the eyes with a fire
+detection and must do what it expects. That folder holds **only synthetic sessions** (made by the simulated dancer,
+named `synthetic….json`; the test and `.gitignore` refuse anything else). **A test file from your own dance:** in the
+lab, **⬇** on a session writes `~/.local/state/dream/dance/exports/dance-<id>.json` on the Mac that runs Dream (the lab
+shows the path; nothing is downloaded, and Dream never writes it into its code folder or anywhere else) – what the
+detector was fed, and per feedback mark what is expected: after a “good” the gesture that was recognised then (or
+`none`), after a “bad” `"want": null` with what was recognised in `was` – write the gesture it should have been (or
+`"none"`) into `want`. The file holds the real trajectories of your hands and body (no picture): **it never belongs in
+the public repository.** Move it to a private place of your own – for this project the private board repository,
+folder `testdaten/dance-sessions/` – and let the same test run over that folder by naming it:
+`DREAM_DANCE_SESSIONS=/path/to/dream-board/testdaten/dance-sessions node --test tests/js/dancerec.test.mjs`
+(without the variable that test is skipped; a file with no `want` yet is listed, not failed). To see the eyes with a fire
 without lighting one: `node scripts/fire_video.mjs fire.y4m` writes a 70 s film of the same painted fire (about 90 MB),
 and a Chrome or Chromium started with `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
 --use-file-for-fake-video-capture=fire.y4m` shows it to Dreamy Eyes as its camera (a Dream started only for that:

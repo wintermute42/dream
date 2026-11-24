@@ -146,7 +146,7 @@ CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r
                 ("POST", r"/upload"), ("POST", r"/voice"), ("POST", r"/gallery/[^/]+/(delete|save)"),
                 ("POST", r"/gallery/clear"), ("POST", r"/gallery/undo/[^/]+"), ("POST", r"/style-ref"),
                 # #243: the dance lab's sessions (trajectories of the owner's dance, kept on this Mac)
-                ("GET", r"/dance/sessions(/[^/]+)?"), ("POST", r"/dance/sessions"), ("DELETE", r"/dance/sessions/[^/]+")]
+                ("GET", r"/dance/sessions(/[^/]+)?"), ("POST", r"/dance/sessions(/[^/]+/export)?"), ("DELETE", r"/dance/sessions/[^/]+")]
 LOCAL_ONLY = [("POST", r"/gallery")]
 
 

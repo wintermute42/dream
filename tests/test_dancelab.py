@@ -150,17 +150,83 @@ def test_only_a_session_id_names_a_session(server, store, sid):
     assert os.path.exists(os.path.join(os.path.dirname(store.DIR), "control-token"))
 
 
+# ---------- a test file for the detection: real movement, written to the state folder and nowhere else ----------
+def testfile(n=30, **more):
+    return {"format": "dream-dance-test", "version": 1, "name": "anything", "rate": 30, "aspect": 1.7778, "seconds": 1,
+            "frames": [{"t": round(i / 30, 5), "i": frame(0)["i"], "p": {"l": None, "r": None}} for i in range(n)],
+            "expect": [{"t0": 0, "t1": 0.9, "mark": "good", "was": "throw", "want": "throw"}, {"t0": 0.2, "t1": 0.9, "mark": "bad", "was": None, "want": None}], **more}
+
+
+def files_under(folder):
+    return sorted(os.path.relpath(os.path.join(d, n), folder) for d, _, names in os.walk(folder) for n in names)
+
+
+def test_a_test_file_is_written_to_the_exports_folder_in_the_state_folder_and_nowhere_else(server, store, monkeypatch, tmp_path):
+    repo = os.path.dirname(os.path.abspath(store.__file__))
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)                              # wherever Dream runs from: nothing lands there
+    before = files_under(os.path.join(repo, "tests", "js", "dance-sessions"))
+    meta = store.save(store.clean(session()))
+    c = client(server, "local")
+    r = c.post(f"/dance/sessions/{meta['id']}/export", content=json.dumps(testfile()))
+    assert r.status_code == 200, r.text
+    path = os.path.join(store.DIR, "exports", f"dance-{meta['id']}.json")
+    assert r.json() == {"file": store.paths.shown(path), "folder": store.paths.shown(os.path.dirname(path))}
+    assert store.exports_dir() == os.path.join(store.DIR, "exports") and not store.exports_dir().startswith(repo + os.sep)
+    with open(path) as f:
+        kept = json.load(f)
+    assert kept["name"] == meta["id"] and len(kept["frames"]) == 30 and kept["expect"][1]["want"] is None
+    assert os.stat(path).st_mode & 0o777 == 0o600 and os.stat(os.path.dirname(path)).st_mode & 0o777 == 0o700
+    assert files_under(str(tmp_path / "state")) == sorted([f"dance/{meta['id']}.json", f"dance/{meta['id']}.meta.json", f"dance/exports/dance-{meta['id']}.json"])
+    assert os.listdir(work) == [] and files_under(os.path.join(repo, "tests", "js", "dance-sessions")) == before
+    assert [m["id"] for m in store.listing()] == [meta["id"]]            # an export is no session
+
+
+def test_what_the_lab_makes_of_a_session_is_a_test_file(lab):
+    """The file the page's own code made (static/dancerec.js `testFile`, kept as the synthetic test file) passes as it is."""
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "js", "dance-sessions", "synthetic.json")) as f:
+        made = json.load(f)
+    kept = lab.clean_test(made, "20261124-120000-ab12")
+    assert kept and kept["frames"] == made["frames"] and kept["expect"] == made["expect"] and kept["name"] == "20261124-120000-ab12"
+
+
+@pytest.mark.parametrize("body", [b"", b"{not json", json.dumps(session()).encode(), json.dumps(testfile(frames=[])).encode(),
+                                  json.dumps(testfile(expect=[{"t0": 0, "t1": 1, "mark": "good", "was": None, "want": "data:image/png;base64,AAAA"}])).encode(),
+                                  json.dumps({**testfile(), "frames": [{"t": 0, "i": {}, "p": {}, "picture": "x"}]}).encode()])
+def test_what_is_no_test_file_is_not_written(server, store, body):
+    meta = store.save(store.clean(session()))
+    r = client(server, "local").post(f"/dance/sessions/{meta['id']}/export", content=body)
+    assert r.status_code == 422 and "error" in r.json()
+    assert not os.path.exists(store.exports_dir())
+
+
+@pytest.mark.parametrize("sid", ["..%2F..%2Fcontrol-token", "nope", "20261124-120000-ab12"])
+def test_a_test_file_is_only_written_for_a_session_that_is_kept(server, store, sid):
+    r = client(server, "local").post(f"/dance/sessions/{sid}/export", content=json.dumps(testfile()))
+    assert r.status_code == 404 and not os.path.exists(store.exports_dir())
+    with pytest.raises(ValueError):
+        store.export("../../outside", testfile())
+
+
+def test_the_repository_ignores_test_files_of_real_sessions():
+    """An exported file is named dance-<id>.json; should one ever be copied into the code folder, git does not take it."""
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".gitignore")) as f:
+        assert "tests/js/dance-sessions/*" in f.read().split()
+
+
 @pytest.mark.parametrize("role", ["guest", "eyes", "window", "none"])
 def test_a_guest_the_eyes_a_window_and_a_stranger_reach_no_session(server, store, role):
     meta = store.save(store.clean(session()))
     c = client(server, role)
     q = key_of(server, role)
     for method, path in (("GET", "/dance/sessions"), ("GET", f"/dance/sessions/{meta['id']}"), ("DELETE", f"/dance/sessions/{meta['id']}"),
-                         ("POST", "/dance/sessions")):
+                         ("POST", "/dance/sessions"), ("POST", f"/dance/sessions/{meta['id']}/export")):
         r = c.request(method, path, params=q, content=json.dumps(session()) if method == "POST" else None)
         assert r.status_code in (401, 403), (role, method, path, r.status_code)
         assert "frames" not in r.text
     assert [m["id"] for m in store.listing()] == [meta["id"]]            # still there, and nothing added
+    assert not os.path.exists(store.exports_dir())
 
 
 def test_control_and_this_mac_hear_that_a_moment_was_kept_a_guest_and_the_eyes_do_not(server, store, monkeypatch):

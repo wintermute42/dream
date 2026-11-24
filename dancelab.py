@@ -6,6 +6,10 @@ table that was in use (the format: static/dancerec.js). A feedback moment is a s
 seconds before a "good" or a "bad". They live in `~/.local/state/dream/dance/` (never in the repository), only this Mac
 and Dream Control may list, read, add or delete them (rights.CONTROL_ONLY), and nothing here ever leaves the Mac.
 
+A test file for the detection made of a session (the lab's ⬇) is the owner's real movement too: it is written to
+`~/.local/state/dream/dance/exports/` and nowhere else – never into Dream's code folder, never into another repository.
+Where it goes from there (a private place) is the owner's step.
+
 What comes in is checked before it is kept: the format, the sizes, and that it holds nothing but numbers, short names
 and structure – a session cannot carry a picture."""
 import asyncio
@@ -131,6 +135,58 @@ def about(sid: str, s: dict) -> dict:
             "targets": sorted(top, key=top.get, reverse=True)[:3]}
 
 
+def clean_test(t, sid: str) -> dict | None:
+    """A test file for the detection (static/dancerec.js `testFile`) as it is written, or None when it is not one:
+    what the detector was fed, frame by frame, and what is expected of it – numbers and short names alone."""
+    try:
+        if not isinstance(t, dict) or t.get("format") != FORMAT + "-test" or t.get("version") != VERSION:
+            return None
+        frames, expect = t.get("frames"), t.get("expect")
+        if not isinstance(frames, list) or not 0 < len(frames) <= MAX_FRAMES or not isinstance(expect, list) or len(expect) > 500:
+            return None
+        out, lines = [], []
+        for f in frames:
+            if not isinstance(f, dict) or set(f) != {"t", "i", "p"}:
+                return None
+            f = _plain(f)
+            if not _number(f["t"]) or f["t"] < 0 or not isinstance(f["i"], dict) or not isinstance(f["p"], dict):
+                return None
+            out.append(f)
+        for e in expect:
+            if not isinstance(e, dict) or set(e) != {"t0", "t1", "mark", "was", "want"} or e["mark"] not in ("good", "bad"):
+                return None
+            e = _plain(e)
+            if not _number(e["t0"]) or not _number(e["t1"]) or not all(e[k] is None or isinstance(e[k], str) for k in ("was", "want")):
+                return None
+            lines.append(e)
+        return {"format": FORMAT + "-test", "version": VERSION, "name": sid, "rate": float(_plain(t.get("rate", 30))),
+                "aspect": float(_plain(t.get("aspect", 16 / 9))), "seconds": float(out[-1]["t"]), "frames": out, "expect": lines}
+    except (ValueError, TypeError, OverflowError, RecursionError):
+        return None
+
+
+def exports_dir() -> str:
+    """Where test files made of sessions are written: beside the sessions in the state folder, nowhere else."""
+    return os.path.join(DIR, "exports")
+
+
+def export(sid: str, t: dict) -> str:
+    """Write a session's test file; its path. The name is made of the session's id alone."""
+    root = os.path.normpath(exports_dir())
+    path = os.path.normpath(os.path.join(root, f"dance-{sid}.json"))
+    if not ID.fullmatch(sid) or not path.startswith(root + os.sep):
+        raise ValueError(sid)
+    os.makedirs(root, mode=0o700, exist_ok=True)
+    _write(path, t)
+    return path
+
+
+def _write(path: str, data: dict) -> None:
+    with open(os.open(path + ".tmp", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
+        json.dump(data, f, separators=(",", ":"))
+    os.replace(path + ".tmp", path)
+
+
 def _path(sid: str, meta: bool = False) -> str:
     """A session's file – inside the sessions' folder, or ValueError (an id is checked before; this holds whatever comes)."""
     root = os.path.normpath(DIR)
@@ -145,9 +201,7 @@ def save(s: dict) -> dict:
     sid = time.strftime("%Y%m%d-%H%M%S") + "-" + secrets.token_hex(2)
     meta = about(sid, s)
     for path, data in ((_path(sid), s), (_path(sid, True), meta)):
-        with open(os.open(path + ".tmp", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
-            json.dump(data, f, separators=(",", ":"))
-        os.replace(path + ".tmp", path)
+        _write(path, data)
     return meta
 
 
@@ -195,30 +249,47 @@ async def sessions_list():
     return {"sessions": listing(), "folder": paths.shown(DIR)}
 
 
+def _json(body: bytes):
+    """What a request's body holds, or None (not JSON, or a number that is none: NaN, Infinity)."""
+    try:
+        return json.loads(body, parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+    except (ValueError, RecursionError, UnicodeDecodeError):
+        return None
+
+
 def _take(body: bytes) -> dict | None:
     """The session in a request's body, checked and kept – or None. Run beside the event loop: a long session takes
     half a second to check, and nothing else of Dream waits for it."""
-    try:
-        s = clean(json.loads(body, parse_constant=lambda _: (_ for _ in ()).throw(ValueError())))
-    except (ValueError, RecursionError, UnicodeDecodeError):
-        return None
+    s = clean(_json(body))
     return save(s) if s else None
 
 
-@app.post("/dance/sessions")
-async def sessions_add(request: Request):
+def _take_test(sid: str, body: bytes) -> str | None:
+    """The test file in a request's body, checked and written to the exports folder – its path, or None."""
+    t = clean_test(_json(body), sid)
+    return export(sid, t) if t else None
+
+
+async def _body(request: Request) -> bytes | None:
+    """A request's body – never more than a session can be, whatever the header said; None when it is empty or too large."""
     chunks, size = [], 0
     if int(request.headers.get("content-length") or 0) <= MAX_BYTES:
-        async for chunk in request.stream():           # never more than a session can be, whatever the header said
+        async for chunk in request.stream():
             chunks.append(chunk)
             size += len(chunk)
             if size > MAX_BYTES:
                 break
-    if not chunks or size > MAX_BYTES:
+    return b"".join(chunks) if chunks and size <= MAX_BYTES else None
+
+
+@app.post("/dance/sessions")
+async def sessions_add(request: Request):
+    body = await _body(request)
+    if body is None:
         return JSONResponse({"error": i18n.t("That is not a dance session.")}, status_code=422)
     if len(listing()) >= MAX_SESSIONS:
         return JSONResponse({"error": i18n.t("Too many dance sessions are kept – delete some first.")}, status_code=409)
-    meta = await asyncio.to_thread(_take, b"".join(chunks))
+    meta = await asyncio.to_thread(_take, body)
     if meta is None:
         return JSONResponse({"error": i18n.t("That is not a dance session.")}, status_code=422)
     _tell({"saved": meta})
@@ -230,6 +301,19 @@ async def sessions_get(sid: str):
     if not ID.fullmatch(sid) or not os.path.isfile(_path(sid)):
         return JSONResponse({"error": i18n.t("This dance session does not exist.")}, status_code=404)
     return FileResponse(_path(sid), media_type="application/json", headers={"Cache-Control": "no-store"})
+
+
+@app.post("/dance/sessions/{sid}/export")
+async def sessions_export(sid: str, request: Request):
+    """A session's test file for the detection (made by the lab from the session), written to the exports folder in
+    the state folder. It is real movement: Dream writes it nowhere else."""
+    if not ID.fullmatch(sid) or not os.path.isfile(_path(sid)):
+        return JSONResponse({"error": i18n.t("This dance session does not exist.")}, status_code=404)
+    body = await _body(request)
+    path = await asyncio.to_thread(_take_test, sid, body) if body is not None else None
+    if path is None:
+        return JSONResponse({"error": i18n.t("That is not a test file of a dance session.")}, status_code=422)
+    return {"file": paths.shown(path), "folder": paths.shown(exports_dir())}
 
 
 @app.delete("/dance/sessions/{sid}")

@@ -66,6 +66,7 @@ HTTP = {
     ("POST", "/dance/sessions"): ("/dance/sessions", LC),
     ("GET", "/dance/sessions/{sid}"): ("/dance/sessions/20261124-120000-ab12", LC),
     ("DELETE", "/dance/sessions/{sid}"): ("/dance/sessions/20261124-120000-ab12", LC),
+    ("POST", "/dance/sessions/{sid}/export"): ("/dance/sessions/20261124-120000-ab12/export", LC),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [

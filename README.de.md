@@ -1469,7 +1469,7 @@ beim Tanzen abstimmen lässt:
   dorthin), **[ ab hier** / **bis hier ]** spielen einen Ausschnitt in Schleife (die Mehrfachbelichtung zeigt dann die
   Posen dieses Ausschnitts), **↩ Live** beendet es. **Feedback-Momente dieser Session** listet jede Marke mit dem, was
   erkannt wurde und was die Bewegung gesteuert hat; ein Klick springt dorthin und spielt ihre Sekunden in Schleife.
-  **⬇** speichert eine Session als **Testdatei** für die Erkennung (siehe „Tests“), **🗑** löscht sie (fragt auf dem
+  **⬇** schreibt eine Session als **Testdatei** für die Erkennung nach `~/.local/state/dream/dance/exports/` auf dem Mac (echte Bewegung: privat halten, nie ins öffentliche Repository – siehe „Tests“), **🗑** löscht sie (fragt auf dem
   Knopf noch einmal nach).
 
 **Was gespeichert wird und wo:** nur Zahlen – Merkmale, Sicherheiten, die Punkte von Skelett und Händen (normierte
@@ -1851,12 +1851,18 @@ aufgenommener simulierter Tanz gibt beim Abspielen genau die Merkmale wieder, au
 nichts als Zahlen; seine Eingaben, einem frischen Erkenner gefüttert, ergeben dieselben Gesten; ein Feedback behält
 genau seine Sekunden; die Wiedergabe (Pause, Zeitlupe, Sprünge, Schleife), die Liste der Feedback-Momente und die
 Testdateien: Jede Datei in `tests/js/dance-sessions/` läuft durch die Erkennung und muss tun, was sie erwartet.
-**Eine Testdatei aus deinem eigenen Tanz:** Im Labor schreibt **⬇** an einer Session `dance-<id>.json` – was der
+In diesem Ordner liegen **nur synthetische Sessions** (vom simulierten Tänzer gemacht, mit Namen `synthetic….json`;
+der Test und `.gitignore` weisen alles andere ab). **Eine Testdatei aus deinem eigenen Tanz:** Im Labor schreibt **⬇**
+an einer Session `~/.local/state/dream/dance/exports/dance-<id>.json` auf dem Mac, auf dem Dream läuft (das Labor zeigt
+den Pfad; nichts wird heruntergeladen, und Dream schreibt sie nie in seinen Code-Ordner oder sonst wohin) – was der
 Erkenner bekommen hat, und je Feedback-Marke, was erwartet wird: nach einem „gut“ die Geste, die dort erkannt wurde
 (oder `none`), nach einem „schlecht“ `"want": null` mit dem Erkannten in `was` – trag in `want` die Geste ein, die es
-hätte sein sollen (oder `"none"`). Leg die Datei nach `tests/js/dance-sessions/`, und der Test prüft sie von da an.
-Sie enthält die Bahnen deiner Hände und deines Körpers (kein Bild) – deine Entscheidung, ob das in ein öffentliches
-Repository gehört. Die Augen mit Feuer sehen, ohne eines anzuzünden:
+hätte sein sollen (oder `"none"`). Die Datei enthält die echten Bahnen deiner Hände und deines Körpers (kein Bild):
+**Sie gehört nie ins öffentliche Repository.** Leg sie an einen privaten Ort – bei diesem Projekt ins private
+Board-Repository, Ordner `testdaten/dance-sessions/` – und lass denselben Test über diesen Ordner laufen, indem du ihn
+nennst: `DREAM_DANCE_SESSIONS=/pfad/zu/dream-board/testdaten/dance-sessions node --test tests/js/dancerec.test.mjs`
+(ohne die Variable wird dieser Test übersprungen; eine Datei, in der noch kein `want` steht, wird genannt, nicht als
+Fehler gezählt). Die Augen mit Feuer sehen, ohne eines anzuzünden:
 `node scripts/fire_video.mjs fire.y4m` schreibt einen 70-s-Film desselben gemalten Feuers (etwa 90 MB), und ein Chrome
 oder Chromium, gestartet mit `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
 --use-file-for-fake-video-capture=fire.y4m`, zeigt ihn den Dreamy Eyes als Kamera (ein nur dafür gestartetes Dream:
