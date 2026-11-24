@@ -54,6 +54,9 @@ command line for now, #231) via `dream-cloud`.
   the stage (register, the room's energy, the fade between modes; `tests/js/movement.test.mjs`), `movement.py` the modes
   and the register of the sources outside the stage. What moves the picture by movement is a target of the table, never
   a switch of its own; a new source reports to the register, a new effect is a new target. Dream windows are no source.
+  "Nobody there – the dream calms down, someone comes – an impulse" is Dreamy Eyes' alone (`movement.Presence`: read
+  from the energy they report, only while the mode listens to them); the Mac's camera in the stage never says who is
+  there.
   The panel has one card for it (#250, `static/movecard.js` and `movecard.css`: the mode's buttons, the part of the mode
   in use, the sources); Dream Control has the mode and the mood's strength, and nothing of movement the panel lacks
   (`tests/test_movecard.py`).

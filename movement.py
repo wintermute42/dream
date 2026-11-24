@@ -123,5 +123,42 @@ def room_energy(listing: list) -> tuple:
     return sum(e * c for e, c in pairs) / weight, 1 - sure
 
 
+EMPTY = 12.0                                        # seconds without movement before the eyes count as alone
+STIR = 0.06                                         # the energy from which on someone moves in front of them
+
+
+class Presence:
+    """Nobody there – the dream calms down; someone comes – a light impulse. This is Dreamy Eyes' alone: it is read
+    from the energy they report (the number they send anyway – nothing else of the person), and only while the mode
+    in use listens to them. The Mac's camera in the stage never says who is there. `step` returns the word for the
+    stage when it changes: "calm" (nothing moved in front of any pair of eyes for EMPTY seconds), "wake" (someone
+    came: the calm ends with an impulse) or "rest" (no eyes report any more: the calm ends without one)."""
+
+    def __init__(self):
+        self.calm, self.quiet_since = False, None
+
+    def step(self, listing: list, now: float | None = None) -> str | None:
+        now = time.monotonic() if now is None else now
+        eyes = [s for s in listing if s["kind"] == "eyes" and s["active"] and s["used"] and s["conf"] > 0]
+        if not eyes:                                # no eyes, or the mode does not listen to them: nothing to say
+            self.quiet_since = None
+            return self._to(False, "rest")
+        if any(s["energy"] >= STIR for s in eyes):
+            self.quiet_since = None
+            return self._to(False, "wake")
+        if self.quiet_since is None:
+            self.quiet_since = now
+        return self._to(True, "calm") if now - self.quiet_since >= EMPTY else None
+
+    def _to(self, calm: bool, word: str) -> str | None:
+        if calm == self.calm:
+            return None
+        self.calm = calm
+        return word
+
+
+presence = Presence()
+
+
 def msg(state: dict, now: float | None = None) -> dict:
     return {"move": {"sources": sources.listing(state, now)}}

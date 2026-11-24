@@ -1,5 +1,5 @@
-"""What steers the dream besides the pages: MIDI controllers, motion sensors over OSC, and the movement the stage
-detects (presence, rules)."""
+"""What steers the dream besides the pages: MIDI controllers, motion sensors over OSC, the rules of the movement the
+stage detects, and whether someone is there in front of Dreamy Eyes."""
 import asyncio
 import ipaddress
 import json
@@ -20,9 +20,10 @@ import sensors
 import settings
 
 
-async def on_presence(present: bool):
-    """Movement (#85): nobody there – the dream calms down; someone comes – a light impulse."""
-    await hub.broadcast({"cmd": "wake" if present else "calm"})
+async def on_presence(word: str):
+    """Nobody in front of Dreamy Eyes – the dream calms down ("calm"); someone comes – a light impulse ("wake"); no
+    eyes report any more – the calm ends quietly ("rest"). Never from the Mac's camera (movement.Presence)."""
+    await hub.broadcast({"cmd": word})
 
 
 # ---------- MIDI controller: faders, knobs and buttons (mappings in ~/.config/dream/midi.json) ----------
@@ -216,6 +217,9 @@ async def sources_tell():
     if msg != sources_told["msg"]:
         sources_told["msg"] = msg
         await hub.broadcast(msg)
+    word = movement.presence.step(msg["move"]["sources"], now)
+    if word:
+        await on_presence(word)
 
 
 def next_set(name: str) -> str:
@@ -252,7 +256,7 @@ def dance_map(new, mode: str = "dance") -> dict:
     return dance.msg()
 
 
-# ---------- movement (#85): the stage detects it and reports presence changes and rules ----------
+# ---------- movement (#85): the stage detects it and reports rules ----------
 def load_rule_actions() -> dict:
     """Optional ~/.config/dream/motion.json: {"rules": {"<flowtrack rule name>": "next" | {"playlist": "Feuer"} | {"prompt": "…"}}}"""
     try:
