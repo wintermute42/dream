@@ -1883,8 +1883,8 @@ steht bei L4-1-24G mindestens 1, geht es. Sonst freischalten lassen: oben **„V
   flüssig, 😬 wird eng, 🥵 überlastet, 🤯 stark überlastet, 😴 pausiert (flüssig heißt etwa 3 KI-Bilder pro Sekunde auf
   dem Mac, 4 in der Cloud). Ein Tipp nimmt Schritt für Schritt zurück, was am meisten kostet: Diagnose → Stil-Modell und
   Stil-Referenzbild (nur bei SDXL, erst ausgeblendet – der Stil geht früh) → Qualität „Flüssig“ → Umrisse und Pose (die
-  Stärke gleitet erst auf null, dann gehen sie aus) → Hand-Erkennung „Hände (KI)“ → „Feuer/LED“ → Auflösung 512 px. Das
-  Modell wechselt es nie – das bleibt deine Wahl. Nach jedem Schritt wartet es ein paar Sekunden und misst;
+  Stärke gleitet erst auf null, dann gehen sie aus) → Auflösung 512 px. Das
+  Modell wechselt es nie und die Bewegungserkennung ändert es nie – das bleibt deine Wahl. Nach jedem Schritt wartet es ein paar Sekunden und misst;
   sobald Dream flüssig läuft, hört es auf, der Rest bleibt, wie er war. Während es arbeitet, atmet das Gesicht aus (😮‍💨),
   und der Knopf zählt die Schritte mit einem Balken darunter. Der Hinweis „🐢 entlastet: …“ sagt, was zurückgenommen
   wurde; **↶** stellt alles wieder her. **Auch der Autopilot drückt ihn**, wenn Dream 15 Sekunden lang überlastet ist

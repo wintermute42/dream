@@ -286,7 +286,8 @@
       if (kind === 'hand' && person) {
         [['r', HANDS[0]], ['l', HANDS[1]]].forEach(([h, idx]) => {
           const lms = idx.map(i => person[i]), c = Math.min(...lms.map(l => (l.visibility == null ? 1 : l.visibility)));
-          if (c >= MIN_VIS) hands[h].push({ x: lms.reduce((a, l) => a + l.x, 0) / lms.length, y: lms.reduce((a, l) => a + l.y, 0) / lms.length, c, src: 'pose' });
+          // `at`: when the model measured it – it does not run on every camera frame, and the stream must know a repeat
+          if (c >= MIN_VIS) hands[h].push({ x: lms.reduce((a, l) => a + l.x, 0) / lms.length, y: lms.reduce((a, l) => a + l.y, 0) / lms.length, c, src: 'pose', at: poseAt / 1000 });
         });
       }
       if (kind === 'marker' || (kind === 'hand' && mark.on)) for (const h of ['l', 'r']) if (mark.found[h]) hands[h].push({ ...mark.found[h], src: 'marker' });
