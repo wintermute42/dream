@@ -3417,8 +3417,8 @@
       return { mode: moveMode(), camera: flowOn() ? tracker.status.code : 'off', status: tracker.status.text, lang: I18N.lang,
         auto: $('flow_auto').checked, looking: auto && !!s,
         kind: (c => ({ ...c, why: c.why + flowKnown(s) }))(flowChoice('kind', $('flow_kind').value, s ? s.kind.code : 'first', s && s.kind.vars)),
-        // #253: the performers' profiles, the one chosen, and what it changes while Flowtrack runs
-        profile: profileWant(), profiles: flowProfiles, fitted: flowFitted() ? { id: flowFitted().id, reach: flowAuto.reach, hold: flowAuto.hold, kind: flowFitted().auto.kind, smooth: flowFitted().smooth } : null,
+        // #253: the performers' profiles and the one chosen
+        profile: profileWant(), profiles: flowProfiles,
         short: { ...flowChoice('short', $('flow_short').checked, s ? s.short.code : 'first'), supported: tracker.exposure.supported, on: !!tracker.exposure.on },
         person: { ...flowChoice('person', !flowHands.person, who ? who.code : 'noOne', who && who.vars), n: who ? who.n : 0, kept: who ? who.keep.length : 0 },
         calib: { on: !!calib, hint: flowView.hint, why: DreamFlowAuto.why(calib ? flowView.code : 'calibNone'), busy: !!calibAbort, text: $('calibstate').textContent,

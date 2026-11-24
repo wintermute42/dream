@@ -93,7 +93,7 @@
   // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
   // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
   const NEEDS = { calls: ['attach', 'detach', 'state', 'setAuto', 'setMode', 'setKind', 'setShort', 'setPerson', 'release', 'calibrate', 'setUnproject', 'setRows', 'setProfile', 'profilesChanged', 'lab.live'],
-    state: ['mode', 'auto', 'kind', 'short', 'person', 'calib', 'rows', 'held', 'camera', 'status', 'rate', 'present', 'profile', 'profiles', 'fitted'] };
+    state: ['mode', 'auto', 'kind', 'short', 'person', 'calib', 'rows', 'held', 'camera', 'status', 'rate', 'present', 'profile', 'profiles'] };
   MovePage.link('flowtrack', {
     needs: NEEDS,
     old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },

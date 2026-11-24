@@ -61,7 +61,7 @@
 
   // ---------- the part of the page ----------
   // opts: {live() (the stage's live record with the detector's input, or null), keys (the stream's sources),
-  //   state() ({mode, profile, profiles, fitted}), setProfile(id), changed()}
+  //   state() ({mode, profile, profiles}), setProfile(id), changed()}
   function mount(box, opts) {
     const doc = box.ownerDocument, n = ++mounted, el = (tag, cls, text) => { const e = doc.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const id = k => `fp${n}-${k}`;
