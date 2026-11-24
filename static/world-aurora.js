@@ -12,7 +12,11 @@
    (static/dreamvis.js) – the nose, in the rare moment, as a slim pillar of light with a star on its tip.
 
    Everything is stamped lights and rays (drawn once, static/dreambrush.js), additive – no blur, no shadow, no filter:
-   old phones. On a weak device the rays stand wider apart. Registers itself with the style layer (static/dreamstyle.js). */
+   old phones. On a weak device (the pages' own measure: the tier they hand the air, 2 all of it – drawn exactly as
+   described here –, 1 less, 0 the least) the world draws lighter: the rays stand wider apart, a line of light has no
+   wide faint pass, a window's corona is painted small a few times a second and laid on in one piece, the breath of
+   colour over its sky has half the rays, the field of stars stands still in a picture as large as the page's.
+   Registers itself with the style layer (static/dreamstyle.js). */
 (function (root) {
   'use strict';
   const { DreamBrush, DreamVis, DreamLife, DreamEye, DreamStyle } = root;
@@ -66,17 +70,21 @@
     const i = Math.floor(x), f = x - i, a = per ? ((i % per) + per) % per : i, b = per ? (a + 1) % per : i + 1;
     return lerp(NT[(a + s * 31) & 255], NT[(b + s * 31) & 255], f * f * (3 - 2 * f));
   };
-  let coarse = 1;                                      // how far apart the rays stand: wider on a weak device (the air tells: it is drawn every frame)
-  const COARSE = [1.9, 1.35, 1];
+  // How weak the device is (the air tells: it is drawn every frame, in both pages): 2 draws all of it. coarse: how far
+  // apart the rays stand – wider on a weak device.
+  let weak = 2, coarse = 1;
+  const COARSE = [2.5, 1.5, 1];
   // A curtain: rays standing on the line P. h: their height (a number, or h(u) along the line); T (s): the light moves;
   // seed: a whole number, which curtain; k: which ray; step: how far apart the rays stand; dir(x, y): which way they
   // point (an angle, 0 = up) – without it, up; upTo: drawn in so far (0–1)
   function curtain(c, P, h, T, seed, al, k, step, dir, upTo = 1) {
     if (al <= 0.004 || P.length < 2) return;
     const spr = ray(k), n = P.length, st = Math.max(1.2, step * coarse), w = st * 2.8, dn = st / step, last = upTo >= 1 ? n - 1 : Math.min(n - 1, Math.ceil((n - 1) * clamp(upTo))), fh = typeof h === 'function';
-    let no = 0;
+    let no = 0, owed = 0.5;
     for (let i = 0; i < last; i++) {
-      const p = P[i], q = P[i + 1], m = Math.max(1, Math.round(Math.hypot(q[0] - p[0], q[1] - p[1]) / st));
+      const p = P[i], q = P[i + 1], len = Math.hypot(q[0] - p[0], q[1] - p[1]) / st;
+      let m = Math.max(1, Math.round(len));
+      if (coarse > 1) { owed += len; m = Math.floor(owed); owed -= m; }   // wider apart than the line's own points: some of them carry no ray
       for (let j = 0; j < m; j++, no += dn) {
         const a2 = al * Math.min(1, Math.pow(n1(no * 0.07 - T * 0.33, seed), 1.7) * 2.6) * (0.78 + 0.22 * Math.sin(no * 1.9 + T * 1.4 + seed));
         if (a2 < 0.01) continue;
@@ -108,6 +116,7 @@
     if (al <= 0.004 || !list.length) return;
     c.lineCap = 'round'; c.lineJoin = 'round';
     for (const [k, a, l] of [[7, 0.07, 55], [3, 0.18, 65], [1, 0.8, 88]]) {
+      if (k > 3 && !weak) continue;                    // the weakest device: without the wide faint pass
       c.strokeStyle = mono ? `rgba(255,255,255,${Math.min(1, a * al * 1.4)})` : `hsla(${hue},85%,${l}%,${a * al})`; c.lineWidth = Math.max(0.6, w * k); c.beginPath();
       for (const P of list) { c.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) c.lineTo(P[i][0], P[i][1]); }
       c.stroke();
@@ -415,16 +424,32 @@
 
   // ---------- the large motifs of a dream window (world-classic.js describes m and o) ----------
   // an auroral corona: rays streaming out of a disc R around (cx, cy), a ring of light close around it
-  function crown(c, cx, cy, R, T, tier) {
+  function crownRays(c, cx, cy, R, T, tier) {
     const n = [48, 70, 90][tier];
     for (const [k, al, len, turn] of [[2, 0.7, 1.8, 0.011], [0, 1, 1.3, -0.017], [1, 0.7, 0.8, 0.023]]) corona(c, cx, cy, R * 1.02, R * len, n, T * (1 + k * 0.2), 90 + k * 4, al, k, T * turn);
+  }
+  // On a weak device the rays are painted small into a picture of their own (one per motif: `key`), a few times a
+  // second – this light is slow –, and laid on in one piece: one drawing a frame instead of a hundred and more.
+  const CROWN = { px: [0.5, 0.75], every: [0.16, 0.08], far: 3.6, kept: {} };
+  function crown(c, cx, cy, R, T, tier, key) {
+    if (tier > 1) crownRays(c, cx, cy, R, T, tier);
+    else {
+      const far = R * CROWN.far, want = Math.min(512, Math.max(32, Math.ceil(far * 2 * CROWN.px[tier]))), o = CROWN.kept[key] || (CROWN.kept[key] = { cv: canvas(want), T: -1e9 });
+      if (Math.abs(o.cv.width - want) > want * 0.12) { o.cv.width = o.cv.height = want; o.T = -1e9; }   // (the beat swells R a little: the picture keeps its size)
+      if (Math.abs(T - o.T) >= CROWN.every[tier]) {
+        const x = o.cv.getContext('2d'), n = o.cv.width, k = n / (far * 2);
+        o.T = T; x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, n, n);
+        x.globalCompositeOperation = 'lighter'; x.setTransform(k, 0, 0, k, 0, 0); crownRays(x, far, far, R, T, tier);
+      }
+      c.globalAlpha = 1; c.drawImage(o.cv, cx - far, cy - far, far * 2, far * 2);
+    }
     stamp(c, halo(), cx, cy, R * 1.27, 0.7); stamp(c, green(), cx, cy, R * 1.7, 0.18); c.globalAlpha = 1;
   }
   // --- the third eye: the light stands overhead, and in its dark middle an eye opens. In trance it opens in every window
   function third(c, m, t, dt, o) {
     const [cx, cy] = o.mid, R = Math.min(o.W, o.H) * 0.25 * (1 + 0.02 * o.pulse), T = t / 1000;
     night(c, cx, cy, R * 2.2, 0.55);
-    c.save(); c.globalCompositeOperation = 'lighter'; crown(c, cx, cy, R, T, o.tier);
+    c.save(); c.globalCompositeOperation = 'lighter'; crown(c, cx, cy, R, T, o.tier, 'third');
     c.globalCompositeOperation = 'source-over'; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.clip();
     c.fillStyle = 'rgba(2,5,14,.94)'; c.fillRect(cx - R, cy - R, R * 2, R * 2); skyPiece(c, cx - R, cy - R, R * 2, R * 2, 0.55, 3);
     c.restore(); c.globalAlpha = 1;
@@ -435,7 +460,7 @@
   function mandala(c, m, t, dt, o) {
     const [cx, cy] = o.mid, R = Math.min(o.W, o.H) * 0.27 * (1 + 0.03 * o.pulse), T = t / 1000, ph = (m.seed % 628) / 100;
     night(c, cx, cy, R * 2.1, 0.5);
-    c.save(); c.globalCompositeOperation = 'lighter'; crown(c, cx, cy, R, T, o.tier);
+    c.save(); c.globalCompositeOperation = 'lighter'; crown(c, cx, cy, R, T, o.tier, 'mandala');
     c.globalCompositeOperation = 'source-over'; c.fillStyle = '#000'; c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fill();
     o.softPiece(c, t, (sc, n) => kaleido(sc, o.pic, n, t, ph, o.tier ? 12 : 8), cx, cy, R * 1.06, 1);
     c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.clip(); c.drawImage(vign(), cx - R, cy - R, R * 2, R * 2);
@@ -500,18 +525,28 @@
     lines.forEach((P, k) => curtain(cg, P, R * (2.3 - k * 0.3) * (1 + 0.12 * o.swell), T, 70 + k + o.index, 0.75 + 0.2 * o.swell, 3, step));
     cg.globalCompositeOperation = 'source-in';
     o.dream(cg, 0, 0, w, h, 1.2 + 0.1 * Math.sin(T / 19 + o.index), 0.5 + 0.2 * Math.sin(T / 26 + o.index * 1.7), 0.5 + 0.2 * Math.cos(T / 33 + o.index * 2.3));
-    cg.globalCompositeOperation = 'lighter';           // … and a breath of the curtains' own colours over it
-    lines.forEach((P, k) => curtain(cg, P, R * (2.3 - k * 0.3) * (1 + 0.12 * o.swell), T, 70 + k + o.index, 0.2, k, step));
+    cg.globalCompositeOperation = 'lighter';           // … and a breath of the curtains' own colours over it (the weakest device: half as many rays – it is faint)
+    lines.forEach((P, k) => curtain(cg, P, R * (2.3 - k * 0.3) * (1 + 0.12 * o.swell), T, 70 + k + o.index, 0.2, k, o.tier ? step : step * 2));
     cg.globalCompositeOperation = 'source-over';
   }
 
   // ---------- what fills the night: the field of stars, turning slowly around the pole; the brighter ones twinkle ----------
+  const still = { key: '', cv: null };
   function air(g, t, o) {
     const T = t / 1000, { W, H } = o, S = stars(), px = W / 2, py = H * 0.35, R = Math.hypot(W / 2, H * 0.65), n = [8, 20, 36][o.tier];
-    coarse = COARSE[o.tier] || 1;
+    weak = o.tier === 0 || o.tier === 1 ? o.tier : 2; coarse = COARSE[weak];
     g.save(); g.globalCompositeOperation = 'lighter'; g.translate(px, py);
     if (o.tier > 0) g.rotate(T * 0.0015);
-    g.globalAlpha = 0.8; g.drawImage(S, -R, -R, R * 2, R * 2);
+    if (o.tier > 0 || !g.getTransform) { g.globalAlpha = 0.8; g.drawImage(S, -R, -R, R * 2, R * 2); }
+    else {                                             // the weakest device: the field stands still – kept as large as the page's picture, laid on pixel for pixel
+      const m = g.getTransform(), cw = g.canvas.width, ch = g.canvas.height, key = [cw, ch, m.a, m.b, m.c, m.d, m.e, m.f, R].join();
+      if (still.key !== key) {
+        const c = still.cv || (still.cv = canvas(2)), x = c.getContext('2d');
+        c.width = cw; c.height = ch; still.key = key;
+        x.setTransform(m); x.globalAlpha = 0.8; x.drawImage(S, -R, -R, R * 2, R * 2);
+      }
+      g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.drawImage(still.cv, 0, 0); g.setTransform(m);
+    }
     for (let i = 0; i < n; i++) { const [u, v, ph] = S.tw[i]; stamp(g, white(), (u * 2 - 1) * R, (v * 2 - 1) * R, Math.max(3, R * 0.005), 0.6 * Math.pow(0.5 + 0.5 * Math.sin(T * 1.7 + ph), 4)); }
     g.restore(); g.globalAlpha = 1;
   }
