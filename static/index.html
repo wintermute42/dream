@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/static/sliders.css">
 <link rel="stylesheet" href="/static/worldband.css">
 <link rel="stylesheet" href="/static/dancepanel.css">
+<link rel="stylesheet" href="/static/movecard.css">
 <link rel="stylesheet" href="/static/dancelab.css">
 <link rel="stylesheet" href="/static/signs.css">
 <link rel="stylesheet" href="/static/compute.css">
@@ -126,12 +127,6 @@
   #sensstate, #midistate { line-height: 1.3; height: 1.3em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   body.auto-on #autostate { color: var(--text); }
   .flowswitch { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }   /* wraps: nothing sticks out of the card */
-  .flowswitch #move_mode { flex: 1 1 45%; font-weight: 700; min-height: 44px; }
-  .movesources { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; min-height: 44px; }
-  .movesources label { display: flex; align-items: center; gap: 6px; margin: 0; min-height: 22px; }
-  .movesources .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); opacity: .18; flex: none; transition: opacity .3s; }
-  .movesources .live .dot { opacity: 1; }
-  .movesources .unused { color: var(--muted); }
   .flowswitch select { width: auto; flex: 1 1 45%; min-width: 0; }
   .flowswitch #flow_device { flex-basis: 100%; }      /* the camera on its own line, the full width */
   h1 small { color: var(--muted); font-weight: 400; }
@@ -547,8 +542,45 @@
   </details>
   <details class="sec" data-sec="motion">
     <summary>Movement</summary>
-    <div class="flowswitch keep">
-      <select id="move_mode" aria-label="Movement mode" title="One mode at a time. Mood: the energy in the room (Dreamy Eyes, phones) moves the dream – no gestures. Flowtrack: one performer with fire, LEDs or hands. Dance: your dance steers the dream."><option value="off">Movement: off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
+    <!-- #250: one card for movement (static/movecard.js): the mode – one at a time –, what the mode in use needs at
+         hand, and the sources. The settings of the camera and the table are folded away below. -->
+    <div class="movecard keep" id="movecard">
+      <div class="movehead">
+        <div class="seg movemodes" role="group" aria-label="Movement mode">
+          <button type="button" data-mode="off" class="on" aria-pressed="true" title="Movement does nothing: no camera, no work">Off</button>
+          <button type="button" data-mode="mood" aria-pressed="false" title="Catch the mood: the energy in the room moves the dream – no gestures, no camera on the Mac needed">Mood</button>
+          <button type="button" data-mode="flowtrack" aria-pressed="false" title="One performer with fire, LEDs or hands: the effects sit at the person">Flowtrack</button>
+          <button type="button" data-mode="dance" aria-pressed="false" title="Your dance steers the dream: features and gestures">Dream Dance</button>
+        </div>
+        <button type="button" class="btn movepage" id="movepage" disabled title="Opens the page of this mode in a window of its own (for a second screen)">Page ↗</button>
+      </div>
+      <select id="move_mode" hidden aria-hidden="true"><option value="off">Off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
+      <div class="moveparts">
+        <div class="movepart on" data-for="off">
+          <div class="hint" style="margin:0">Movement is off. Choose a mode: <b>Mood</b> catches the energy in the room, <b>Flowtrack</b> follows one performer, <b>Dream Dance</b> lets your dance steer the dream.</div>
+        </div>
+        <div class="movepart" data-for="mood">
+          <label for="motion_sens" title="How strongly the energy in the room moves the dream (0 = not at all)">Strength <span class="val" id="v-msens"></span></label>
+          <input type="range" id="motion_sens" min="0" max="3" step="0.05" value="1">
+          <div class="moveenergy"><span id="moveenergy-l">Energy</span>
+            <span class="movemeter" id="moveenergy" role="meter" aria-labelledby="moveenergy-l" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="fill"></i><i class="peak"></i></span>
+            <span class="movemeter-word" id="moveenergy-word">–</span></div>
+          <label class="movecheck" title="The mood runs without the Mac's camera – from Dreamy Eyes and phones alone. Ticked, the Mac's camera joins them."><input type="checkbox" id="move_cam"> also use the Mac's camera</label>
+        </div>
+        <div class="movepart" data-for="flowtrack">
+          <div class="moveinfo" id="moveinfo-flowtrack" role="status">–</div>
+          <div class="hint" style="margin:0">Hands paint, touch and set off impulses where the performer is. What exactly: “What a movement does” below.</div>
+        </div>
+        <div class="movepart" data-for="dance">
+          <div class="moveinfo" id="moveinfo-dance" role="status">–</div>
+          <div class="hint" style="margin:0">Features and gestures steer the effects at once. Gestures need two or three repetitions to count.</div>
+        </div>
+      </div>
+      <div class="movesrc"><span id="movesrc-l">Sources</span>
+        <div id="movesources" class="movesources" role="group" aria-labelledby="movesrc-l"></div></div>
+    </div>
+    <details class="sub" id="movecamera"><summary>Camera and detection</summary>
+    <div class="flowswitch">
       <select id="flow_kind" aria-label="Kind of movement detection" title="Hands (AI) or light: fire, LED, light trails"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option><option value="marker">LED markers (2 colours)</option></select>
       <select id="flow_device" class="camsel" aria-label="Camera for movement" title="Camera for movement, e.g. an infrared camera"><option value="">Camera: as picture</option></select>
       <div class="lightopts" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-basis:100%">
@@ -564,13 +596,8 @@
         <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: the LED markers are followed as well – in the dark and on fast moves they lead, otherwise both confirm each other"><input type="checkbox" id="flow_markers"> LED markers beside the hand AI</label>
         <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: a second model finds 21 points per hand – fist, spread fingers, pinch and snap become values the dance card can use. Costs some of the graphics chip; downloaded once (about 8 MB)."><input type="checkbox" id="flow_fingers"> Fingers (hand AI, 21 points per hand)</label>
       </div>
-      <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="The mood runs without the Mac's camera – from Dreamy Eyes and phones alone. Ticked, the Mac's camera joins them. Flowtrack and Dream Dance always use it."><input type="checkbox" id="move_cam"> Mood: the Mac's camera too</label>
     </div>
-    <!-- #249: the register of movement sources – what sends movement, and a switch per kind -->
-    <div class="row"><label id="movesrc-l">Sources</label><div id="movesources" class="movesources" role="group" aria-labelledby="movesrc-l"></div></div>
   <div class="row">
-    <label for="motion_sens" title="Mood: how strongly the room's energy acts. Flowtrack and Dream Dance: how strongly movement pushes the slow AI sliders (the row “Movement pushes the AI sliders” of the table).">Movement – how strongly it steers the dream <span class="val" id="v-msens"></span></label>
-    <input type="range" id="motion_sens" min="0" max="3" step="0.05" value="1">
     <div id="flowstate" style="font-size:12px;color:var(--muted)">Movement off</div>
     <button class="btn" id="fastbtn" aria-pressed="false" style="width:100%;margin-top:6px" title="For fast movement: values follow at once, smoothing off, 1 step, 384 px, little dream share – press again to restore everything">⚡ Fast (dance/flow): OFF</button>
     <input type="checkbox" id="fast" hidden aria-hidden="true">
@@ -586,27 +613,20 @@
     <input type="range" id="pose_scale" min="0.2" max="1.5" step="0.05" value="0.8">
     <div id="posestate" style="font-size:12px;color:var(--muted)"></div>
   </div>
-
-  </details>
-  <details class="sec" data-sec="dance">
-    <summary>Dance</summary>
+    </details>
+    <details class="sub" id="movemap"><summary>What a movement does</summary>
   <div class="row">
     <div class="hint" id="movetable" role="status" style="margin:0 0 6px">What a movement does: the table of the mode in use.</div>
-    <!-- #235: what Dream sees of the dance, and the mapping table (static/dancepanel.js) -->
+    <!-- #235: what Dream sees of the movement, and the mapping table (static/dancepanel.js) -->
     <div id="dancepanel"></div>
     <button class="btn" id="dancelabbtn" aria-expanded="false" style="width:100%;margin-top:8px" title="See live what Dream detects, tune the table while dancing, say “good” or “bad”, record and play back sessions (key L)">🧪 Dance lab</button>
-    <div class="hint">Gestures need two or three repetitions to count. Sources: the camera (hands, LED markers) and a motion sensor on the arm – whatever is there.</div>
-  </div>
-  </details>
-  <details class="sec" data-sec="touch">
-    <summary>Direct interaction</summary>
-  <div class="row">
-    <div><label>Directness (0 = off) <span class="val" id="v-touch"></span></label>
+    <label for="touch_amt" style="margin-top:8px">Directness of the hands (0 = off) <span class="val" id="v-touch"></span></label>
     <input type="range" id="touch_amt" min="0" max="1" step="0.05" value="0.6">
-    <div class="hint">The more direct, the more movement also shapes the effects: place, tempo, direction, hit. What the hands do – paint, touch, impulses, light in the dark, content by energy – are rows of the table in the card “Dance” (modes Flowtrack and Dream Dance).</div></div>
+    <div class="hint">The more direct, the more the hands paint and stir and the more movement shapes the effects: place, tempo, direction, hit.</div>
     <div id="energystate" style="font-size:11px;color:var(--muted)"></div>
     <label style="display:flex;align-items:center;gap:6px;margin:2px 0 0"><input type="checkbox" id="touch_mirror"> Mirror (camera flipped)</label>
   </div>
+    </details>
   </details>
   <details class="sec" data-sec="control">
     <summary>Control (MIDI, sensors, master)</summary>
@@ -614,7 +634,7 @@
     <label>MIDI controller</label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
-      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option></select>
+      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
@@ -627,7 +647,7 @@
     <div id="sensstate" style="font-size:12px;color:var(--muted)">no sensor data (OSC port 7020, see README)</div>
     <div id="sensbars" style="font-size:11px;margin-top:4px;height:5.6em;overflow:hidden"></div>
     <div class="btns" style="margin-top:4px">
-      <select id="senstarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select>
+      <select id="senstarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select>
       <button class="btn" id="senslearn" title="Choose a target, click, then make the wanted movement for 2 seconds">📡 Learn</button>
     </div>
     <div id="sensmap" style="font-size:12px;margin-top:4px"></div>
@@ -765,6 +785,7 @@
 <script src="/static/dance.js"></script>
 <script src="/static/dancemap.js"></script>
 <script src="/static/movement.js"></script>
+<script src="/static/movecard.js"></script>
 <script src="/static/dancepanel.js"></script>
 <script src="/static/dancerec.js"></script>
 <script src="/static/dancelab.js"></script>
@@ -1750,7 +1771,7 @@
   const flowOn = () => DreamMove.cameraOn(moveMode(), moveOpts());
   // #235, #249: the slow AI sliders follow speed and place of the movement only when the mode's table says so (the row
   // to "ai.react") – the effects follow it at once
-  const msens = () => (flowOn() && mo && performance.now() - moAt < 1000 ? moveGain('ai.react') * +$('motion_sens').value : 0);
+  const msens = () => (flowOn() && mo && performance.now() - moAt < 1000 ? Math.max(0, moveGain('ai.react')) : 0);
   // Smoothed movement (about 0.3 s): calm hands give a calm dream, a fast throw a clear burst.
   const msm = { speed: 0, spread: 0 };
   // speed with a square-root curve, so slow and medium movement already shows
@@ -2343,53 +2364,44 @@
 
   // ---------- the movement switch: on = the chosen kind runs, off = camera closed and no effect ----------
   // #249: the mode decides – the camera is opened only for a mode that needs it and closed when none does
-  let camWant = '', tableShow = () => {};            // the dance card, once it is mounted
+  // #250: the movement card (movecard.js) shows the mode, what the mode in use needs at hand, and the sources
+  let camWant = '', tableShow = () => {};            // the table, once it is mounted
+  const FLOW_STATE = { off: T('Movement off'), camera: T('Opening the camera …') };
+  const moveCard = MoveCard.mount($('movecard'), {
+    send: set => { if ('move_off' in set) moveOff = set.move_off; sendCtl({ set }); moveSync(); },
+    uses: (m, kind) => DreamMove.uses(m, kind, moveOpts()),
+    pages: { dance: () => danceLab.show() },           // the modes that have a page of their own
+  });
   function moveSync() {
     const on = flowOn(), want = on ? $('flow_kind').value + '|' + flowCam() : '';
-    $('move_cam').disabled = moveMode() !== 'mood';
-    $('movetable').textContent = moveMode() === 'off' ? T('Movement is off – shown: the table of Dream Dance.') : T('What a movement does in the mode “{m}”.', { m: MOVE_NAMES[moveMode()] });
-    tableShow();
-    showSources();
+    moveCard.set({ move_mode: moveMode(), move_off: moveOff });
+    $('movetable').textContent = moveMode() === 'off' ? T('Movement is off – shown: the table of Dream Dance.') : T('What a movement does in the mode “{m}”.', { m: MoveCard.name(moveMode()) });
+    tableShow(); moveLive();
     if (want === camWant) return;
     camWant = want;
     if (!on) { mo = null; touch.hands = []; }
     if (on) tracker.start($('flow_kind').value, camId(flowCam())).then(listCams); else tracker.stop();
     flowFeed(mode === 'flow');
   }
-  const MOVE_NAMES = { off: T('Off'), mood: T('Mood'), flowtrack: 'Flowtrack', dance: 'Dream Dance' };
   ['move_mode', 'move_cam', 'flow_kind'].forEach(id => $(id).addEventListener('change', moveSync));
-  // the register (movement.js): the Mac's camera and whatever else sends movement, one line per kind with its switch
-  const KIND_NAMES = { camera: T('Mac camera'), eyes: 'Dreamy Eyes', phone: T('Phone (Dream Control)'), band: T('Wristband/glove (OSC)') };
-  let sourcesShown = '';
+  // the register (movement.js): the Mac's camera and whatever else sends movement
   function moveSources() {
     const f = tracker.frame, running = tracker.status.code === 'running';
-    return mover.sources(moveMode(), moveOpts(), { name: KIND_NAMES.camera, running, rate: running ? f.rate : 0, conf: danceFrame && performance.now() - danceAt < 500 ? danceFrame.c.energy || 0.5 : 0.5, energy: mspeed() });
+    return mover.sources(moveMode(), moveOpts(), { running, rate: running ? f.rate : 0, conf: danceFrame && performance.now() - danceAt < 500 ? danceFrame.c.energy || 0.5 : 0.5, energy: mspeed() });
   }
-  function showSources() {
-    const list = moveSources(), off = new Set(moveOff.split('+'));
-    const rows = DreamMove.KINDS.map(kind => { const mine = list.filter(s => s.kind === kind), live = mine.filter(s => s.active);
-      return { kind, n: mine.length, used: DreamMove.uses(moveMode(), kind, moveOpts()), live: live.length, rate: Math.round(live.reduce((a, s) => a + s.rate, 0)), conf: live.length ? Math.round(100 * live.reduce((a, s) => a + s.conf, 0) / live.length) : 0 }; });
-    const key = JSON.stringify([rows, [...off]]);
-    if (key === sourcesShown) return;
-    sourcesShown = key;
-    const box = $('movesources'), keep = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.kind : null;
-    box.textContent = '';
-    for (const r of rows) {
-      const lab = document.createElement('label'), cb = document.createElement('input'), dot = document.createElement('i'), txt = document.createElement('span');
-      cb.type = 'checkbox'; cb.checked = !off.has(r.kind); cb.dataset.kind = r.kind; dot.className = 'dot'; dot.setAttribute('aria-hidden', 'true');
-      lab.className = (r.live && cb.checked && r.used ? 'live' : '') + (r.used ? '' : ' unused');
-      const state = !cb.checked ? T('switched off') : !r.used ? T('not used by this mode') : r.live ? T('{n} values/s · {p} % sure', { n: r.rate, p: r.conf }) : T('nothing comes');
-      txt.textContent = KIND_NAMES[r.kind] + (r.n > 1 ? ` (${r.n})` : '') + ' – ' + state;
-      lab.title = T('Tick off: this kind of source no longer moves the dream.');
-      cb.onchange = () => { const now = new Set(moveOff.split('+').filter(Boolean)); if (cb.checked) now.delete(r.kind); else now.add(r.kind);
-        moveOff = DreamMove.KINDS.filter(k => now.has(k)).join('+'); sendCtl({ set: { move_off: moveOff } }); moveSync(); };
-      lab.append(cb, dot, txt); box.append(lab);
-    }
-    if (keep) { const again = box.querySelector(`[data-kind="${keep}"]`); if (again) again.focus(); }
+  // what the card shows live: the sources and what Dream detects twice a second, the energy bar with every frame
+  const moveCardEl = document.querySelector('details.sec[data-sec="motion"]');
+  const moveSeen = () => moveCardEl.open && !document.hidden && !document.body.classList.contains('hide');
+  function moveLive() {
+    if (!moveSeen()) return;
+    const f = tracker.frame, running = tracker.status.code === 'running', rec = danceNow();
+    moveCard.show({ sources: moveSources(), now: performance.now(), room: mover.room,
+      flowtrack: { running, kind: tracker.kind, rate: f.rate, present: f.present, status: flowOn() ? tracker.status.text || FLOW_STATE[tracker.status.code] || '' : '' },
+      dance: { live: !!rec, gesture: rec && rec.gesture ? DancePanel.label('g.' + rec.gesture) : null, sure: rec ? rec.gc : 0, bpm: rec ? rec.bpm : 0, status: flowOn() && tracker.status.code !== 'running' ? tracker.status.text || FLOW_STATE[tracker.status.code] || '' : '' } });
   }
-  setInterval(showSources, 500);
+  setInterval(moveLive, 500);
+  (function moveMeter() { requestAnimationFrame(moveMeter); if (moveMode() === 'mood' && moveSeen()) moveCard.show({ room: mover.room, now: performance.now() }); })();
   // the detection itself (static/motion.js): it reports like flowtrack did; presence and rules go to the server
-  const FLOW_STATE = { off: T('Movement off'), camera: T('Opening the camera …') };
   const tracker = DreamMotion.create({
     picture: (ctx, w, h) => {                          // what the beamer shows now: the picture and the effects over it
       view.snapshot(ctx, w, h);
@@ -2779,8 +2791,7 @@
   relShow();
 
   // cards that have no effect right now look inactive (see CSS details.sec.idle)
-  const IDLE = { auto: () => !apOn(), motion: () => moveMode() === 'off', touch: () => !flowOn(), music: () => $('music').value === 'off',
-    dance: () => !danceOn(),
+  const IDLE = { auto: () => !apOn(), motion: () => moveMode() === 'off', music: () => $('music').value === 'off',
     fx: () => !fxShown().length };
   function markIdle() {
     for (const [k, off] of Object.entries(IDLE)) {
@@ -3162,9 +3173,8 @@
   const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); }, fxNames: FX_NAMES,
     sources: [...DreamDance.SOURCES, 'present'], targets: DreamDanceMap.targets(DreamFx.ALL) });
   tableShow = () => dancePanel.map(tableRows());
-  const danceCard = document.querySelector('details.sec[data-sec="dance"]');
-  setInterval(() => {                                  // the display, a dozen times a second while its card is open and in view
-    if (!danceCard.open || document.hidden || document.body.classList.contains('hide')) return;
+  setInterval(() => {                                  // the display, a dozen times a second while its part of the card is open and in view
+    if (!$('movemap').open || !moveSeen()) return;
     dancePanel.show(mover.frame || danceNow(), id => mover.of(tableMode(), id));
   }, 80);
   // #243: the dance lab – an overlay over the stage (static/dancelab.js). It reads the live record with what the
