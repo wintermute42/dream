@@ -49,11 +49,13 @@ def cloud_failure(log: str) -> dict | None:
 #   unreachable  a machine is there (and costs), but its renderer does not answer or has no model
 #   stopping     the machine is being deleted
 PREPARING = ("machine", "download", "loading", "compiling")
-ROUGH_MIN = {"machine": 8, "download": 5, "loading": 3}      # from the start of a step until pictures come, roughly
-# with the compile cache of an earlier start, and without. Estimated, not measured, since the start also compiles the
-# 16:9 pictures (measured for the square ones alone: about 1 and 4 minutes, RTX 4090)
-COMPILE_MIN = {True: 2.5, False: 8}
-DOWNLOAD_GB_MIN = 2.0                                         # what a data centre's line brings, roughly
+# from the start of a step until pictures come, roughly (RunPod RTX 4090, SDXL-Turbo, 2026-11-24: the machine about
+# 1 minute until its renderer answers, the model's download well under a minute, loading a few seconds)
+ROUGH_MIN = {"machine": 2, "download": 1, "loading": 1}
+# with the compile cache of an earlier start, and without – square and 16:9 at 512 and 384 px (measured on an RTX 4090
+# with SDXL-Turbo, 2026-11-24: 26 s with the cache, 309 s without; a little more is allowed for)
+COMPILE_MIN = {True: 1, False: 5.5}
+DOWNLOAD_GB_MIN = 20.0                                        # what a data centre's line brings, roughly (measured: more)
 UNREADABLE_S = 60                                             # a status that cannot be read: the step stays that long
 _work = {"phase": None, "since": 0.0, "misses": 0, "unread": None}
 

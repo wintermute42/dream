@@ -378,27 +378,27 @@ def test_a_cloud_that_paints_uncompiled_is_ready_and_says_so(cloud):
 def test_a_start_counts_down_roughly(cloud):
     cloud._job["action"] = "start"
     starting = {"state": "off", "busy": True}
-    assert cloud.cloud_work(starting, now=1000.0) == {"phase": "machine", "eta_min": 8}
-    assert cloud.cloud_work(starting, now=1000.0 + 5 * 60)["eta_min"] == 3
+    assert cloud.cloud_work(starting, now=1000.0) == {"phase": "machine", "eta_min": 2}
+    assert cloud.cloud_work(starting, now=1000.0 + 45)["eta_min"] == 2
     assert cloud.cloud_work(starting, now=1000.0 + 30 * 60)["eta_min"] == 1      # late: never zero, never negative
 
 
 def test_a_download_tells_how_far_it_is(cloud):
     w = {"ready": False, "loading": "sdxl-turbo", "first_download": True, "download_gb": 3.5}
     work = cloud.cloud_work({**RUNNING, "busy": True, "worker": w}, now=1000.0)
-    assert work == {"phase": "download", "percent": 50, "eta_min": 5, "model": "sdxl-turbo"}
+    assert work == {"phase": "download", "percent": 50, "eta_min": 2, "model": "sdxl-turbo"}
     full = cloud.cloud_work({**RUNNING, "busy": True, "worker": {**w, "download_gb": 9.0}}, now=1010.0)
-    assert full["percent"] == 99 and full["eta_min"] == 3
+    assert full["percent"] == 99 and full["eta_min"] == 1
     unknown = cloud.cloud_work({**RUNNING, "busy": True, "worker": {**w, "download_gb": None}}, now=1020.0)
-    assert "percent" not in unknown and unknown["eta_min"] == 5
+    assert "percent" not in unknown and unknown["eta_min"] == 1
 
 
 def test_compiling_is_shorter_with_the_cache(cloud):
     def left(**w):
         return cloud.cloud_work({**RUNNING, "worker": {"ready": False, "compiling": True, **w}}, now=1000.0)["eta_min"]
-    assert left(compiling_s=0, compile_cached=True) == 3
-    assert left(compiling_s=0, compile_cached=False) == 8
-    assert left(compiling_s=150, compile_cached=False) == 6
+    assert left(compiling_s=0, compile_cached=True) == 1
+    assert left(compiling_s=0, compile_cached=False) == 6
+    assert left(compiling_s=150, compile_cached=False) == 3
     assert left(compiling_s=900) == 1
 
 
@@ -428,7 +428,7 @@ def test_the_status_for_the_pages_carries_the_step(cloud, server, tmp_path, monk
     monkeypatch.setattr(server.config, "CLOUD", str(fake))
     monkeypatch.setitem(cloud._job, "log", str(tmp_path / "none.log"))
     st = cloud.cloud_read()
-    assert st["work"] == {"phase": "compiling", "eta_min": 2} and st["busy"] is False and st["minutes"] == 3
+    assert st["work"] == {"phase": "compiling", "eta_min": 1} and st["busy"] is False and st["minutes"] == 3
 
 
 # ---------- the owner hears when the cloud GPU is ready ----------
