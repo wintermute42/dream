@@ -10,7 +10,7 @@
 Dream is an endless, ever-changing stream of pictures: a fast image model (SD-Turbo or SDXL-Turbo) turns each picture
 into the next. It runs on a Mac with Apple Silicon, in the browser, only on `127.0.0.1` (the phone remote and a
 second output device join over the home Wi-Fi when you allow it). It computes either **locally** on the Mac's GPU or
-on a **cloud GPU** you rent by the hour (Scaleway in Paris or RunPod in Europe). It reacts to music, to a camera, to
+on a **cloud GPU** you rent by the hour (RunPod, data centres in Europe). It reacts to music, to a camera, to
 movement (hands, fire, LEDs), to MIDI controllers and body sensors, and can be driven by an autopilot.
 
 The whole interface is available in English and German (switch **DE | EN** at the top right).
@@ -58,8 +58,8 @@ The whole interface is available in English and German (switch **DE | EN** at th
 **Cloud GPU**
 
 - [Cloud GPU](#cloud-gpu)
-  - [Scaleway: set up once](#scaleway-set-up-once)
   - [RunPod: set up once](#runpod-set-up-once)
+  - [Scaleway (currently unavailable)](#scaleway-currently-unavailable)
 
 **Help and more**
 
@@ -99,7 +99,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 | Chrome (or another current browser) | yes | panel and stage; Chrome for `--beamer` and the installable apps |
 | [Ollama](https://ollama.com) with `llama3.2:3b` | optional | prompt ideas and generated playlists |
 | `ffmpeg` (`brew install ffmpeg`) | optional | saving clips as video |
-| [Scaleway CLI](https://www.scaleway.com/en/cli/) or a RunPod account | optional | a cloud GPU instead of the Mac's |
+| A [RunPod](https://www.runpod.io/) account | optional | a cloud GPU instead of the Mac's |
 
 ```bash
 ./dream.sh
@@ -200,7 +200,9 @@ cost – that line also tells it for the cloud GPU, whose own parts the table do
 `~/.local/state/dream/measure/` as JSON, to compare a change before and after. While measuring, the parts are timed
 together with the GPU, which makes the run itself a little slower than usual. Only Dream Control and the Mac can start it.
 
-- **Compute on:** “Local (Mac)” or “Cloud GPU”. Switching works at any time, without a restart.
+- **Compute on:** “Local (Mac)” or “Cloud GPU”. Switching works at any time, without a restart. The **badge** at the
+  top of the card says who computes right now – “Computing now: Mac”, “Computing now: Cloud ✓”, “The Mac bridges – cloud:
+  …” – see “[Who computes right now](#who-computes-right-now)”.
 - **Model:** SD-Turbo (fast) or SDXL-Turbo (nicer; very slow locally, good in the cloud). You can switch in the middle
   of a show: the new model loads in the background (SD-Turbo seconds, SDXL-Turbo locally about 20–60 s, much longer
   the very first time with the download), the old one dreams on meanwhile, a chip says “⏳ … is loading”. The first
@@ -759,38 +761,175 @@ eyes** that invite people to step up and play:
 - **They look at you:** the phone finds the face in front of its camera (MediaPipe Face Landmarker, on the phone itself –
   nothing of it is sent or kept) and the eyes follow the person; when someone steps up they open, very close they go
   wide with surprise, and interest widens the pupils. Without anyone in front they dream around by themselves.
-- **Smile at them, and they grin back:** a floating grin of its own (two rows of teeth, glowing in the dream's colours)
-  appears while someone smiles, the eyes smile along, then it fades. Now and then it comes by itself.
+- **Mostly only the eyes (#220):** how much of a face shows follows one rule, for everything face-like that is drawn in Dreamy
+  Eyes and in the dream windows (the faces painted by the AI and “you in the dream” are pictures and stay whole). Most of the time there are only the eyes. Every one to two minutes **hints** come for
+  about ten seconds: the brows, the sign on the forehead of a face drawn in light and – moderately, at about half
+  strength – **the outline of that face**. Every five to ten minutes or so,
+  inside such a moment and only while the eyes are calm, **mouth, nose and hair** join them and the outline grows fuller – clearly to be seen
+  for those few seconds (at about four fifths of full strength, never as solid as the eyes) – and leave again before the
+  hints do. There is no grin. **One face at a time:** where one face takes another's place while it is to be seen (a
+  held level changing its face, a style world changing, the person's silhouette behind the eyes), the one there fades
+  out completely (about a second) and only then the next fades in – never a hard cut, never two faces over each
+  other; a painted face that has to make way while it is still coming goes from as far as it had come. To look at a
+  level, add `?face=0`, `?face=1` or `?face=2` to the address of Dreamy Eyes or of a dream window: it is held (0: only
+  the eyes, 1: with hints and the outline, 2: with mouth, nose and hair as well; the face changes every 20 seconds).
+- **Style worlds (#221):** how all of this is drawn is a *style world*. Dreamy Eyes and the dream windows decide the
+  scene – what appears, when and where; a world decides the material: the eye, everything that lives around the eyes
+  and drifts through the windows, the faces of light, the large motifs of the windows. The first world, **Classic**,
+  is the look Dream has had so far (glowing lines, soft light), unchanged. Choose the world in the panel (under “Trance: …”: the
+  band of worlds, **Style world**) or in Dream Control (card “👀 Dreamy Eyes”) – tap its small picture, see “The band of worlds” below; a MIDI button can step to the next one
+  (“Button: next style world”). Dream tells every Dreamy Eyes page and every dream window at once – they only hear
+  it, their codes cannot set it. Fire, trance and “you in the dream” run in every world: besides the eye, the
+  living things, the faces and the motifs, a world also draws the night behind the eyes, a window's sky, the flames,
+  the trance and what surrounds “you in the dream” (#222: its frames, fireflies and the sparks it leaves, the colours
+  of its glow; the person's picture itself and how it is dreamed – wavering, mist at the edge with its colour fringe,
+  clear at the peak, coming apart – are the same in every world). In every
+  world besides Classic the face rule above holds for everything drawn, and none of today's signs appear (hearts,
+  stars, “z”): each world has a form of its own for them. A world is one file (see “Tests” for how it is built in).
+  The worlds:
+  - **Classic** – today's look, unchanged.
+  - **Bioluminescence** (#222) – the deep sea: no outlines anywhere, only filaments of light, thin membranes and
+    beads of light pulsing along them; marine snow drifts through everything. The eye is a dark chamber lit from its
+    rim, with an anemone's crown around the iris and cilia for lashes; the brow is a row of small lights. Around the
+    eyes: plankton, an anemone opening, a comb jelly, a sea fan growing, small medusae, a siphonophore's chain of
+    lights. The faces of light are a medusa, an anglerfish and an anemone (a warm lure or a small crown on the
+    forehead and, fainter, the jaw's lights – the face's outline – with the hints; bell, arms, a closed mouth and the nose – two fine rows of lights and a glow on its tip – only in the rare moment). In a window the dream glows in
+    the water around a medusa seen from above – with the eye or the folded dream in her bell – and the impossible
+    shapes are panes of the dream edged with filaments. A fire is a vent glowing in the deep (warm plumes rising);
+    where Classic shows a heart there is a warm lure or a tiny warm medusa, where it shows stars plankton flashes,
+    and sleep is slow bubbles. Measured in a headless browser without a graphics card, the processor slowed four
+    times: Dreamy Eyes about 19 frames a second (Classic: 30), a dream window 6 (Classic: 8) at full resolution – both
+    pages lower their resolution by themselves when a device does not keep up, as before.
+  - **Ink & watercolour** (#223) – light pigment on black paper. Surfaces are washes with wet edges and grain, lines are
+    brush strokes that swell, thin out and run dry; the line work “boils” a little, as hand animation does. The eye is a
+    bone-coloured wash with a brushed iris ring, bare paper for its highlight and one loaded lid stroke flicked into a
+    wing; the brow is a brush stroke. Around the eyes: petal washes, a bloom of pigment spreading, an enso, an ink twig
+    growing leaf by leaf, a bird of two strokes, drops in wet paper, a sweep of a broad brush. The faces of light are
+    *sumi*, *willow* and *plum* (a small sign on the forehead and, fainter, a thin jaw line – the face's outline – with the hints; hair strokes and washes,
+    closed lips and the nose – one loaded stroke down its side, a dry flick under its tip – only in the rare moment). In a window the dream shows through wash blots, around a brushed enso with
+    the eye or the folded dream in it; the impossible shapes are washed panes with brushed edges. Fire is vermilion and
+    ochre washes with flame strokes rising; where Classic shows a heart a drop of red pigment blooms, where it shows
+    stars there is a flick of splatter, and sleep is slow rings of wash. Measured as above (processor slowed four
+    times): Dreamy Eyes about 20 frames a second, a dream window 4 (Classic: 36 and 8 in the same run).
+  - **Engraving** (#225) – an old engraved plate that comes alive, with the long lines of Art Nouveau. There is only
+    line – strokes that swell and thin, hatching, stipple – in bone-coloured ink with verdigris, old rose and a little
+    gold light that now and then runs along a line. The eye: the white is fine lines following the ball, the lid one
+    swelling line that ends in a tendril, single lashes; the dream itself is engraved in the iris, strokes as thick as
+    it is bright there. Around the eyes and through the windows: a fern whose crozier unrolls, a vine that draws itself
+    with leaves opening behind its tip, a seed head whose seeds leave on the air, a lily opening, a naturalist's moth
+    with hatched wings, hatched drops of dew, winged seeds circling an eye, a cloud of stipple. The faces of light are
+    *lily* (a gem on a fine chain on the brow; rarely hair in bundles ending in curls, lilies at the temples, an open
+    ticked halo), *fern* (a young crozier on the brow; rarely vines for hair, a wreath of leaves) and
+    *moth* (a moth at rest on the brow; rarely a veil of fine lines, a halo of stipple) – with the hints also, fainter, the line of the jaw (the face's outline; stippled for the fern); closed, hatched lips and the nose (one side cut
+    with a swelling line and hatched in its shade, the other only stippled) only in the rare moment. In a window the dream is a rosette engraved in a ticked
+    medallion with vines growing round its frame, the third eye sits in the middle of a seed head, the impossible shapes
+    are hatched face by face and a seed climbs the stairs; the sky is stipple in the dream's colours. Fire is engraved
+    flames with gold inside. Instead of a heart there is a bud, instead of stars a seed head and drifting seeds, and
+    sleep is a poppy's head nodding and letting a few seeds go. No line is finer than about 1.2 px, so the plate holds
+    on coarse outputs. Measured as above (processor slowed four times): Dreamy Eyes about 25 frames a second, a dream
+    window 6 (Classic: 39 and 8 in the same run).
+  - **Aurora** (#226) – curtains of northern light over a field of stars: slow, luminous, cold greens and violets with a
+    warm lower edge; the calmest world. A curtain is a line with rays standing on it, their height and brightness
+    wandering along it. The eye is a piece of night sky with light standing on its lower lid, rays rising from the upper
+    lid for lashes, a thin corona around the iris; the brow is a small arc of rays. Around the eyes: a small drifting
+    curtain, a halo with its mock moons, a small corona, light pillars over ice dust, a shooting star, diamond dust, a
+    quiet arc. The faces of light are *veil*, *crown* and *pillars* (a brighter light on the forehead and, fainter, a low band along the jaw – the face's outline – with the hints;
+    veils where hair would fall, a warm light for the mouth and the nose – a slim pillar
+    of light with a star on its tip – only in the rare moment). In a window the dream is seen in great curtains,
+    around an auroral corona – rays streaming out of a dark disc with the eye or the folded dream in it; the impossible
+    shapes have edges of light. Fire is a red aurora rising from the horizon; where Classic shows a heart there is a
+    small warm sun dog, where it shows stars ice dust glitters, and in sleep pillars dim one after the other while snow
+    sinks. Measured as above (processor slowed four times): Dreamy Eyes about 25 frames a second, a dream window 3 at
+    full resolution (Classic: 35 and 8 in the same run) – this world's windows are the most costly so far and rely on
+    the page lowering its resolution on a weak device.
+- **Crossfading the worlds (#224):** two style worlds can show at once, one fading into the other – the same scene
+  drawn in both and added up, like a double exposure: the eyes, the faces of light and a window's motif sit exactly on
+  each other. The crossfade has a first world, a second one and how far the picture is on its way between them (0 % all
+  of the first, 100 % all of the second; anywhere between, both stay mixed for as long as it is left there). The
+  **worlds drift** moves it by itself, a MIDI knob can turn it by hand (slider target “Style worlds: crossfade”); the button “next style
+  world” goes to the world after the one that shows most, all of it. Choosing another world never cuts: it comes in a
+  short fade (about a second and a half). **A face of light is never mixed:** while two worlds are drawn, one of them
+  draws the face – the one that shows most; when the other takes over, the face fades out completely and only then
+  the other world's face fades in (see “Mostly only the eyes”).
+  - **The band of worlds – how you steer all this:** in the panel (under “Trance: …”) and in Dream Control (card
+    “👀 Dreamy Eyes”) the same small card, **Style world**:
+    - **A row of small pictures, one per world** – each drawn by the world itself (its eye), its name under it. The
+      world that shows has a ring, the one it is being blended with a dashed ring. **Tap a picture** to fade over to
+      that world (the short fade above); the wandering then waits three minutes. With the keyboard: Tab into the row,
+      the arrow keys move from picture to picture, Space or Enter chooses.
+    - **A bar under it, labelled “first world → second world”:** how far the crossfade is. It only shows – the drift
+      and the MIDI knob move it.
+    - **The switch “Wander through the worlds by itself”** turns the drift on and off, and three buttons set its
+      pace: **slow**, **calm**, **lively**. Off, the three are greyed; on again, the drift has the pace it last had.
+    - **One line that says what is going on:** “now: Classic → Bioluminescence · 32 %” while one world fades into the
+      next; “now: Classic · next world in 0:40” while a world stays alone (it counts down); “Bioluminescence chosen ·
+      wandering paused for another 2:40” after a tap, a MIDI knob or button; “Classic · wandering off”; and “wandering
+      rests while no Dreamy Eyes and no dream window are on” – the drift only runs while somebody can see it.
+    - A world Dream gets later appears in the row by itself. Limits: the pictures are drawn once when the page opens
+      (they do not move, and show an invented dream in the iris); there is no slider for the crossfade any more – to
+      hold a mix by hand, use a MIDI knob, or switch the wandering off while it is on its way.
+  - **Worlds drift – on in a new Dream:** Dream wanders from world to world by itself, through all of them in the
+    order of the list and round again. Each world stays alone for a while, then the next one comes slowly: *slow* (a
+    world every five minutes), *calm* (every two minutes – the default), *lively* (every 45 seconds) or *off*. You see
+    the bar of the crossfade move with it. A hand on the worlds – a tap on a world in the panel or in Dream Control
+    (also on the one that is showing), a MIDI knob or button – makes the drift wait three minutes; then it goes on from where the
+    mix was left. To keep a world or a mix for good, switch the wandering off. The drift rests while no Dreamy Eyes and
+    no dream window is connected. “Reset” leaves all of this alone (it is for what shapes the AI picture).
+  - **Old phones:** drawing two worlds in every frame costs about twice the time. A device that does not keep up
+    therefore never shows a lasting mix: it shows the nearer of the two worlds and changes over in a short fade once
+    the crossfade is clearly past the middle; the weakest devices (those that already draw with the least detail) go
+    through black instead, so they never draw two pictures for one frame. Each page decides this for itself from its
+    own frame rate (two worlds below about 33 frames a second for three seconds: one world from then on; it tries
+    mixing again after a minute and a half, and waits longer each time that fails). So the same crossfade can look
+    different on a new and an old device: a slow dissolve here, a change of worlds there. To look at one way on any
+    device, add `?blend=mix`, `?blend=fade` or `?blend=dip` to the address of Dreamy Eyes or of a dream window.
+  - **Measured** (the real pages in a headless Chromium, processor slowed four times, as for the worlds above):
+    with one world Dreamy Eyes draw 34 frames a second in Classic and 23 in Engraving or Aurora, with a lasting mix
+    of two worlds 10–11; a dream window at full resolution draws 8, 6 and 3 with one world and 2–3.5 with two. A mix
+    costs a little more than both worlds together. Left to decide for themselves (processor slowed six times), the
+    eyes and the windows went over to one world within a few seconds. Nothing was measured on a real old phone.
+  - The eyes and the windows only hear of the worlds (the world, the second one, how far the crossfade is); their
+    codes cannot set any of it, and neither can a guest.
 - **Feminine eyes:** an almond shape with the outer corner a little lifted, a soft rose-violet eyeshadow with a little
   shimmer, a winged liner, full lashes that grow longer and curl towards the outer corner (a few fine ones below). **The brows
-  come only now and then, for a feeling** – like the grin: surprise (someone very close, waking up, a dream turning
-  wild), joy (with the grin), sadness (with the tear of light), doubt (one up, one flat, when they cross their eyes),
+  come only with the hints** (see above) and show a feeling then: surprise (someone very close, waking up, a dream turning
+  wild), joy (someone smiles at them), sadness (with the tear of light), doubt (one up, one flat, when they cross their eyes),
   a frown (rarely, in a dark wild dream) or curiosity – then they fade again. **Their look changes softly** every two minutes or so: rose, smoky (grey
   with a long wing), golden (with glitter), nymph (turquoise, long lashes) or doll (no wing, very long lashes, round
   brows).
 - **Behind the eyes the dream shines through the night** – through drifting clouds, a huge breathing spiral of soft
-  lights, a kaleidoscopic flower of rings, or a face only hinted in light around the eyes – a goddess with a diadem and
-  flowing hair, a cat with ears and twitching whiskers, Medusa with writhing snakes, a mermaid with hair drifting like
-  seaweed and a crown of shells, a forest spirit with a crown of leaves, vines framing the eyes, a leaf on the brow and glowing spores drifting up (no mouth), a moon priestess with a
-  crescent on her brow, a swaying veil and long earrings; the masks change every minute or two
+  lights or a kaleidoscopic flower of rings; the masks change every minute or two
   or so (upright a little calmer), the dream behind them slowly
   zooms and wanders, a little brighter than on the stage. Every two to four minutes a **dream window** opens for 6–10
   seconds: the night opens wide and the dream shows clearly behind the eyes, then it softly withdraws behind the masks. Right behind the eyes it stays darker, so they stay clear.
+- **Faces drawn in light, only hinted:** with the hints a face of light appears around the eyes, another one each
+  time, and the eyes become its eyes – first its sign and, more faintly, its outline: the goddess's diadem of rays, the cat's ears, the snakes
+  above Medusa's brow, the mermaid's crown of shells, the forest spirit's crown of leaves with the leaf on the brow and
+  glowing spores, the moon priestess's crescent. In the rare moments hair and a closed mouth join them and the outline grows fuller,
+  clearly (flowing hair, twitching whiskers, writhing snakes, hair like seaweed, vines, a veil and long earrings) – and
+  the goddess's line of a nose, the cat's little nose. The dream fills the lines. **A face is never squashed:** it has
+  one size, that of the eyes, upright or across; on a wide, low screen its chin and the ends of its hair run off the
+  edge instead of being pressed into the picture.
 - **You in the dream:** whoever stands in front is mirrored in the iris – faintly all the time, and every two or three minutes
   for a few seconds very clearly, as in real eyes: then it is the person alone, cut out from the room (on the
-  phone), the face exactly as the camera sees it, and behind them the iris keeps dreaming. Now and then (every three to five
+  phone) and running out softly at their edge, the face as the camera sees it, and behind them the iris keeps dreaming. Now and then (every four to eight
   minutes, only while someone is there) the person appears as a **moment**: first in the two pupils, as if seen through
-  them, then the windows open and for about 2–3 seconds they stand in a soft cloud in the middle of the screen –
-  **the real camera picture, the face unchanged and recognisable**, a little smaller and lighter than a painted face.
-  Only around them is the dream: the dream's picture instead of the room, a softly glowing outline, fireflies, a
-  shimmer in the dream's colour at their edge, and sometimes a wreath of blossoms, a mandala behind the head or veils
-  of mist. Nothing is ever drawn over the face. Then the picture does not simply fade: within a second or two it
-  **comes apart into the dream** – its pieces drift off, the outermost first, the face last, the fireflies fly away –
-  while the eyes return (about 7 seconds in all). **Someone who just comes** (after a while with nobody) is greeted
+  them, then the windows open and for 3–4 seconds they stand in a soft cloud in the middle of the screen, a little
+  smaller and lighter than a painted face – **seen as in a dream, not as a photograph** (#229): the whole picture
+  wavers gently as through water or the shimmer over a fire (the face less than what is around it), the person has no
+  outline but **runs out into mist**, with a delicate fringe in the dream's colours, and they come soft and blurred.
+  **In the middle of the moment the face is clear for a second or so – the real camera picture, so people recognise
+  themselves** – then it blurs again. Around them is the dream: the dream's picture instead of the room, a soft glow,
+  fireflies, and sometimes a wreath of blossoms, a mandala behind the head or veils of mist. Then the picture does not
+  simply fade: within two or three seconds it **comes apart into the dream** from the outside in – its pieces are
+  drawn out into drifting streaks and leave sparks, the face last, the fireflies fly away, and at the end the mist
+  that is left blows away – while the eyes return (about 9 seconds in all). On a weak phone the picture is drawn
+  smaller and wavers in coarser strips; it stays smooth. **Someone who just comes** (after a while with nobody) is greeted
   at once – very clearly in the iris or with this moment, in turn.
   **What happens with the camera picture:** all of this is drawn on the phone itself, from the live camera and a mask
   of the person found there (selfie segmentation, about 250 KB); no picture and no word about who stands there is sent
-  for it, and nothing is kept. The AI does **not** repaint people: the dream portrait the Mac used to paint from the
+  for it, and nothing is kept. The dream look is drawn too, not computed: plain canvas drawing on the phone (strips
+  moved a little aside, a small copy scaled up for softness), no model and no AI. The AI does **not** repaint people: the dream portrait the Mac used to paint from the
   eyes' camera picture is gone (and `DREAM_YOU_EVERY` with it) – the Mac paints only the fantasy faces below, from
   words. The one thing that leaves the phone is what Dreamy Eyes are for: the front camera you lend to the dream
   (below, “One camera at a time”), passed on to the stage as it is and kept nowhere; tests guard both.
@@ -799,19 +938,23 @@ eyes** that invite people to step up and play:
   they go their own way again.
 - **Your silhouette as a mask:** now and then, only while someone is there, the dream shines through the outline of
   the person in front (selfie segmentation on the phone, about 250 KB, nothing is sent or kept).
-- **Dreamy loves fire ❤️‍🔥 (#162, #218):** when the camera sees flames, the eyes are enchanted. What counts as a flame is
+- **Dreamy loves fire ❤️‍🔥 (#162, #218, #233):** when the camera sees flames, the eyes are enchanted. What counts as a flame is
   strict, so that a warm room is no fire: very bright, saturated orange-to-yellow light (close to the rule of #162) with
   a core as bright as the camera can show, that **flickers the way a flame does** – its size and its shape both keep
-  changing, irregularly – for most of a second (about 0.8 s) before the eyes believe it. Found on the phone, about 15
+  changing, irregularly, and in a larger flame its outline too (taller, wider, leaning) – for most of a second (about
+  0.85 s) before the eyes believe it. Found on the phone, about 15
   times a second. No fire are: a still orange lamp, a lamp while the phone is touched or carried, a lamp being dimmed,
   warm walls and a dim warm room in a noisy camera, the camera hunting for its exposure, warm LEDs beating with the
   camera's shutter (they go up and down evenly and keep their shape), a screen with warm moving pictures, a face or a
-  hand in warm light. A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
+  hand in warm light, even when it moves or waves (its light goes up and down evenly), a warm light pulsing with music
+  and a lamp that flickers a little in a phone held in the hand (both keep their outline), and a wall in warm room light
+  with a person moving in front of it (the head tears its light apart and joins it again, and a wall is larger than any
+  flame: warm light over more than a quarter of the picture is a wall). A candle held in front of such a wall is found. A small flame counts only when it is swung (poi); a small flame standing far away, or a flame that
   does not flicker at all, is no more than a lamp.
   **To see what the eyes take for fire in your room:** open Dreamy Eyes with `?debug` at the end of its address (after
   an existing `?…`: `&debug`). A corner then shows the camera sample in grey, warm light in yellow (its bright core
   white) and what counts as fire in red, with the numbers beside it: how sure they are (fire from 0.70), the strength,
-  and for the liveliest patch its size, the share of its core and its jumps (fire above 4).
+  and for the liveliest patch its size, the share of its core and its jumps (fire above 4.1).
   - **They follow the fire at once.** Their gaze goes where the flame is in the picture (within about a tenth of a
     second) and stays on it while it moves. Everything follows its **strength** without steps: how wide they open, how
     high the flames stand at the bottom of the screen (highest on the flame's side), how many embers rise, how deep the
@@ -860,13 +1003,22 @@ eyes** that invite people to step up and play:
   current prompt (a single quick AI step, about 0.4 s, the first one a few seconds; the stage barely notices). Every
   four to eight minutes one of them comes through the pupils: it appears inside them as if seen through mist – soft, pale, veiled, with no edge –,
   the two windows grow with glowing rims, turn a little and open into a **dream cloud** – the face inside soft puffs that
-  drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays three to five seconds,
+  drift and change shape, a glow of the dream around it, the dream still visible beyond – where it stays a few seconds,
   breathing, swaying and drifting a little; then it shrinks back into the pupils, and the eyes are there again.
+  **The face is alive** (as in the dream windows, see "Living faces" below): it blinks, now and then winks, glances
+  clearly to the side (the lids go along), lifts or knits its brows, smiles broadly with mouth and cheeks and turns and
+  nods its head – a new expression every few seconds – and smiles along while the eyes are petted. For that the stage on the Mac (Dream or Dream Control open there) finds once per painted face where its
+  eyes, brows, mouth and outline are, and Dream hands these points to Dreamy Eyes; the phone only moves them – it
+  loads no model for it and the Mac paints nothing extra. With the points, the painted face's own eyes lie exactly on
+  the pupils as it comes (in the pupils it looks straight out of them), and it stays five to seven seconds instead of
+  three to five. Without points – no stage open on the Mac, or a picture in which no face is found (a cat, a mask) –
+  the face is the still picture it used to be. A phone that runs short moves a smaller picture of the face less often,
+  and the weakest ones leave the head still.
   The pictures stay in memory only and never go into the gallery; only the eyes (and Dream Control) may fetch them.
   `DREAM_AIMASK_EVERY=…` in `~/.config/dream/dream.env` changes how often one is painted (seconds); `DREAM_AIMASK=0`
   switches the painted faces off altogether (no fire spirit either: Dreamy Eyes never make the Mac load a model). With the cloud GPU
   there are no painted faces.
-- **The pupils change shape:** a cat's slit while the grin is there, hearts when someone keeps smiling, stars when they
+- **The pupils change shape:** a cat's slit while the cat's face of light shows, hearts when someone keeps smiling, stars when they
   are surprised, a turning spiral when they hypnotise (or are spellbound by a fire). About one time in four (#218) it is
   a soft shimmer instead of the spiral, never the same one twice in a row: lights turning like a mandala, lights sinking
   like snow, rings sinking into the depth, or a slow swirl – half transparent, in the dream's colours (like embers by a
@@ -876,8 +1028,6 @@ eyes** that invite people to step up and play:
 - **Moods now and then:** they wink, cross their eyes, roll them, hypnotise, shed a tear of light that bursts into
   stars, or sparkle. Nobody there for a long while and a calm dream: they slowly fall asleep and little z's drift up –
   whoever comes wakes them with a start (star pupils, sparkles). Livelier dream: more often.
-- **The grin comes in three kinds** – with teeth, as a smile of little lights, or as glowing neon with a dreamy
-  tongue – and draws itself onto the air from one side.
 - **Around the eyes** appear clouds, blooming light spirals, mandalas, growing fractal trees of light, fluttering light
   moths, iridescent bubbles, ribbons of northern light and little moons circling an eye – all in the dream's colours,
   more often when the dream is lively. If the phone runs short, these go first (never the camera); if it is still short,
@@ -886,13 +1036,14 @@ eyes** that invite people to step up and play:
   `~/.cache/dream/mediapipe`.
 - **Setting up:** Dream Control → card **“👀 Dreamy Eyes”** → “Show the code for the eyes phone” (or on the Mac: panel →
   “Output” → **👀 Dreamy Eyes**) → scan it with the eyes phone. Once on that phone: install Dream's certificate (see “Dream Control over https and as an app”) – the browser
-  gives the camera out only over https. Tap **“Open the eyes”** (fullscreen, the screen stays on). To keep it there:
+  gives the camera out only over https. Tap **“Open the eyes”** (fullscreen, the screen stays on; with `?debug` in the address the page stays a window). To keep it there:
   Android “App pinning” (Settings → Security → App pinning, then pin the browser via the app overview), the phone on
   power, in a holder at eye height.
 - **Its code may only lend the front camera** and see the dream – no settings, no commands, nothing that costs money; it
   does not even learn the prompt. Beside the small picture of the dream it is told two numbers: the master brightness
   and (#218) the music's beat, a pulse between 0 and 1 – never what the stage tells its output windows (effects, fades,
-  prompts); a guest's preview hears no beat. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
+  prompts); a guest's preview hears no beat. Of the painted faces it gets the pictures and (#230) where each has its
+  eyes, brows, mouth and outline – nothing else. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
   trying the eyes on your own phone never replaces Dream Control.
 - **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
   who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
@@ -911,7 +1062,8 @@ window shows **one large, living motif**, the dream drifts around it as clouds, 
 one device to another.
 
 - **One large motif per window:**
-  - a **large eye** – the very eye of Dreamy Eyes: iris fibres, lids, lashes, a brow when it feels something. It looks
+  - a **large eye** – the very eye of Dreamy Eyes: iris fibres, lids, lashes, and a brow only with the hints (#220:
+    every minute or two, by Dream's clock – both eyes of a pair raise theirs together). It looks
     around, blinks, its pupil widens in a dark dream and with the beat, and its iris is the dream – plain, folded into
     a kaleidoscope, a tunnel or a galaxy; rarely (about one time in ten, every 47 s) its pupil hypnotises for a few seconds (#218: the
     spiral or one of the soft shimmers in turn, breathing with the beat – the same in both windows of a pair);
@@ -934,8 +1086,8 @@ one device to another.
   the Mac** – by the stage, in a background worker, with the face model Dream has anyway (well under a second per
   face; the stage's own drawing never waits for it) – never by a window and not again for another window. The 82
   points travel with the face (under 1 kB). Every window moves them itself over a net of triangles: it blinks, lets
-  its gaze wander, smiles, lifts a brow, breathes and tilts and turns its head a little – subtle, like a painting
-  that is alive. A picture in which no face is found (a cat, a mask), or one painted while no stage is open, is shown
+  its gaze wander, smiles, lifts or knits its brows, breathes and tilts and turns its head – clearly to see, but
+  natural, like a painting that is alive (the same expressions as in Dreamy Eyes, #230). A picture in which no face is found (a cat, a mask), or one painted while no stage is open, is shown
   still.
 - **One organism:** all windows breathe together and pulse to the beat, and now and then a wave of light runs
   through them in turn. When Dreamy Eyes go into trance, the third eye opens in every window too (and the painted
@@ -1133,10 +1285,10 @@ click **🎛 Learn**, then turn the knob or press the button on the controller �
 numbers the controller sends depends on its preset – just choose a preset and stay with it.
 
 - **Slider targets:** transformation, dream share, zoom pull, rotation, colour drift, drift, music reaction,
-  movement, pose strength, **master brightness** (0 = black; acts on stage, output window and Syphon) and effect
-  strength.
+  movement, pose strength, **master brightness** (0 = black; acts on stage, output window and Syphon), effect
+  strength and the crossfade between two style worlds (#224).
 - **Button targets:** pause/start, next scene, new, new seed, **blackout on/off** (master to 0 and back), tap tempo,
-  next pattern, each of the twelve effects on/off, roll effects anew, effects off.
+  next pattern, next style world (#221; #224: the one after the world that shows most), each of the twelve effects on/off, roll effects anew, effects off.
 - Sliders glide softly to the new value (no jumps) and move along in the panel and on the phone. Endless knobs (that
   only send “more/less”) are recognised by Dream after a few clicks.
 - Suggestion for 8 faders + master: transformation, dream share, zoom pull, rotation, colour drift, drift, music
@@ -1185,10 +1337,12 @@ hit → flash. A planned wristband and finger glove send in the same format.
 
 ## Cloud GPU
 
-A rented GPU computes much faster than the Mac, especially SDXL-Turbo and the style models. Two providers:
-**Scaleway** (Paris, billed in €) and **RunPod** (data centres in Europe, billed in $ per second). Under “Computing” →
-**Cloud GPU** the list has both; start, delete, the cost display and the automatic deletion after 2 hours work the
-same way. After every restart Dream first computes locally again – the cloud is not remembered, so it is never chosen
+A rented GPU computes much faster than the Mac, especially SDXL-Turbo and the style models. Dream rents it
+at **RunPod** (data centres in Europe, billed in $ per second): under “Computing” → **Cloud GPU** the list has RunPod's
+GPUs, the RTX 4090 chosen. **Scaleway** (Paris, billed in €) is currently unavailable – Scaleway accepts no new GPU
+instances for the time being – and not in the list; it is still usable from the command line, see
+“[Scaleway (currently unavailable)](#scaleway-currently-unavailable)”. After every restart Dream first computes
+locally again – the cloud is not remembered, so it is never chosen
 by accident. Camera, picture and video frames and the prompt then go to your own machine at the provider; speech and
 music analysis stay on the Mac.
 
@@ -1196,6 +1350,43 @@ music analysis stay on the Mac.
 5090 …”** (falls back to the other RTX, 4090 ↔ 5090, each in the same kind secure or community), **“Try only RTX
 4090”** and **“Cancel”** – Cancel (or Esc) starts nothing. A running GPU is never switched, the H100 has no fallback.
 The card Computing shows what is happening; **Delete** ends it at once.
+
+### Who computes right now
+
+A cloud GPU costs from the moment it starts, but it paints only minutes later – and it pauses again when it compiles
+anew. The **badge** at the top of the card Computing, the same in Dream Control, says what is true this moment:
+
+| Badge | What it means |
+|---|---|
+| **Computing now: Mac** | “Local” is chosen. If a cloud GPU runs beside it, the line below says at which step it is and that it costs. |
+| **The Mac bridges – cloud: … · about X min left (it costs already)** | “Cloud GPU” is chosen, but the cloud sends no pictures yet: the Mac paints meanwhile. |
+| **The cloud prepares: … · no pictures until then** | The same with bridging switched off: the picture holds. |
+| **Computing now: Cloud ✓** | The cloud GPU paints. |
+| **Cloud not reachable – the Mac computes** | A machine is there (and costs), but does not answer. “Start” connects again, “Delete” ends the costs. |
+| **No cloud GPU started – the Mac computes** | “Cloud GPU” is chosen, none runs. |
+
+- **The steps of a start**, with the one it is at marked: *GPU starts → Model is downloaded (with per cent) → Model
+  loads → Is optimised → Ready*, and a rough time until pictures come. A fresh machine downloads the model on every
+  start (SD-Turbo about 2.6 GB, SDXL-Turbo about 7 GB). No line of a log is shown; what `dream-cloud` last said is in
+  the tooltip of the line under the buttons while it works.
+- **“Is optimised” also later:** a compiled model compiles again by itself when something new arrives – another size
+  above all – and sends no pictures for minutes. The renderer on the machine notices that (a picture that takes
+  longer than 3 seconds on a compiled model) and says so; the badge shows the step, and the Mac bridges.
+- **Bridge on the Mac automatically** (switch in the card and in Dream Control, on unless you switch it off): while
+  the chosen cloud GPU starts, downloads, loads or optimises – or does not answer – the Mac paints, and the cloud takes
+  over by itself as soon as it delivers pictures. Mind: the Mac is **slower** (SDXL-Turbo very much so), and it **loads
+  its own model** for it (some seconds to a minute; the very first time a download) – which then stays loaded, so the
+  next bridge starts at once. The look can differ a little between the two. With the switch off nothing is painted
+  until the cloud is ready.
+- **Switching to “Local” does not stop the cloud GPU:** it goes on preparing (and costing) – only “Delete” or the
+  automatic deletion ends it. The costs so far stay visible while the Mac computes: in the line under the buttons and
+  as a red chip below the preview.
+- **When the cloud GPU is ready** Dream says so three ways: a chip and the status line in the panel, a **notification
+  of macOS** titled “Dream” (it comes from “Script Editor”; allow its notifications in the system settings once –
+  switch them off with `DREAM_NOTIFY=0` in `dream.env`), and in Dream Control the button **“☁ Cloud ready – switch?”**
+  (also in the panel) while the Mac still computes. With “Cloud GPU” chosen it switches by itself.
+- A machine started with an earlier version of Dream has none of these words: it shows “GPU starts” until its model
+  is loaded, then “Ready”.
 
 **Compiling and the compile cache:** on the cloud GPU the model is compiled for the card before its first picture
 (torch.compile, TF32), slim in one variant. `dream-cloud` brings the compiled code to the Mac as a **cache**
@@ -1233,26 +1424,6 @@ softer round by round). With a camera picture the upload fell from about 57 to 2
 
 <sub>[↑ Contents](#contents)</sub>
 
-### Scaleway: set up once
-
-```bash
-brew install scw
-scw init
-```
-
-`scw init` asks for access key and secret key (they stay in `~/.config/scw/config.yaml` on the Mac); choose the default
-zone **fr-par-2**, telemetry **no**, **add** the local SSH key. `dream-cloud` creates machines only in the default
-project of this configuration (`scw config get default-project-id`).
-
-**SSH key:** Scaleway console → IAM → SSH keys – the key from `~/.ssh/id_rsa.pub` must be there, otherwise Dream does
-not get onto the machine (it costs anyway, until `dream-cloud stop`).
-
-**GPU quota:** new accounts are often not allowed to create a GPU (“quota exceeded … 0/0”). Check in the Scaleway
-console → Organization → Organization Dashboard → tab **Quotas**, product “Instances”, search “L4”: if L4-1-24G shows at
-least 1, it works. Otherwise have it unlocked: **“Verify ID”** at the top or **“Contact support”** with “Instances,
-L4-1-24G, fr-par-2, quota 1”. Prices: L4 (24 GB) about €0.79 per hour, L40S (48 GB) about €1.47, H100 (80 GB) about
-€2.87; every type needs its own quota.
-
 ### RunPod: set up once
 
 1. An account on runpod.io, top up credit under **Billing** (from $10 for many hours). Without credit nothing starts.
@@ -1273,6 +1444,31 @@ CUDA 13; on machines with an older driver (12.6 or newer) `dream-cloud` installs
 (≈ 190 ms). The picture rate depends mostly on the line, not the GPU: each picture must go up and come back, the way to
 the data centre costs ~35 ms. What helps: a faster upload (cable instead of Wi-Fi, fibre), **384 px** instead of 512,
 and the line saving above.
+
+### Scaleway (currently unavailable)
+
+Scaleway accepts no new GPU instances for the time being, so the panel and Dream Control do not offer its GPUs. The
+way stays in `dream-cloud` and is still usable from the command line: `./dream-cloud start --type L4-1-24G` (also
+`L40S-1-48G`, `H100-1-80G`); status, `stop`, the cost display and the automatic deletion work as with RunPod. Without
+`--type`, `dream-cloud start` takes RunPod's RTX 4090. Set up once:
+
+```bash
+brew install scw
+scw init
+```
+
+`scw init` asks for access key and secret key (they stay in `~/.config/scw/config.yaml` on the Mac); choose the default
+zone **fr-par-2**, telemetry **no**, **add** the local SSH key. `dream-cloud` creates machines only in the default
+project of this configuration (`scw config get default-project-id`).
+
+**SSH key:** Scaleway console → IAM → SSH keys – the key from `~/.ssh/id_rsa.pub` must be there, otherwise Dream does
+not get onto the machine (it costs anyway, until `dream-cloud stop`).
+
+**GPU quota:** new accounts are often not allowed to create a GPU (“quota exceeded … 0/0”). Check in the Scaleway
+console → Organization → Organization Dashboard → tab **Quotas**, product “Instances”, search “L4”: if L4-1-24G shows at
+least 1, it works. Otherwise have it unlocked: **“Verify ID”** at the top or **“Contact support”** with “Instances,
+L4-1-24G, fr-par-2, quota 1”. Prices: L4 (24 GB) about €0.79 per hour, L40S (48 GB) about €1.47, H100 (80 GB) about
+€2.87; every type needs its own quota.
 
 ---
 
@@ -1313,7 +1509,8 @@ and the line saving above.
 - **“No answer from the AI for a while – reconnecting …”** (#177): the stage got no answer for 10 s (the first
   picture of a connection: 3 minutes) and opens the line anew by itself; a single broken picture never stops it.
 - **Speech input shows an error:** restart Dream; really hold key V (too short → “Too short”).
-- **Scaleway “quota exceeded”:** the GPU quota is missing, see “Scaleway: set up once”. Dream says so in the Computing
+- **Scaleway “quota exceeded”** (command line only for now): the GPU quota is missing, see “Scaleway (currently
+  unavailable)”. Dream says so in the Computing
   card (“Start failed: no GPU quota for … – … Quotas”) and switches back to “Local” by itself; nothing costs. The ID
   verification alone is not enough – the quota must also be requested from the support.
 - **Chip “☁ …” below the preview:** red means a GPU runs or starts (it costs money); neutral “not started” means the
@@ -1364,7 +1561,7 @@ shows it twice – also within the camera's motion – and that the strongest sm
 their Dream itself (it speaks their picture stream): one large motif each, the dream as clouds with darkness between,
 the pair of eyes looking together, a painted face that moves by its points and one without points that stays still, a
 motif wandering from one window to another, wave, blush and trance, and a weak device drawing fewer pixels; with
-`KEEP=1` the windows stay open. `node --test tests/js/you.test.mjs` (#219) draws “you in the dream” for an invented person in the same browser: the face must be exactly the camera's picture with every frame and at every moment, the room is never shown, and the picture leaves by coming apart, the face last. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
+`KEEP=1` the windows stay open. `node --test tests/js/vis.test.mjs` (#220) tests the rule itself as plain numbers (`static/dreamvis.js`): only the eyes more than four fifths of the time, hints 60–120 s apart (the outline with them, at half strength), mouth, nose and hair 4–11 min apart, clearly to be seen then and never above four fifths, no jump from one picture to the next, one face at a time (stepping the clock through changes of face: the one shown fades out completely before the next fades in, no frame with a jump, never two at once), the same for both windows of a pair, a nose only at the rare level – and that the pages draw every line of a face through the rule (no grin; a nose only in the faces of light and only by the rule; no face fitted to the screen's height; no fullscreen with `?debug`). `node --test tests/js/style.test.mjs` (#221) tests the style layer: the registry in Node (a world by its name, today's look for an unknown name, a part a world does not draw comes from the first world; every world of `settings.WORLDS` is a file `static/world-<name>.js` that registers itself, and the panel and Dream Control offer it), and in the same headless browser `tests/js/style.html` draws today's look through the layer with a seeded random and a clock that stands still – eyes with every look, iris world and pupil, every living thing, the six faces of light with hints and in the rare moment, the six window motifs – and compares small copies with the pictures kept in `tests/js/style-ref.json` (`STYLE_REF=write` keeps the ones drawn now, only when the look is meant to change). It also draws what moved behind the layer with #222 (the night behind the eyes, a window's sky, flames, trance, what surrounds “you in the dream”). `node --test tests/js/worlds.test.mjs` (#222) tests every other world (`tests/js/worlds.html`, the same scenes from `tests/js/style-scenes.js`): every scene is drawn without an error and does not look like Classic; the world draws every part and every window motif itself; its faces show nothing while only the eyes show, leave the place of the nose empty with the hints, show a nose in the rare moment and ask the face rule only for parts it knows; where Classic draws a heart, a star or a letter the world draws a form of its own (nothing is borrowed from Classic, no text is drawn); and no world file talks to the network or exports a picture. `you.test.mjs` runs its checks of the face in every world. **A new world:** write `static/world-<name>.js` (take `world-deepsea.js` as the pattern; register every part), add the name to `settings.WORLDS`, its name, short name and a few words about it to `static/worldband.js` (`NAMES`, `SHORT`, `ABOUT` – the band of worlds in the panel and in Dream Control; its picture there is drawn by the world itself) with their German in `static/i18n/de.json`, the script to `eyes.html`, `window.html` and the three test pages – the tests name whatever is missing. `node --test tests/js/brush.test.mjs` tests the shared brushes as numbers (`static/dreambrush.js`: seeded random and noise, a tile of noise that repeats, smooth lines and swelling bands, the dream's brightness, the lids, the skeleton of a face – one size, the eyes', never fitted to a screen; between the eyes and the mouth lies its nose and nothing else, and the nose belongs to the rare level). **A new style world** is one file `static/world-<name>.js` that calls `DreamStyle.register('<name>', { eye, life, face, motif })` with the parts it draws (the rest comes from Classic), one name in `settings.WORLDS`, a script tag in `eyes.html` and `window.html`, and its name in `static/worldband.js` with the German (#224: the panel and Dream Control get the list of worlds from Dream and show each with a picture it draws itself). `node --test tests/js/eyes-face.test.mjs` (#230) opens Dreamy Eyes in the same browser and is their Dream too: a painted face with its points comes through the pupils and moves (blink, smile, brows, a slight turn), its own eyes are what lies on the pupils, a phone that runs short gets a smaller net and no turn of the head, and a face without points stays still. `node --test tests/js/worldband.test.mjs` (#224) tests the band of worlds: as plain values in Node what the settings mean, what a tap asks for, the switch and the pace, and every text of the status line in German; and in the same headless browser (`tests/js/worldband.html`) one picture per world with its name, the marks on the world that shows and the one it is blended with, a tap and the keyboard, the switch and the three paces, the status line, that every world draws a picture of its own, that it fits a wide and a narrow column, and that only transform and opacity are animated. `node --test tests/js/blend.test.mjs` (#224) tests the crossfade: the plan of a frame as plain numbers (`static/dreamstyle.js`: one world, or two whose weights add up to 1; a hand on the mix is followed softly; another world comes in a short fade; a device that does not keep up shows one world at a time and does not see-saw, the weakest goes through black), and the real pages – Dreamy Eyes and a dream window, each in a frame of `tests/js/blend.html` with a clock the test steps (`tests/js/still.js`) – in the same browser: what Dream says reaches the style layer, half and half is the mean of both worlds' pictures, every pair of worlds draws with fire, trance and a face, a weak device never draws two pictures for one frame, and a face of light held in view changes one at a time (another face after 20 seconds, the other world's face when the world changes: frame by frame no jump, and the next face only once the one before is gone – of two worlds drawn at once only one draws the face). `node --test tests/js/you.test.mjs` (#219, #229) draws “you in the dream” for an invented person in the same browser: the person runs out softly instead of ending in a line, in the middle of the moment the face is exactly the camera's picture with nothing over it, before and after it is soft and wavers, the room is never shown, and the picture leaves by coming apart into streaks, the face last, until nothing is left; and the drawing's code uses no network, no model, no blur filter and no loop over a large picture. `node --test tests/js/sliders.test.mjs` (#216) tests the sliders: the rules (influence, fill, snap, colours) in Node and
 `tests/js/sliders.html` in the same headless browser (zero mark and button, double tap, shimmer, card strips, the
 reset button). `node --test tests/js/signs.test.mjs` (#217) tests the moving signs and the shape: slider → sign (kind,
 strength, direction, the real tempo, standing still at 0) and sliders → axes in Node, and `tests/js/signs.html` in the

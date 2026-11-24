@@ -5,10 +5,13 @@
    look(): flame light is warm (red ≥ green > blue), very bright and saturated – and it flickers. Every pixel gets a
    share between 0 and 1 (soft edges, so a lamp that only shifts by a fraction of a pixel keeps its sum). Warm pixels
    that touch are a patch, followed from picture to picture. A patch is fire when it has a core as bright as the
-   camera can show and when, again and again, both its summed light and its middle change course from one picture
-   to the next: a flame changes its size and its shape. A still lamp does neither; a lamp or a face that moves keeps
-   its sum; a dimmed lamp, an LED's beat or the camera's exposure change the sum but not the shape (and while the
-   whole picture gets brighter or darker nothing counts at all). They believe it only after most of a second.
+   camera can show and when, again and again, its summed light, its middle and its outline all change course from one
+   picture to the next: a flame changes its size and its shape. A still lamp does none of it; a lamp or a face that
+   moves keeps its sum; a dimmed lamp, an LED's beat or the camera's exposure change the sum but not the shape (and
+   while the whole picture gets brighter or darker nothing counts at all); a light pulsing with music or a lamp that
+   flickers in a phone held in the hand change sum and middle but keep their outline, and a hand waving in warm light
+   goes up and down evenly (#233). A wall in warm room light that a person moves in front of is torn apart and joined
+   again – that says nothing – and is larger than any flame (#233). They believe it only after most of a second.
    think(): what the fire does to them – one of a few moods that take turns, and getting used to a fire that only
    burns on. */
 (function (root) {
@@ -28,6 +31,10 @@
   const PAST = 12;             // pictures a patch's light is remembered for
   const EVEN = 0.3;            // a light that goes up and down evenly (an LED's beat with the camera's shutter, even with bands
                                // running through it) is told by this: how little of its course a plain wave leaves unexplained
+  const CALM = 0.1;            // … and a light that does so very evenly (#233: skin in warm light that moves, a hand waving – a
+                               // flame's light almost never) loses the jumps it made before that was known
+  const ROOM = 0.25;           // a patch that covers more than this share of the picture is a lit wall, not a flame (#233: a
+                               // campfire close by covers a fifth): it makes no jumps – a fire that grows so large stays fire
   const MAX_BLOBS = 48;        // patches of warm light looked at in one picture
   const REACH = 0.35;          // how far a patch may have moved since the last picture (picture widths): a swung flame is fast
   const FLOOR = 14;            // warm pixels a patch needs before its jumps count in full
@@ -35,30 +42,35 @@
   const WOBBLE = 0.05;         // … and its middle has to change course too, by this share of the patch's radius: a flame
                                // changes its shape – a lamp that only gets brighter and darker (dimmed, an LED's beat, the
                                // camera's exposure) does not
+  const BEND = 0.05, BEND_N = 40;   // … and so has its outline (#233: how tall it is against how wide, and which way it leans – both
+                               // -1–1, whatever its size and wherever it is), by this much – in a patch of at least BEND_N pixels
+                               // (a smaller one's outline is mostly the camera's noise): a flame's tongues rise, fall and sway, a
+                               // lamp that pulses with music or flickers while the phone shakes keeps its outline
   const SMALL = 10, SMALL_JUMP = 0.08, SMALL_WAY = 1.5;   // a patch of fewer warm pixels is a small flame: it counts only when
                                // it flickers strongly and travels (sample pixels from one picture to the next: a swung
                                // flame) – small lamps and LEDs in a noisy picture stay where they are
   const SHIFT = 0.04;          // the rest of the picture got brighter or darker by this share: the camera's exposure – no jump counts
-  const HITS = [0.8, 4.0];     // jumps lately (each fades by an eighth per picture): a patch is fire above the second number and
+  const HITS = [0.8, 4.1];     // jumps lately (each fades by an eighth per picture): a patch is fire above the second number and
                                // stays fire down to the first – a lamp switched on makes three jumps, a fire many
-  const E_MIN = 3;             // flickering warm pixels that make a flame (of 96×72: 0.04 % of the picture)
+  const E_MIN = 4;             // flickering warm pixels that make a flame (of 96×72: 0.06 % of the picture)
   const FULL = 0.03;           // the share of the picture that is a full fire
-  const SURE_MS = 650;         // how slowly they believe it …
-  const ON = 0.7, OFF = 0.15, OFF_MS = 1500;   // … on after about 0.8 s of fire, off after 1.5 s without: flames dip for a moment
+  const SURE_MS = 700;         // how slowly they believe it …
+  const ON = 0.7, OFF = 0.15, OFF_MS = 1500;   // … on after about 0.85 s of fire, off after 1.5 s without: flames dip for a moment
   const FLARE = 1.6, FLARE_MS = 2500;          // flaring up: this much more than lately, at most this often
   const MOVING = 0.3;          // the flame moves: picture widths a second
 
-  // does this light go up and down like a plain wave? (a wave obeys d[t] = c·d[t-1] − d[t-2] around its mean; a flame obeys nothing)
-  function even(past) {
-    if (past.length < 8) return false;
+  // how much of this light's course a plain wave leaves unexplained, 0–1 (a wave obeys d[t] = c·d[t-1] − d[t-2] around its
+  // mean; a flame obeys nothing): below EVEN it goes up and down evenly
+  function wave(past) {
+    if (past.length < 8) return 1;
     let m = 0; for (const v of past) m += v; m /= past.length;
     let ab = 0, bb = 0;
     for (let i = 2; i < past.length; i++) { const b = past[i - 1] - m; ab += (past[i] - m + past[i - 2] - m) * b; bb += b * b; }
-    if (bb < 1e-9) return true;                        // it does not change at all
+    if (bb < 1e-9) return 0;                           // it does not change at all
     const c = Math.max(-2, Math.min(2, ab / bb));
     let left = 0, all = 0;
     for (let i = 2; i < past.length; i++) { const a = past[i] - m, z = past[i - 2] - m, r = a - c * (past[i - 1] - m) + z; left += r * r; all += a * a + z * z; }
-    return left < EVEN * all;
+    return all > 0 ? left / all : 0;
   }
   // how warm one pixel is, 0–1
   function warm(r, g, b, rule) {
@@ -78,8 +90,9 @@
   // One camera sample (RGBA, w × h) at time t (ms). face: { x, y, w, h } of a face the phone sees (0–1), or null.
   function look(s, d, w, h, t, face) {
     let c = s.cells;
-    if (!c || c.n !== w * h) c = s.cells = { n: w * h, k: new Float32Array(w * h), id: new Int16Array(w * h), stack: new Int32Array(w * h), blobs: [] };
-    const warmth = c.k, id = c.id, stack = c.stack;
+    if (!c || c.n !== w * h) c = s.cells = { n: w * h, k: new Float32Array(w * h), id: new Int16Array(w * h), before: new Int16Array(w * h), stack: new Int32Array(w * h), blobs: [] };
+    const warmth = c.k, id = c.id, past = c.before, stack = c.stack;
+    past.set(id);                                      // which patch each pixel belonged to a moment ago
     // the face as an oval, a little larger than what was found of it
     const fx = face ? face.x * w : 0, fy = face ? face.y * h : 0, fa = face ? face.w * w * 0.62 : 1, fb = face ? face.h * h * 0.68 : 1;
     let any = 0, rest = 0, restN = 0;
@@ -102,42 +115,51 @@
     let fire = 0, sx = 0, sy = 0;
     for (let p0 = 0; any > 0 && p0 < w * h && blobs.length < MAX_BLOBS; p0++) {
       if (!(warmth[p0] > 0) || id[p0]) continue;
-      const b = { e: 0, x: 0, y: 0, n: 0, core: 0, e1: 0, x1: 0, y1: 0, hits: 0, age: 0, lit: false, past: null, even: false }, mark = blobs.length + 1;
-      let top = 0; stack[top++] = p0; id[p0] = mark;
+      const b = { torn: false, e: 0, x: 0, y: 0, xx: 0, yy: 0, xy: 0, tall: 0, lean: 0, tall1: 0, lean1: 0, n: 0, core: 0, e1: 0, x1: 0, y1: 0, hits: 0, age: 0, calm: 0, lit: false, held: 0, past: null, wave: 1, even: false }, mark = blobs.length + 1;
+      let top = 0, one = 0; stack[top++] = p0; id[p0] = mark;
       while (top) {
         const p = stack[--top], x = p % w, y = (p - x) / w;
+        if (past[p]) { if (!one) one = past[p]; else if (past[p] !== one) b.torn = true; }   // it covers two patches of a moment ago
         let k = warmth[p];
         if (k > 1) { k -= 1; b.core++; }
-        b.e += k; b.x += k * x; b.y += k * y; b.n++; any--;
+        b.e += k; b.x += k * x; b.y += k * y; b.xx += k * x * x; b.yy += k * y * y; b.xy += k * x * y; b.n++; any--;
         for (let yy = y > 0 ? y - 1 : 0; yy <= y + 1 && yy < h; yy++) for (let xx = x > 0 ? x - 1 : 0; xx <= x + 1 && xx < w; xx++) {
           const q = yy * w + xx;
           if (warmth[q] > 0 && !id[q]) { id[q] = mark; stack[top++] = q; }
         }
       }
       b.x /= b.e; b.y /= b.e;
-      let old = null, near = REACH * w, close = 0;     // the patch it was a moment ago: the nearest one
-      const reach = Math.sqrt(b.n / Math.PI) + 2;
-      for (const o of before) { const dist = Math.hypot(o.x - b.x, o.y - b.y); if (dist < near) { near = dist; old = o; } if (dist < reach + o.r) close++; }
-      b.r = reach - 2;
+      // its outline, as the spread of its light: taller than wide (1) or wider than tall (-1), leaning right or left
+      const wide = b.xx / b.e - b.x * b.x + 1 / 12, high = b.yy / b.e - b.y * b.y + 1 / 12;
+      b.tall = (high - wide) / (high + wide); b.lean = 2 * (b.xy / b.e - b.x * b.y) / (high + wide);
+      let old = null, near = REACH * w;                // the patch it was a moment ago: the nearest one
+      for (const o of before) { const dist = Math.hypot(o.x - b.x, o.y - b.y); if (dist < near) { near = dist; old = o; } }
       if (old) {
-        b.e1 = old.e; b.x1 = old.x; b.y1 = old.y; b.age = old.age + 1; b.hits = old.hits; b.lit = old.lit;
-        b.past = old.past ? old.past.slice(-(PAST - 1)) : [old.e]; b.past.push(b.e); b.even = even(b.past);
+        b.e1 = old.e; b.x1 = old.x; b.y1 = old.y; b.tall1 = old.tall; b.lean1 = old.lean; b.age = old.age + 1; b.hits = old.hits; b.lit = old.lit; b.held = old.held;
+        // a patch that was much larger or smaller a moment ago (#233: a hand that parted from a face) has no course of its own yet
+        const same = b.e < 2.5 * old.e + FLOOR && old.e < 2.5 * b.e + FLOOR;
+        b.past = !old.past ? [old.e] : same ? old.past.slice(-(PAST - 1)) : []; b.past.push(b.e); b.wave = wave(b.past); b.even = b.wave < EVEN;
         old.heirs = (old.heirs || 0) + 1; b.from = old;
-        // a patch that fell apart or grew together with another says nothing this time (a lamp behind bands, a face's edge)
-        b.torn = close > 1;
-        if (!shift && !b.torn) {
+        // a patch that fell apart or grew together with another (a lamp behind bands, a face's edge; #233: a warm wall a head
+        // moves in front of) makes no jumps – nor in the next two pictures, which still compare it with what it was before:
+        // calm counts the pictures it has been one and the same patch
+        b.calm = same && !b.torn ? old.calm + 1 : 0;
+        if (!shift) {
           const mean = (b.e + old.e + old.e1) / 3, turn = Math.abs(b.e - 2 * old.e + old.e1) / (mean + FLOOR);
           const wob = Math.hypot(b.x - 2 * old.x + old.x1, b.y - 2 * old.y + old.y1) / (Math.sqrt(mean / Math.PI) + 0.5);
+          const bend = Math.hypot(b.tall - 2 * old.tall + old.tall1, b.lean - 2 * old.lean + old.lean1);
           const small = mean < SMALL && !old.lit;       // a flame they know may get small and stay a flame
-          const jump = b.age > 1 && b.core >= CORE_SHARE * b.n && !b.even && (small ? turn > SMALL_JUMP && Math.hypot(b.x - old.x, b.y - old.y) > SMALL_WAY : turn > JUMP && wob > WOBBLE);
-          b.hits = old.hits * 0.88 + (jump ? 1 : 0);
-          b.lit = b.hits > (old.lit ? HITS[0] : HITS[1]);
+          const jump = b.calm >= 2 && b.n <= ROOM * w * h && b.core >= CORE_SHARE * b.n && !b.even && (small ? turn > SMALL_JUMP && Math.hypot(b.x - old.x, b.y - old.y) > SMALL_WAY : turn > JUMP && wob > WOBBLE && (b.n < BEND_N || bend > BEND));
+          // a light that turned out to go up and down very evenly loses the jumps it made before that was known – unless it
+          // has been a flame for a while
+          b.hits = b.calm >= 2 && b.wave < CALM && old.held < PAST ? 0 : old.hits * 0.88 + (jump ? 1 : 0);
+          b.lit = old.lit ? b.hits > HITS[0] : b.hits > HITS[1] && b.past.length >= 8; b.held = b.lit ? old.held + 1 : 0;
         }
       }
       blobs.push(b);
     }
     for (const b of blobs) {
-      if (b.from && b.from.heirs > 1 && !b.torn && !shift) { b.hits = b.from.hits; b.lit = b.from.lit; }   // fallen apart: the jump just counted is taken back
+      if (b.from && b.from.heirs > 1 && !b.torn && !shift) { b.hits = b.from.hits; b.lit = b.from.lit; b.held = b.from.held; b.calm = 0; }   // fallen apart: the jump just counted is taken back
       b.from = null;
       if (b.lit) { fire += b.e; sx += b.e * b.x; sy += b.e * b.y; }
     }
@@ -209,7 +231,7 @@
   // the mood cannot be shown (the fire spirit found no way through): the next one, now
   function skip(m, t) { m.until = t; }
 
-  const api = { RULE, FACE, CORE, E_MIN, FULL, MOODS, MOOD_MS, GENTLE, SPIRIT_MS, USED_MS, WAKE_MS, MOVING, warm, sense, look, mind, think, skip };
+  const api = { RULE, FACE, CORE, E_MIN, HITS, FULL, MOODS, MOOD_MS, GENTLE, SPIRIT_MS, USED_MS, WAKE_MS, MOVING, warm, sense, look, mind, think, skip };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamFire = api;
 })(typeof window !== 'undefined' ? window : globalThis);

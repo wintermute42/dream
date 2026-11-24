@@ -41,4 +41,4 @@ body:
     id: where
     attributes:
       label: Where does it compute?
-      options: [Locally on the Mac, Cloud GPU (Scaleway), Cloud GPU (RunPod)]
+      options: [Locally on the Mac, Cloud GPU (RunPod), Cloud GPU (Scaleway)]

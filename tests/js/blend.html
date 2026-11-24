@@ -1,0 +1,122 @@
+<!doctype html>
+<!-- #224: the crossfade between two style worlds in the real pages – Dreamy Eyes and a dream window, each in a frame
+     with a clock that the test steps (tests/js/still.js) and an invented dream. What Dream says reaches the style
+     layer; a mix is the two worlds' pictures added up; every pair of worlds draws, with fire, trance and a face; a
+     weak device shows one picture at any time; a face of light held in view changes one at a time. tests/js/blend.test.mjs reads the report. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Style worlds, crossfaded</title>
+<style>body { margin: 0; background: #222; } iframe { border: 0; margin: 4px; background: #000; }</style>
+</head>
+<body>
+<script>
+(async () => {
+  'use strict';
+  const report = { error: '' };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  try {
+    const open = async (url, w, h, hook) => {
+      const f = document.createElement('iframe'); f.width = w; f.height = h; f.src = url; document.body.append(f);
+      for (let i = 0; i < 300 && !(f.contentWindow[hook] && f.contentWindow.DreamStyle); i++) await sleep(50);
+      const win = f.contentWindow;
+      if (!win[hook]) throw new Error('no page at ' + url);
+      win.addEventListener('error', e => { report.error += ` ${url}: ${e.message} ${e.error && e.error.stack || ''}`; });
+      // how many pictures a frame takes: one per world it is drawn in
+      win.passes = 0; const paint = win.DreamStyle.paint; let inFrame = false;
+      win.DreamStyle.paint = name => { if (inFrame) win.passes++; return paint(name); };
+      win.frames = (ms, n = 1) => { const out = []; for (let i = 0; i < n; i++) { win.passes = 0; inFrame = true; win.__step(ms); inFrame = false; out.push(win.passes - 1); } return out; };   // (the last `paint` of a frame names the world between frames)
+      return win;
+    };
+    // an invented dream: a banded sky with a sun over dunes
+    const dream = () => { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+      const sky = x.createLinearGradient(0, 0, 60, 256); [[0, '#0a0c30'], [0.25, '#1c3a96'], [0.45, '#18969f'], [0.6, '#f0c878'], [0.72, '#e86070'], [1, '#802c96']].forEach(([a, col]) => sky.addColorStop(a, col));
+      x.fillStyle = sky; x.fillRect(0, 0, 256, 256); x.fillStyle = '#fff0b4'; x.beginPath(); x.arc(160, 96, 30, 0, 7); x.fill();
+      for (let q = 0; q < 3; q++) { x.fillStyle = ['#3a1c5e', '#241446', '#120a2a'][q]; x.beginPath(); x.moveTo(0, 256); for (let i = 0; i <= 32; i++) x.lineTo(i * 8, 160 + q * 28 + 12 * Math.sin(i * (0.25 + q * 0.1) + q * 2)); x.lineTo(256, 256); x.fill(); }
+      return c; };
+    const small = document.createElement('canvas'); small.width = 96; small.height = 64; const sg = small.getContext('2d', { willReadFrequently: true });
+    const pic = win => { sg.fillStyle = '#000'; sg.fillRect(0, 0, 96, 64); sg.drawImage(win.document.querySelector('canvas'), 0, 0, 96, 64); return sg.getImageData(0, 0, 96, 64).data; };
+    const apart = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]); return s / a.length; };
+    const bright = a => { let s = 0; for (let i = 0; i < a.length; i += 4) s += a[i] + a[i + 1] + a[i + 2]; return s / a.length; };
+    const lit = a => { let n = 0; for (let i = 0; i < a.length; i += 4) if (a[i] + a[i + 1] + a[i + 2] > 60) n++; return n / (a.length / 4); };
+    const worlds = win => win.DreamStyle.plan(0, { hold: 'mix' }).map(([w]) => w);
+
+    async function eyes(blend) {
+      const win = await open(`/eyes?debug&face=2&blend=${blend}`, 420, 210, 'dreamyEyes'), e = win.dreamyEyes;
+      win.document.querySelectorAll('#start, #note').forEach(el => { el.style.display = 'none'; });
+      for (let i = 0; i < 2; i++) e.dreamIn(await createImageBitmap(dream()));
+      e.st.wake = 0.6;
+      // nothing comes by itself while the test looks: no other night, no mood, no painted face
+      Object.assign(e.bs, { next: 1e12, revealNext: 1e12 }); Object.assign(e.trance, { next: 1e12, wild: 1e12, glimNext: 1e12, every: 0 });
+      Object.assign(e.fx, { nextMood: 1e12, irisNext: 1e12 }); e.portal.next = 1e12; Object.assign(e.you, { irisNext: 1e12, momentNext: 1e12 }); e.look.next = 1e12;
+      for (const [i, kind] of ['bloom', 'moth'].entries()) e.decor.push({ kind, x: 420 * (0.2 + 0.6 * i), y: 45, born: win.performance.now(), life: 1e9, side: i, size: 40, hue: 200 + i * 80, spin: 1, puffs: [] });
+      win.lively = () => { const f = e.fire, t = win.performance.now(); Object.assign(f, { on: true, level: 0.9, x: 0.3, y: 0.6, since: t, trend: 0, flare: { at: t, k: 0.8 } }); Object.assign(f.mind, { mood: 'love', habit: 0, until: t + 1e6 }); e.tranceStart(t); };
+      return win;
+    }
+    async function dreamWindow(blend) {
+      const win = await open(`/window?debug&face=1&blend=${blend}`, 240, 320, 'dreamWindow'), w = win.dreamWindow, c = dream();
+      Object.assign(w.dream, { cur: c, prev: null, at: -1e9 });
+      const s = document.createElement('canvas'); s.width = s.height = 8; const x = s.getContext('2d'); x.drawImage(c, 0, 0, 8, 8);
+      Object.assign(w.dream, win.DreamBrush.brightness(x.getImageData(0, 0, 8, 8).data, 8, 8)); win.document.body.classList.add('live');
+      w.res = 1; w.show({ kind: 'mandala', seed: 5, now: win.Date.now() }, win.performance.now());
+      w.sow({ kind: 'moth', enter: 'left', exit: 'right', seed: 3, life: 30 }, win.performance.now());
+      win.lively = () => { w.st.trance = win.performance.now(); };
+      return win;
+    }
+    async function looked(win) {
+      const S = win.DreamStyle, r = {};
+      win.frames(90, 56);                              // the motif has formed, the eyes are open
+      // Dream's word, as the page hears it
+      win.__say({ world: 'ink', world_to: 'aurora', world_mix: 0.25 }); win.frames(16);
+      r.heard = S.mixing.asked; r.first = worlds(win);
+      win.__say({ world: 'deepsea', world_to: 'deepsea', world_mix: 0 }); win.frames(16, 3);
+      r.next = worlds(win); win.frames(50, 40); r.later = worlds(win);
+      // a mix is the sum of both pictures (the clock all but stands: the night behind the eyes is drawn anew every 20 ms)
+      const at = (a, b, k) => { S.blend(a, b, k, true); const n = win.frames(25, 2); return [pic(win), n[1]]; };
+      const [A, nA] = at('classic', 'classic', 0), [B, nB] = at('etching', 'etching', 0), [M, nM] = at('classic', 'etching', 0.5), [Q] = at('classic', 'etching', 0.25), [Z, nZ] = at('classic', 'etching', 0);
+      const mean = A.map((v, i) => (v + B[i]) / 2);
+      r.sum = { apart: apart(A, B), off: apart(M, mean), fromA: apart(M, A), fromB: apart(M, B), quarter: apart(Q, A), passes: [nA, nB, nM, nZ] };
+      // every pair, with what is costly and rare going on
+      win.lively(); r.pairs = [];
+      const names = S.names();
+      for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+        S.blend(names[i], names[j], 0.5, true);
+        const n = win.frames(200, 2);
+        r.pairs.push({ a: names[i], b: names[j], lit: lit(pic(win)), passes: Math.min(...n) });
+        await sleep(0);
+      }
+      report.worlds = names;
+      return r;
+    }
+    const e = await eyes('mix'); report.eyes = await looked(e); e.frameElement.remove();
+    const w = await dreamWindow('mix'); report.window = await looked(w); w.frameElement.remove();
+    // the weakest device: through black, one picture at any time
+    { const win = await dreamWindow('dip'), S = win.DreamStyle; win.frames(90, 56);
+      S.blend('deepsea', 'etching', 0, true); win.frames(16, 10);
+      const before = bright(pic(win)); S.blend('deepsea', 'etching', 1);
+      const passes = [], lights = [];
+      for (let i = 0; i < 40; i++) { passes.push(...win.frames(40)); lights.push(bright(pic(win))); }
+      report.dip = { before, darkest: Math.min(...lights), after: lights.at(-1), passes, end: worlds(win) }; win.frameElement.remove(); }
+    // the short fade: the nearer world, two pictures only while it changes over
+    { const win = await eyes('fade'), S = win.DreamStyle; win.frames(50, 20);
+      S.blend('deepsea', 'etching', 0.3, true); win.frames(50, 40);
+      const held = worlds(win); S.blend('deepsea', 'etching', 0.8);
+      const n = win.frames(50, 60);
+      report.fade = { held, pairs: n.filter(x => x === 2).length, dt: 0.05, end: worlds(win) }; win.frameElement.remove(); }
+    // one face at a time: a level held shows a face of light all the time – another one every 20 s, and another
+    // world's when the world changes. Frame by frame: which face, and how much of it is to be seen
+    { const win = await eyes('mix'), S = win.DreamStyle, v = win.dreamyEyes.vis;
+      S.blend('classic', 'classic', 0, true); win.frames(16, 150);
+      const seen = () => { const m = S.mixing, w = m.b ? (v.world === m.a ? 1 - m.k : v.world === m.b ? m.k : 0) : v.world === m.a ? 1 - m.dim : 0;
+        return { face: `${v.world}/${v.mode}`, al: +(v.shown.hint * w).toFixed(4) }; };
+      const watch = n => { const out = []; for (let i = 0; i < n; i++) { win.frames(16); out.push(seen()); } return out; };
+      const now = win.performance.now(); win.frames(Math.ceil(now / 20000) * 20000 - 400 - now);
+      const held = watch(200);
+      S.blend('classic', 'aurora', 1);
+      report.turn = { held, world: watch(260) }; win.frameElement.remove(); }
+  } catch (err) { report.error += ' ' + (err && err.stack || err); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>
