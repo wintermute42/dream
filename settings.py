@@ -70,6 +70,16 @@ def _fx(v: str) -> str:
     return "+".join(dict.fromkeys(e for e in v.split("+") if e in playlists.FX))
 
 
+# #221: the style worlds Dreamy Eyes and the dream windows can be drawn in. Each is one file `static/world-<name>.js`
+# that registers itself with the style layer (static/dreamstyle.js); the first is today's look. A test compares.
+WORLDS = ("classic", "deepsea", "ink", "etching", "aurora")
+
+
+def world_next(name: str) -> str:
+    """#224: the world after this one in the list, round and round (the MIDI button, the drift)."""
+    return WORLDS[(WORLDS.index(name) + 1) % len(WORLDS)] if name in WORLDS else WORLDS[0]
+
+
 # #148, owner's decision (2026-11-18) on what a guest may change: painting, touching, directness, impulses, movement
 # reaction, the pose and the music automatic/drop are the performer's – not a guest's; nor are "New" (the dream starts
 # anew) and the QR on the stage … and (same day) neither removing the owner's picture or video, the rest of the
@@ -148,6 +158,12 @@ SETTINGS: dict[str, Setting] = {
     "fx": text("", guest=True, clean=_fx),                      # effects by hand: "tunnel+waves", their strength, pulse on the beat
     "fx_amt": num(0.7, 0.0, 1.0, guest=True, target=True, weight=0.8, needs="fx"),
     "fx_beat": flag(True, guest=True),
+    "world": text("classic", choices=WORLDS),                   # #221: the style world of Dreamy Eyes and the dream windows
+    # #224: the crossfade – the world it fades to, how far on the way (0 = all "world", 1 = all "world_to"; a MIDI knob
+    # can turn it), and the drift: Dream wanders from world to world by itself, one every so many seconds (0 = off)
+    "world_to": text("classic", choices=WORLDS),
+    "world_mix": num(0.0, 0.0, 1.0, target=True),
+    "world_auto": num(120, 0, 900),
 }
 
 # ---------- what the rest of Dream reads: views of the table ----------

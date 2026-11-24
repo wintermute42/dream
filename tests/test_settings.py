@@ -159,7 +159,7 @@ def test_one_table_feeds_every_view():
     assert set(settings.RANGES) == {k for k, s in table.items() if s.number}
     assert midi.TARGETS is settings.TARGETS
     assert set(midi.TARGETS) == {"strength", "mix", "zoom", "rot", "hue", "drift", "smooth", "sens", "motion_sens",
-                                 "pose_scale", "master", "fx_amt"}
+                                 "pose_scale", "master", "fx_amt", "world_mix"}
     for k, s in table.items():
         assert s.kind in ("bool", "int", "float", "text"), k
         if s.number:
@@ -400,3 +400,28 @@ def test_both_pages_show_the_signs_with_the_shared_file():
         assert not re.search(r"sg-(turn|rings|wheel|trail|grow|bars)", src), page
     css = open(os.path.join(ROOT, "static", "signs.css"), encoding="utf-8").read()
     assert not re.search(r"animation|transition|@keyframes", re.sub(r"/\*.*?\*/", "", css, flags=re.S))
+
+
+def test_the_style_world_is_one_entry_in_the_table():
+    """#221: the style world of Dreamy Eyes and the dream windows – a choice among settings.WORLDS, today's look first
+    and the default; Dream Control's and this Mac's to set, not a guest's; a MIDI button steps to the next one."""
+    import midi
+    import settings
+    s = settings.SETTINGS["world"]
+    assert s.choices == settings.WORLDS and s.default == settings.WORLDS[0] == "classic"
+    assert "world" not in settings.GUEST_KEYS and settings.guest_changes({"world": "classic"}) == {}
+    assert settings.coerce("world", "classic") == "classic"
+    with pytest.raises(ValueError):
+        settings.coerce("world", "../etc")
+    assert settings.loaded({"world": "classic"})["world"] == "classic"
+    assert "world" in midi.ACTIONS and "world" not in midi.TARGETS and "world" not in settings.RESET
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for page in ("index.html", "remote.html"):
+        with open(os.path.join(here, "static", page), encoding="utf-8") as f:
+            src = f.read()
+        assert '<option value="world">Button: next style world</option>' in src
+        # #224: the worlds are offered by the band of worlds, from Dream's own list (told over /ctl) – no list in a page
+        assert '<div id="worldband"></div>' in src and "worldBand.worlds(m.worlds)" in src and '<select id="world"' not in src, page
+    with open(os.path.join(here, "static", "worldband.js"), encoding="utf-8") as f:
+        names = re.search(r"const NAMES = \{(.*?)\n  \};", f.read(), re.S).group(1)
+    assert tuple(re.findall(r"^\s+([a-z][a-z0-9-]*): \(\) => T\(", names, re.M)) == settings.WORLDS   # each with its name

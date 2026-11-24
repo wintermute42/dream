@@ -126,9 +126,8 @@ async def apply(changes: dict, exclude=None, persist=True, by=None):
     state.update(clean)
     if persist:
         save_soon()
-    for k in clean:
-        for react in watchers.get(k, ()):
-            react()
+    for react in dict.fromkeys(r for k in clean for r in watchers.get(k, ())):   # each once, whatever changed together
+        react()
     if "master" in clean:                          # output windows dim with the stage
         for v in list(viewers):
             if not outbox.post(v, json.dumps({"master": state["master"]})):

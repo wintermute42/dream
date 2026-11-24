@@ -99,7 +99,7 @@ def server():
     async def idle():
         return None
     for part, loop in ((srv.scenes, "scene_loop"), (srv.inputs, "midi_loop"), (srv.inputs, "sensor_loop"),
-                       (srv.eyes, "aimask_loop")):      # /ctl starts them: no OSC port, no timers
+                       (srv.eyes, "aimask_loop"), (srv.eyes, "world_loop")):      # /ctl starts them: no OSC port, no timers
         srv.real_loops = {**getattr(srv, "real_loops", {}), loop: getattr(part, loop)}   # for a test of the loop itself
         setattr(part, loop, idle)
     return srv

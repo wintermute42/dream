@@ -1,5 +1,6 @@
 """Dream windows (#201, #214): one large motif per window, motifs that wander without two windows showing the same, the
 points of the painted faces found once on Dream's Mac – and windows that still only look."""
+import asyncio
 import json
 import os
 import random
@@ -9,7 +10,7 @@ import time
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from test_rights import client
+from test_rights import client, ws_url
 
 STATIC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
 FACE = "0123456789ab"
@@ -223,6 +224,30 @@ def test_face_points_are_asked_for_once_however_many_windows(server, win):
     assert not any("marks" in m for s in socks for m in s.got)                  # (the others got them from the route, below)
 
 
+def test_face_points_are_asked_for_when_only_dreamy_eyes_look_on(server, win):
+    """#230: Dreamy Eyes move the painted faces too – with no window open they are who the points are found for."""
+    server.eyes.aimasks["goddess"] = (FACE, b"jpeg", time.time())
+    stage, eyes, guest = Sock("stage"), Sock("eyes"), Sock("guest")
+    win.markers.append(stage)
+    server.hub.roles[guest] = "guest"
+    try:
+        win.marks_tick(100.0)                           # a guest's remote shows no face
+        assert not stage.got and win.lookers() == []
+        server.hub.roles[eyes] = "eyes"
+        for now in (100.0, 100.5, 105.0):
+            win.marks_tick(now)
+        assert stage.got == [{"face": FACE, "url": f"/eyes/mask/{FACE}.jpg"}] and win.lookers() == [eyes]
+        window = come(server, 1)[0]
+        assert win.lookers() == [window, eyes]
+        win.marks_greet(eyes)                           # no points yet: nothing to hand on
+        assert not eyes.got
+        assert win.marks_take({"face": FACE, "points": points(win)}) == FACE
+        win.marks_greet(eyes)
+        assert eyes.got == [{"marks": {FACE: points(win)}}]
+    finally:
+        server.hub.roles.pop(eyes, None); server.hub.roles.pop(guest, None)
+
+
 def test_a_face_without_points_stays_still(server, win):
     server.eyes.aimasks["cat"] = (FACE, b"jpeg", time.time())
     stage = Sock("stage")
@@ -293,10 +318,13 @@ def read(name: str) -> str:
 def test_dream_and_the_window_page_name_the_same_motifs_and_points(server):
     w = server.windows
     page = read("window.html")
-    known = set(re.findall(r"'(\w+)'", re.search(r"const MOTIFS = new Set\(\[(.*?)\]\)", page).group(1)))
-    assert known == set(w.MOTIFS) | {w.PAIR}
-    drawn = set(re.findall(r"(\w+):", re.search(r"const DRAW = \{(.*?)\}", page).group(1)))
-    assert drawn == known                               # every motif Dream may name is drawn
+    # #221: the eye and the painted face are the page's own, every other motif is drawn by the style world – all of
+    # them by the first one, today's look (static/world-classic.js)
+    own = set(re.findall(r"(\w+):", re.search(r"const DRAW = \{(.*?)\}", page).group(1)))
+    assert "const MOTIFS = new Set(['eye', 'pair', 'face', ...DreamStyle.motifs()]);" in page
+    world = {k.split(":")[0].strip() for k in re.search(r"\n    motif: \{(.*?)\}", read("world-classic.js")).group(1).split(",")}
+    assert own == {"eye", "pair", "face"} and not own & world
+    assert own | world == set(w.MOTIFS) | {w.PAIR}       # every motif Dream may name is drawn
     assert float(re.search(r"const FORM = (\d+);", page).group(1)) == w.DISSOLVE * 1000
     life = set(re.findall(r"'(\w+)'", re.search(r"const KINDS = new Set\(\[(.*?)\]\)", page).group(1)))
     assert life == set(w.LIFE_KINDS)
@@ -312,12 +340,213 @@ def test_a_window_never_looks_for_faces_itself():
     assert "/mp/" not in page and "data-detect" not in page and "FaceLandmarker" not in page
     assert '<script src="/static/dreamface.js" data-detect defer></script>' in read("index.html")
     assert "data-detect" not in read("eyes.html") and "data-detect" not in read("output.html")
+    assert '<script src="/static/dreamface.js"></script>' in read("eyes.html")   # #230: Dreamy Eyes move the points they are given
 
 
 def test_the_eye_is_drawn_by_one_module_for_both_pages():
-    """#214: Dreamy Eyes and the windows draw the very same eye (static/dreameye.js) – no copy in either page."""
+    """#214: Dreamy Eyes and the windows draw the very same eye (static/dreameye.js) – no copy in either page.
+    #221: both ask the style layer for it, and today's look – the first style world – is that very module."""
     eyes, window = read("eyes.html"), read("window.html")
+    assert "eye: { draw: DreamEye.draw, irisWorld: DreamEye.irisWorld, pupilShape: DreamEye.pupilShape }" in read("world-classic.js")
     for page in (eyes, window):
-        assert '<script src="/static/dreameye.js"></script>' in page and "DreamEye.draw(" in page and "DreamEye.irisWorld(" in page
+        assert '<script src="/static/dreameye.js"></script>' in page and "DreamStyle.eye()" in page
+        assert "style.draw(" in page and "style.irisWorld(" in page and "style.pupilShape(" in page
         for own in ("function irisWorld", "function pupilShape", "function almond(cx", "bezierCurveTo(cx - a * 0.45"):
             assert own not in page
+
+
+# ---------- #221: the style world ----------
+def test_a_window_is_told_the_style_world_when_it_comes_and_when_it_changes(server, win, monkeypatch):
+    for k, v in {"world": "classic", "world_to": "classic", "world_mix": 0.0}.items():
+        monkeypatch.setitem(server.hub.state, k, v)
+    first, = come(server, 1)
+    assert [m["world"] for m in first.got if "world" in m] == ["classic"]
+    assert all(m["world_to"] == "classic" and m["world_mix"] == 0.0 for m in first.got if "world" in m)   # #224
+    first.got.clear()
+    monkeypatch.setattr(server.settings, "WORLDS", ("classic", "other"))   # (a second world, for the test)
+    monkeypatch.setitem(server.settings.SETTINGS, "world", server.settings.text("classic", choices=("classic", "other")))
+    monkeypatch.setattr(server.eyes.outbox, "post", lambda sock, text: sock.got.append(json.loads(text)) or True)
+    asyncio.run(server.hub.apply({"world": "other"}, persist=False))
+    assert first.got == [{"world": "other", "world_to": "classic", "world_mix": 0.0}]   # one small word, nothing else of the shared state
+    first.got.clear()
+    asyncio.run(server.hub.apply({"world_to": "classic", "world_mix": 0.25, "prompt": "nothing a window hears"}, persist=False))
+    assert first.got == [{"world": "other", "world_to": "classic", "world_mix": 0.25}]   # #224: the crossfade, in one word
+    first.got.clear()
+    asyncio.run(server.hub.apply({"world": "no-such-world"}, persist=False))
+    assert first.got == [] and server.hub.state["world"] == "other"    # an unknown world is not taken
+
+
+# ---------- #224: the crossfade between two style worlds, and the drift from world to world ----------
+@pytest.fixture
+def drifting(server, win, monkeypatch):
+    """A Dream whose worlds drift, one every 100 seconds, with what the eyes and windows are told kept in their `got`."""
+    for k, v in {"world": "classic", "world_to": "classic", "world_mix": 0.0, "world_auto": 100}.items():
+        monkeypatch.setitem(server.hub.state, k, v)
+    monkeypatch.setattr(server.eyes.outbox, "post", lambda sock, text: sock.got.append(json.loads(text)) or True)
+    server.eyes.drift.update(left=None, stay_from=None, wait_until=0.0, at=None, hand=False, told=None)
+    yield server.eyes
+    server.eyes.drift.update(left=None, stay_from=None, wait_until=0.0, at=None, hand=False, told=None)
+
+
+def drift_for(server, t0: float, secs: float) -> list:
+    """The drift's steps from t0 on for `secs` seconds: the three settings after each step."""
+    e, out = server.eyes, []
+
+    async def go():
+        for i in range(1, round(secs / e.WORLD_STEP) + 1):
+            await e.world_step(t0 + i * e.WORLD_STEP)
+            out.append(tuple(server.hub.state[k] for k in e.WORLD_KEYS))
+    asyncio.run(go())
+    return out
+
+
+def test_the_crossfade_is_three_entries_in_the_table_and_the_drift_is_on_by_default():
+    """#224: the world the crossfade leads to, how far it is on its way (a MIDI knob can turn it) and the drift's pace.
+    Owner's decision: a new Dream wanders between the worlds by itself. None of it is a guest's, none of it is
+    brought home by "Reset" (that is for what shapes the AI's picture)."""
+    import midi
+    import settings
+    s = settings.SETTINGS
+    assert s["world_to"].choices == settings.WORLDS and s["world_to"].default == s["world"].default
+    assert (s["world_mix"].default, s["world_mix"].lo, s["world_mix"].hi) == (0.0, 0.0, 1.0)
+    assert "world_mix" in midi.TARGETS and "world" in midi.ACTIONS
+    assert s["world_auto"].default > 0 and s["world_auto"].lo == 0
+    for k in ("world_to", "world_mix", "world_auto"):
+        assert k not in settings.GUEST_KEYS and k not in settings.RESET, k
+    assert settings.guest_changes({"world_to": "classic", "world_mix": 1.0, "world_auto": 0}) == {}
+    with pytest.raises(ValueError):
+        settings.coerce("world_to", "no-such-world")
+    assert settings.coerce("world_mix", 7) == 1.0 and settings.coerce("world_auto", -5) == 0
+    assert [settings.world_next(w) for w in settings.WORLDS] == [*settings.WORLDS[1:], settings.WORLDS[0]]
+    assert settings.world_next("no-such-world") == settings.WORLDS[0]
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for page in ("index.html", "remote.html"):
+        with open(os.path.join(here, "static", page), encoding="utf-8") as f:
+            src = f.read()
+        # the band of worlds (static/worldband.js, tests/js/worldband.test.mjs) shows and sets them; the crossfade
+        # stays a MIDI knob's
+        assert '<div id="worldband"></div>' in src and "WorldBand.mount(" in src, page
+        assert '<option value="world_mix">Style worlds: crossfade</option>' in src, page
+    with open(os.path.join(here, "static", "worldband.js"), encoding="utf-8") as f:
+        band = f.read()
+    paces = [int(n) for n in re.findall(r"\[(\d+), \(\) => T\('", band)]
+    assert s["world_auto"].default in paces and f"const PACE = {s['world_auto'].default};" in band
+
+
+def test_the_greeting_names_the_worlds_and_where_the_drift_is(server):
+    """What the band of worlds needs when a page comes: Dream's list of worlds and the drift's state."""
+    with client(server, "control").websocket_connect(ws_url(server, "/ctl", "control")) as ws:
+        first = ws.receive_json()
+        while "state" not in first:
+            first = ws.receive_json()
+    assert first["worlds"] == list(server.settings.WORLDS)
+    assert set(first["world_drift"]) == {"wait", "next", "idle"} and first["world_drift"]["idle"] is True   # no eyes, no window
+
+
+def test_the_pages_are_told_the_worlds_and_where_the_drift_is(server, drifting):
+    """The band of worlds in the panel and in Dream Control: Dream's list of worlds comes with the greeting, and a word
+    on the drift – how long it still waits after a hand, when the next world begins to come, whether it rests because
+    nobody looks – with the greeting and whenever that changes (the pages count down by themselves)."""
+    e = drifting
+    told = []
+
+    class Page:
+        got = told
+    server.hub.clients[Page] = "remote"
+    server.hub.roles[Page] = "guest"                   # (whoever hears the settings change hears this too – it sets nothing)
+    try:
+        drift_for(server, 0, 1)
+        assert told == [{"world_drift": {"wait": 0, "next": None, "idle": True}}]   # nobody looks: it rests
+        come(server, 1)
+        told.clear()
+        drift_for(server, 1, 10)
+        assert told == [{"world_drift": {"wait": 0, "next": 40, "idle": False}}]    # one word, then the page counts
+        assert e.drift_msg(21.25)["world_drift"]["next"] == 20
+        told.clear()
+        drift_for(server, 11, 40)                      # the next world comes: no more countdown
+        assert [m for m in told if "world_drift" in m] == [{"world_drift": {"wait": 0, "next": None, "idle": False}}]
+        told.clear()
+        # a tap on the very world that shows changes nothing – and still is a hand: the drift waits
+        s = server.hub.state
+        asyncio.run(server.hub.apply({"world": s["world"], "world_to": s["world_to"], "world_mix": s["world_mix"]}, persist=False, by="remote"))
+        held = drift_for(server, 51, 30)
+        assert len(set(held)) == 1
+        assert [m["world_drift"] for m in told if "world_drift" in m] == [{"wait": round(e.WORLD_HAND), "next": None, "idle": False}]
+        assert e.drift_msg(51.25 + 20)["world_drift"]["wait"] == round(e.WORLD_HAND) - 20
+        told.clear()
+        asyncio.run(server.hub.apply({"world_auto": 0}, persist=False, by="remote"))   # off: nothing waits, nothing counts
+        drift_for(server, 81, 1)
+        assert [m["world_drift"] for m in told if "world_drift" in m] == [{"wait": 0, "next": None, "idle": False}]
+    finally:
+        server.hub.clients.pop(Page, None)
+        server.hub.roles.pop(Page, None)
+
+
+def test_the_drift_wanders_through_all_worlds_softly_and_tells_the_windows(server, drifting):
+    e, worlds = drifting, server.settings.WORLDS
+    first, = come(server, 1)
+    first.got.clear()
+    stay = drift_for(server, 0, 100 * e.WORLD_STAY - 1)
+    assert set(stay) == {("classic", "classic", 0.0)} and first.got == []   # the world stays a while, alone
+    way = drift_for(server, 100 * e.WORLD_STAY - 1, 100 * (1 - e.WORLD_STAY))
+    mixes = [k for a, b, k in way if (a, b) == ("classic", worlds[1])]
+    assert len(mixes) > 200 and mixes == sorted(mixes) and 0 < mixes[0] < 0.01 and mixes[-1] > 0.98
+    assert max(y - x for x, y in zip(mixes, mixes[1:])) < 0.01               # no step anybody could see
+    rest = drift_for(server, 100, 5)
+    assert rest[-1] == (worlds[1], worlds[2 % len(worlds)], 0.0)             # there: the next one is the target
+    assert all(set(m) == set(e.WORLD_KEYS) for m in first.got) and len(first.got) > 200   # nothing else of the state
+    assert first.got[-1] == dict(zip(e.WORLD_KEYS, rest[-1]))
+    seen = [a for a, b, k in drift_for(server, 105, 100 * len(worlds)) if k == 0.0]
+    assert list(dict.fromkeys(seen)) == [*worlds[1:], worlds[0], worlds[1]][:len(dict.fromkeys(seen))]
+    assert set(seen) == set(worlds)                                          # round and round, each in its turn
+
+
+def test_the_drift_rests_while_nobody_looks_or_it_is_off(server, drifting):
+    assert set(drift_for(server, 0, 300)) == {("classic", "classic", 0.0)}   # no eyes, no window: nothing to draw
+    come(server, 1)
+    server.hub.state["world_auto"] = 0
+    assert set(drift_for(server, 300, 300)) == {("classic", "classic", 0.0)}
+    server.hub.state["world_auto"] = 100
+    assert drift_for(server, 600, 100)[-1][0] != "classic"
+
+
+def test_a_hand_on_the_worlds_makes_the_drift_wait_then_it_goes_on_from_there(server, drifting):
+    e, worlds = drifting, server.settings.WORLDS
+    come(server, 1)
+    drift_for(server, 0, 60)
+    assert 0 < server.hub.state["world_mix"] < 1
+    asyncio.run(server.hub.apply({"world": worlds[2], "world_to": worlds[0], "world_mix": 0.5}, persist=False, by="remote"))
+    held = drift_for(server, 60, e.WORLD_HAND - 1)
+    assert set(held) == {(worlds[2], worlds[0], 0.5)}                        # the hand's choice stands
+    on = drift_for(server, 60 + e.WORLD_HAND - 1, 20)
+    assert on[-1][:2] == (worlds[2], worlds[0]) and 0.5 < on[-1][2] < 1      # … and from there it goes on
+    asyncio.run(server.hub.apply({"world_mix": 0.2}, persist=False, by="midi"))   # a knob: the same
+    assert set(drift_for(server, 300, 30)) == {(worlds[2], worlds[0], 0.2)}
+    asyncio.run(server.hub.apply({"world_auto": 50}, persist=False, by="remote"))   # the pace chosen anew: no more waiting
+    assert drift_for(server, 330, 5)[-1][2] > 0.2
+
+
+def test_the_midi_button_steps_to_the_world_after_the_one_that_shows_most(server, drifting, monkeypatch):
+    worlds = server.settings.WORLDS
+
+    class Thread:
+        last = ("", 0.0)
+
+        def __init__(self):
+            self.rounds = [({}, ["world"], None)]
+
+        def take(self):
+            if not self.rounds:
+                raise asyncio.CancelledError
+            return self.rounds.pop()
+
+    def press():
+        monkeypatch.setattr(server.inputs, "midi_thr", Thread())
+        with pytest.raises(asyncio.CancelledError):
+            asyncio.run(server.real_loops["midi_loop"]())
+        return tuple(server.hub.state[k] for k in drifting.WORLD_KEYS)
+
+    server.hub.state.update(world=worlds[0], world_to=worlds[2], world_mix=0.2)
+    assert press() == (worlds[1], worlds[2], 0.0)                            # mostly the first world: the one after it
+    server.hub.state.update(world=worlds[0], world_to=worlds[2], world_mix=0.8)
+    assert press() == (worlds[3 % len(worlds)], worlds[2], 0.0)              # mostly the target: the one after that

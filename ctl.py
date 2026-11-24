@@ -39,6 +39,7 @@ async def ctl(sock: WebSocket):
         hub.live["midi"] = asyncio.create_task(inputs.midi_loop())
         hub.live["sensors"] = asyncio.create_task(inputs.sensor_loop())
         hub.live["aimask"] = asyncio.create_task(eyes.aimask_loop())   # #160
+        hub.live["worlds"] = asyncio.create_task(eyes.world_loop())    # #224
     key_role = rights.ws_role(sock)
     role = key_role
     if role == "control" and "control" in hub.roles.values():
@@ -56,8 +57,10 @@ async def ctl(sock: WebSocket):
     outbox.post(sock, json.dumps(feeds_msg(sock) if not rights.can(role, "eyes_only") else {"feeds_mine": [], **eyes.aimask_msg()}))
     if sock in eyes.eyes_pages and not rights.can(role, "eyes_only"):   # #166: a Dreamy Eyes page on a Control device gets the faces too
         outbox.post(sock, json.dumps(eyes.aimask_msg()))
+    if sock in eyes.eyes_pages or rights.can(role, "eyes_only"):   # #230: where the painted faces have their eyes, brows, mouth
+        windows.marks_greet(sock)
     if sock in eyes.eyes_pages or rights.can(role, "eyes"):   # #172: how often the trance may come
-        outbox.post(sock, json.dumps({"eyes_cfg": eyes.eyes_cfg}))
+        outbox.post(sock, json.dumps({"eyes_cfg": eyes.eyes_cfg, **eyes.world_msg()}))   # … and the style world (#221)
     if rights.can(role, "control") and cloud.cloud_cache["st"]:   # #176: the cloud's latest status
         outbox.post(sock, json.dumps({"cloud": cloud.cloud_cache["st"]}))
     if not rights.can(role, "eyes_only"):
@@ -65,7 +68,8 @@ async def ctl(sock: WebSocket):
         outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
         outbox.post(sock, json.dumps({"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
                                          "cams": hub.live.get("cams", []), "lan": config.LAN,
-                                         "schema": settings.page_schema(), **hub.status_msg()}, ensure_ascii=False))
+                                         "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
+                                         **eyes.drift_msg(time.monotonic()), **hub.status_msg()}, ensure_ascii=False))
     await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
     try:
