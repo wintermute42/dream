@@ -725,8 +725,33 @@ Dream Control (over https, see above) has a card **“This device”**:
   when the Mac took a strike. The flash is a light pulse on the stage, with or without music. The stage shows
   “📱 Motion: Dream Control”; the learned assignments appear in the panel under “Control (MIDI, sensors, master)” like
   those of OSC.
-- **Always one device:** live camera and motion come from one device only – the one that is Dream Control. Taking over
-  Dream Control on another device ends both on the first. Guests cannot send either.
+- **💡 Glow as a light marker** (appears while 🧭 Motion is on): the phone that lends its motion is also the LED marker
+  of the hand that holds it. Choose the colour – **cyan, green, blue or magenta** (no red, orange or yellow: those are
+  fire) – and tap the switch: the whole screen glows in that colour, the motion keeps flowing, and the Mac's camera
+  follows the glow as that hand, in the dark too (see “LED markers” under “Dance”). Dream knows which
+  colour belongs to which phone: a colour that is the left or the right hand's marker colour makes the phone that
+  hand; any other colour becomes the marker colour of the phone's hand. The kind of detection and the camera stay as
+  you set them – the phone says “once Flowtrack or Dream Dance look for LED markers” while they do not (choose
+  “LED markers”, or “LED markers beside the hand AI”, in the Movement card). The phone's motion and the spot of light
+  check each other: both move or both rest – the marker counts as surer; a light of that colour that wanders while
+  the phone lies still is not taken for the hand; a phone that swings fast makes its marker lead at once. In Dream
+  Dance the glowing screen has the **clutch** as one large button; **hold** “Hold to end the glow” to stop (a short
+  touch in a swinging hand does nothing; Esc works too). The stage shows “📱 Motion: Dream Control · glows cyan
+  (left hand)”.
+  - **Brightness and battery:** turn the screen brightness all the way up yourself (a web page cannot) and switch off
+    automatic brightness – the camera follows the brightest spot of the colour. The screen stays on while the page is
+    open (Wake Lock; without it set the phone's auto-lock to “never”). A full-bright screen plus sensors empties a
+    battery in a few hours: start charged, or use a power bank for a long night.
+  - **iPhone:** Safari asks for “Motion & Orientation” access at the first tap on 🧭 Motion, and again after every
+    reload of the page – tap 🧭 Motion again then; a refusal sticks until the website data of the page is cleared
+    (Settings → Safari → Advanced → Website Data) or the tab is closed and opened anew.
+- **Two phones, two hands:** camera and motion come from the device that is Dream Control. A **second phone** opened
+  with Dream Control's QR code stands by as a guest (“Dream Control is in use on another device”) and gets the card
+  “This device” with 🧭 Motion and 💡 Glow only: it lends its motion and glows in another colour – two phones are two
+  colours are two hands (a colour the first phone has is exchanged for a free one). Its channels are called
+  `/device2/…`, the stage shows “📱 Motion: second phone”. It can change nothing else that a guest cannot. Taking
+  over Dream Control ends what both phones lend (switch it on again). Guests with the guests' code can send neither
+  camera nor motion and cannot glow, and no phone learns of another's colour.
 - Over plain http the card explains that the browser releases camera and motion only over https.
 - The stage's camera source is called “📱 Live camera of a phone” – it is the Control device's or the Dreamy Eyes'.
 
@@ -1474,7 +1499,8 @@ Movement card shows the choice of the mode in use.
 - **Hands (AI):** the wrists of the body model; the body gives the measure. One visible hand is enough for throwing
   up and circling.
 - **LED markers (2 colours)** – a kind of movement detection of its own, without any AI model: a glowing marker on
-  each hand (an LED wristband, a phone display) in two fixed colours – **cyan, magenta, green or blue**, by default
+  each hand (an LED wristband, or the phone itself: Dream Control → “This device” → “💡 Glow as a light marker”, see
+  “Live camera and motion of the Control device”) in two fixed colours – **cyan, magenta, green or blue**, by default
   left cyan and right magenta; never red, orange or yellow, those are fire. Dream follows the brightest spot of each
   colour in every camera picture, also in the dark; lamps, windows and fire are ignored. A fast hand smears its
   marker into a streak: its length counts as tempo. Camera tips: 60 pictures a second and a short, fixed exposure
@@ -1650,8 +1676,12 @@ numbers the controller sends depends on its preset – just choose a preset and 
 
 Movement sensors on the body work in the dark and with very fast movements too. Dream takes anything that sends
 numbers by OSC (UDP, port **7020**; another port: `DREAM_SENSOR_PORT=…` in `~/.config/dream/dream.env`) – only from
-devices in the home network. Without an extra app: the Dream Control device itself sends its motion (“🧭 Motion”, see
-“Live camera and motion of the Control device”); its channels are called `/device/…`.
+devices in the home network. **The preferred way needs no extra app:** the Dream Control device itself sends its
+motion (“🧭 Motion”, see “Live camera and motion of the Control device”); its channels are called `/device/…`, and it
+can glow as a light marker at the same time. The sensor apps below are the alternative – they **cannot glow** (an app
+like Sensors2OSC or ZIG SIM shows its own screen, and Dream would not know its colour): for a phone that is sensor and
+marker in one, use Dream Control. A browser reports the rotation rate in degrees a second, the apps in rad/s; Dream
+converts the phone's, so the energy and the rotation of a phone and of an OSC sensor mean the same.
 
 **With the phone on the forearm** (Android e.g. the app *Sensors2OSC*; iPhone e.g. *ZIG SIM*):
 1. Start Dream with `./dream.sh --lan` (otherwise it only accepts data from the Mac itself).

@@ -116,6 +116,29 @@
     return ok.reduce((a, b) => (b.c > a.c ? b : a));
   }
 
+  // ---------- #237: a glowing phone is its hand's marker, and feels that hand move ----------
+  // The spot of light the camera takes for a hand's marker and the motion of the phone in that hand must tell the same
+  // story. cands: that hand's candidates; arm: {g: [x, y, z] (rad/s), age (s)} | null – the phone's gyroscope; memo:
+  // what was kept of the spot ({x, y, t, sp, odd} | null); t: seconds. Returns {cands, fast, memo}: both move or both
+  // rest – they confirm each other; the spot wanders while the phone lies still – another light of that colour, not
+  // the phone: it is doubted; the phone swings fast – the marker leads (the camera sees that a moment later).
+  const ARM_REST = 0.15, ARM_FAST = 4;                 // rad/s: the phone lies still below, swings fast above
+  function armMarker(cands, arm, memo, t, aspect) {
+    const swing = arm && Array.isArray(arm.g) && (arm.age == null || arm.age < 0.3) ? Math.hypot(arm.g[0] || 0, arm.g[1] || 0, arm.g[2] || 0) : null;
+    const i = cands.findIndex(c => c && c.src === 'marker' && Number.isFinite(c.x) && Number.isFinite(c.y));
+    if (i < 0) return { cands, fast: swing != null && swing > ARM_FAST, memo: memo && t - memo.t < 0.3 ? memo : null };
+    const mk = cands[i], since = memo ? t - memo.t : 0, known = memo && since > 0 && since < 0.3;
+    // how fast the spot moves, in picture heights a second, over about a tenth of a second
+    const sp = known ? memo.sp + (Math.hypot((mk.x - memo.x) * aspect, mk.y - memo.y) / since - memo.sp) * Math.min(1, since / 0.1) : 0;
+    let odd = 0, c = mk.c;
+    if (swing != null && known) odd = swing < ARM_REST && sp > 0.5 ? memo.odd + since : Math.max(0, memo.odd - 2 * since);
+    if (swing != null) {
+      if (odd > 0.3) c *= 0.3;
+      else if (known && ((swing > 1 && sp > 0.15) || (swing < ARM_REST && sp < 0.05))) c = 1 - (1 - c) * 0.5;
+    }
+    return { cands: cands.map((x, k) => (k === i ? { ...x, c } : x)), fast: swing != null && swing > ARM_FAST, memo: { x: mk.x, y: mk.y, t, sp, odd } };
+  }
+
   // ---------- fingers: the hand model's 21 points → fist ↔ open hand, spread, how close thumb and index are ----------
   // pts: [[x, y], …] (wrist, thumb 1–4, index 5–8, middle 9–12, ring 13–16, little finger 17–20), any size, any turn
   const FINGER = [[5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16], [17, 18, 19, 20]];
@@ -191,6 +214,7 @@
         seen: { l: [], r: [] }, ok: { l: 0, r: 0 }, rad: { l: 0, r: 0 }, bodyAt: -1e9, still: 0, eCam: 0, eSens: 0,
         clock: { period: 0, phase: 0, c: 0, agree: 0, beatAt: -1e9, lost: 0 }, g: Object.fromEntries(GESTURES.map(g => [g, 0])),
         active: null, below: 0, size: 0, turn: 0, impulse: 0, spin: 0, force: 0, sens: { at: -1e9, axis: 0, level: [0, 0, 0] },
+        arm: { l: null, r: null },
         fing: Object.fromEntries(HANDS.map(h => [h, { palm: 0, spread: 0, pinch: 0, snap: 0, on: false, was: [], snapAt: -1e9, c: 0 }])) };
     }
     reset();
@@ -303,7 +327,8 @@
 
     // input: {t (s), hands: {l: [candidates] | candidate | null, r: …}, body: {x, y, s, c} | null,
     //   fingers: {l: {pts, c} | null, r: …}, sensor: {g: [x, y, z] (rad/s), age (s)} | null, dark, aspect (the
-    //   picture's width / height, when it is not the one given at the start)}
+    //   picture's width / height, when it is not the one given at the start), arms: {l: {g, age} | null, r: …} | null
+    //   (#237: the gyroscope of a phone that glows as that hand's marker)}
     function step(input) {
       if (input.aspect > 0) aspect = input.aspect;
       const t = input.t, out = { t, v: {}, c: {}, src: {}, bpm: 0, gesture: null, gc: 0, size: 0, g: {}, hands: { l: null, r: null }, events: [] };
@@ -312,7 +337,9 @@
       const fused = {};
       for (const h of HANDS) {
         const c = input.hands && input.hands[h];
-        fused[h] = fuseHand(Array.isArray(c) ? c : c ? [c] : [], { fast: !!(st.hand[h] && st.hand[h].sp > 4), dark: !!input.dark });
+        const arm = armMarker(Array.isArray(c) ? c : c ? [c] : [], input.arms && input.arms[h], st.arm[h], t, aspect);
+        st.arm[h] = arm.memo;
+        fused[h] = fuseHand(arm.cands, { fast: arm.fast || !!(st.hand[h] && st.hand[h].sp > 4), dark: !!input.dark });
       }
       units(input.body, fused, dt, t);
       let e2 = 0, ec = 0, eN = 0;
@@ -443,7 +470,7 @@
       get clock() { return { period: st.clock.period, phase: st.clock.phase, c: st.clock.c }; } };
   }
 
-  const api = { create, bodyFrom, findMarkers, fuseHand, fingerValues, osc, phaseOf, FEATURES, FINGERS, GESTURES, SOURCES, HANDS, MARKER_HUES, RATE };
+  const api = { create, bodyFrom, findMarkers, fuseHand, armMarker, fingerValues, osc, phaseOf, FEATURES, FINGERS, GESTURES, SOURCES, HANDS, MARKER_HUES, RATE };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamDance = api;
 })(typeof window !== 'undefined' ? window : globalThis);

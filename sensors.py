@@ -107,13 +107,16 @@ class Sensors:
         self.raw: dict = {}                 # #240: an angle's last number, to unwrap it (359° → 1° is 2°, not -358°)
         self.out: dict = {}                 # #240: the steered values, smoothed
         self.gyro: tuple = ()               # #235: the gyroscope as it came (rad/s), for the dance detection on the stage
-        self.gyro_at = 0.0
+        self.gyro_at, self.gyro_by = 0.0, ""
+        self.arms: dict = {}                # #237: sender → (when, its gyroscope) – whose arm it is, for a phone that glows
         self.buttons: dict = {}             # address → pressed (a wristband's buttons: the clutch)
         self.by: dict = {}                  # #249: sender → [when, energy 0…1 of its swing] (the register of sources)
         self.force, self.force_at = 0.0, -1e9   # #252: the arm's acceleration without gravity (m/s²), smoothed
 
     # ---------- incoming ----------
-    def on_osc(self, address: str, args, source: str = "", now: float | None = None):
+    def on_osc(self, address: str, args, source: str = "", now: float | None = None, gyro_unit: float = 1.0):
+        """gyro_unit: what turns this sender's rotation rate into rad/s (#237: a browser reports degrees a second, the
+        OSC apps rad/s) – for the movement it means (energy, the dance detection); its channels stay as they came."""
         now = time.time() if now is None else now
         # finite numbers only; #208: compared, not math.isfinite – that raises for an integer too big for a float
         nums = [float(a) for a in args if isinstance(a, (int, float)) and not isinstance(a, bool) and -1e300 < a < 1e300]
@@ -141,10 +144,14 @@ class Sensors:
         if "gyro" in low or "rotation_rate" in low or "rotationrate" in low:
             c = self.ch.setdefault("swing", Channel(0.0))
             c.update(mag, alpha=0.3)
-            self.gyro, self.gyro_at = tuple(round(v, 3) for v in (nums + [0.0, 0.0])[:3]), now
+            gyro = tuple(round(v * gyro_unit, 3) for v in (nums + [0.0, 0.0])[:3])
+            # #237: one sender's arm at a time – two phones that both send are never mixed into one movement
+            if source == self.gyro_by or not 0 <= now - self.gyro_at < 0.33:
+                self.gyro, self.gyro_at, self.gyro_by = gyro, now, source
             if source in self.by or len(self.by) < 8:    # #249: how lively this sender swings (8 rad/s: all of it)
                 was = self.by.get(source, (now, 0.0))[1]
-                self.by[source] = (now, was + (min(1.0, mag / 8.0) - was) * 0.3)
+                self.by[source] = (now, was + (min(1.0, mag * gyro_unit / 8.0) - was) * 0.3)
+                self.arms[source] = (now, gyro)
         if ("btn" in low or "button" in low) and (address in self.buttons or len(self.buttons) < 8):
             down = nums[0] > 0.5             # #235: a button is pressed once, however long it is held
             if down and not self.buttons.get(address):
@@ -260,6 +267,17 @@ class Sensors:
         if not self.gyro or not 0 <= age < 0.33:
             return None
         return {"g": list(self.gyro), "age": round(age, 3), **({"a": round(self.force, 2)} if 0 <= now - self.force_at < 0.33 else {})}
+
+    def arm(self, sender: str, now: float | None = None) -> dict | None:
+        """#237: one sender's own gyroscope and how old it is (as `motion` gives the leading sender's) – None once it
+        is silent for a third of a second."""
+        now = time.time() if now is None else now
+        at, gyro = self.arms.get(sender, (-1e9, ()))
+        return {"g": list(gyro), "age": round(now - at, 3)} if gyro and 0 <= now - at < 0.33 else None
+
+    def forget(self, sender: str) -> None:
+        self.by.pop(sender, None)
+        self.arms.pop(sender, None)
 
     def live(self) -> dict:
         busiest = sorted((k for k in self.ch if k != "swing"), key=lambda k: -(self.ch[k].hi - self.ch[k].lo))[:6]
