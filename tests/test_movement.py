@@ -297,6 +297,18 @@ def test_the_old_movement_switch_becomes_the_mode(old, mode, kind):
     assert (got["move_mode"], got["flow_kind"]) == (mode, kind)
     assert (got["motion_sens"], got["touch_amt"]) == (1.7, 0.4)                  # what stays a setting stays as it was
     assert set(got) == set(settings.DEFAULT_STATE)                               # the old keys are gone
+    assert got["dance_kind"] == (kind if mode == "dance" else "hand")            # the dance keeps what it detected with
+
+
+def test_the_dance_has_its_own_detection():
+    """A mode is a preset: light chosen for flowtrack is not what Dream Dance detects with."""
+    assert settings.DEFAULT_STATE["dance_kind"] == "hand"
+    assert settings.SETTINGS["dance_kind"].choices == ("hand", "marker")
+    with pytest.raises(ValueError):
+        settings.coerce("dance_kind", "on")                                      # never light: a window would be a hand
+    got = settings.loaded({"move_mode": "dance", "flow_kind": "on"})
+    assert (got["flow_kind"], got["dance_kind"]) == ("on", "hand")
+    assert "dance_kind" not in settings.GUEST_KEYS
 
 
 def test_a_state_of_today_is_left_alone():

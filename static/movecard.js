@@ -12,10 +12,13 @@
   'use strict';
   const T = (text, vars) => (root.I18N ? root.I18N.t(text, vars) : vars ? text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : text);
   const MODES = ['off', 'mood', 'flowtrack', 'dance'];
-  const NAMES = { off: () => T('Off'), mood: () => T('Mood'), flowtrack: () => 'Flowtrack', dance: () => 'Dream Dance' };
-  const KINDS = { camera: () => T('Mac camera'), eyes: () => 'Dreamy Eyes', phone: () => T('Phone'), band: () => T('Wristband') };
-  const DETECTS = { hand: () => T('Hands (AI)'), on: () => T('Fire/LED'), marker: () => T('LED markers') };
-  const name = mode => (Object.prototype.hasOwnProperty.call(NAMES, mode) ? NAMES[mode]() : NAMES.off());
+  // every table of names is a Map and is read through `say`: a key Dream does not know (a mode, a kind or a detection
+  // that came over the connection) never becomes a call into an object's own or inherited properties
+  const NAMES = new Map([['off', () => T('Off')], ['mood', () => T('Mood')], ['flowtrack', () => 'Flowtrack'], ['dance', () => 'Dream Dance']]);
+  const KINDS = new Map([['camera', () => T('Mac camera')], ['eyes', () => 'Dreamy Eyes'], ['phone', () => T('Phone')], ['band', () => T('Wristband')]]);
+  const DETECTS = new Map([['hand', () => T('Hands (AI)')], ['on', () => T('Fire/LED')], ['marker', () => T('LED markers')]]);
+  function say(table, key, otherwise) { const text = table.get(key); return typeof text === 'function' ? text() : otherwise; }
+  const name = mode => say(NAMES, mode, T('Off'));
   // #251: the dance's clutch and the movement sets – what the panel, the page of Dream Dance and Dream Control show alike
   // (released is how Dream starts: the button and the line below it say so plainly)
   const clutchText = on => (on ? T('Clutch: engaged') : T('Clutch: released'));
@@ -24,8 +27,8 @@
     btn.setAttribute('aria-pressed', String(!!on)); btn.classList.toggle('on', !!on); btn.textContent = clutchText(on);
     if (note) note.textContent = clutchNote(on);
   }
-  const SETS = { standard: () => T('Standard'), waves: () => T('Waves'), fire: () => T('Fire') };
-  const setLabel = n => (Object.prototype.hasOwnProperty.call(SETS, n) ? SETS[n]() : n);
+  const SETS = new Map([['standard', () => T('Standard')], ['waves', () => T('Waves')], ['fire', () => T('Fire')]]);
+  const setLabel = n => say(SETS, n, n);
   // the choices of a set's select: "your table" (no set), then every set by its name; a name not in the list yet (Dream
   // has not said so) stands as it is. Rebuilt only when something changed, so an open list is not torn away.
   function fillSets(select, names, current) {
@@ -50,10 +53,10 @@
   // use listens to that kind; off – the kinds switched off ("eyes+band"). One chip per kind, in the register's order.
   function chips(list, uses, off) {
     const out = new Set(String(off || '').split('+'));
-    return Object.keys(KINDS).map(kind => {
+    return [...KINDS.keys()].map(kind => {
       const mine = list.filter(s => s.kind === kind), live = mine.filter(s => s.active), on = !out.has(kind), used = !!uses(kind);
       const rate = Math.round(live.reduce((a, s) => a + s.rate, 0)), sure = live.length ? Math.round(100 * live.reduce((a, s) => a + s.conf, 0) / live.length) : 0;
-      const label = KINDS[kind]() + (mine.length > 1 ? ` (${mine.length})` : '');
+      const label = say(KINDS, kind, kind) + (mine.length > 1 ? ` (${mine.length})` : '');
       const state = !on ? T('switched off') : !used ? T('not used by this mode') : live.length ? T('{n} values/s · {p} % sure', { n: rate, p: sure }) : T('nothing comes');
       return { kind, label, on, used, live: on && used && live.length > 0, rate, state, n: mine.length };
     });
@@ -64,7 +67,7 @@
   function info(mode, d) {
     if (mode === 'flowtrack') {
       if (!d || !d.running) return (d && d.status) || T('The camera is starting …');
-      const what = Object.prototype.hasOwnProperty.call(DETECTS, d.kind) ? DETECTS[d.kind]() : d.kind;
+      const what = say(DETECTS, d.kind, d.kind);
       return T('Detects: {k} · {n} values/s', { k: what, n: Math.round(d.rate || 0) }) + ' · ' + (d.present ? T('someone there') : T('nobody'));
     }
     if (mode === 'dance') {
@@ -126,7 +129,7 @@
         b.setAttribute('aria-label', r.label + ': ' + r.state); b.title = r.state + ' – ' + (r.on ? T('tap to switch this kind of source off') : T('tap to switch it on again'));
         b.addEventListener('click', () => {
           const now = new Set(off.split('+').filter(Boolean)); if (r.on) now.add(r.kind); else now.delete(r.kind);
-          off = Object.keys(KINDS).filter(k => now.has(k)).join('+'); send({ move_off: off }); drawn = ''; sources(list);
+          off = [...KINDS.keys()].filter(k => now.has(k)).join('+'); send({ move_off: off }); drawn = ''; sources(list);
         });
         srcBox.append(b);
       }

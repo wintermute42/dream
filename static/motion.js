@@ -43,8 +43,16 @@
   // #240: which detected hand is "the" hand. The pose model lists the right hand first: when it lost that one for a
   // frame (poor light, half out of the picture) the left one stood first and the point jumped across the picture. The
   // hand nearest to where the point was going is taken; one far from it (another hand, a point the model guessed)
-  // counts only when the next detection confirms it there. last: [x, y, t, vx, vy] or null; pend: the unconfirmed point.
+  // counts only when the next detection confirms it there – or when the model keeps seeing a hand away from the old
+  // point (PERSIST detections in a row: a hand that moves fast never rests within CONFIRM of where it was first seen,
+  // and the point must not wait at a stale place for it to pass by).
+  // last: [x, y, t, vx, vy] or null; pend: the unconfirmed point [x, y, n] (n: detections in a row away from the point).
   const REACH = 0.15, REACH_PER_S = 3, CONFIRM = 0.1;   // picture units; per second since the hand was last seen
+  const PERSIST = 3;
+  // the moving pixels stand in for the model's hand only this long (seconds since the model last saw the hand): they
+  // keep a blurred hand's tempo, but anything that moves near the old point would hold the point there for good
+  const BLUR_S = 0.3, KNOWN_S = 0.5;
+  const blurOk = (t, modelAt) => t - modelAt < BLUR_S;
   function pickHand(blobs, last, t, pend) {
     if (!blobs.length || !last) return { blobs, pend: null };
     const dt = Math.max(0, t - last[2]), px = last[0] + last[3] * dt, py = last[1] + last[4] * dt;
@@ -52,8 +60,9 @@
     blobs.forEach((b, i) => { const d = Math.hypot(b[0] - px, b[1] - py); if (d < bd) { bd = d; best = i; } });
     const b = blobs[best], ordered = [b, ...blobs.filter((_, i) => i !== best)];
     if (bd <= REACH + REACH_PER_S * dt) return { blobs: ordered, pend: null };
-    if (pend && Math.hypot(b[0] - pend[0], b[1] - pend[1]) <= CONFIRM) return { blobs: ordered, pend: null };
-    return { blobs: [], pend: [b[0], b[1]] };
+    const n = pend ? (pend[2] || 1) + 1 : 1;
+    if (pend && (Math.hypot(b[0] - pend[0], b[1] - pend[1]) <= CONFIRM || n >= PERSIST)) return { blobs: ordered, pend: null };
+    return { blobs: [], pend: [b[0], b[1], n] };
   }
   const MIN_VIS = 0.3;          // pose points count from this visibility on (low: poor light)
   const LEAD = 0.08;            // seconds of prediction without a measured delay (flowtrack: lead_ms 80); see lead()
@@ -90,7 +99,7 @@
     function setLead(ms) { lat.lead = clamp(ms, 40, 150); }
     const st = { present: false, x: 0.5, y: 0.5, speed: 0, spread: 0, count: 0, points: [], rate: 0, lum: 0.5, gain: 1,
       blur: false, kind: 'off', landmarks: null, at: 0, dance: null };
-    let prev = null, vel = [0, 0], lastSeen = 0, nDet = 0, rateAt = performance.now(), trailsOn = false;
+    let prev = null, vel = [0, 0], lastSeen = 0, modelAt = 0, nDet = 0, rateAt = performance.now(), trailsOn = false;
     let pend = null;
     const ruleState = RULES.map(() => ({ since: null, fired: false, at: -1e9 }));
     // calibration (#92): camera picture → Dream's picture (as the beamer shows it); without one they are the same
@@ -423,10 +432,12 @@
       danceInput(now, blobs);
       blobs = blobs.map(b => [...toPic(b[0], b[1]), b[2]]);   // from here on in the picture's coordinates
       if (kind === 'hand' && !skipped) {
-        ({ blobs, pend } = pickHand(blobs, prev && t - lastSeen < 0.5 ? [prev[0], prev[1], prev[2], vel[0], vel[1]] : null, t, pend));
+        // the point is "known" only while the model itself saw the hand lately – not while only moving pixels held it
+        ({ blobs, pend } = pickHand(blobs, prev && t - lastSeen < KNOWN_S && t - modelAt < KNOWN_S ? [prev[0], prev[1], prev[2], vel[0], vel[1]] : null, t, pend));
+        if (blobs.length) modelAt = t;
       }
       // a fast hand smears and the model loses it: follow the moving pixels near where it was (up to 0.3 s)
-      if (kind === 'hand' && (!blobs.length || frameNo % poseEvery) && prev && t - lastSeen < 0.3) {
+      if (kind === 'hand' && (!blobs.length || frameNo % poseEvery) && prev && t - lastSeen < BLUR_S && blurOk(t, modelAt)) {
         const [px, py] = toCam(prev[0] + vel[0] * (t - prev[2]), prev[1] + vel[1] * (t - prev[2]));
         const at = movedNear(m, clamp(px, 0, 1), clamp(py, 0, 1), 0.22);
         if (at) { blobs = [[...toPic(at[0], at[1]), 2]].concat(blobs.slice(1)); blur = true; }
@@ -529,6 +540,6 @@
       trails(on) { trailsOn = on; if (!on) tctx.clearRect(0, 0, trails.width, trails.height); return glow; },
     };
   }
-  return { create, OneEuro, pickHand };
+  return { create, OneEuro, pickHand, blurOk, BLUR_S };
 })();
 if (typeof module === 'object' && module.exports) module.exports = globalThis.DreamMotion;   // tests/js/motion.test.mjs
