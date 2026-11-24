@@ -324,8 +324,9 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   Bildern 100 %, Musik- und Bewegungs-Reaktion 1×, Direktheit, Umriss- und Pose-Stärke, Effekt-Stärke –, die Effekte
   blenden aus, und der Autopilot geht aus. Auch der **Stil** geht – kein Stil-Modell, kein Stil-Referenzbild, beide
   Stärken auf Standard –, und zwar in einem Schritt am Anfang statt gleitend, damit das Modell nur einmal umgebaut
-  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. **Es bleiben:** Prompt, Modell, Qualität,
-  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud, Master-Helligkeit,
+  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. Die **Master-Helligkeit** steht sofort wieder auf
+  100 % (eine gedimmte oder schwarze Bühne leuchtet wieder). **Es bleiben:** Prompt, Modell, Qualität,
+  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud,
   die Schlüssel und alle anderen Schalter (Berührungs-Optionen, im Takt pulsieren, Wechsel einrasten, Umrisse und Pose
   an oder aus …). 10 Sekunden lang steht auf dem Knopf **„Zurückgesetzt · ↶ Rückgängig“** (darunter läuft ein Balken
   ab): ein Tipp, und alles gleitet genau auf die Werte von vorher zurück (Stil und Muster kommen ebenfalls in einem
@@ -745,9 +746,10 @@ Dream Control (über https, siehe oben) hat eine Karte **„Dieses Gerät“**:
   abgerissene Verbindung beendet sie, und die Bühne geht zurück zum Traum – nie von selbst auf die Kamera des Macs.
 - **🧭 Bewegung** schickt die Sensoren des Geräts (Beschleunigung, Drehung, Neigung) wie einen Sensor am Arm (siehe
   „Sensor-Eingang“): wählen, was sie steuert, **📡 Lernen** tippen und das Gerät 2 Sekunden bewegen; **ein Schlag** (das
-  Gerät kräftig schwingen) wird zum Impuls (Blitz, Dreh-Ruck, neues Motiv, nächste Szene, Blackout). Die Bühne zeigt
-  „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI, Sensoren,
-  Master)“ wie die von OSC.
+  Gerät kräftig schwingen) wird zum Impuls (Blitz, Dreh-Ruck, neues Motiv, nächste Szene, Blackout); der 🧭-Knopf
+  ruckt kurz, wenn der Mac einen Schlag erkannt hat. Der Blitz ist ein Lichtpuls auf der Bühne, mit und ohne Musik. Die
+  Bühne zeigt „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI,
+  Sensoren, Master)“ wie die von OSC.
 - **Immer nur ein Gerät:** Live-Kamera und Bewegung kommen nur von einem Gerät – dem, das Dream Control ist. Wer Dream
   Control auf einem anderen Gerät übernimmt, beendet beides auf dem ersten. Gäste können beides nicht senden.
 - Über einfaches http erklärt die Karte, dass der Browser Kamera und Bewegung nur über https freigibt.
@@ -1189,7 +1191,11 @@ Dream merkt sich den Schalter auch über einen Neustart, wie den Autopilot; eine
 (das frühere `--flow` gibt es nicht mehr). Daneben die Art:
 - **Hände (KI):** Ein Körpermodell (MediaPipe Pose, läuft auf der Grafikkarte) findet beide Hände, auch im Halbdunkel.
   Beim allerersten Einschalten lädt Dream das Modell einmal herunter (ca. 15 MB, nach `~/.cache/dream/mediapipe`),
-  danach geht alles offline.
+  danach geht alles offline. Der Punkt folgt einer Hand: Verliert das Modell sie kurz, springt er nicht zur anderen
+  Hand, und ein Punkt, der für ein einziges Bild weit weg auftaucht, zählt nicht; „jemand kommt / geht“ wartet einen
+  Moment, so gibt eine für ein paar Bilder verlorene Hand keinen Lichtpuls. Das Modell braucht den Oberkörper im Bild;
+  springen die Hände trotzdem, mit **D** (Diagnose) ansehen, was die Kamera sieht – ein Bildschirm oder die Projektion im
+  Bild kann Figuren zeigen, die es für eine Person hält.
 - **Feuer/LED/Lichtspuren:** helle Punkte im Bild, bis zu vier. Die Schwelle richtet sich nach der Raumhelligkeit:
   Im Dunkeln reicht eine Fackel, in einer hellen Halle zählen nur wirklich helle Lichter.
 - **Leucht-Marker (2 Farben):** ein leuchtender Marker an jeder Hand, an seiner Farbe verfolgt, ganz ohne KI-Modell –
@@ -1519,9 +1525,16 @@ nur von Geräten im Heimnetz. Ohne Extra-App: Das Dream-Control-Gerät selbst sc
 3. Im Bedienfeld unter **Sensor-Eingang** erscheint „… Werte/s von …“ und darunter die Messwerte als Balken.
 
 **Zuordnen:** Ziel wählen (z. B. Zoom-Sog), **📡 Lernen** klicken und 2 Sekunden lang genau die Bewegung machen, die
-es steuern soll (z. B. Arm hoch/runter). Dream nimmt den Messwert, der sich jetzt deutlich mehr bewegt als vorher.
-⇅ kehrt die Richtung um, ✕ löscht. Jeder Messwert wird geglättet und passt seinen Bereich selbst an – keine
-Kalibrierung. Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository).
+es steuern soll (z. B. Arm hoch/runter oder das Handy neigen). Dream nimmt den Messwert, der sich jetzt deutlich mehr
+bewegt als im Moment davor – ein Gerät, das kurz vorher geschwungen oder gedreht wurde, lernt genauso. Ein gleichmäßiges
+Drehen oder Neigen (Ausrichtung) gewinnt vor einem Schütteln, ein Winkel vor dem Beschleunigungssensor, den jeder Schlag
+durchrüttelt; Drehrate und Beschleunigung ohne Schwerkraft nimmt Dream nur, wenn sich sonst nichts bewegt hat, denn sie
+springen um null. Die gezeigte Bewegung ist der ganze Bereich des Reglers (mindestens etwa 10° Neigung, damit bei einer
+winzigen Lernbewegung nicht das Rauschen des Sensors steuert), und eine kleine tote Zone hält den Regler still, solange
+das Gerät ruht – auf den Tisch gelegt, bleibt er stehen. Ein Ziel neu lernen ersetzt seinen Messwert (ein Messwert je Ziel). ⇅ kehrt die Richtung um, ✕ löscht.
+Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository); mit einer früheren Version gelernte Zuordnungen
+behalten den alten, selbst angepassten Bereich (jetzt nie enger als das Rauschen des Sensors) – für das ruhigste
+Ergebnis neu lernen.
 
 **Tanz:** Solange „Tanz steuert die Effekte“ an ist, geht das Gyroskop (eine Adresse mit `gyro` oder `rotation_rate`
 darin) zusätzlich unverändert an die Tanz-Erkennung – Energie, Tempo und Schlag ohne Kamera und eine zweite Meinung
@@ -1534,7 +1547,9 @@ Heute gibt sie Feedback im [Tanz-Labor](#tanz-labor) (einmal „gut“, zweimal 
 
 **Schlag (Peitschenschlag):** Eine kräftige, ruckartige Bewegung ist ein Impuls (höchstens alle 0,25 s). Unter
 „Schlag →“ festlegen, was er auslöst: Blitz, Dreh-Ruck, neues Motiv, nächste Szene oder Blackout;
-„Schlag-Empfindlichkeit“ regelt, wie kräftig er sein muss. **Schwung** (wie schnell sich das Handgelenk dreht)
+„Schlag-Empfindlichkeit“ regelt, wie kräftig er sein muss – auch ganz oben muss ein Schlag deutlich über dem eigenen
+Zittern des Geräts liegen, ein Handy auf dem Tisch löst also nichts aus. Das Bedienfeld zählt die Schläge neben den
+Werten/s („· Schläge 3“): blitzt die Bühne ohne Schlag, zeigt die Zahl, ob es vom Sensor kam. **Schwung** (wie schnell sich das Handgelenk dreht)
 steht im Bedienfeld. Die Werte laufen über dasselbe weiche Gleiten wie beim MIDI-Controller.
 
 Ideen: Armhöhe → Zoom-Sog oder Master-Helligkeit, Handgelenk drehen (Rollen) → Drehung, Kippen → Farbdrift,

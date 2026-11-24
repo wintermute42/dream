@@ -190,9 +190,10 @@ TARGETS = {k: (s.lo, s.hi) for k, s in SETTINGS.items() if s.target}   # what a 
 # #216: where "Reset" brings the dream: every number that shapes the picture glides to its default (the ones with a
 # weight); the effects, the autopilot, the music pattern (back to "auto") and the style (model, reference picture and
 # both strengths: no style) are set in one step – a glide of a style strength would make the AI rebuild its model about
-# once a second. Everything else stays – prompt, model, quality, size, format, cameras, playlist, output, cloud, master,
-# and every other switch.
-RESET_AT_ONCE = ("fx", "auto", "music_pattern", "style", "style_amt", "style_ref", "style_ref_amt")
+# once a second. #240: the master brightness comes back to full in one step too – a dimmed or blacked-out stage is lit
+# again at once. Everything else stays – prompt, model, quality, size, format, cameras, playlist, output, cloud, and every
+# other switch.
+RESET_AT_ONCE = ("fx", "auto", "music_pattern", "style", "style_amt", "style_ref", "style_ref_amt", "master")
 RESET = {k: s.default for k, s in SETTINGS.items() if s.weight or k in RESET_AT_ONCE}
 assert not any(SETTINGS[k].weight for k in RESET_AT_ONCE)
 assert all(s.number and 0 < s.weight <= 1 for s in SETTINGS.values() if s.weight)

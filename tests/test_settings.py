@@ -196,11 +196,12 @@ def test_reset_brings_home_what_shapes_the_picture_and_nothing_else():
     # in one step, never gliding: effects, autopilot and the style (a style strength costs the AI a rebuild per change)
     assert settings.RESET == {**{k: settings.DEFAULT_STATE[k] for k in weighted}, "fx": "", "auto": False,
                               "music_pattern": "auto",
-                              "style": "", "style_amt": 1.0, "style_ref": "", "style_ref_amt": 0.8}
+                              "style": "", "style_amt": 1.0, "style_ref": "", "style_ref_amt": 0.8,
+                              "master": 1.0}                                    # #240: lit again at once
     assert not weighted & set(settings.RESET_AT_ONCE)
     # what stays, whatever else changes: the dream's content, the model and its cost, inputs, outputs, the cloud
     for kept in ("prompt", "model", "quality", "size", "aspect", "mode", "cam_device", "flow_device", "playlist", "interval",
-                 "shuffle", "syphon", "backend", "master", "seed", "running", "music", "calib", "music_patterns", "music_drop",
+                 "shuffle", "syphon", "backend", "seed", "running", "music", "calib", "music_patterns", "music_drop",
                  "beat_snap", "fx_beat", "drift_prompt", "touch_paint", "edges", "pose", "flowtrack", "motion"):
         assert kept not in settings.RESET, kept
     for k, s in settings.SETTINGS.items():
