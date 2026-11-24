@@ -128,6 +128,13 @@ are installed by `dream.sh` on start.
 
 To try a ticket before it is accepted: `git switch <branch>` (named in the ticket), back with `git switch main`.
 
+Package updates come from Dependabot (`.github/dependabot.yml`): a fix for a known security hole as soon as it is
+published, everything else once a month as one pull request for the Python packages and one for the GitHub Actions.
+The packages the image and voice models depend on (torch, diffusers, transformers, accelerate, peft, mlx-whisper,
+huggingface-hub, safetensors, tokenizers) get only security fixes this way: a new version can change the look or the
+speed of the dream, so they are raised by hand and measured with the real model (see [Tests](#tests)). Every such
+pull request runs the tests like any other and is merged by hand.
+
 ## Folder and own settings
 
 All commands here run in the **Dream folder** (where this repository lies): `cd <Dream folder>`, then `./dream.sh`.
