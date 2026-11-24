@@ -45,7 +45,7 @@ def test_targets_are_the_instant_layer_and_the_ai_sliders():
     assert {"fx." + e for e in playlists.FX} <= set(dance.TARGETS)
     assert {"ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue", "fx.amt", "fx.pulse", "fx.spin"} <= set(dance.TARGETS)
     # sliders that exist – and the two targets of #249 that are no slider: the prompt's energy words, the old reaction
-    assert all(settings.SETTINGS[t[3:]].target for t in dance.TARGETS if t.startswith("ai.") and t not in ("ai.prompt", "ai.react"))
+    assert all(settings.SETTINGS[t[3:]].target for t in dance.TARGETS if t.startswith("ai.") and t not in ("ai.prompt", "ai.react", "ai.piece"))
 
 
 GOOD = {"id": "a1", "on": True, "src": "l.palm", "dst": "fx.kaleido", "curve": "soft", "in": [0.2, 0.9], "out": [0, 0.8],

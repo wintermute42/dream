@@ -55,6 +55,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 - [Flowtrack](#flowtrack)
 - [Dance](#dance)
   - [Dream Dance: the page, the clutch, the sets](#dream-dance-the-page-the-clutch-the-sets)
+  - [Moves of your own](#moves-of-your-own)
   - [Dance lab](#dance-lab)
 - [MIDI controller](#midi-controller)
 - [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
@@ -1481,7 +1482,8 @@ once or swaying set nothing off. Its size becomes the effect's strength, its tem
   beat, the turning – or one of the slow **AI sliders** (transformation, dream share, zoom pull, rotation, colour
   drift; they follow within half a second at the earliest and are added on top of the slider).
   More targets: the tempo of the picture's own motion, calming the dream, the direct interaction (paint, touch,
-  impulses, light in the dark, movement shapes the effects), the content by energy, and the push on the AI sliders.
+  impulses, light in the dark, movement shapes the effects), the content by energy, the push on the AI sliders, and
+  the prompt piece of a move of your own (see [Moves of your own](#moves-of-your-own)).
   The tables – one per mode – are saved in `~/.config/dream/dance.json`; only this Mac and Dream Control can change
   them.
 
@@ -1531,7 +1533,8 @@ it), and it is an extra view: everything that steers the show is in the panel to
 window that opened it; it has no control line and no camera of its own (only the lab's sessions are read from and
 written to Dream directly), so open it from the panel, not by its address.
 If the stage is reloaded, the page finds it again by itself. If the browser blocks the window, allow pop-ups for
-Dream. On the page: the clutch, the detection, the movement sets, the beat, and below them the dance lab.
+Dream. On the page: the clutch, the detection, the movement sets, the beat, below them your own moves
+(see [Moves of your own](#moves-of-your-own)) and the dance lab.
 
 **The clutch** decides whether your dance acts. What the sliders, the panel and a MIDI controller set is the **base**;
 the dance acts **on top of it** – an effect at 30 % by hand and 40 % by the dance shows at 70 %, and a fader moved
@@ -1582,6 +1585,52 @@ moment, the page comes back by itself).
 side, each with a dot that beats, and says who gives the beat: your dance, the music, both together (also at half
 or double time) or two different beats. Effects on the beat are pushed by both – the row “Own beat → Push on the
 beat” of the table for your movement, the music's beat as always.
+
+### Moves of your own
+
+On the page of Dream Dance, between the cards at the top and the dance lab, is **🕺 Your moves**: teach Dream a dance
+move by showing it, and say what it does.
+
+- **A move** is a rhythmic movement of your hands, like the built-in gestures: the same way again and again, one
+  repetition in a third of a second to a good second (0.3–1.25 s). One hand or both; it is measured on your own body,
+  so where you stand in the picture and how near does not matter. It works with whatever Dream Dance detects (hands
+  by AI or LED markers) – teach a move with the detection you will dance it with.
+- **Teach a new move** (or key **T**): a countdown of three seconds, then the take runs. Show your move **three to
+  five times in a row** – the large line counts the repetitions Dream has seen, and the take ends by itself (after
+  enough repetitions, at the latest after 12 seconds; **■ Done** ends it earlier, **Throw away** or **Esc** drops it).
+  Give it one repetition more than you need: the first and the last one, where the arms come up and go down, are
+  often not counted. Dream finds the repetitions itself and **shows them at once**, each as a small skeleton that runs
+  round and round with the hands' ways in colour; **✕** throws away one that went wrong (three must be left).
+  If a take cannot become a move, the line says why: too short, hands not seen, hardly any movement, no repetition
+  found, fewer than three repetitions.
+- **Keep the move** with a **name** (letters, digits, spaces and `. + -`, at most 32 characters), and – if you like
+  – with what it **steers** and a **prompt piece**. At most 24 moves are kept.
+- **Recognition.** From then on the stage recognises the move like a built-in gesture: it compares the last two
+  repetitions of your hands with the move by dynamic time warping, so a variant still fits – a little faster or slower
+  (about 0.7 to 1.4 times the taught tempo), larger or smaller, at any point of the repetition – while another way of
+  the hands, the same way at double tempo or a shoulder width higher does not. It comes after **two to three
+  repetitions** and goes with the same hysteresis as the built-in gestures; one gesture at a time. The size of the
+  movement is its strength: as large as taught is all of it, smaller is less, and less than about half the size is not
+  the move. A move that looks like a built-in gesture goes before it. The bar under each move in the list shows how
+  sure Dream is of it right now; the frame turns green while it is the recognised one.
+- **What it steers** is a row of the table (“What a movement does”), like everything a movement does – choose the
+  target in the list, or change switch, target and strength of the row in the panel, where the move appears under
+  “Your moves” with the name you gave it. So a move acts **only while the clutch is engaged**, and it belongs to the
+  **movement set**: “Keep as set” keeps the table with the rows of your moves; a built-in set has none of them (the
+  move stays in the list and reads “– nothing yet –” until you give it a target in that table).
+- **Prompt piece.** A move can bring a piece of prompt along (e.g. `fire, glowing embers`; written in the language of
+  your prompts): with the target **“Prompt piece of the move”** it is blended into the prompt by as much as the move
+  is recognised and as large as you make it – slowly, like every AI target (half a second at the earliest). The line
+  “The AI gets:” under the prompt shows it, with ✕ to switch the row off. While a prompt piece acts it stands in the
+  place of the energy words (“Content by energy”).
+- **Rename, change, delete** in the list: the name and the prompt piece are text fields (saved when you leave the
+  field), **🗑** deletes after asking once more on the button. Deleting a move removes its rows from the tables and
+  from your own sets.
+- **What is kept:** per repetition the features, what the sources saw of the hands, the points of the skeleton, the
+  hands in body units and whether the clutch was engaged, each with its time – the frames of a dance session – and
+  the mean way of the hands as the template. **Numbers only, never a camera picture.** The moves are in
+  `~/.local/state/dream/dance/moves/` on this Mac; only this Mac and Dream Control can read or change them, and
+  nothing of them leaves the Mac.
 
 ### Dance lab
 
@@ -2004,6 +2053,13 @@ Eyes work out from two small pictures (noise is no movement, only two numbers co
 checks Dream's part: the register of sources, that Dreamy Eyes can report a number and nothing else, that “nobody
 there / someone comes” is read from Dreamy Eyes only and never from the Mac's camera, and that the settings of earlier
 versions are carried over once.
+`node --test tests/js/dancemoves.test.mjs` (#236) tests the moves of one's own (`static/dancemoves.js`, recognised in
+`static/dance.js`) the same way: the simulated dancer teaches four moves that are no built-in gesture and dances them
+in 108 variants each (size, tempo, place, body size, jitter, frame rate) – the hit rate, the false alarms on walking,
+waving, talking hands and the like (none), the built-in gestures beside the taught ones, repetitions and hysteresis,
+the ends of the tolerance, and how a take is cut into its repetitions. `node --test tests/js/moveteach.test.mjs` tests
+the teaching card's parts without a page (a take, the file that is kept, the row of the table, the clutch);
+`tests/test_dancemoves.py` what Dream keeps of a move, who may reach it and that deleting one removes its rows.
 `node --test tests/js/dancerec.test.mjs` (#243) tests the dance lab's sessions (`static/dancerec.js`): a recorded
 simulated dance plays back the very features it was made from and holds nothing but numbers, feeding its inputs to a
 fresh detector gives the same gestures, a feedback keeps exactly its seconds, playback (pause, slow motion, jumps, a

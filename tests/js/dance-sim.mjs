@@ -30,11 +30,23 @@ export const NOT_MOVES = {
   cheer: (t) => { const up = 2.4 / (1 + Math.exp(-(t - 2) * 5)); return { l: [0.7, -1.3 + up], r: [-0.7, -1.3 + up] }; },
 };
 
+// #236: moves a dancer might teach – none of them is a built-in gesture
+export const OWN_MOVES = {
+  // the right hand draws a lying eight, the left hangs
+  eight: (t, { f, k }) => { const a = 2 * Math.PI * f * t; return { l: [0.6, -1.3], r: [-0.9 + 0.55 * k * Math.sin(a), 0.3 + 0.4 * k * Math.sin(2 * a)] }; },
+  // both hands go up and down, the right a quarter of a repetition behind the left
+  drum: (t, { f, k }) => { const a = 2 * Math.PI * f * t; return { l: [0.7, 0.1 + 0.55 * k * Math.sin(a)], r: [-0.7, 0.1 + 0.55 * k * Math.sin(a - Math.PI / 2)] }; },
+  // the right arm swings over the head like a pendulum hung upside down, the left hangs
+  arc: (t, { f, k }) => { const th = 1.0 * k * Math.sin(2 * Math.PI * f * t); return { l: [0.6, -1.3], r: [-0.3 + 0.9 * Math.sin(th), 0.5 + 0.9 * Math.cos(th)] }; },
+  // the left hand pushes out to the side and comes back fast (a sawtooth), the right stays at the hip
+  saw: (t, { f, k }) => { const x = (f * t) % 1, s = x < 0.75 ? x / 0.75 : (1 - x) / 0.25; return { l: [0.5 + 0.9 * k * s, 0.2 + 0.3 * k * s], r: [-0.5, -0.9] }; },
+};
+
 // frames for dance.js: {t, hands, body}. opts: bpm, size, fps, seconds, S (shoulder width in picture heights),
 // at ([x, y] of the body), jitter (picture heights), src, only ('l' | 'r': the other hand is not seen), noBody
 export function frames(move, opts = {}) {
   const { bpm = 110, size = 1, fps = 30, seconds = 6, S = 0.1, at = [0.5, 0.4], jitter = 0, src = 'pose', only = null, noBody = false, seed = 1, wobble = 0, from = 0 } = opts;
-  const rnd = rng(seed), fn = MOVES[move] || NOT_MOVES[move], out = [], ph = rnd() * 6;
+  const rnd = rng(seed), fn = MOVES[move] || OWN_MOVES[move] || NOT_MOVES[move], out = [], ph = rnd() * 6;
   let warp = 0;
   for (let i = 0; i < seconds * fps; i++) {
     const t = from + i / fps;

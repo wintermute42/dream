@@ -78,6 +78,34 @@ def _mark(m) -> dict:
             "secs": min(max(float(_plain(m.get("secs", 4))), 0.0), 60.0)}
 
 
+FRAME_KEYS = frozenset({"t", "v", "c", "g", "gc", "s", "b", "o", "i", "p"})
+
+
+def clean_frames(frames: list, keys: list, more: frozenset = frozenset()) -> list | None:
+    """The frames of a session as they are kept – numbers, short names and structure alone –, or None when one of
+    them is no frame. `more`: further keys a frame may have (#236: a taught move's frames)."""
+    out = []
+    for f in frames:
+        if not isinstance(f, dict) or set(f) - FRAME_KEYS - more:
+            return None
+        f = _plain(f)
+        if not isinstance(f.get("t"), (int, float)) or isinstance(f["t"], bool) or f["t"] < 0:
+            return None
+        if not all(isinstance(f.get(k), list) and len(f[k]) == len(keys) and all(_number(x) for x in f[k]) for k in ("v", "c")):
+            return None
+        if out and f["t"] < out[-1]["t"]:           # time runs forward: the player looks frames up by it
+            return None
+        i, p = f.get("i"), f.get("p")               # what the detector was fed, and the points to draw
+        if not isinstance(i, dict) or not isinstance(p, dict) or not isinstance(i.get("f"), dict):
+            return None
+        if not isinstance(i.get("h"), dict) or not all(isinstance(i["h"].get(h), list) for h in ("l", "r")):
+            return None
+        if not all(p.get(k) is None or (isinstance(p[k], list) and all(_number(x) for x in p[k])) for k in ("b", "l", "r")):
+            return None
+        out.append(f)
+    return out
+
+
 def clean(s) -> dict | None:
     """A session as it is kept, or None when it is not one (fail closed: nothing is written)."""
     try:
@@ -92,25 +120,9 @@ def clean(s) -> dict | None:
             return None
         if not isinstance(marks, list) or len(marks) > 500:
             return None
-        out = []
-        for f in frames:
-            if not isinstance(f, dict) or set(f) - {"t", "v", "c", "g", "gc", "s", "b", "o", "i", "p"}:
-                return None
-            f = _plain(f)
-            if not isinstance(f.get("t"), (int, float)) or isinstance(f["t"], bool) or f["t"] < 0:
-                return None
-            if not all(isinstance(f.get(k), list) and len(f[k]) == len(keys) and all(_number(x) for x in f[k]) for k in ("v", "c")):
-                return None
-            if out and f["t"] < out[-1]["t"]:           # time runs forward: the player looks frames up by it
-                return None
-            i, p = f.get("i"), f.get("p")               # what the detector was fed, and the points to draw
-            if not isinstance(i, dict) or not isinstance(p, dict) or not isinstance(i.get("f"), dict):
-                return None
-            if not isinstance(i.get("h"), dict) or not all(isinstance(i["h"].get(h), list) for h in ("l", "r")):
-                return None
-            if not all(p.get(k) is None or (isinstance(p[k], list) and all(_number(x) for x in p[k])) for k in ("b", "l", "r")):
-                return None
-            out.append(f)
+        out = clean_frames(frames, keys)
+        if out is None:
+            return None
         return {"format": FORMAT, "version": VERSION, "kind": s["kind"], "rate": float(_plain(s.get("rate", 30))),
                 "aspect": float(_plain(s.get("aspect", 16 / 9))), "seconds": float(out[-1]["t"]), "keys": keys, "frames": out,
                 "marks": [_mark(m) for m in marks], "map": dance.clean_rows(s.get("map"))}
@@ -270,16 +282,18 @@ def _take_test(sid: str, body: bytes) -> str | None:
     return export(sid, t) if t else None
 
 
-async def _body(request: Request) -> bytes | None:
-    """A request's body – never more than a session can be, whatever the header said; None when it is empty or too large."""
+async def _body(request: Request, limit: int | None = None) -> bytes | None:
+    """A request's body – never more than a session can be (or `limit` bytes), whatever the header said; None when it
+    is empty or too large."""
+    limit = MAX_BYTES if limit is None else limit
     chunks, size = [], 0
-    if int(request.headers.get("content-length") or 0) <= MAX_BYTES:
+    if int(request.headers.get("content-length") or 0) <= limit:
         async for chunk in request.stream():
             chunks.append(chunk)
             size += len(chunk)
-            if size > MAX_BYTES:
+            if size > limit:
                 break
-    return b"".join(chunks) if chunks and size <= MAX_BYTES else None
+    return b"".join(chunks) if chunks and size <= limit else None
 
 
 @app.post("/dance/sessions")

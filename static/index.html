@@ -787,6 +787,7 @@
 <script src="/static/fx.js"></script>
 <script src="/static/gl-stage.js"></script>
 <script src="/static/calib.js"></script>
+<script src="/static/dancemoves.js"></script>
 <script src="/static/dance.js"></script>
 <script src="/static/dancemap.js"></script>
 <script src="/static/movement.js"></script>
@@ -879,7 +880,7 @@
     edges: $('edges').checked && mode !== 'dream' ? +$('edges_scale').value : 0,
     // #123: the style model and the reference picture (SDXL-Turbo only; the prompt stays as it is)
     style: $('style').value, sa: +$('style_amt').value, ref: $('style_ref').value, ra: +$('style_ref_amt').value,
-    ...driftSettings(), ...energySettings(), ...sceneFade() });
+    ...driftSettings(), ...energySettings(), ...pieceSettings(), ...sceneFade() });
   // the autopilot's words for the music character (#65) ride along with the prompt the renderer gets
   function withStyle(st) {
     if (!apStyle) return st;
@@ -2274,14 +2275,15 @@
   // ---------- #127: the final prompt – what the AI really gets and who added what ----------
   // The same pieces as settings() uses, in its order: a prompt change (a scene, by hand) wins over the energy words,
   // which win over the drift variants; the autopilot's words for the music come on top. Each addition has its own switch right here.
-  const MIX_OFF = { drift: 'drift_prompt', energy: 'row:ai.prompt', ap: 'ap_words' };
-  const MIX_NAME = { drift: T('Vary the prompt gently'), energy: T('Content reacts to energy'), ap: T('Autopilot: words for the music') };
+  const MIX_OFF = { drift: 'drift_prompt', energy: 'row:ai.prompt', piece: 'row:ai.piece', ap: 'ap_words' };
+  const MIX_NAME = { drift: T('Vary the prompt gently'), energy: T('Content reacts to energy'), piece: T('Prompt piece of a move of yours'), ap: T('Autopilot: words for the music') };
   let mixShown = '';
   function promptMix() {
     const base = ui.prompt.value.trim() || 'psychedelic dream', parts = [], pc = v => Math.round(v * 100) + ' %';
-    const sf = sceneFade(), en = energySettings(), dr = driftSettings();
+    const sf = sceneFade(), en = energySettings(), dr = driftSettings(), pi = pieceSettings();
     const tail = t => t && t.startsWith(base + ', ') ? t.slice(base.length + 2) : t;
     if (sf.prompt) parts.push({ src: 'scene', text: T('Blending over: still {p} of the old prompt', { p: pc(1 - sf.pt) }) });
+    else if (pi.prompt) parts.push({ src: 'piece', text: T('“{t}” · {p}', { t: tail(pi.prompt2), p: pc(pi.pt) }) });
     else if (en.prompt) parts.push({ src: 'energy', text: T('calm “{a}” ⇄ wild “{b}” · {p} wild', { a: tail(en.prompt), b: tail(en.prompt2), p: pc(en.pt) }) });
     else if (dr.prompt) parts.push({ src: 'drift', text: T('“{a}” → “{b}” · {p}', { a: tail(dr.prompt), b: tail(dr.prompt2), p: pc(dr.pt) }) });
     if (apStyle) parts.push({ src: 'ap', text: T('“{t}”', { t: apStyle }) });
@@ -2323,6 +2325,13 @@
     if (!touchOn('touch_content') || !energyWords.calm || energyWords.for !== ui.prompt.value.trim()) return {};
     const p = ui.prompt.value.trim();
     return { prompt: p + ', ' + energyWords.calm, prompt2: p + ', ' + energyWords.wild, pt: +clamp(moveGain('ai.prompt'), 0, 1).toFixed(2) };
+  }
+
+  // #236: a taught move brings its piece of prompt along – blended in by as much as its row asks for (only with the
+  // clutch engaged, like everything the dance does); it goes before the energy words while it acts
+  function pieceSettings() {
+    const pc = movePiece(), p = ui.prompt.value.trim() || 'psychedelic dream';
+    return pc && pc.pt > 0.02 ? { prompt: p, prompt2: p + ', ' + pc.text, pt: pc.pt } : {};
   }
 
   // the picture cut into grid cells, each cell drawn where its (moved) corners are now
@@ -3261,6 +3270,26 @@
   const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); }, fxNames: FX_NAMES,
     sources: [...DreamDance.SOURCES, 'present'], targets: DreamDanceMap.targets(DreamFx.ALL) });
   tableShow = () => dancePanel.map(tableRows());
+  // #236: the moves the dancer taught (kept by Dream: dancemoves.py). The stream recognises them like the built-in
+  // gestures; what one does is a row of the table with the source "g.<its id>", named as the dancer named it.
+  let danceMoves = [];
+  function movesSet(list) {
+    danceMoves = (Array.isArray(list) ? list : []).filter(m => m && typeof m.id === 'string' && typeof m.name === 'string');
+    danceDet.setMoves(danceMoves.map(m => DreamMoves.compile(m.tpl, m.id)).filter(Boolean));
+    DancePanel.setNames(danceMoves); dancePanel.renamed();
+  }
+  const movesLoad = () => fetch('/dance/moves').then(r => (r.ok ? r.json() : null)).then(d => { if (d && Array.isArray(d.moves)) movesSet(d.moves); }).catch(() => { /* asked again with the next change */ });
+  movesLoad();
+  // … and the piece of prompt a move brings along: the row to "ai.piece" that asks for most says which move's
+  function movePiece() {
+    let top = null;
+    for (const r of moveTables[moveMode()] || []) {
+      if (!r.on || r.dst !== 'ai.piece' || !r.src.startsWith('g.')) continue;
+      const v = Math.abs(mover.of(moveMode(), r.id)), m = danceMoves.find(x => x.id === r.src.slice(2));
+      if (m && m.piece && v > 0.02 && (!top || v > top.v)) top = { v, text: m.piece };
+    }
+    return top ? { text: top.text, pt: +clamp(moveGain('ai.piece'), 0, 1).toFixed(2) } : null;
+  }
   setInterval(() => {                                  // the display, a dozen times a second while its part of the card is open and in view
     if (!$('movemap').open || !moveSeen()) return;
     dancePanel.show(mover.frame || danceNow(), id => mover.of(tableMode(), id));
@@ -3309,12 +3338,13 @@
     lab: labOpts, ...labLink,
     // what the page shows beside the lab: the mode, the clutch (and how far the dance is in), the sets, the two clocks
     state: () => ({ mode: moveMode(), clutch: clutchOn(), hold: mover.hold, set: $('dance_set').value, sets: danceSets, own: danceOwnSets,
-      move: moveClock(), music: musicClock(), camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang,
+      move: moveClock(), music: musicClock(), camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang, moves: danceMoves,
       // the dance's own detection (the setting), what the camera really runs, and the cameras to choose from
       kind: $('dance_kind').value, tracking: flowOn() ? tracker.kind : 'off', cam: $('flow_device').value, cams: [...$('flow_device').options].map(o => [o.value, o.textContent]) }),
     setKind: v => { if (DreamMove.DANCE_KINDS.includes(v)) { $('dance_kind').value = v; $('dance_kind').dispatchEvent(new Event('change', { bubbles: true })); } },
     setCam: v => { $('flow_device').value = v; $('flow_device').dispatchEvent(new Event('change', { bubbles: true })); },
     setMode: m => { $('move_mode').value = m; $('move_mode').dispatchEvent(new Event('change', { bubbles: true })); },
+    movesChanged: () => { movesLoad(); },             // #236: the page taught, renamed or deleted a move
     setClutch, setSet: name => { $('dance_set').value = name; $('dance_set').dispatchEvent(new Event('change', { bubbles: true })); },
     // kept first, chosen second: choosing a set loads its rows, and they must be the ones just kept
     saveSet: name => { $('dance_set').dataset.want = name; sendCtl({ dance_set_save: name }); sendCtl({ set: { dance_set: name } }); },
@@ -3803,6 +3833,7 @@
       if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
       if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
       if (m.dance && m.dance.tables && !dancePanel.busy && !danceMapTimer) { moveTables = m.dance.tables; dancePanel.map(tableRows()); }
+      if (m.dance && Array.isArray(m.dance.moves)) movesSet(m.dance.moves);   // #236
       if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; danceOwnSets = m.dance.own_sets || []; setsSync(); }   // #251
       if (m.move && Array.isArray(m.move.sources)) moveRemote = m.move.sources;   // #249: the sources outside the stage
       if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad

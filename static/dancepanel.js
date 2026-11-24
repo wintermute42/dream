@@ -7,6 +7,7 @@
    - the mapping: one row per "source → target" with its switch and its strength; rows can be added, removed, and
      the built-in table brought back. The table itself is Dream's (dance.py): the card sends what a hand changes
      (`send`) and shows what Dream says (`map`).
+   #236: a taught move is a source like a gesture, under the name the dancer gave it (`setNames`).
    `label`, `edit` and `add` are pure (tests/js/dancemap.test.mjs). Looks: dancepanel.css – only transform and opacity
    move. A global `DancePanel`. */
 (function (root) {
@@ -25,7 +26,7 @@
     'fx.speed': () => T('Tempo of the picture'), 'stage.calm': () => T('Calm the dream'),
     'touch.paint': () => T('Paint: hands draw light trails'), 'touch.warp': () => T('Touch: hands push and swirl'), 'touch.impulse': () => T('Impulses: a wave at the hand'),
     'touch.light': () => T('Light in the dark'), 'touch.shape': () => T('Movement shapes the effects'),
-    'ai.prompt': () => T('Content by energy (calm ↔ wild)'), 'ai.react': () => T('Movement pushes the AI sliders'),
+    'ai.prompt': () => T('Content by energy (calm ↔ wild)'), 'ai.react': () => T('Movement pushes the AI sliders'), 'ai.piece': () => T('Prompt piece of the move'),
     'ai.strength': () => T('Transformation'), 'ai.mix': () => T('Dream share'), 'ai.zoom': () => T('Zoom pull'), 'ai.rot': () => T('Rotation'), 'ai.hue': () => T('Colour drift'),
   };
   const HAND = { l: () => T('Left hand'), r: () => T('Right hand') };
@@ -34,9 +35,13 @@
   // the name a table has for a key, or null: only the table's own entries, whatever the key says
   const texts = new Map([SRC, DST, HAND, FROM].map(t => [t, new Map(Object.entries(t))]));
   const named = (table, key) => { const f = texts.get(table).get(key); return f ? f() : null; };
+  // #236: the moves the dancer taught – the source "g.<id>" reads as the name the dancer gave it
+  const moveNames = new Map();
+  function setNames(moves) { moveNames.clear(); for (const m of Array.isArray(moves) ? moves : []) if (m && typeof m.id === 'string') moveNames.set(m.id, String(m.name || m.id)); }
   function label(name, fxNames = {}) {
     const own = named(SRC, name) || named(DST, name);
     if (own) return own;
+    if (name.startsWith('g.') && moveNames.has(name.slice(2))) return moveNames.get(name.slice(2));
     const [a, b] = name.split('.'), hand = named(HAND, a), what = named(SRC, b);
     if (hand && what) return hand + ': ' + what;
     if (a === 'fx' && b) return has(fxNames, b) ? fxNames[b] : b;
@@ -97,7 +102,7 @@
       if (![...sel.options].some(o => o.value === value)) { const o = el('option', '', label(value, fxNames)); o.value = value; sel.append(o); }   // a name this page does not know yet
       sel.value = value;
     }
-    const srcGroups = () => [[T('Always on'), sources.filter(s => !s.includes('.'))], [T('Gestures'), sources.filter(s => s.startsWith('g.'))],
+    const srcGroups = () => [[T('Always on'), sources.filter(s => !s.includes('.'))], [T('Gestures'), sources.filter(s => s.startsWith('g.'))], [T('Your moves'), [...moveNames.keys()].map(id => 'g.' + id)],
       [T('Fingers'), sources.filter(s => /^[lr]\./.test(s))]];
     const dstGroups = () => [[T('Effects (at once)'), Object.keys(targets).filter(t => targets[t] === 'instant')], [T('AI sliders (slow)'), Object.keys(targets).filter(t => targets[t] === 'slow')]];
     // the rows are built anew only when the table's shape changed; a strength being dragged keeps its slider
@@ -149,10 +154,10 @@
       if (held) for (const r of rows) { const dot = map.querySelector(`[data-id="${r.id}"] .dp-live`); if (dot) dot.style.opacity = Math.min(1, Math.abs(held(r.id)) * 1.5).toFixed(2); }
     }
     // Dream's word on the table – not taken while a hand's change is still on its way (its echo would undo the newer one)
-    return { map(next) { if (timer) return; rows = next || []; draw(); }, show, get busy() { return !!timer; }, get rows() { return rows; } };
+    return { map(next) { if (timer) return; rows = next || []; draw(); }, show, renamed() { drawn = ''; draw(); }, get busy() { return !!timer; }, get rows() { return rows; } };
   }
 
-  const api = { mount, label, edit, add };
+  const api = { mount, label, edit, add, setNames };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DancePanel = api;
 })(typeof window !== 'undefined' ? window : globalThis);

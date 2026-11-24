@@ -1,0 +1,38 @@
+/* Moves of one's own (#236) on the page of Dream Dance – in the page's look (movepage.css: its colours, buttons,
+   cards). Only transform and opacity are animated; nothing holds up a click. */
+.mt { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,.03); margin-bottom: 12px; display: grid; gap: 8px; }
+.mt-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
+.mt-head h2 { margin: 0; font-size: 1.05em; }
+.mt-state { color: var(--text); font-size: .9em; min-height: 1.45em; }
+.mt-teach { border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; }
+.mt-teach[hidden], .mt-form[hidden], .mt-reps[hidden], .mt-big[hidden], .mt-bar[hidden], .mt .btn[hidden] { display: none; }
+.mt-taking .mt-teach { border-style: solid; border-color: #e0475b; }
+/* the countdown and "show it now": large, to be read from where the dancer stands */
+.mt-big { font-size: 3.2em; font-weight: 700; line-height: 1.1; text-align: center; font-variant-numeric: tabular-nums; }
+.mt-bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.mt-bar i { display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left center; will-change: transform; }
+.mt-taking .mt-bar i { background: #e0475b; }
+.mt-reps, .mt-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mt-reps { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.mt-rep { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 6px; align-items: center; font-size: .82em; color: var(--muted);
+  animation: mt-in .25s ease-out both; }
+.mt-rep canvas { grid-column: 1 / -1; }
+.mt-cv { display: block; width: 100%; aspect-ratio: 1; background: #000; border-radius: 8px; }
+.mt .btn.mt-x, .mt .btn.mt-del { min-height: 44px; min-width: 44px; padding: 2px 8px; }
+.mt-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; align-items: end; }
+.mt-field { margin: 0; display: grid; gap: 4px; }
+.mt-list { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+.mt-move { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto; grid-template-rows: 1fr auto; gap: 6px 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px;
+  animation: mt-in .25s ease-out both; }
+.mt-move .mt-cv { grid-row: 1 / 3; }
+.mt-body { display: grid; gap: 4px; min-width: 0; }
+.mt-body input, .mt-body select { min-height: 36px; padding: 4px 8px; font-size: .88em; }
+.mt-move .mt-del { grid-row: 1; grid-column: 3; align-self: start; }
+/* how sure Dream is of the move right now; lit while it is the recognised one */
+.mt-meter { grid-column: 2 / 4; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.mt-meter i { display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left center; will-change: transform; }
+.mt-on { border-color: var(--ok); }
+.mt-on .mt-meter i { background: var(--ok); }
+.mt-none { color: var(--muted); font-size: .9em; grid-column: 1 / -1; }
+@keyframes mt-in { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mt-rep, .mt-move { animation: none; } }
