@@ -322,8 +322,9 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   Bildern 100 %, Musik- und Bewegungs-Reaktion 1×, Direktheit, Umriss- und Pose-Stärke, Effekt-Stärke –, die Effekte
   blenden aus, und der Autopilot geht aus. Auch der **Stil** geht – kein Stil-Modell, kein Stil-Referenzbild, beide
   Stärken auf Standard –, und zwar in einem Schritt am Anfang statt gleitend, damit das Modell nur einmal umgebaut
-  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. **Es bleiben:** Prompt, Modell, Qualität,
-  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud, Master-Helligkeit,
+  wird; und das **Muster** der Musik steht wieder auf „Automatisch“. Die **Master-Helligkeit** steht sofort wieder auf
+  100 % (eine gedimmte oder schwarze Bühne leuchtet wieder). **Es bleiben:** Prompt, Modell, Qualität,
+  Auflösung, Format, Eingang und Kameras, MIDI- und Sensor-Zuordnungen, Playlist, Ausgaben, Cloud,
   die Schlüssel und alle anderen Schalter (Berührungs-Optionen, im Takt pulsieren, Wechsel einrasten, Umrisse und Pose
   an oder aus …). 10 Sekunden lang steht auf dem Knopf **„Zurückgesetzt · ↶ Rückgängig“** (darunter läuft ein Balken
   ab): ein Tipp, und alles gleitet genau auf die Werte von vorher zurück (Stil und Muster kommen ebenfalls in einem
@@ -743,9 +744,10 @@ Dream Control (über https, siehe oben) hat eine Karte **„Dieses Gerät“**:
   abgerissene Verbindung beendet sie, und die Bühne geht zurück zum Traum – nie von selbst auf die Kamera des Macs.
 - **🧭 Bewegung** schickt die Sensoren des Geräts (Beschleunigung, Drehung, Neigung) wie einen Sensor am Arm (siehe
   „Sensor-Eingang“): wählen, was sie steuert, **📡 Lernen** tippen und das Gerät 2 Sekunden bewegen; **ein Schlag** (das
-  Gerät kräftig schwingen) wird zum Impuls (Blitz, Dreh-Ruck, neues Motiv, nächste Szene, Blackout). Die Bühne zeigt
-  „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI, Sensoren,
-  Master)“ wie die von OSC.
+  Gerät kräftig schwingen) wird zum Impuls (Blitz, Dreh-Ruck, neues Motiv, nächste Szene, Blackout); der 🧭-Knopf
+  ruckt kurz, wenn der Mac einen Schlag erkannt hat. Der Blitz ist ein Lichtpuls auf der Bühne, mit und ohne Musik. Die
+  Bühne zeigt „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI,
+  Sensoren, Master)“ wie die von OSC.
 - **Immer nur ein Gerät:** Live-Kamera und Bewegung kommen nur von einem Gerät – dem, das Dream Control ist. Wer Dream
   Control auf einem anderen Gerät übernimmt, beendet beides auf dem ersten. Gäste können beides nicht senden.
 - Über einfaches http erklärt die Karte, dass der Browser Kamera und Bewegung nur über https freigibt.
@@ -1200,7 +1202,11 @@ Dream merkt sich den Schalter auch über einen Neustart, wie den Autopilot; eine
 (das frühere `--flow` gibt es nicht mehr). Daneben die Art:
 - **Hände (KI):** Ein Körpermodell (MediaPipe Pose, läuft auf der Grafikkarte) findet beide Hände, auch im Halbdunkel.
   Beim allerersten Einschalten lädt Dream das Modell einmal herunter (ca. 15 MB, nach `~/.cache/dream/mediapipe`),
-  danach geht alles offline.
+  danach geht alles offline. Der Punkt folgt einer Hand: Verliert das Modell sie kurz, springt er nicht zur anderen
+  Hand, und ein Punkt, der für ein einziges Bild weit weg auftaucht, zählt nicht; „jemand kommt / geht“ wartet einen
+  Moment, so gibt eine für ein paar Bilder verlorene Hand keinen Lichtpuls. Das Modell braucht den Oberkörper im Bild;
+  springen die Hände trotzdem, mit **D** (Diagnose) ansehen, was die Kamera sieht – ein Bildschirm oder die Projektion im
+  Bild kann Figuren zeigen, die es für eine Person hält.
 - **Feuer/LED/Lichtspuren:** helle Punkte im Bild, bis zu vier. Die Schwelle richtet sich nach der Raumhelligkeit:
   Im Dunkeln reicht eine Fackel, in einer hellen Halle zählen nur wirklich helle Lichter.
 
@@ -1396,13 +1402,22 @@ nur von Geräten im Heimnetz. Ohne Extra-App: Das Dream-Control-Gerät selbst sc
 3. Im Bedienfeld unter **Sensor-Eingang** erscheint „… Werte/s von …“ und darunter die Messwerte als Balken.
 
 **Zuordnen:** Ziel wählen (z. B. Zoom-Sog), **📡 Lernen** klicken und 2 Sekunden lang genau die Bewegung machen, die
-es steuern soll (z. B. Arm hoch/runter). Dream nimmt den Messwert, der sich jetzt deutlich mehr bewegt als vorher.
-⇅ kehrt die Richtung um, ✕ löscht. Jeder Messwert wird geglättet und passt seinen Bereich selbst an – keine
-Kalibrierung. Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository).
+es steuern soll (z. B. Arm hoch/runter oder das Handy neigen). Dream nimmt den Messwert, der sich jetzt deutlich mehr
+bewegt als im Moment davor – ein Gerät, das kurz vorher geschwungen oder gedreht wurde, lernt genauso. Ein gleichmäßiges
+Drehen oder Neigen (Ausrichtung) gewinnt vor einem Schütteln, ein Winkel vor dem Beschleunigungssensor, den jeder Schlag
+durchrüttelt; Drehrate und Beschleunigung ohne Schwerkraft nimmt Dream nur, wenn sich sonst nichts bewegt hat, denn sie
+springen um null. Die gezeigte Bewegung ist der ganze Bereich des Reglers (mindestens etwa 10° Neigung, damit bei einer
+winzigen Lernbewegung nicht das Rauschen des Sensors steuert), und eine kleine tote Zone hält den Regler still, solange
+das Gerät ruht – auf den Tisch gelegt, bleibt er stehen. Ein Ziel neu lernen ersetzt seinen Messwert (ein Messwert je Ziel). ⇅ kehrt die Richtung um, ✕ löscht.
+Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository); mit einer früheren Version gelernte Zuordnungen
+behalten den alten, selbst angepassten Bereich (jetzt nie enger als das Rauschen des Sensors) – für das ruhigste
+Ergebnis neu lernen.
 
 **Schlag (Peitschenschlag):** Eine kräftige, ruckartige Bewegung ist ein Impuls (höchstens alle 0,25 s). Unter
 „Schlag →“ festlegen, was er auslöst: Blitz, Dreh-Ruck, neues Motiv, nächste Szene oder Blackout;
-„Schlag-Empfindlichkeit“ regelt, wie kräftig er sein muss. **Schwung** (wie schnell sich das Handgelenk dreht)
+„Schlag-Empfindlichkeit“ regelt, wie kräftig er sein muss – auch ganz oben muss ein Schlag deutlich über dem eigenen
+Zittern des Geräts liegen, ein Handy auf dem Tisch löst also nichts aus. Das Bedienfeld zählt die Schläge neben den
+Werten/s („· Schläge 3“): blitzt die Bühne ohne Schlag, zeigt die Zahl, ob es vom Sensor kam. **Schwung** (wie schnell sich das Handgelenk dreht)
 steht im Bedienfeld. Die Werte laufen über dasselbe weiche Gleiten wie beim MIDI-Controller.
 
 Ideen: Armhöhe → Zoom-Sog oder Master-Helligkeit, Handgelenk drehen (Rollen) → Drehung, Kippen → Farbdrift,
@@ -1432,8 +1447,7 @@ Minuten (Maschine anlegen, Python und Modell laden) rechnet Dream in der Cloud. 
 
 #### Wer gerade rechnet
 
-Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später – und pausiert wieder, wenn sie neu übersetzt. Das
-**Abzeichen** oben in der Karte Rechnen, dasselbe in Dream Control, sagt, was in diesem Moment gilt:
+Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später. Das **Abzeichen** oben in der Karte Rechnen, dasselbe in Dream Control, sagt, was in diesem Moment gilt:
 
 | Abzeichen | Bedeutung |
 |---|---|
@@ -1441,6 +1455,7 @@ Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später – und pausi
 | **Mac überbrückt – Cloud: … · noch ca. X Min. (kostet schon)** | „Cloud-GPU“ ist gewählt, die Cloud liefert aber noch keine Bilder: Solange malt der Mac. |
 | **Cloud bereitet vor: … · bis dahin keine Bilder** | Dasselbe mit ausgeschaltetem Überbrücken: Das Bild steht. |
 | **Rechnet gerade: Cloud ✓** | Die Cloud-GPU malt. |
+| **Rechnet gerade: Cloud · unoptimiert (etwas langsamer)** | Die Cloud-GPU malt, aber diese Art Bild wurde bei ihrem Start nicht vorbereitet (siehe unten): gleicher Look, keine Pause, etwas weniger Bilder pro Sekunde. |
 | **Cloud nicht erreichbar – Mac rechnet** | Eine Maschine ist da (und kostet), antwortet aber nicht. „Starten“ verbindet neu, „Löschen“ beendet die Kosten. |
 | **Keine Cloud-GPU gestartet – Mac rechnet** | „Cloud-GPU“ ist gewählt, es läuft keine. |
 
@@ -1448,12 +1463,19 @@ Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später – und pausi
   Modell lädt → Wird optimiert → Bereit*, dazu eine grobe Restzeit, bis Bilder kommen. Eine frische Maschine lädt das
   Modell bei jedem Start neu herunter (SD-Turbo etwa 2,6 GB, SDXL-Turbo etwa 7 GB). Eine Log-Zeile wird nirgends
   gezeigt; was `dream-cloud` zuletzt gemeldet hat, steht im Tooltip der Zeile unter den Tasten, solange es arbeitet.
-- **„Wird optimiert“ auch später:** Ein übersetztes Modell übersetzt von selbst neu, wenn etwas Neues kommt – vor
-  allem eine andere Größe –, und liefert dann minutenlang keine Bilder. Der Renderer auf der Maschine merkt das (ein
-  Bild, das auf einem übersetzten Modell länger als 3 Sekunden braucht) und meldet es; das Abzeichen zeigt den
-  Schritt, und der Mac überbrückt.
+- **„Wird optimiert“ gibt es nur beim Start, nie auf der Bühne.** Vor ihrem ersten Bild übersetzt die Cloud-GPU das
+  Modell für die üblichen Bilder (512 und 384 px, je quadratisch und 16:9 – 896×512 und 704×384; mit der Technik fürs Referenzbild, wenn beim Start ein
+  Referenzbild gewählt war) – dabei kann sie nicht malen, das ist also ein Schritt des Starts, und der Mac überbrückt
+  ihn. Danach wird nichts mehr übersetzt: Kommt etwas, wofür das Modell nicht vorbereitet wurde – eine andere Größe,
+  das Format 16:9, Pose oder Konturen, das erste Referenzbild, ein auf der Bühne gewechseltes Modell –, **malt die
+  Cloud unübersetzt weiter**: keine Pause, gleicher Look, etwas langsamer, und der Mac springt **nicht** ein. Das
+  Abzeichen sagt dann „Cloud · unoptimiert (etwas langsamer)“. Es kann das auch bei einer Größe sagen, die in
+  Wahrheit noch übersetzt läuft (PyTorch entscheidet das Bild für Bild und verrät es nicht). **Grenze:** Eine nicht
+  vorbereitete Art Bild bleibt unoptimiert, bis die Maschine gelöscht wird; sie zu optimieren, während die Cloud
+  malt, geht auf einer Maschine nicht (gemessen auf einer RTX 4090: dabei nur 0,2–0,4 Bilder/s und kaputte Bilder).
 - **Automatisch lokal überbrücken** (Schalter in der Karte und in Dream Control, an, solange du ihn nicht ausschaltest):
-  Solange die gewählte Cloud-GPU startet, herunterlädt, lädt oder optimiert – oder nicht antwortet –, malt der Mac, und
+  Solange die gewählte Cloud-GPU nicht malen kann – sie startet, lädt herunter, lädt, optimiert vor ihrem ersten Bild
+  oder antwortet nicht –, malt der Mac (nie, während die Cloud malt, ob optimiert oder nicht), und
   die Cloud übernimmt von selbst, sobald sie Bilder liefert. Beachte: Der Mac ist **langsamer** (SDXL-Turbo sehr viel
   langsamer), und er **lädt dafür sein eigenes Modell** (Sekunden bis eine Minute; beim allerersten Mal ein Download) –
   es bleibt danach geladen, das nächste Überbrücken beginnt sofort. Der Look kann zwischen beiden etwas abweichen. Mit
@@ -1474,7 +1496,10 @@ Eine Cloud-GPU kostet ab dem Start, malt aber erst Minuten später – und pausi
 - **Turbo (#100, #131):** Auf der Cloud-GPU wird das Modell vor dem ersten Bild für die Karte übersetzt
   (torch.compile, TF32), schlank in einer Variante. Den übersetzten Code bringt `dream-cloud` als **Cache** auf den Mac
   (`~/.cache/dream/compile`, je GPU-Typ, PyTorch-Version und Modell) und beim nächsten Start wieder mit: Der **erste**
-  Start auf einem GPU-Typ dauert gut 6 Minuten bis zum ersten Bild, jeder weitere etwa 4 (gemessen RTX 4090, 2026-11-17). Die Karte
+  Start auf einem GPU-Typ dauert etwa 7 Minuten bis zum ersten Bild, jeder weitere etwa 1,5 (gemessen RTX 4090,
+  2026-11-24, SDXL-Turbo, quadratisch und 16:9 mit 512 und 384 px: „Wird optimiert“ dauerte ohne Cache etwa 5 Minuten,
+  mit Cache eine halbe; der erste Start nach dieser Änderung übersetzt neu, der frühere Cache enthält die 16:9-Bilder
+  nicht). Die Karte
   Rechnen zeigt, was gerade läuft. **Stil-Referenzbild in der Cloud:** Die Technik dafür kommt erst mit dem ersten
   Referenzbild; danach malt die Cloud unübersetzt weiter (gemessen etwa 4,5 statt 5 Bilder/s) – ist beim nächsten Start ein
   Referenzbild gewählt, wird gleich mit ihr übersetzt. (Malen, während im Hintergrund übersetzt wird, war ausprobiert

@@ -101,7 +101,7 @@ try:
 except Exception:
     sys.exit(0)
 if h.get("failed"): print("failed")
-elif h.get("compiling"): print("compiling")
+elif h.get("compiling") and not h.get("painting"): print("compiling")
 elif h.get("ready", True): print("ready")          # a worker of an earlier version answers once its model is loaded
 elif h.get("first_download"): print("download")
 else: print("loading")'

@@ -4,7 +4,8 @@
 // go through T() of i18n.js.
 //
 //   cloud    the status the server pushes (cloud.py): { state, busy, type, minutes, cost_eur, …, work: { phase,
-//            eta_min, percent } } – work.phase is the step the cloud GPU is at (cloud.py names them)
+//            eta_min, percent, unoptimized } } – work.phase is the step the cloud GPU is at (cloud.py names them);
+//            unoptimized: it paints, but uncompiled (not prepared for this kind of picture): slower, never a pause
 //   backend  what the owner chose: 'local' or 'cloud'
 //   bridge   the setting "cloud_bridge": while the cloud GPU sends no pictures, the Mac paints
 window.DreamCompute = (() => {
@@ -24,7 +25,11 @@ window.DreamCompute = (() => {
     const step = preparing ? stepName(phase, work.percent) : '';
     const left = work.eta_min ? T('about {n} min left (it costs already)', { n: work.eta_min }) : T('it costs already');
     let kind = 'mac', text = T('Computing now: Mac'), sub = '';
-    if (wanted && ready) { kind = 'cloud'; text = T('Computing now: Cloud ✓'); }
+    if (wanted && ready && work.unoptimized) {
+      kind = 'cloud'; text = T('Computing now: Cloud · not optimised (a little slower)');
+      sub = T('This kind of picture was not prepared at the start – the cloud paints on without a pause.');
+    }
+    else if (wanted && ready) { kind = 'cloud'; text = T('Computing now: Cloud ✓'); }
     else if (preparing && !wanted) sub = T('The cloud prepares: {step} · {left}', { step, left });
     else if (preparing && bridge) { kind = 'bridge'; text = T('The Mac bridges – cloud: {step} …', { step }); sub = T('{left} · the cloud takes over by itself', { left }); }
     else if (preparing) { kind = 'wait'; text = T('The cloud prepares: {step} …', { step }); sub = T('{left} · no pictures until then', { left }); }

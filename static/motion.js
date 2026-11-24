@@ -4,7 +4,7 @@
 // difference of successive frames keeps the hand's tempo and direction, also when it is only a blur) and poor light
 // (the picture is brightened and its contrast raised for the analysis, thresholds follow the room's brightness).
 // It reports what flowtrack used to send: present, x, y, speed, spread, count, points (0…1 in the camera picture).
-window.DreamMotion = (() => {
+(typeof window !== 'undefined' ? window : globalThis).DreamMotion = (() => {
   'use strict';
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
@@ -37,6 +37,36 @@ window.DreamMotion = (() => {
     { names: ['Fire off', 'Feuer aus'], when: f => !f.present, for: 2.0 },
     { names: ['Fast', 'Schnell'], when: f => f.speed > 1.0, for: 0.5, cooldown: 4 },
   ];
+  // #240: which detected hand is "the" hand. The pose model lists the right hand first: when it lost that one for a
+  // frame (poor light, half out of the picture) the left one stood first and the point jumped across the picture. The
+  // hand nearest to where the point was going is taken; one far from it (another hand, a point the model guessed)
+  // counts only when the next detection confirms it there. last: [x, y, t, vx, vy] or null; pend: the unconfirmed point.
+  const REACH = 0.15, REACH_PER_S = 3, CONFIRM = 0.1;   // picture units; per second since the hand was last seen
+  function pickHand(blobs, last, t, pend) {
+    if (!blobs.length || !last) return { blobs, pend: null };
+    const dt = Math.max(0, t - last[2]), px = last[0] + last[3] * dt, py = last[1] + last[4] * dt;
+    let best = 0, bd = Infinity;
+    blobs.forEach((b, i) => { const d = Math.hypot(b[0] - px, b[1] - py); if (d < bd) { bd = d; best = i; } });
+    const b = blobs[best], ordered = [b, ...blobs.filter((_, i) => i !== best)];
+    if (bd <= REACH + REACH_PER_S * dt) return { blobs: ordered, pend: null };
+    if (pend && Math.hypot(b[0] - pend[0], b[1] - pend[1]) <= CONFIRM) return { blobs: ordered, pend: null };
+    return { blobs: [], pend: [b[0], b[1]] };
+  }
+  // #240: presence as the server hears it: there after 0.15 s of detections, gone after 1 s without one. A hand the
+  // model loses for a frame no longer reports "gone" and "came" – each "came" was a light pulse and each "gone"
+  // calmed the dream.
+  class Presence {
+    constructor(on = 0.15, off = 1.0) { Object.assign(this, { on, off }); this.reset(); }
+    reset() { this.state = false; this.since = null; this.seenAt = -1e9; }
+    update(seen, t) {
+      if (seen) {
+        if (this.since === null || t - this.seenAt > 0.25) this.since = t;
+        this.seenAt = t;
+        if (!this.state && t - this.since >= this.on) this.state = true;
+      } else if (this.state && t - this.seenAt >= this.off) this.state = false;
+      return this.state;
+    }
+  }
   const MIN_VIS = 0.3;          // pose points count from this visibility on (low: poor light)
   const LEAD = 0.08;            // seconds of prediction without a measured delay (flowtrack: lead_ms 80); see lead()
 
@@ -68,6 +98,8 @@ window.DreamMotion = (() => {
     const st = { present: false, x: 0.5, y: 0.5, speed: 0, spread: 0, count: 0, points: [], rate: 0, lum: 0.5, gain: 1,
       blur: false, kind: 'off', landmarks: null, at: 0 };
     let prev = null, vel = [0, 0], lastSeen = 0, nDet = 0, rateAt = performance.now(), wasPresent = false, trailsOn = false;
+    let pend = null;
+    const presence = new Presence();
     const ruleState = RULES.map(() => ({ since: null, fired: false, at: -1e9 }));
     // calibration (#92): camera picture → Dream's picture (as the beamer shows it); without one they are the same
     let H = null, Hinv = null;
@@ -128,7 +160,7 @@ window.DreamMotion = (() => {
       prevGray = null; prev = null; fx.reset(); fy.reset();
       if (st.present) { st.present = false; onPresence(false); }
       Object.assign(st, { speed: 0, count: 0, points: [], spread: 0, landmarks: null, rate: 0 });
-      wasPresent = false; say('off', '');
+      wasPresent = false; pend = null; presence.reset(); say('off', '');
     }
     function loop(now, meta) {
       if (!running) return;
@@ -324,6 +356,9 @@ window.DreamMotion = (() => {
       const skipped = blobs === null;                  // a frame without the model (slow graphics chip): see below
       if (skipped) blobs = [];
       blobs = blobs.map(b => [...toPic(b[0], b[1]), b[2]]);   // from here on in the picture's coordinates
+      if (kind === 'hand' && !skipped) {
+        ({ blobs, pend } = pickHand(blobs, prev && t - lastSeen < 0.5 ? [prev[0], prev[1], prev[2], vel[0], vel[1]] : null, t, pend));
+      }
       // a fast hand smears and the model loses it: follow the moving pixels near where it was (up to 0.3 s)
       if (kind === 'hand' && (!blobs.length || frameNo % poseEvery) && prev && t - lastSeen < 0.3) {
         const [px, py] = toCam(prev[0] + vel[0] * (t - prev[2]), prev[1] + vel[1] * (t - prev[2]));
@@ -353,7 +388,8 @@ window.DreamMotion = (() => {
       } else { f.speed *= 0.9; f.spread = 0; }
       if (now - rateAt >= 1000) { f.rate = nDet * 1000 / (now - rateAt); nDet = 0; rateAt = now; }
       f.at = now;
-      if (f.present !== wasPresent) { wasPresent = f.present; onPresence(f.present); }
+      const there = presence.update(f.present, t);
+      if (there !== wasPresent) { wasPresent = there; onPresence(there); }
       RULES.forEach((r, i) => {
         const rs = ruleState[i];
         if (!r.when(f)) { rs.since = null; rs.fired = false; return; }
@@ -421,5 +457,6 @@ window.DreamMotion = (() => {
       trails(on) { trailsOn = on; if (!on) tctx.clearRect(0, 0, trails.width, trails.height); return glow; },
     };
   }
-  return { create, OneEuro };
+  return { create, OneEuro, pickHand, Presence };
 })();
+if (typeof module === 'object' && module.exports) module.exports = globalThis.DreamMotion;   // tests/js/motion.test.mjs
