@@ -57,3 +57,19 @@ export function verdict(outs, want, within = 3.5) {
   const other = outs.find(o => o.gesture && o.gesture !== want);
   return { hit: !!first && first.t - t0 <= within && share >= 0.8 && !other, at: first ? first.t - t0 : null, share, other: other ? other.gesture : null };
 }
+
+// a hand of 21 points: curl (0 straight … 1 fist) per finger, spread (radians between neighbours), pinch, size, turn
+export function hand({ curl = 0, spread = 0.12, pinch = false, size = 1, turn = 0, at = [0.5, 0.5] } = {}) {
+  const pts = [[0, 0]], curls = Array.isArray(curl) ? curl : [curl, curl, curl, curl];
+  const thumb = pinch ? [[-0.25, 0.3], [-0.3, 0.6], [-0.2, 0.85], [-0.08, 1.02]] : [[-0.3, 0.25], [-0.55, 0.45], [-0.72, 0.62], [-0.85, 0.78]];
+  pts.push(...thumb);
+  for (let f = 0; f < 4; f++) {
+    const base = (1.5 - f) * -0.22, dir = (f - 1.5) * spread + Math.PI / 2, c = curls[f];
+    let x = base * -1, y = 1.0 - 0.04 * Math.abs(f - 1), a = dir;
+    if (f === 0 && pinch) { pts.push([x, y], [x - 0.08, y + 0.2], [x - 0.2, y + 0.12], [-0.1, 1.04]); continue; }
+    pts.push([x, y]);
+    for (const len of [0.42, 0.26, 0.2]) { a += c * 1.5; x += len * Math.cos(a); y += len * Math.sin(a); pts.push([x, y]); }
+  }
+  const co = Math.cos(turn), si = Math.sin(turn);
+  return pts.map(([x, y]) => [at[0] + size * 0.08 * (x * co - y * si), at[1] - size * 0.08 * (x * si + y * co)]);
+}

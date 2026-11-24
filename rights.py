@@ -144,7 +144,9 @@ def allowed(host, query_k, cookie_k) -> bool:
 # middleware before a handler reads anything; a new route that costs money or changes the owner's files goes here.
 CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r"/measure"), ("GET", r"/measure"), ("POST", r"/playlists"), ("DELETE", r"/playlists/.+"),
                 ("POST", r"/upload"), ("POST", r"/voice"), ("POST", r"/gallery/[^/]+/(delete|save)"),
-                ("POST", r"/gallery/clear"), ("POST", r"/gallery/undo/[^/]+"), ("POST", r"/style-ref")]
+                ("POST", r"/gallery/clear"), ("POST", r"/gallery/undo/[^/]+"), ("POST", r"/style-ref"),
+                # #243: the dance lab's sessions (trajectories of the owner's dance, kept on this Mac)
+                ("GET", r"/dance/sessions(/[^/]+)?"), ("POST", r"/dance/sessions"), ("DELETE", r"/dance/sessions/[^/]+")]
 LOCAL_ONLY = [("POST", r"/gallery")]
 
 

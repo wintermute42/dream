@@ -61,6 +61,11 @@ HTTP = {
     ("POST", "/style-ref"): ("/style-ref", LC),
     ("GET", "/style-ref/{h}"): ("/style-ref/0123456789ab", LCG),
     ("GET", "/media/{name}"): ("/media/picture.jpg", LCG),
+    # #243: the dance lab's sessions – trajectories of the owner's dance: this Mac and Dream Control only
+    ("GET", "/dance/sessions"): ("/dance/sessions", LC),
+    ("POST", "/dance/sessions"): ("/dance/sessions", LC),
+    ("GET", "/dance/sessions/{sid}"): ("/dance/sessions/20261124-120000-ab12", LC),
+    ("DELETE", "/dance/sessions/{sid}"): ("/dance/sessions/20261124-120000-ab12", LC),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [
@@ -459,10 +464,11 @@ def test_ctl_reset_glides_home_and_undo_brings_everything_back(server, saved_sta
 ODD = [[], {}, [[]], {"a": [1]}, None, True, 0, -1, 1.5, 10 ** 400, float("nan"), float("inf"), "", "no-such", "x" * 3000]
 ODD_FIELDS = ["set", "cmd", "arg", "auto", "feed", "feed_end", "motion_in", "eyes_trance", "eyes_cfg", "eyes_mood",
               "seen", "arrived", "fire", "take_control", "renew_guest", "midi_learn", "midi_forget", "sensor_learn",
-              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "moved", "rule", "live", "dance_map",
+              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "moved", "rule", "live", "dance_map", "dance_lab",
               "measure_report"]
 ODD_INSIDE = {"feed": ("cam", "motion", "facing"), "motion_in": ("acc", "gyro"), "eyes_cfg": ("trance_every",),
-              "live": ("fps", "flow_rate"), "measure_report": ("kind", "fps", "ms_avg", "render")}
+              "live": ("fps", "flow_rate"), "measure_report": ("kind", "fps", "ms_avg", "render"),
+              "dance_lab": ("open", "rec", "play")}
 ODD_FRAMES = ["", "{not json", "[1]", '"text"', "null", "[" * 100000]
 
 

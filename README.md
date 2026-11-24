@@ -53,6 +53,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Keep outlines (ControlNet)](#keep-outlines-controlnet)
   - [Pose shapes the figure (ControlNet)](#pose-shapes-the-figure-controlnet)
 - [Dance](#dance)
+  - [Dance lab](#dance-lab)
 - [MIDI controller](#midi-controller)
 - [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
 
@@ -1292,7 +1293,8 @@ little delay when you stop (hysteresis) – walking, waving to someone, talking 
 once or swaying set nothing off. Its size becomes the effect's strength, its tempo the beat that pushes the effects.
 
 Card **“Dance”** in the panel:
-- **Dance steers the effects** – the switch for all of it.
+- **Dance steers the effects** – the switch for all of it (also in Dream Control's Movement card, with “Movement also
+  moves the slow AI sliders”).
 - **What Dream sees:** the features as bars (paler = less sure, with the source each came from: camera, marker,
   light, sensor, hand AI), the recognised gesture with how sure Dream is, your tempo per minute and a dot that beats
   with it.
@@ -1335,6 +1337,58 @@ sliders**” in the Movement card brings it back (then the slider “Movement”
   and on fast moves – the display shows when a hand is lost.
 
 Nothing of the camera is stored or sent anywhere for this: the features are numbers computed in the stage.
+
+### Dance lab
+
+The **🧪 Dance lab** (button in the Dance card, or key **L**; **Esc** closes it) lays itself over the stage – also on a
+projector showing the stage – and shows live what Dream makes of your dance, so the dance control can be tuned while
+dancing:
+
+- **Camera, skeleton and markers:** the camera picture with the detected skeleton, the hands and the LED markers;
+  **Hand trails** draw each hand's way as a fading line in its marker colour, **Multiple exposure** lays several poses
+  of the last two seconds pale over each other, so a sequence shows at a glance; **Camera picture** off leaves only the
+  figure on black.
+- **Output with effects** beside it: what the audience sees.
+- **Fingers (hand AI):** the 21 points of each hand enlarged as a hand skeleton (with “Fingers” switched on in the
+  Movement card), with fine trails of the finger tips and – with multiple exposure – the last hand poses pale behind
+  it (a snap becomes a visible sequence); below it fist ↔ open hand, spread, pinch and snap with how sure the hand AI
+  is, or “lost”.
+- **Feature stream:** energy, tempo, phase, opening, turning, height and stillness as running curves over the last 12
+  seconds, the recognised gesture as a band above them, and – once a hand was seen – the finger values per hand. Where
+  a value is not known (a hand lost, no rhythm) the curve has a **gap**, marked by a dashed red line: that is where
+  the limits of distance, light and tempo show.
+- **Tune a row:** pick a row of the table and change its target, its curve (straight, early, late, S), from where to
+  where the movement comes in (the lower end is the threshold), from where to where the effect goes out, and the
+  smoothing. A small picture shows the curve with the live value as a dot. Every change **applies at once**, Dream
+  saves it, and **↶ Undo** takes it back step by step (up to 30 steps).
+- **Feedback without hands – “good” / “bad”:** each keeps the **last seconds** (slider, 1–15 s, 4 by default) as a
+  feedback moment: the features, the recognised gesture, what each target was at, and the table in use. A note at the
+  top of the stage confirms it. Ways to say it: the buttons **👍 Good / 👎 Bad** or keys **G / B**; **by voice** – hold
+  **🎙** (or key V while the lab is open) and say “good” or “bad”; the card **“🧪 Dance lab”** in Dream Control;
+  a **MIDI** button or foot pedal (targets “Button: dance lab – good / bad”); a **wristband's button** over OSC (an
+  address with `btn` or `button` in it, value 1 while pressed): one press is “good”, two presses within half a second
+  are “bad”. Feedback counts while the lab is open on the live dance or a recording runs.
+- **Record a session** (**● Record**, key **R**, or from Dream Control; at most 5 minutes): the same numbers frame by
+  frame, 30 times a second, with your feedback as marks. A recording goes on when you close the lab.
+- **Sessions and feedback:** the list of everything kept, the newest first. **▶** plays a session back: **its
+  features steer in the place of the live dance**, so a setting can be tried without dancing again – with the stick
+  figure, the hands and the curves running along. The time line shows the recognised gestures and the feedback marks;
+  play/pause, **1× · ½× · ¼×**, a position slider (a click on the band jumps there), **[ from here** / **to here ]**
+  loop over a stretch (the multiple exposure then shows the poses of that stretch), **↩ Live** ends it. **Feedback
+  moments of this session** lists each mark with what was recognised and what the movement steered; a click jumps
+  there and loops over its seconds. **⬇** saves a session as a **test file** for the detection (see “Tests”), **🗑**
+  deletes it (asks once more on the button).
+
+**What is kept, and where:** numbers only – features, confidences, the points of the skeleton and of the hands
+(normalised 2D coordinates), what the sensors and markers reported, the marks and the table. **Never a camera
+picture**; Dream checks every session before it writes it and refuses anything that is not numbers and short names.
+The files are in `~/.local/state/dream/dance/`, readable only by you, and never leave the Mac; only this Mac and Dream
+Control can list, read, add or delete them – guests, Dreamy Eyes and dream windows cannot. The lab costs some frame
+rate while it is open (it draws the camera and the curves): close it for a show.
+
+**From Dream Control** (card “🧪 Dance lab”): **👍 Good**, **👎 Bad**, **● Record** and **Lab on the stage** (opens or
+closes the lab on the Mac). The card says what the lab is doing and confirms what was kept; everything else – the
+views, tuning, playback – is on the Mac.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -1385,6 +1439,10 @@ direction, ✕ deletes. Every reading is smoothed and adapts its range by itself
 also goes to the dance detection as it comes – energy, tempo and beat without a camera, and a second opinion with
 one (see [Dance](#dance)). Nothing has to be mapped for that. This also works when port 7020 is taken by another
 program: the Dream Control device's own motion comes over its connection.
+
+**A wristband's button:** an address with `btn` or `button` in it (value 1 while pressed, e.g. `/band/1/btn`) is a
+button – Dream passes each press to the stage once, however long it is held. Today it gives feedback in the
+[dance lab](#dance-lab) (one press “good”, two “bad”).
 
 **Hit (whip):** a strong, jerky movement is an impulse (at most every 0.25 s). Under “Hit →” set what it triggers:
 flash, spin jolt, new motif, next scene or blackout; “Hit sensitivity” sets how strong it must be. **Swing** (how
@@ -1641,7 +1699,17 @@ gesture is recognised), the false alarms on standing, walking, waving, talking h
 swaying (none), the movement clock against known tempos, markers alone, one hand alone, the sensor alone and with the
 camera, LED markers in painted pictures (lamps and fire are none) and the finger values on painted hands of every
 size and turn. `node --test tests/js/dancemap.test.mjs` tests the mapping table (`static/dancemap.js`: curve, ranges,
-smoothing, letting go when a source is not known) and what the dance card makes of a hand on a row. To see the eyes with a fire
+smoothing, letting go when a source is not known) and what the dance card makes of a hand on a row.
+`node --test tests/js/dancerec.test.mjs` (#243) tests the dance lab's sessions (`static/dancerec.js`): a recorded
+simulated dance plays back the very features it was made from and holds nothing but numbers, feeding its inputs to a
+fresh detector gives the same gestures, a feedback keeps exactly its seconds, playback (pause, slow motion, jumps, a
+loop), the list of feedback moments, and the test files: every file in `tests/js/dance-sessions/` is run through the
+detection and must do what it expects. **A test file from your own dance:** in the lab, **⬇** on a session writes
+`dance-<id>.json` – what the detector was fed, and per feedback mark what is expected: after a “good” the gesture that
+was recognised then (or `none`), after a “bad” `"want": null` with what was recognised in `was` – write the gesture
+it should have been (or `"none"`) into `want`. Put the file into `tests/js/dance-sessions/` and the test checks it
+from then on. It holds the trajectories of your hands and body (no picture) – your decision whether that belongs in a
+public repository. To see the eyes with a fire
 without lighting one: `node scripts/fire_video.mjs fire.y4m` writes a 70 s film of the same painted fire (about 90 MB),
 and a Chrome or Chromium started with `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
 --use-file-for-fake-video-capture=fire.y4m` shows it to Dreamy Eyes as its camera (a Dream started only for that:
@@ -1664,7 +1732,8 @@ Where the code is, if you want to change something: `server.py` is what `./dream
 together – one file each for painting (`render.py`, `render_api.py`, `flow.py` for the flow field between two pictures), the rights (`rights.py`: the roles and what each
 may do), the settings (`settings.py`: one table with every setting, its range and whether a guest may change it), the
 shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the dance mapping table (`dance.py`; the detection itself is
-`static/dance.js`, the mapping `static/dancemap.js`, the card `static/dancepanel.js`), the
+`static/dance.js`, the mapping `static/dancemap.js`, the card `static/dancepanel.js`), the dance lab (`dancelab.py`
+keeps the sessions; `static/dancerec.js` is their format, recording and playback, `static/dancelab.js` the lab), the
 outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the cloud GPU (`cloud.py`), measuring
 (`measure.py`), uploads and the gallery (`media.py`), voice (`voice.py`), and the pages with their links (`pages.py`,
 `net.py`). The pages are in `static/`; what they share is in `static/common.js`, the sliders of the panel and of Dream

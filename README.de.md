@@ -49,6 +49,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Umrisse erhalten (ControlNet, #113)](#umrisse-erhalten-controlnet-113)
   - [Pose formt die Figur (ControlNet)](#pose-formt-die-figur-controlnet)
 - [Tanz](#tanz)
+  - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
 
@@ -1373,7 +1374,8 @@ Reden, einmal nach etwas Greifen oder Schunkeln lösen nichts aus. Ihre Größe 
 zum Schlag, der die Effekte anstößt.
 
 Karte **„Tanz“** im Bedienfeld:
-- **Tanz steuert die Effekte** – der Schalter für alles.
+- **Tanz steuert die Effekte** – der Schalter für alles (auch in Dream Control in der Karte Bewegung, zusammen mit
+  „Bewegung bewegt auch die langsamen KI-Regler“).
 - **Was Dream sieht:** die Merkmale als Balken (blasser = unsicherer, mit der Quelle, aus der jedes kommt: Kamera,
   Marker, Licht, Sensor, Hand-KI), die erkannte Geste mit ihrer Sicherheit, dein Tempo pro Minute und ein Punkt, der
   mitschlägt.
@@ -1419,6 +1421,61 @@ stark).
 
 Von der Kamera wird dafür nichts gespeichert oder irgendwohin geschickt: Die Merkmale sind Zahlen, die die Bühne
 selbst rechnet.
+
+### Tanz-Labor
+
+Das **🧪 Tanz-Labor** (Knopf in der Karte Tanz oder Taste **L**; **Esc** schließt es) legt sich über die Bühne – auch
+auf einem Beamer, der die Bühne zeigt – und zeigt live, was Dream aus deinem Tanz macht, damit sich die Tanzsteuerung
+beim Tanzen abstimmen lässt:
+
+- **Kamera, Skelett und Marker:** das Kamerabild mit dem erkannten Skelett, den Händen und den Leucht-Markern;
+  **Handbahnen** zeichnen den Weg jeder Hand als verblassende Linie in ihrer Markerfarbe, **Mehrfachbelichtung** legt
+  mehrere Posen der letzten zwei Sekunden blass übereinander, so dass eine Abfolge auf einen Blick zu sehen ist;
+  **Kamerabild** aus lässt nur die Figur auf Schwarz.
+- **Ausgabe mit Effekten** daneben: was das Publikum sieht.
+- **Finger (Hand-KI):** die 21 Punkte jeder Hand vergrößert als Hand-Skelett (wenn „Finger“ in der Karte Bewegung an
+  ist), mit feinen Spuren der Fingerkuppen und – bei Mehrfachbelichtung – den letzten Handposen blass dahinter (ein
+  Schnippen wird zur sichtbaren Folge); darunter Faust ↔ offene Hand, Spreizung, Greifen und Schnippen mit der
+  Sicherheit der Hand-KI, oder „verloren“.
+- **Merkmal-Strom:** Energie, Tempo, Phase, Öffnung, Drehung, Höhe und Ruhe als laufende Kurven über die letzten
+  12 Sekunden, die erkannte Geste als Band darüber und – sobald eine Hand gesehen wurde – die Fingerwerte je Hand. Wo
+  ein Wert nicht bekannt ist (Hand verloren, kein Rhythmus), hat die Kurve eine **Lücke**, markiert mit einer
+  gestrichelten roten Linie: Dort zeigen sich die Grenzen bei Abstand, Licht und Tempo.
+- **Eine Zeile abstimmen:** eine Zeile der Tabelle wählen und ihr Ziel, ihre Kurve (gerade, früh, spät, S), den
+  Eingang von … bis (das untere Ende ist die Schwelle), den Ausgang von … bis und die Glättung ändern. Ein kleines
+  Bild zeigt die Kurve mit dem Live-Wert als Punkt. Jede Änderung **wirkt sofort**, Dream speichert sie, und
+  **↶ Rückgängig** nimmt sie Schritt für Schritt zurück (bis zu 30 Schritte).
+- **Feedback ohne Hände – „gut“ / „schlecht“:** Jedes speichert die **letzten Sekunden** (Regler, 1–15 s,
+  standardmäßig 4) als Feedback-Moment: die Merkmale, die erkannte Geste, den Stand jedes Ziels und die benutzte
+  Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen: die Knöpfe **👍 Gut / 👎 Schlecht** oder die
+  Tasten **G / B**; **per Sprache** – **🎙** halten (oder Taste V bei offenem Labor) und „gut“ oder „schlecht“ sagen;
+  die Karte **„🧪 Tanz-Labor“** in Dream Control; eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
+  gut / schlecht“); die **Taste eines Armbands** per OSC (eine Adresse mit `btn` oder `button` darin, Wert 1 solange
+  gedrückt): einmal drücken ist „gut“, zweimal innerhalb einer halben Sekunde „schlecht“. Feedback zählt, solange das
+  Labor im Live-Tanz offen ist oder eine Aufnahme läuft.
+- **Eine Session aufnehmen** (**● Aufnehmen**, Taste **R** oder aus Dream Control; höchstens 5 Minuten): dieselben
+  Zahlen Bild für Bild, 30-mal pro Sekunde, mit deinem Feedback als Marken. Eine Aufnahme läuft weiter, wenn du das
+  Labor schließt.
+- **Sessions und Feedback:** die Liste von allem Gespeicherten, das Neueste zuerst. **▶** spielt eine Session ab:
+  **Ihre Merkmale steuern statt des Live-Tanzes**, so lässt sich eine Einstellung ausprobieren, ohne noch einmal zu
+  tanzen – Strichmännchen, Hände und Kurven laufen mit. Die Zeitleiste zeigt die erkannten Gesten und die
+  Feedback-Marken; Abspielen/Pause, **1× · ½× · ¼×**, ein Regler für die Stelle (ein Klick auf das Band springt
+  dorthin), **[ ab hier** / **bis hier ]** spielen einen Ausschnitt in Schleife (die Mehrfachbelichtung zeigt dann die
+  Posen dieses Ausschnitts), **↩ Live** beendet es. **Feedback-Momente dieser Session** listet jede Marke mit dem, was
+  erkannt wurde und was die Bewegung gesteuert hat; ein Klick springt dorthin und spielt ihre Sekunden in Schleife.
+  **⬇** speichert eine Session als **Testdatei** für die Erkennung (siehe „Tests“), **🗑** löscht sie (fragt auf dem
+  Knopf noch einmal nach).
+
+**Was gespeichert wird und wo:** nur Zahlen – Merkmale, Sicherheiten, die Punkte von Skelett und Händen (normierte
+2D-Koordinaten), was Sensoren und Marker gemeldet haben, die Marken und die Tabelle. **Nie ein Kamerabild**; Dream
+prüft jede Session, bevor es sie schreibt, und lehnt alles ab, was nicht Zahlen und kurze Namen sind. Die Dateien
+liegen in `~/.local/state/dream/dance/`, nur für dich lesbar, und verlassen den Mac nie; nur dieser Mac und Dream
+Control können sie auflisten, lesen, hinzufügen oder löschen – Gäste, Dreamy Eyes und Traum-Fenster nicht. Das Labor
+kostet etwas Bildrate, solange es offen ist (es zeichnet Kamera und Kurven): für einen Auftritt schließen.
+
+**Aus Dream Control** (Karte „🧪 Tanz-Labor“): **👍 Gut**, **👎 Schlecht**, **● Aufnehmen** und **Labor auf der Bühne**
+(öffnet oder schließt das Labor am Mac). Die Karte sagt, was das Labor gerade tut, und bestätigt, was gespeichert
+wurde; alles andere – die Ansichten, das Abstimmen, die Wiedergabe – ist am Mac.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -1470,6 +1527,10 @@ Kalibrierung. Gespeichert in `~/.config/dream/sensors.json` (nicht im Repository
 darin) zusätzlich unverändert an die Tanz-Erkennung – Energie, Tempo und Schlag ohne Kamera und eine zweite Meinung
 mit Kamera (siehe [Tanz](#tanz)). Zuordnen muss man dafür nichts. Das geht auch, wenn Port 7020 von einem anderen
 Programm belegt ist: Die Bewegung des Dream-Control-Geräts kommt über dessen Verbindung.
+
+**Die Taste eines Armbands:** Eine Adresse mit `btn` oder `button` darin (Wert 1 solange gedrückt, z. B.
+`/band/1/btn`) ist eine Taste – Dream gibt jeden Druck einmal an die Bühne weiter, egal wie lange sie gehalten wird.
+Heute gibt sie Feedback im [Tanz-Labor](#tanz-labor) (einmal „gut“, zweimal „schlecht“).
 
 **Schlag (Peitschenschlag):** Eine kräftige, ruckartige Bewegung ist ein Impuls (höchstens alle 0,25 s). Unter
 „Schlag →“ festlegen, was er auslöst: Blitz, Dreh-Ruck, neues Motiv, nächste Szene oder Blackout;
@@ -1769,7 +1830,18 @@ wird), die Fehlalarme bei Stehen, Gehen, Winken, Gestikulieren, einmal Greifen, 
 Bewegungsuhr an bekannten Tempi, Marker allein, eine Hand allein, den Sensor allein und mit der Kamera, Leucht-Marker
 in gemalten Bildern (Lampen und Feuer sind keine) und die Fingerwerte an gemalten Händen jeder Größe und Drehung.
 `node --test tests/js/dancemap.test.mjs` prüft die Zuordnungstabelle (`static/dancemap.js`: Kurve, Bereiche, Glättung,
-Loslassen, wenn eine Quelle nicht bekannt ist) und was die Tanz-Karte aus einer Hand an einer Zeile macht. Die Augen mit Feuer sehen, ohne eines anzuzünden:
+Loslassen, wenn eine Quelle nicht bekannt ist) und was die Tanz-Karte aus einer Hand an einer Zeile macht.
+`node --test tests/js/dancerec.test.mjs` (#243) prüft die Sessions des Tanz-Labors (`static/dancerec.js`): Ein
+aufgenommener simulierter Tanz gibt beim Abspielen genau die Merkmale wieder, aus denen er gemacht wurde, und enthält
+nichts als Zahlen; seine Eingaben, einem frischen Erkenner gefüttert, ergeben dieselben Gesten; ein Feedback behält
+genau seine Sekunden; die Wiedergabe (Pause, Zeitlupe, Sprünge, Schleife), die Liste der Feedback-Momente und die
+Testdateien: Jede Datei in `tests/js/dance-sessions/` läuft durch die Erkennung und muss tun, was sie erwartet.
+**Eine Testdatei aus deinem eigenen Tanz:** Im Labor schreibt **⬇** an einer Session `dance-<id>.json` – was der
+Erkenner bekommen hat, und je Feedback-Marke, was erwartet wird: nach einem „gut“ die Geste, die dort erkannt wurde
+(oder `none`), nach einem „schlecht“ `"want": null` mit dem Erkannten in `was` – trag in `want` die Geste ein, die es
+hätte sein sollen (oder `"none"`). Leg die Datei nach `tests/js/dance-sessions/`, und der Test prüft sie von da an.
+Sie enthält die Bahnen deiner Hände und deines Körpers (kein Bild) – deine Entscheidung, ob das in ein öffentliches
+Repository gehört. Die Augen mit Feuer sehen, ohne eines anzuzünden:
 `node scripts/fire_video.mjs fire.y4m` schreibt einen 70-s-Film desselben gemalten Feuers (etwa 90 MB), und ein Chrome
 oder Chromium, gestartet mit `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream
 --use-file-for-fake-video-capture=fire.y4m`, zeigt ihn den Dreamy Eyes als Kamera (ein nur dafür gestartetes Dream:
@@ -1794,7 +1866,8 @@ zusammen – je eine Datei für das Malen (`render.py`, `render_api.py`, `flow.p
 darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihrem Bereich und ob ein Gast sie ändern
 darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
 (`inputs.py`), die Tanz-Zuordnungstabelle (`dance.py`; die Erkennung selbst ist `static/dance.js`, die Zuordnung
-`static/dancemap.js`, die Karte `static/dancepanel.js`), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
+`static/dancemap.js`, die Karte `static/dancepanel.js`), das Tanz-Labor (`dancelab.py` hält die Sessions;
+`static/dancerec.js` ist ihr Format, Aufnahme und Wiedergabe, `static/dancelab.js` das Labor), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und

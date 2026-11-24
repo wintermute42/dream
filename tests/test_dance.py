@@ -10,7 +10,7 @@ import dance
 import playlists
 import sensors
 import settings
-from test_rights import client, saved_state, wait_until, ws_url  # noqa: F401  (the roles' devices; the state put back)
+from test_rights import client, no_ghost_sockets, saved_state, wait_until, ws_url  # noqa: F401  (the roles' devices; nothing left behind)
 
 
 @pytest.fixture
@@ -125,7 +125,7 @@ def test_only_control_and_this_mac_change_the_table(server, table, saved_state, 
 def test_a_device_is_told_the_table_when_it_connects(server, table):
     with client(server, "control").websocket_connect(ws_url(server, "/ctl", "control")) as ws:
         got = [ws.receive_json() for _ in range(6)]
-    assert any(m.get("dance") == {"map": table.DEFAULT_ROWS} for m in got)
+    assert any(m.get("dance", {}).get("map") == table.DEFAULT_ROWS for m in got)
     with client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes")) as ws:   # the eyes learn nothing of it
         got = [ws.receive_json() for _ in range(2)]
     assert not any("dance" in m for m in got)

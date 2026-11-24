@@ -127,6 +127,7 @@ SETTINGS: dict[str, Setting] = {
     "flow_markers": flag(False),                                # … LED markers beside the hand AI (they lead in the dark)
     "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand
     "marker_r": text("magenta", choices=MARKERS),
+    "dance_fb_secs": num(4.0, 1.0, 15.0),                       # #243: the seconds a "good"/"bad" of the dance lab keeps
     "flow_fingers": flag(False),                                # … the hand model's 21 points per hand (finger values)
     "drift": num(0.5, 0.0, 1.0, guest=True, target=True, weight=0.6),       # keeps the dream alive without new input (0 = off)
     "drift_prompt": flag(True, guest=True),
