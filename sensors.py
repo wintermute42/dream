@@ -109,6 +109,7 @@ class Sensors:
         self.gyro: tuple = ()               # #235: the gyroscope as it came (rad/s), for the dance detection on the stage
         self.gyro_at = 0.0
         self.buttons: dict = {}             # address → pressed (a wristband's buttons: the clutch)
+        self.by: dict = {}                  # #249: sender → [when, energy 0…1 of its swing] (the register of sources)
 
     # ---------- incoming ----------
     def on_osc(self, address: str, args, source: str = "", now: float | None = None):
@@ -140,6 +141,9 @@ class Sensors:
             c = self.ch.setdefault("swing", Channel(0.0))
             c.update(mag, alpha=0.3)
             self.gyro, self.gyro_at = tuple(round(v, 3) for v in (nums + [0.0, 0.0])[:3]), now
+            if source in self.by or len(self.by) < 8:    # #249: how lively this sender swings (8 rad/s: all of it)
+                was = self.by.get(source, (now, 0.0))[1]
+                self.by[source] = (now, was + (min(1.0, mag / 8.0) - was) * 0.3)
         if ("btn" in low or "button" in low) and (address in self.buttons or len(self.buttons) < 8):
             down = nums[0] > 0.5             # #235: a button is pressed once, however long it is held
             if down and not self.buttons.get(address):

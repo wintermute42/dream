@@ -6,8 +6,11 @@
 // A source is a name in the feature stream's record (dance.js: "energy", "open", "g.throw", "l.palm" …).
 // A target is a name of the one target interface: the instant layer ("fx.<effect>": that effect's amount, "fx.amt":
 // all effects, "fx.pulse": the beat's push, "fx.spin": turning, either way) and the slow AI sliders ("ai.strength",
-// "ai.mix", "ai.zoom", "ai.rot", "ai.hue": added on top of the slider). Whether a target is fast or slow the mapping
-// knows (TARGET_KIND); the stage only asks what each target is at.
+// "ai.mix", "ai.zoom", "ai.rot", "ai.hue": added on top of the slider). #249: also the tempo of the picture's own motion
+// ("fx.speed"), how calm the dream is ("stage.calm"), the direct interaction ("touch.paint", "touch.warp",
+// "touch.impulse", "touch.light", "touch.shape": movement shapes the effects) and, slow, the prompt between its calm
+// and its wild words ("ai.prompt") and the push of the movement's speed on the AI sliders ("ai.react"). Whether a
+// target is fast or slow the mapping knows (`kind`); the stage only asks what each target is at.
 (function (root) {
   'use strict';
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -15,12 +18,13 @@
   // a value bent by the curve of that name – one of the table above, whatever a row says
   const bend = (name, x) => (name === 'soft' ? CURVES.soft(x) : name === 'hard' ? CURVES.hard(x) : name === 's' ? CURVES.s(x) : CURVES.lin(x));
   const AI = ['strength', 'mix', 'zoom', 'rot', 'hue'];
+  const MORE = { instant: ['stage.calm', 'touch.paint', 'touch.warp', 'touch.impulse', 'touch.light', 'touch.shape'], slow: ['ai.prompt', 'ai.react'] };
   const BIPOLAR = new Set(['fx.spin', 'ai.rot', 'ai.zoom']);     // targets that go both ways around their rest at 0
   const SLOW_MIN = 0.5;                                // seconds: an AI slider is never moved faster than the AI paints
   // every target there is, given the effects of the instant layer (DreamFx.ALL): name → 'instant' | 'slow'
   function targets(fx) {
-    return Object.fromEntries([...['amt', 'pulse', 'spin'].map(k => ['fx.' + k, 'instant']), ...fx.filter(e => e !== 'invert').map(e => ['fx.' + e, 'instant']),
-      ...AI.map(k => ['ai.' + k, 'slow'])]);
+    return Object.fromEntries([...['amt', 'pulse', 'spin', 'speed'].map(k => ['fx.' + k, 'instant']), ...fx.filter(e => e !== 'invert').map(e => ['fx.' + e, 'instant']),
+      ...MORE.instant.map(k => [k, 'instant']), ...AI.map(k => ['ai.' + k, 'slow']), ...MORE.slow.map(k => [k, 'slow'])]);
   }
   const kind = dst => (dst.startsWith('ai.') ? 'slow' : 'instant');
 

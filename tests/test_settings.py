@@ -75,7 +75,7 @@ def test_coerce(server, key, value, want):
 
 
 @pytest.mark.parametrize("key,value", [("mode", "evil"), ("backend", "elsewhere"), ("model", "big-model"),
-                                       ("music", "radio"), ("flowtrack", "maybe"), ("aspect", "round"),
+                                       ("music", "radio"), ("move_mode", "maybe"), ("move_mode", "flow"), ("aspect", "round"),
                                        ("music_pattern", "Waltz"), ("beat_snap", "sometimes"), ("strength", "nan")])
 def test_coerce_refuses(server, key, value):
     with pytest.raises(ValueError):
@@ -114,8 +114,8 @@ def test_guest_keys_are_pinned(server):
 
 
 @pytest.mark.parametrize("key", ["backend", "model", "running", "playlist", "syphon", "cam_device", "flow_device",
-                                 "auto", "auto_cam", "quality", "size", "master", "touch_paint", "pose", "music_drop",
-                                 "style_ref", "flowtrack", "motion", "calib", "music", "beat_snap"])
+                                 "auto", "auto_cam", "quality", "size", "master", "touch_mirror", "pose", "music_drop",
+                                 "style_ref", "move_mode", "move_off", "move_cam", "flow_kind", "calib", "music", "beat_snap"])
 def test_guest_may_not_change(server, key):
     """Money (cloud, bigger pictures), the owner's files, the Mac's camera, the performer's tools: not for guests."""
     assert server.settings.guest_changes({key: server.settings.DEFAULT_STATE[key]}) == {}
@@ -202,7 +202,7 @@ def test_reset_brings_home_what_shapes_the_picture_and_nothing_else():
     # what stays, whatever else changes: the dream's content, the model and its cost, inputs, outputs, the cloud
     for kept in ("prompt", "model", "quality", "size", "aspect", "mode", "cam_device", "flow_device", "playlist", "interval",
                  "shuffle", "syphon", "backend", "seed", "running", "music", "calib", "music_patterns", "music_drop",
-                 "beat_snap", "fx_beat", "drift_prompt", "touch_paint", "edges", "pose", "flowtrack", "motion"):
+                 "beat_snap", "fx_beat", "drift_prompt", "touch_mirror", "edges", "pose", "move_mode", "move_off", "move_cam"):
         assert kept not in settings.RESET, kept
     for k, s in settings.SETTINGS.items():
         assert 0 <= s.weight <= 1 and (not s.weight or s.number), k

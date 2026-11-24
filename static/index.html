@@ -126,8 +126,12 @@
   #sensstate, #midistate { line-height: 1.3; height: 1.3em; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   body.auto-on #autostate { color: var(--text); }
   .flowswitch { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }   /* wraps: nothing sticks out of the card */
-  .flowswitch .btn { flex: 1 1 auto; font-weight: 700; min-height: 52px; }
-  .flowswitch .btn[aria-pressed="true"] { background: var(--ok); color: #0b1a10; border-color: transparent; }
+  .flowswitch #move_mode { flex: 1 1 45%; font-weight: 700; min-height: 44px; }
+  .movesources { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; min-height: 44px; }
+  .movesources label { display: flex; align-items: center; gap: 6px; margin: 0; min-height: 22px; }
+  .movesources .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); opacity: .18; flex: none; transition: opacity .3s; }
+  .movesources .live .dot { opacity: 1; }
+  .movesources .unused { color: var(--muted); }
   .flowswitch select { width: auto; flex: 1 1 45%; min-width: 0; }
   .flowswitch #flow_device { flex-basis: 100%; }      /* the camera on its own line, the full width */
   h1 small { color: var(--muted); font-weight: 400; }
@@ -161,7 +165,6 @@
   .aphand { box-shadow: 0 0 0 3px transparent; outline: 1px dashed var(--muted); outline-offset: 3px; border-radius: 6px; position: relative; }
   div.aphand::after, label.aphand::after { content: '✋'; position: absolute; right: -8px; top: -11px; font-size: .75em; line-height: 1;
     padding: 2px; border-radius: 50%; background: var(--panelsolid); pointer-events: none; }
-  label.apoff { opacity: .5; }
   .apchip { font-size: .8em; padding: 0 6px; border-radius: 999px; background: var(--ap); box-shadow: inset 0 0 0 1px var(--apline); font-weight: 600; }
   /* effects by hand: twelve tiles, lit when on (also when the autopilot chose them) */
   .fxtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(6.6em, calc(50% - 2px)), 1fr)); gap: 4px; margin-top: 6px; }
@@ -545,7 +548,7 @@
   <details class="sec" data-sec="motion">
     <summary>Movement</summary>
     <div class="flowswitch keep">
-      <button class="btn" id="flowswitch" aria-pressed="false" title="Movement detection on or off (all movement functions)">Movement: OFF</button>
+      <select id="move_mode" aria-label="Movement mode" title="One mode at a time. Mood: the energy in the room (Dreamy Eyes, phones) moves the dream – no gestures. Flowtrack: one performer with fire, LEDs or hands. Dance: your dance steers the dream."><option value="off">Movement: off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
       <select id="flow_kind" aria-label="Kind of movement detection" title="Hands (AI) or light: fire, LED, light trails"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option><option value="marker">LED markers (2 colours)</option></select>
       <select id="flow_device" class="camsel" aria-label="Camera for movement" title="Camera for movement, e.g. an infrared camera"><option value="">Camera: as picture</option></select>
       <div class="lightopts" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex-basis:100%">
@@ -561,13 +564,13 @@
         <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: the LED markers are followed as well – in the dark and on fast moves they lead, otherwise both confirm each other"><input type="checkbox" id="flow_markers"> LED markers beside the hand AI</label>
         <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: a second model finds 21 points per hand – fist, spread fingers, pinch and snap become values the dance card can use. Costs some of the graphics chip; downloaded once (about 8 MB)."><input type="checkbox" id="flow_fingers"> Fingers (hand AI, 21 points per hand)</label>
       </div>
-      <select id="flowtrack" hidden aria-hidden="true"><option value="off">Off</option><option value="on">On: fire/LED/light trails</option><option value="hand">On: hands by AI (rehearsals without fire)</option><option value="marker">On: LED markers</option></select>
+      <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="The mood runs without the Mac's camera – from Dreamy Eyes and phones alone. Ticked, the Mac's camera joins them. Flowtrack and Dream Dance always use it."><input type="checkbox" id="move_cam"> Mood: the Mac's camera too</label>
     </div>
+    <!-- #249: the register of movement sources – what sends movement, and a switch per kind -->
+    <div class="row"><label id="movesrc-l">Sources</label><div id="movesources" class="movesources" role="group" aria-labelledby="movesrc-l"></div></div>
   <div class="row">
-    <label>Movement – how strongly it steers the dream <span class="val" id="v-msens"></span></label>
-    <label style="display:flex;align-items:center;gap:6px;margin:0 0 4px"><input type="checkbox" id="motion" checked> react to movement</label>
+    <label for="motion_sens" title="Mood: how strongly the room's energy acts. Flowtrack and Dream Dance: how strongly movement pushes the slow AI sliders (the row “Movement pushes the AI sliders” of the table).">Movement – how strongly it steers the dream <span class="val" id="v-msens"></span></label>
     <input type="range" id="motion_sens" min="0" max="3" step="0.05" value="1">
-    <label style="display:flex;align-items:center;gap:6px;margin:4px 0" title="Off: movement steers the effects at once (card “Dance”), the slow AI sliders keep still. On: movement also pushes transformation, dream share, zoom, rotation and colour drift, as before – the AI needs a picture or two to follow."><input type="checkbox" id="motion_ai"> Movement also moves the slow AI sliders</label>
     <div id="flowstate" style="font-size:12px;color:var(--muted)">Movement off</div>
     <button class="btn" id="fastbtn" aria-pressed="false" style="width:100%;margin-top:6px" title="For fast movement: values follow at once, smoothing off, 1 step, 384 px, little dream share – press again to restore everything">⚡ Fast (dance/flow): OFF</button>
     <input type="checkbox" id="fast" hidden aria-hidden="true">
@@ -588,7 +591,7 @@
   <details class="sec" data-sec="dance">
     <summary>Dance</summary>
   <div class="row">
-    <label style="display:flex;align-items:center;gap:6px;margin:0 0 6px" title="Movements steer the effects at once, at the full frame rate – nothing waits for the AI. What steers what is the table below."><input type="checkbox" id="dance" checked> Dance steers the effects</label>
+    <div class="hint" id="movetable" role="status" style="margin:0 0 6px">What a movement does: the table of the mode in use.</div>
     <!-- #235: what Dream sees of the dance, and the mapping table (static/dancepanel.js) -->
     <div id="dancepanel"></div>
     <button class="btn" id="dancelabbtn" aria-expanded="false" style="width:100%;margin-top:8px" title="See live what Dream detects, tune the table while dancing, say “good” or “bad”, record and play back sessions (key L)">🧪 Dance lab</button>
@@ -600,13 +603,8 @@
   <div class="row">
     <div><label>Directness (0 = off) <span class="val" id="v-touch"></span></label>
     <input type="range" id="touch_amt" min="0" max="1" step="0.05" value="0.6">
-    <div class="hint">The more direct, the more movement also shapes the effects: place, tempo, direction, hit.</div></div>
-    <label style="display:flex;align-items:center;gap:6px;margin:2px 0 0"><input type="checkbox" id="touch_paint" checked> Paint: hands draw light trails, the AI dreams them on to fit the prompt</label>
-    <label style="display:flex;align-items:center;gap:6px;margin:2px 0 0"><input type="checkbox" id="touch_warp" checked> Touch: hands push and swirl the dream</label>
-    <label style="display:flex;align-items:center;gap:6px;margin:2px 0 0"><input type="checkbox" id="touch_content" checked> Content reacts to energy (calm ↔ wild, to fit the prompt)</label>
-    <div id="energystate" style="font-size:11px;color:var(--muted);margin-left:24px"></div>
-    <label style="display:flex;align-items:center;gap:6px;margin:2px 0 0"><input type="checkbox" id="touch_impulse" checked> Impulses: a hit or a stop sets off a wave at the hand</label>
-    <label style="display:flex;align-items:center;gap:6px;margin:2px 0 0"><input type="checkbox" id="touch_light"> Light in the dark: bright only around the hands</label>
+    <div class="hint">The more direct, the more movement also shapes the effects: place, tempo, direction, hit. What the hands do – paint, touch, impulses, light in the dark, content by energy – are rows of the table in the card “Dance” (modes Flowtrack and Dream Dance).</div></div>
+    <div id="energystate" style="font-size:11px;color:var(--muted)"></div>
     <label style="display:flex;align-items:center;gap:6px;margin:2px 0 0"><input type="checkbox" id="touch_mirror"> Mirror (camera flipped)</label>
   </div>
   </details>
@@ -766,6 +764,7 @@
 <script src="/static/calib.js"></script>
 <script src="/static/dance.js"></script>
 <script src="/static/dancemap.js"></script>
+<script src="/static/movement.js"></script>
 <script src="/static/dancepanel.js"></script>
 <script src="/static/dancerec.js"></script>
 <script src="/static/dancelab.js"></script>
@@ -1342,7 +1341,7 @@
   }
   function camSync() {                                 // a new choice or a camera plugged in: switch at once
     if (mode === 'cam') setMode('cam', true);
-    if (flowOn()) tracker.start($('flowtrack').value, camId(flowCam()));
+    if (flowOn()) tracker.start($('flow_kind').value, camId(flowCam()));
   }
   const flowCam = () => $('flow_device').value || $('cam_device').value;
   // keep: back to the dream from the current picture (autopilot); hard: a cut instead of the soft switch (the drop)
@@ -1703,8 +1702,9 @@
   const sens = () => (analyser ? +$('sens').value : 0);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   // Installation: nobody there → calm (slower, softer); somebody arrives → a short wake-up pulse.
+  // #249: … and a still room calms it by as much as the mode's table says ("stage.calm")
   let calm = false, wake = 0;
-  const damp = f => (calm ? f : 1);
+  const damp = f => { const c = Math.max(calm ? 1 : 0, moveGain('stage.calm')); return 1 - c * (1 - f); };
   // movement (#85: detected on the stage itself): speed drives the transformation, spread the zoom, the point is the pivot.
   let mo = null, moAt = 0;
   const pivot = { x: 0.5, y: 0.5 };
@@ -1712,9 +1712,17 @@
   // mapping table (dancemap.js, kept by Dream: dance.py) says what each feature and gesture does – `danceOut` holds
   // what every target of the one interface is at ("fx.…": the instant layer, read by the effects' loop; "ai.…": the
   // slow sliders, read by `mod` below).
-  const danceDet = DreamDance.create(), danceMap = DreamDanceMap.create();
-  let danceRows = [], danceFrame = null, danceAt = 0, danceOut = {}, danceSens = null, danceSensAt = 0;
-  const danceOn = () => $('dance').checked;
+  // #249: the stream is the movement engine's (movement.js): all sources feed it, and the mode in use – mood,
+  // flowtrack, dance; one at a time – is only the table that is applied to it. A change of mode fades.
+  const danceDet = DreamDance.create(), mover = DreamMove.create({ maps: DreamDanceMap });
+  let moveTables = {}, moveRemote = [], danceFrame = null, danceAt = 0, danceOut = {}, danceSens = null, danceSensAt = 0;
+  const moveMode = () => $('move_mode').value;
+  const moveOpts = () => ({ off: moveOff, cam: $('move_cam').checked });
+  let moveOff = '';                                    // the kinds of sources switched off ("eyes+band")
+  const tableMode = () => (moveMode() === 'off' ? 'dance' : moveMode());   // the table the dance card shows
+  const tableRows = () => moveTables[tableMode()] || [];
+  const danceOn = () => moveMode() !== 'off';          // the stream runs in every mode
+  const moveGain = k => danceOut[k] || 0;              // what a target of the one interface is at
   const danceAi = k => danceOut['ai.' + k] || 0;
   // one step of the stream: from a camera frame's sources, or – with no camera – from the sensor alone
   function danceStep(cam) {
@@ -1731,15 +1739,18 @@
   // #243: while the dance lab plays a session back, its record stands in for the live one
   let dancePlay = null, danceInput = null, danceFbSecs = 4;
   const danceNow = () => dancePlay || (danceOn() && danceFrame && performance.now() - danceAt < 500 ? danceFrame : null);
+  // the camera's own energy where the stream has none of it yet (someone is there, the hands not found)
+  const camEnergy = () => (flowOn() && mo && mo.present && performance.now() - moAt < 500 ? { energy: mspeed(), conf: 0.5 } : null);
   function danceTargets(dt) {
-    danceOut = danceMap.apply(danceRows, danceNow(), dt);
+    danceOut = mover.step({ mode: moveMode(), tables: moveTables, rec: danceNow(), cam: camEnergy(), remote: moveRemote, strength: +$('motion_sens').value, dt });
     return danceOut;
   }
   const poseOn = () => flowOn() && $('pose').checked && typeof poseBlob !== 'undefined' && poseBlob && performance.now() - poseAt < 2000;
-  // the one movement switch (state key "flowtrack", kept for saved settings): off = no movement effect, no work
-  const flowOn = () => $('flowtrack').value !== 'off';
-  // #235: the slow AI sliders follow movement only when asked ("motion_ai") – the effects follow it at once (the dance card)
-  const msens = () => (flowOn() && $('motion').checked && $('motion_ai').checked && mo && performance.now() - moAt < 1000 ? +$('motion_sens').value : 0);
+  // #249: the Mac's camera runs only for a mode that needs it (flowtrack, dance; the mood when asked): off = no work
+  const flowOn = () => DreamMove.cameraOn(moveMode(), moveOpts());
+  // #235, #249: the slow AI sliders follow speed and place of the movement only when the mode's table says so (the row
+  // to "ai.react") – the effects follow it at once
+  const msens = () => (flowOn() && mo && performance.now() - moAt < 1000 ? moveGain('ai.react') * +$('motion_sens').value : 0);
   // Smoothed movement (about 0.3 s): calm hands give a calm dream, a fast throw a clear burst.
   const msm = { speed: 0, spread: 0 };
   // speed with a square-root curve, so slow and medium movement already shows
@@ -1967,10 +1978,10 @@
   if (params.get('stage') === '1') document.body.classList.add('hide', 'stage-only');
   const BIND = { prompt: 'prompt', strength: 'strength', mix: 'mix', zoom: 'zoom', rot: 'rot', hue: 'hue', sens: 'sens',
     quality: 'quality', size: 'size', seed: 'seed', model: 'model', rewrite: 'rewrite', playlist: 'playlist',
-    motion: 'motion', motion_sens: 'motion_sens', flowtrack: 'flowtrack', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_paint: 'touch_paint', touch_warp: 'touch_warp', touch_mirror: 'touch_mirror', touch_content: 'touch_content', ap_words: 'ap_words', touch_impulse: 'touch_impulse', touch_light: 'touch_light', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
+    motion_sens: 'motion_sens', move_mode: 'move_mode', move_cam: 'move_cam', flow_kind: 'flow_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_mirror: 'touch_mirror', ap_words: 'ap_words', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
-    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', dance: 'dance', motion_ai: 'motion_ai', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', flow_fingers: 'flow_fingers', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
+    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', flow_fingers: 'flow_fingers', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
@@ -2015,7 +2026,7 @@
         if (k === 'running' && !!v !== running) toggleRun();
         if (k === 'music_pattern') applyFixedPattern();
         if (k === 'pose') poseFeed(!!v);
-        if (k === 'flowtrack') updFlowSwitch();
+        if (k === 'move_off') moveOff = String(v);
         if (k === 'calib') calibApply(v);
         if (k === 'calib' || k === 'flow_unproject') unprojSync();
         if (k === 'fast_prev') fastPrev = v;
@@ -2026,6 +2037,7 @@
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
         if (k === 'master') { look.master = +v; $('v-master').textContent = Math.round(v * 100) + ' %'; }
       }
+      if (['move_mode', 'move_off', 'move_cam', 'flow_kind'].some(k => k in st)) moveSync();   // #249: once, with all of them in place
       show();
     } finally { applying = false; }
     if ('fast' in st || 'fast_prev' in st) setTimeout(fastSync);   // after the whole state: both keys known
@@ -2094,9 +2106,12 @@
   const touchAmt = () => +$('touch_amt').value;
   // which interactions run: the ticked ones; with the autopilot on it doses them by liveliness (#83) – calm: painting
   // and light, middle: also touching and content, wild: also impulses. What you switch yourself is yours for a minute.
+  // #249: what the hands do are targets of the mode's table ("touch.paint" …): on while a row asks for it
   const TOUCH_AP = { touch_paint: 0, touch_light: 0, touch_warp: 0.34, touch_content: 0.34, touch_impulse: 0.67 };
-  const touchApOff = k => apOn() && !apHands(k) && apLevel() < TOUCH_AP[k];
-  const touchOn = k => $(k).checked && !touchApOff(k);
+  const TOUCH_DST = { touch_paint: 'touch.paint', touch_light: 'touch.light', touch_warp: 'touch.warp', touch_content: 'ai.prompt', touch_impulse: 'touch.impulse' };
+  const touchApOff = k => apOn() && apLevel() < TOUCH_AP[k];
+  const touchOn = k => Math.abs(moveGain(TOUCH_DST[k])) > 0.02 && !touchApOff(k);
+  const rowsTo = dst => tableRows().some(r => r.on && r.dst === dst);
   // a whip (very fast) or a sudden stop after a fast move – speeds in normalised units per second
   const isWhip = (sp, prev) => sp > 3.2 || (prev > 1.6 && sp < prev * 0.3);
   function handPoints() {
@@ -2221,7 +2236,7 @@
   // ---------- #127: the final prompt – what the AI really gets and who added what ----------
   // The same pieces as settings() uses, in its order: a prompt change (a scene, by hand) wins over the energy words,
   // which win over the drift variants; the autopilot's words for the music come on top. Each addition has its own switch right here.
-  const MIX_OFF = { drift: 'drift_prompt', energy: 'touch_content', ap: 'ap_words' };
+  const MIX_OFF = { drift: 'drift_prompt', energy: 'row:ai.prompt', ap: 'ap_words' };
   const MIX_NAME = { drift: T('Vary the prompt gently'), energy: T('Content reacts to energy'), ap: T('Autopilot: words for the music') };
   let mixShown = '';
   function promptMix() {
@@ -2245,7 +2260,8 @@
   }
   $('promptmix').addEventListener('click', e => {
     const b = e.target.closest('button[data-off]'); if (!b) return;
-    const el = $(b.dataset.off); el.checked = false; el.dispatchEvent(new Event('change'));
+    if (b.dataset.off.startsWith('row:')) tableSay(tableRows().map(r => (r.dst === b.dataset.off.slice(4) ? { ...r, on: false } : r)));   // #249: the rows that do it
+    else { const el = $(b.dataset.off); el.checked = false; el.dispatchEvent(new Event('change')); }
     showPromptMix(); $('prompt').focus();
   });
   $('ap_words').addEventListener('change', () => { if (!$('ap_words').checked) apStyle = ''; });
@@ -2255,7 +2271,7 @@
   const energyWords = { for: '', calm: '', wild: '', busy: false };
   setInterval(async () => {
     const p = ui.prompt.value.trim();
-    if (!p || energyWords.busy || !touchOn('touch_content') || p === energyWords.for) return;
+    if (!p || energyWords.busy || moveMode() === 'off' || !rowsTo('ai.prompt') || p === energyWords.for) return;
     energyWords.busy = true;
     try {
       const r = await (await fetch('/energy_words?p=' + encodeURIComponent(p))).json();
@@ -2265,11 +2281,10 @@
     energyWords.busy = false;
   }, 1500);
   function energySettings() {
-    if (!flowOn() || !touchAmt() || !touchOn('touch_content') || !energyWords.calm || energyWords.for !== ui.prompt.value.trim()
-        || !mo || performance.now() - moAt > 1000) return {};
+    // #249: how wild is the table's word ("ai.prompt": the energy of whatever sources the mode listens to)
+    if (!touchOn('touch_content') || !energyWords.calm || energyWords.for !== ui.prompt.value.trim()) return {};
     const p = ui.prompt.value.trim();
-    return { prompt: p + ', ' + energyWords.calm, prompt2: p + ', ' + energyWords.wild,
-      pt: +Math.min(1, touch.energy * (0.6 + touchAmt() * 0.6)).toFixed(2) };
+    return { prompt: p + ', ' + energyWords.calm, prompt2: p + ', ' + energyWords.wild, pt: +clamp(moveGain('ai.prompt'), 0, 1).toFixed(2) };
   }
 
   // the picture cut into grid cells, each cell drawn where its (moved) corners are now
@@ -2327,18 +2342,52 @@
   requestAnimationFrame(touchLoop);
 
   // ---------- the movement switch: on = the chosen kind runs, off = camera closed and no effect ----------
-  function updFlowSwitch() {
-    const on = flowOn(); $('flowswitch').setAttribute('aria-pressed', on); $('flowswitch').textContent = on ? T('Movement: ON') : T('Movement: OFF');
-    if (on && $('flow_kind').value !== $('flowtrack').value) $('flow_kind').value = $('flowtrack').value;
+  // #249: the mode decides – the camera is opened only for a mode that needs it and closed when none does
+  let camWant = '', tableShow = () => {};            // the dance card, once it is mounted
+  function moveSync() {
+    const on = flowOn(), want = on ? $('flow_kind').value + '|' + flowCam() : '';
+    $('move_cam').disabled = moveMode() !== 'mood';
+    $('movetable').textContent = moveMode() === 'off' ? T('Movement is off – shown: the table of Dream Dance.') : T('What a movement does in the mode “{m}”.', { m: MOVE_NAMES[moveMode()] });
+    tableShow();
+    showSources();
+    if (want === camWant) return;
+    camWant = want;
     if (!on) { mo = null; touch.hands = []; }
-    if (on) tracker.start($('flowtrack').value, camId(flowCam())).then(listCams); else tracker.stop();
+    if (on) tracker.start($('flow_kind').value, camId(flowCam())).then(listCams); else tracker.stop();
     flowFeed(mode === 'flow');
   }
-  $('flowswitch').onclick = () => {
-    const v = flowOn() ? 'off' : $('flow_kind').value;
-    $('flowtrack').value = v; sendCtl({ set: { flowtrack: v } }); updFlowSwitch();
-  };
-  $('flow_kind').addEventListener('change', () => { if (flowOn()) { $('flowtrack').value = $('flow_kind').value; sendCtl({ set: { flowtrack: $('flow_kind').value } }); updFlowSwitch(); } });
+  const MOVE_NAMES = { off: T('Off'), mood: T('Mood'), flowtrack: 'Flowtrack', dance: 'Dream Dance' };
+  ['move_mode', 'move_cam', 'flow_kind'].forEach(id => $(id).addEventListener('change', moveSync));
+  // the register (movement.js): the Mac's camera and whatever else sends movement, one line per kind with its switch
+  const KIND_NAMES = { camera: T('Mac camera'), eyes: 'Dreamy Eyes', phone: T('Phone (Dream Control)'), band: T('Wristband/glove (OSC)') };
+  let sourcesShown = '';
+  function moveSources() {
+    const f = tracker.frame, running = tracker.status.code === 'running';
+    return mover.sources(moveMode(), moveOpts(), { name: KIND_NAMES.camera, running, rate: running ? f.rate : 0, conf: danceFrame && performance.now() - danceAt < 500 ? danceFrame.c.energy || 0.5 : 0.5, energy: mspeed() });
+  }
+  function showSources() {
+    const list = moveSources(), off = new Set(moveOff.split('+'));
+    const rows = DreamMove.KINDS.map(kind => { const mine = list.filter(s => s.kind === kind), live = mine.filter(s => s.active);
+      return { kind, n: mine.length, used: DreamMove.uses(moveMode(), kind, moveOpts()), live: live.length, rate: Math.round(live.reduce((a, s) => a + s.rate, 0)), conf: live.length ? Math.round(100 * live.reduce((a, s) => a + s.conf, 0) / live.length) : 0 }; });
+    const key = JSON.stringify([rows, [...off]]);
+    if (key === sourcesShown) return;
+    sourcesShown = key;
+    const box = $('movesources'), keep = document.activeElement && box.contains(document.activeElement) ? document.activeElement.dataset.kind : null;
+    box.textContent = '';
+    for (const r of rows) {
+      const lab = document.createElement('label'), cb = document.createElement('input'), dot = document.createElement('i'), txt = document.createElement('span');
+      cb.type = 'checkbox'; cb.checked = !off.has(r.kind); cb.dataset.kind = r.kind; dot.className = 'dot'; dot.setAttribute('aria-hidden', 'true');
+      lab.className = (r.live && cb.checked && r.used ? 'live' : '') + (r.used ? '' : ' unused');
+      const state = !cb.checked ? T('switched off') : !r.used ? T('not used by this mode') : r.live ? T('{n} values/s · {p} % sure', { n: r.rate, p: r.conf }) : T('nothing comes');
+      txt.textContent = KIND_NAMES[r.kind] + (r.n > 1 ? ` (${r.n})` : '') + ' – ' + state;
+      lab.title = T('Tick off: this kind of source no longer moves the dream.');
+      cb.onchange = () => { const now = new Set(moveOff.split('+').filter(Boolean)); if (cb.checked) now.delete(r.kind); else now.add(r.kind);
+        moveOff = DreamMove.KINDS.filter(k => now.has(k)).join('+'); sendCtl({ set: { move_off: moveOff } }); moveSync(); };
+      lab.append(cb, dot, txt); box.append(lab);
+    }
+    if (keep) { const again = box.querySelector(`[data-kind="${keep}"]`); if (again) again.focus(); }
+  }
+  setInterval(showSources, 500);
   // the detection itself (static/motion.js): it reports like flowtrack did; presence and rules go to the server
   const FLOW_STATE = { off: T('Movement off'), camera: T('Opening the camera …') };
   const tracker = DreamMotion.create({
@@ -2388,7 +2437,7 @@
     const f = tracker.frame, how = tracker.kind === 'hand' ? T('Hands (AI)') : tracker.kind === 'marker' ? T('LED markers') : T('Light');
     $('flowstate').textContent = T('{how}: {r} values/s', { how, r: Math.round(f.rate) }) + ' · ' + (f.present ? T('someone there') : T('nobody')) + (f.gain > 1.3 ? T(' · dark, brightened ×{g}', { g: f.gain.toFixed(1) }) : '');
   }, 500);
-  updFlowSwitch();
+  moveSync();
 
   // ---------- panel: sections, fixed layout, status chips ----------
   // every control gets an accessible name: the label just above it (without the live value), if it has none
@@ -2585,7 +2634,7 @@
     if (st.mem_dream_gb != null) t.push(tile(T('Memory Dream'), st.mem_dream_gb + ' GB', false));
     if (st.gpu_mem_gb != null) t.push(tile(T('GPU memory'), st.gpu_mem_gb + ' GB', false));
     if (st.mem_system != null) t.push(tile(T('Memory total'), st.mem_system + ' %', st.mem_system > 90));
-    if ($('flowtrack').value !== 'off') t.push(tile(T('Movement'), T('{n} values/s', { n: mo && performance.now() - moAt < 2000 ? Math.round(mo.rate || 0) : 0 }), false));
+    if (flowOn()) t.push(tile(T('Movement'), T('{n} values/s', { n: mo && performance.now() - moAt < 2000 ? Math.round(mo.rate || 0) : 0 }), false));
     $('stats').innerHTML = t.join('');
     // a new row of tiles: the preview makes room once; the area keeps that height, so it never jumps back
     const sh = $('stats').offsetHeight;
@@ -2659,7 +2708,7 @@
     { name: 'pose', on: () => $('pose').checked, run: async () => {
       keep('pose_scale', $('pose_scale').value); keep('pose', true);
       await relGlide('pose_scale', $('pose_scale').min); relSet('pose', false); } },
-    { name: 'hands', on: () => $('flowtrack').value === 'hand', run: async () => { keep('flow_kind', 'hand'); relSet('flow_kind', 'on'); } },
+    { name: 'hands', on: () => flowOn() && $('flow_kind').value === 'hand', run: async () => { keep('flow_kind', 'hand'); relSet('flow_kind', 'on'); } },
     { name: 'size', on: () => +$('size').value > 512, run: async () => { keep('size', $('size').value); relSet('size', '512'); } },
     // the model is never switched here (owner's decision): which model runs stays the owner's choice
   ];
@@ -2730,8 +2779,8 @@
   relShow();
 
   // cards that have no effect right now look inactive (see CSS details.sec.idle)
-  const IDLE = { auto: () => !apOn(), motion: () => !flowOn(), touch: () => !flowOn(), music: () => $('music').value === 'off',
-    dance: () => !danceOn() || (!flowOn() && !sensLive),
+  const IDLE = { auto: () => !apOn(), motion: () => moveMode() === 'off', touch: () => !flowOn(), music: () => $('music').value === 'off',
+    dance: () => !danceOn(),
     fx: () => !fxShown().length };
   function markIdle() {
     for (const [k, off] of Object.entries(IDLE)) {
@@ -2748,7 +2797,6 @@
     [['playlist'], () => $('plbox')],
     [['quality'], () => $('quality'), () => apLevel() >= 0.67], [['size'], () => $('size'), () => apLevel() >= 0.67],
     [['fx', 'fx_amt', 'fx_beat'], () => $('fxtiles')],
-    ...Object.keys(TOUCH_AP).map(k => [[k], () => $(k).closest('label'), () => $(k).checked]),
   ];
   const apChips = new Map();
   function markAp() {
@@ -2758,10 +2806,6 @@
       const ap = on && !mine && (!cond || cond()), hand = on && mine;
       e.classList.toggle('ap', ap); e.classList.toggle('aphand', hand);
       if (ap || hand) cards.add(e.closest('details.sec'));
-    }
-    for (const k of Object.keys(TOUCH_AP)) {
-      const l = $(k).closest('label'), off = $(k).checked && touchApOff(k);
-      l.classList.toggle('apoff', off); l.title = off ? T('Autopilot: not at this liveliness right now') : '';
     }
     document.querySelectorAll('details.sec').forEach(d => {
       let c = apChips.get(d);
@@ -2790,6 +2834,7 @@
     if (backend === 'cloud' && painting === 'mac') c.push(['', T('💻 The Mac bridges')]);
     if (document.body.classList.contains('flow-missing')) c.push(['warn', T('Movement: no camera')]);
     else if (flowOn()) c.push(['ok', mo && performance.now() - moAt < 2000 ? T('Movement ✓') : T('Movement is starting …')]);
+    else if (moveMode() !== 'off') c.push([mover.room.conf > 0 ? 'ok' : '', mover.room.conf > 0 ? T('Mood ✓') : T('Mood: no source yet')]);
     if ($('playlist').value) c.push(['', '▶ ' + I18N.name($('playlist').value)]);
     if ($('music').value !== 'off') c.push(['ok', T('♪ Music')]);
     if ($('syphon').checked) c.push(['', 'Syphon']);
@@ -3112,12 +3157,15 @@
     pixel: '👾', raster: '▦', rgb: '🌈', glitch: '⚡', hue: '🎨' };
   const FX_LIST = Object.keys(FX_NAMES);
   // #235: the dance card – what Dream sees, and the mapping table (a hand's change goes to Dream, which keeps the table)
-  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (Array.isArray(rows)) danceRows = rows; sendCtl({ dance_map: rows }); }, fxNames: FX_NAMES,
-    sources: DreamDance.SOURCES, targets: DreamDanceMap.targets(DreamFx.ALL) });
+  // #249: the table shown and changed is the one of the mode in use (off: the dance table)
+  const tableSay = rows => { if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); if (Array.isArray(rows)) dancePanel.map(rows); };
+  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); }, fxNames: FX_NAMES,
+    sources: [...DreamDance.SOURCES, 'present'], targets: DreamDanceMap.targets(DreamFx.ALL) });
+  tableShow = () => dancePanel.map(tableRows());
   const danceCard = document.querySelector('details.sec[data-sec="dance"]');
   setInterval(() => {                                  // the display, a dozen times a second while its card is open and in view
     if (!danceCard.open || document.hidden || document.body.classList.contains('hide')) return;
-    dancePanel.show(danceNow(), danceMap.of);
+    dancePanel.show(mover.frame || danceNow(), id => mover.of(tableMode(), id));
   }, 80);
   // #243: the dance lab – an overlay over the stage (static/dancelab.js). It reads the live record with what the
   // detector was fed and the skeleton's points, draws the camera picture (kept nowhere), and hands back a session's
@@ -3126,8 +3174,8 @@
   const danceLab = DanceLab.mount($('dancelab'), { keys: DreamDance.SOURCES, fxNames: FX_NAMES, targets: DreamDanceMap.targets(DreamFx.ALL),
     video: tracker.video, snapshot: (c, w, h) => view.snapshot(c, w, h),
     live: () => (danceOn() && danceFrame && performance.now() - danceAt < 300 ? { rec: danceFrame, input: danceInput, landmarks: tracker.frame.landmarks, out: danceOut } : null),
-    rows: () => danceRows,
-    setRows: rows => { danceRows = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: danceRows }); }, 200); },
+    rows: tableRows,
+    setRows: rows => { const m = tableMode(); moveTables[m] = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: moveTables[m], mode: m }); }, 200); },
     play: rec => { dancePlay = rec; },
     secs: () => danceFbSecs, setSecs: v => { danceFbSecs = v; sendCtl({ set: { dance_fb_secs: v } }); },
     colours: () => ({ l: $('marker_l').value, r: $('marker_r').value }),
@@ -3286,10 +3334,12 @@
       if (ap.phase >= 1) { ap.phase -= 1; ap.pulse = 1; } else ap.pulse = (ap.pulse || 0) * Math.pow(0.88, dt0 * 60);
     }
     // movement leads as much as "Direktheit" says (flowtrack on, someone there): a whip is a beat of its own
-    const mo2 = motionFx(dt0, flowOn() ? touchAmt() : 0), lead = (flowOn() ? touchAmt() : 0) * mo2.on;
+    const dn = danceTargets(dt0), dfx = e => dn['fx.' + e] || 0;
+    // #249: movement shapes the effects as far as the mode's table asks for it ("touch.shape")
+    const direct = flowOn() ? touchAmt() * clamp(moveGain('touch.shape'), 0, 1) : 0;
+    const mo2 = motionFx(dt0, direct), lead = direct * mo2.on;
     // #235: what the dance asks of the instant layer – its own beat pushes like the music's, each effect at least as
     // strong as its row says (no fade of the effects' own: the row has its smoothing), turning turns them
-    const dn = danceTargets(dt0), dfx = e => dn['fx.' + e] || 0;
     const pulse = Math.max((ap.pulse || 0) * (1 - 0.5 * lead), lead * mo2.imp * 1.2, dfx('pulse'));
     if (lead > 0.5 && mo2.imp > 0.97) wake = Math.max(wake, 0.3 + 0.4 * lead);   // and a flash of light
     if (!analyser) {                                   // no music: nobody else moves the stage, so the pulse does it here
@@ -3304,7 +3354,7 @@
     if (!hand && goal > 0 && !ap.fxSet.length) apFxPick();
     // still hands let the effects fade, fast ones push them up; with no effect on, movement from medium
     // "Direktheit" on brings a light one of its own (colour channels and afterglow), gone when the hand rests
-    const moK = 1 - lead + lead * (0.25 + 1.1 * mo2.sp), own = apFxAmt < 0.02 && !document.body.classList.contains('pure') ? clamp((touchAmt() - 0.3) / 0.7, 0, 1) * lead * mo2.sp : 0;
+    const moK = 1 - lead + lead * (0.25 + 1.1 * mo2.sp), own = apFxAmt < 0.02 && !document.body.classList.contains('pure') ? clamp((direct - 0.3) / 0.7, 0, 1) * lead * mo2.sp : 0;
     // every effect fades to its share of the strength in ~1.5 s: sets change softly (movement quicker)
     let top = 0;
     for (const e of DreamFx.ALL) {
@@ -3313,7 +3363,7 @@
       ap.fxFade[e] = nxt < 0.005 && want === 0 ? 0 : nxt;
       ap.fxAmts[e] = Math.min(1, Math.max(ap.fxFade[e], dfx(e))); top = Math.max(top, ap.fxAmts[e]);
     }
-    const dir = lead > 0.3 ? mo2.dir : ap.rotSign || 1, quick = 1 + 2.5 * lead * mo2.sp;   // the hand's way round, its tempo
+    const dir = lead > 0.3 ? mo2.dir : ap.rotSign || 1, quick = 1 + 2.5 * lead * mo2.sp + 2 * Math.max(0, dfx('speed'));   // the hand's way round, its tempo (#249: and the table's)
     ap.spin = (ap.spin || 0) + (0.003 + 0.03 * pulse) * Math.max(apFxAmt, own) * dir * quick + 3 * dt0 * dfx('spin');
     ap.t = (ap.t || 0) + dt0 * (0.6 + Lv) * quick;
     ap.hueDeg = (ap.hueDeg + dt0 * (25 + 95 * Lv) * (1 + pulse)) % 360;
@@ -3574,7 +3624,8 @@
       if (m.sensors) showSensors(m.sensors);
       if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
       if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
-      if (m.dance && m.dance.map && !dancePanel.busy && !danceMapTimer) { danceRows = m.dance.map; dancePanel.map(danceRows); }
+      if (m.dance && m.dance.tables && !dancePanel.busy && !danceMapTimer) { moveTables = m.dance.tables; dancePanel.map(tableRows()); }
+      if (m.move && Array.isArray(m.move.sources)) moveRemote = m.move.sources;   // #249: the sources outside the stage
       if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad
       if (m.scene) {
         const sc = m.scene;
