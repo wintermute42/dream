@@ -98,6 +98,8 @@
   // cands: [{x, y, c, src ('pose' | 'marker' | 'light'), len, ang}] in the picture; fast: the hand moved fast a moment
   // ago; dark: the room is dark. In the dark and on fast moves the marker leads (the model smears and guesses); when
   // both see the hand in the same place they confirm each other.
+  // A candidate may say when it was measured (`at`, seconds): a model that runs on every second camera frame hands
+  // the same point in twice, and the stream must not read that as "stood still, then jumped" (see `step`).
   function fuseHand(cands, { fast = false, dark = false } = {}) {
     const ok = (cands || []).filter(c => c && c.c > 0.05 && Number.isFinite(c.x) && Number.isFinite(c.y));
     if (!ok.length) return null;
@@ -317,12 +319,18 @@
         const f = fused[h], was = st.hand[h];
         if (f && st.centre && st.S > 0) {
           const u = (f.x * aspect - st.centre[0]) / st.S, v = (st.centre[1] - f.y) / st.S;
+          // The same measurement again (the model ran on an earlier camera frame): the hand is where it was and as
+          // fast as it was – its speed is the way between two measurements over the time between THEM. Without this a
+          // model on every second frame reads as "still, jump, still, jump": the energy flickers and comes out too high.
+          const at = Number.isFinite(f.at) ? f.at : null, again = at != null && was && was.at != null && Math.abs(at - was.at) < 1e-3 && t - was.t < 0.3;
+          if (again) { st.hand[h] = { ...was, t, c: f.c }; e2 += was.sp * was.sp; ec += f.c; eN++; out.hands[h] = [+was.u.toFixed(3), +was.v.toFixed(3)]; continue; }
           let sp = 0, vu = 0, vv = 0;
-          if (was && t - was.t < 0.3) { vu = (u - was.u) / Math.max(dt, t - was.t); vv = (v - was.v) / Math.max(dt, t - was.t); sp = Math.hypot(vu, vv); }
+          const since = was ? Math.max(dt, at != null && was.at != null ? at - was.at : t - was.m) : dt;
+          if (was && t - was.t < 0.3) { vu = (u - was.u) / since; vv = (v - was.v) / since; sp = Math.hypot(vu, vv); }
           // a streak is the way the hand went during one exposure: at least that fast it was
           if (f.len) sp = Math.max(sp, 0.5 * f.len * aspect / st.S * RATE);
-          sp = was ? was.sp + (Math.min(sp, 40) - was.sp) * Math.min(1, dt / 0.08) : 0;
-          st.hand[h] = { u, v, t, sp, c: f.c, src: f.src };
+          sp = was ? was.sp + (Math.min(sp, 40) - was.sp) * Math.min(1, since / 0.08) : 0;
+          st.hand[h] = { u, v, t, m: t, at, sp, c: f.c, src: f.src };
           e2 += sp * sp; ec += f.c; eN++;
           out.hands[h] = [+u.toFixed(3), +v.toFixed(3)];
         } else if (was && t - was.t > 0.3) st.hand[h] = null;
