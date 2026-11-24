@@ -320,11 +320,11 @@
     <label>Smoothing – against flicker <span class="val" id="v-smooth"></span></label><input type="range" id="smooth" min="0" max="1" step="0.05">
     <label class="check"><input type="checkbox" id="drift_prompt"> Vary the prompt gently</label>
     <div class="row" style="margin-top:8px"><button id="flowswitch" data-only="control" aria-pressed="false" style="font-weight:700">Movement: OFF</button>
-      <select id="flow_kind" data-only="control" aria-label="Kind of movement detection"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option></select></div>
+      <select id="flow_kind" data-only="control" aria-label="Kind of movement detection"><option value="hand">Hands (AI)</option><option value="on">Fire/LED</option><option value="marker">LED markers (2 colours)</option></select></div>
     <label class="check" data-only="control"><input type="checkbox" id="fast"> ⚡ Fast (dance/flow): values follow at once, smoothing off</label>
     <label for="flow_device" data-only="control">Camera for movement</label>
     <select id="flow_device" data-only="control"><option value="">as picture</option></select>
-    <select id="flowtrack" hidden aria-hidden="true"><option value="off">Off</option><option value="on">On: fire/LED</option><option value="hand">On: hands (AI)</option></select>
+    <select id="flowtrack" hidden aria-hidden="true"><option value="off">Off</option><option value="on">On: fire/LED</option><option value="hand">On: hands (AI)</option><option value="marker">On: LED markers</option></select>
     <label class="check" data-only="control"><input type="checkbox" id="motion"> Movement steers the dream</label>
     <label data-only="control">Directness (hands paint and swirl) <span class="val" id="v-touch_amt"></span></label><input type="range" id="touch_amt" data-only="control" min="0" max="1" step="0.05">
     <label class="check" data-only="control"><input type="checkbox" id="touch_paint"> Paint (light trails)</label>

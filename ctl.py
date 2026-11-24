@@ -12,6 +12,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 import cloud
 import config
+import dance
 import eyes
 import hub
 import i18n
@@ -66,6 +67,7 @@ async def ctl(sock: WebSocket):
     if not rights.can(role, "eyes_only"):
         outbox.post(sock, json.dumps({"midi": {"map": inputs.midi_map}}))
         outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
+        outbox.post(sock, json.dumps(dance.msg()))         # #235: the dance mapping table
         outbox.post(sock, json.dumps({"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
                                          "cams": hub.live.get("cams", []), "lan": config.LAN,
                                          "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
@@ -153,6 +155,8 @@ async def ctl(sock: WebSocket):
             if "sensor_forget" in msg or "sensor_invert" in msg or "sensor_impulse" in msg or "sensor_sens" in msg:
                 inputs.sensor_setting(msg)
                 await hub.broadcast({"sensors": {"map": inputs.sens.mapping}})
+            if "dance_map" in msg and rights.can(hub.roles.get(sock), "control"):   # #235: never a guest
+                await hub.broadcast(inputs.dance_map(msg["dance_map"]))
             if "midi_forget" in msg:
                 inputs.midi_map.pop(str(msg["midi_forget"]), None)
                 midi.save_map(inputs.midi_map)
