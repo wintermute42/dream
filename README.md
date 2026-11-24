@@ -1695,8 +1695,8 @@ L4-1-24G, fr-par-2, quota 1”. Prices: L4 (24 GB) about €0.79 per hour, L40S 
   tight, 🥵 overloaded, 🤯 far overloaded, 😴 paused (smooth means about 3 AI pictures a second on the Mac, 4 in the
   cloud). A tap takes back, one step after the other, what costs most: diagnostics → style model and style reference
   picture (only with SDXL, faded out first – the style goes early) → quality “Fluid” → outlines and pose (their strength
-  slides to zero first, then they switch off) → hand detection “Hands (AI)” → “Fire/LED” → resolution 512 px. The model is never
-  switched – that stays your choice. After every step it waits a few seconds and measures; as soon as Dream
+  slides to zero first, then they switch off) → resolution 512 px. The model is never
+  switched and the movement detection never changed – those stay your choice. After every step it waits a few seconds and measures; as soon as Dream
   runs smoothly it stops, the rest stays as it was. While it works the face exhales (😮‍💨) and the button counts the
   steps with a bar underneath. The chip “🐢 relieved: …” says what was taken back; **↶** puts everything back as it
   was. **The autopilot presses it too** when Dream stays overloaded (🥵/🤯) for 15 seconds, at most every two minutes

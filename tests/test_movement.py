@@ -321,3 +321,15 @@ def test_the_old_settings_are_no_settings_any_more():
     gone = {"flowtrack", "dance", "motion", "motion_ai", "touch_paint", "touch_warp", "touch_content", "touch_impulse", "touch_light"}
     assert not gone & set(settings.SETTINGS)
     assert set(dance.OLD_SWITCHES) <= gone and {"paint", "warp", "content", "impulse", "light"} == set(dance.OLD_SWITCHES.values())
+
+
+def test_relieving_and_the_autopilot_never_change_what_the_movement_detects():
+    """"Relieve" (the button, Dream Control, the autopilot when Dream is overloaded) takes back what costs most – never
+    the movement's mode or detection: "Hands (AI)" turned into "Fire/LED" took a dance its hands."""
+    import os
+    page = open(os.path.join(os.path.dirname(__file__), "..", "static", "index.html"), encoding="utf-8").read()
+    steps = page[page.index("const REL_STEPS = ["):page.index("const REL_NAMES")]
+    movement = ("flow_kind", "dance_kind", "move_mode", "move_cam", "move_off", "flow_markers", "flow_fingers", "marker_l", "marker_r")
+    for key in movement:
+        assert key not in steps, key
+    assert "relSet('flow_kind'" not in page and "relSet('dance_kind'" not in page

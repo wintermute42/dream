@@ -2713,12 +2713,13 @@
     { name: 'pose', on: () => $('pose').checked, run: async () => {
       keep('pose_scale', $('pose_scale').value); keep('pose', true);
       await relGlide('pose_scale', $('pose_scale').min); relSet('pose', false); } },
-    { name: 'hands', on: () => flowOn() && moveMode() !== 'dance' && $('flow_kind').value === 'hand', run: async () => { keep('flow_kind', 'hand'); relSet('flow_kind', 'on'); } },
+    // what the movement detects is never touched here (owner's decision): the detection and the movement mode stay the
+    // owner's choice – relieving once turned “Hands (AI)” into “Fire/LED”, and a dance lost its hands to a bright window
     { name: 'size', on: () => +$('size').value > 512, run: async () => { keep('size', $('size').value); relSet('size', '512'); } },
     // the model is never switched here (owner's decision): which model runs stays the owner's choice
   ];
   const REL_NAMES = () => ({ diagnostics: T('diagnostics'), quality: T('quality'), outlines: T('outlines'), pose: T('pose'),
-    style: T('style'), hands: T('hand detection'), size: T('resolution') });
+    style: T('style'), size: T('resolution') });
   async function relieve(byAuto) {
     if (rel.busy) return;
     rel.byAuto = !!byAuto;

@@ -297,3 +297,25 @@ test('a skeleton that drops out for a frame now and then is no movement: still h
   const o = e.step({ t: 0.03, hands: { l: { x: 0.6, y: 0.5, c: 0.9, src: 'pose' }, r: { x: 0.4, y: 0.5, c: 0.9, src: 'pose' } }, body: { x: 0.5, y: 0.4, s: 0.1, c: 0.9 } });
   assert.ok(Number.isFinite(o.v.open) && o.v.open > 0);
 });
+
+test('a model that runs on every second or fourth camera frame gives the same calm energy as one on every frame', () => {
+  // one hand at a steady pace back and forth; the detection hands the same measurement in again until its next run
+  const run = (fps, every) => {
+    const d = D.create(), es = []; let held = null;
+    for (let i = 0; i < fps * 8; i++) {
+      const t = i / fps;
+      if (i % every === 0) { const ph = (t * 0.5) % 1; held = { at: t, r: { x: 0.3 + 0.3 * (ph < 0.5 ? ph * 2 : 2 - ph * 2), y: 0.5 }, l: { x: 0.25, y: 0.6 + 0.1 * Math.sin(t * 3) } }; }
+      const c = p => [{ ...p, c: 0.9, src: 'pose', at: held.at }];
+      const o = d.step({ t, hands: { l: c(held.l), r: c(held.r) }, body: { x: 0.4, y: 0.4, s: 0.12, c: 0.9 } });
+      if (t > 3) es.push(o.v.energy);
+    }
+    let step = 0; for (let i = 1; i < es.length; i++) step += Math.abs(es[i] - es[i - 1]);
+    return { mean: es.reduce((a, b) => a + b) / es.length, flicker: step / (es.length - 1) * fps };   // change a second
+  };
+  const full = run(30, 1);
+  for (const [fps, every] of [[30, 2], [30, 4], [60, 2], [60, 4]]) {
+    const got = run(fps, every);
+    assert.ok(Math.abs(got.mean - full.mean) < 0.02, `${fps} fps, every ${every}: energy ${got.mean.toFixed(3)}, on every frame ${full.mean.toFixed(3)}`);
+    assert.ok(got.flicker < 3 * full.flicker, `${fps} fps, every ${every}: flickers ${got.flicker.toFixed(3)} a second, on every frame ${full.flicker.toFixed(3)}`);
+  }
+});
