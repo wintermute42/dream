@@ -4,6 +4,8 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readdirSync, readFileSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { test } from 'node:test';
 import { frames, hand as paintedHand } from './dance-sim.mjs';
 
@@ -156,16 +158,34 @@ test('a session becomes a test file: the detector’s input and what is expected
   assert.deepEqual(R.check(file, () => ({ step: () => ({ gesture: null }) })).map(r => r.ok), [false, true]);
 });
 
-test('the test files kept in tests/js/dance-sessions hold: the detection does what each expects', () => {
-  const dir = new URL('./dance-sessions/', import.meta.url), files = readdirSync(dir).filter(f => f.endsWith('.json'));
-  assert.ok(files.length >= 1, 'at least the synthetic one');
-  for (const name of files) {
+// Every test file of a folder through the detection: [name, lines checked]; a line that does not hold fails.
+function checkFolder(dir) {
+  return readdirSync(dir).filter(f => f.endsWith('.json')).sort().map(name => {
     const file = JSON.parse(readFileSync(new URL(name, dir), 'utf8'));
     assert.equal(file.format, 'dream-dance-test', name);
     const res = R.check(file, D.create);
-    assert.ok(res.length >= 1, `${name}: nothing expected`);
     for (const r of res) assert.ok(r.ok, `${name}: ${r.t0}–${r.t1} s expected ${r.want}, got ${r.got}`);
+    return [name, res.length];
+  });
+}
+
+// Only invented movement lives in the repository: a file here is made by the simulated dancer and says so.
+test('the test files kept in tests/js/dance-sessions hold: the detection does what each expects – and all are synthetic', () => {
+  const dir = new URL('./dance-sessions/', import.meta.url), done = checkFolder(dir);
+  assert.ok(done.length >= 1, 'at least the synthetic one');
+  for (const [name, n] of done) {
+    assert.ok(n >= 1, `${name}: nothing expected`);
+    assert.match(name, /^synthetic[a-z0-9-]*\.json$/, `${name}: only synthetic sessions belong in the repository – a real recording goes to a private folder (DREAM_DANCE_SESSIONS)`);
+    assert.match(JSON.parse(readFileSync(new URL(name, dir), 'utf8')).name, /^synthetic/, `${name}: its name says it is synthetic`);
   }
+});
+
+// Real recordings stay private: DREAM_DANCE_SESSIONS=/path/to/a/private/folder runs them through the same check.
+const OWN = process.env.DREAM_DANCE_SESSIONS;
+test('the test files of a private folder (DREAM_DANCE_SESSIONS) hold too', { skip: OWN ? false : 'DREAM_DANCE_SESSIONS is not set' }, () => {
+  const done = checkFolder(pathToFileURL(resolve(OWN) + sep));
+  console.log(`  ${done.length} private test files, ${done.reduce((a, d) => a + d[1], 0)} expectations checked`);
+  for (const [name, n] of done) if (!n) console.log(`  ${name}: nothing expected yet (write a gesture into "want")`);
 });
 
 test('tuning a row in the lab: target, curve, ranges and smoothing – each inside its range, the table handed in untouched', () => {

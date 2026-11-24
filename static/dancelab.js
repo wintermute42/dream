@@ -314,6 +314,7 @@
       get: id => fetch('/dance/sessions/' + id).then(r => (r.ok ? r.json() : null)),
       add: s => fetch('/dance/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(s) }).then(r => r.json()),
       del: id => fetch('/dance/sessions/' + id, { method: 'DELETE' }).then(r => r.ok),
+      exp: (id, file) => fetch('/dance/sessions/' + id + '/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(file) }).then(r => r.json()),
     };
     const when = at => new Date(at * 1000).toLocaleString(root.I18N ? root.I18N.lang : undefined, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     async function refresh() {
@@ -325,10 +326,10 @@
         const li = el('li'), fb = m.kind === 'feedback';
         const what = fb ? `${m.good ? '👍' : '👎'} ${when(m.at)} · ${T('{n} s', { n: Math.round(m.seconds) })}${m.gesture ? ' · ' + label('g.' + m.gesture) : ''}${m.targets && m.targets.length ? ' → ' + m.targets.map(label).join(', ') : ''}`
           : `● ${when(m.at)} · ${clock(m.seconds)}${m.good || m.bad ? ` · 👍 ${m.good} 👎 ${m.bad}` : ''}`;
-        const text = el('span', 'dl-what', what), play = btn('▶', T('Play this back: it steers instead of the live dance')), exp = btn('⬇', T('Save as a test file for the detection (numbers only)')), del = btn('🗑', T('Delete'));
+        const text = el('span', 'dl-what', what), play = btn('▶', T('Play this back: it steers instead of the live dance')), exp = btn('⬇', T('Write a test file for the detection (numbers only; it stays on this Mac)')), del = btn('🗑', T('Delete'));
         play.setAttribute('aria-label', T('Play back: {w}', { w: what })); exp.setAttribute('aria-label', T('Test file of: {w}', { w: what })); del.setAttribute('aria-label', T('Delete: {w}', { w: what }));
         play.onclick = () => playback(m.id);
-        exp.onclick = async () => { const s = await api.get(m.id); if (R.good(s)) download(`dance-${m.id}.json`, R.testFile(s, m.id)); };
+        exp.onclick = () => testFile(m.id);
         del.onclick = () => {                             // asks once more on the button itself – no dialog in the way
           if (del.dataset.sure) { api.del(m.id).then(refresh); return; }
           del.dataset.sure = '1'; del.textContent = T('Really delete?'); setTimeout(() => { delete del.dataset.sure; del.textContent = '🗑'; }, 3000);
@@ -336,9 +337,13 @@
         const bs = el('span', 'dl-rowbtns'); bs.append(play, exp, del); li.append(text, bs); list.append(li);
       }
     }
-    function download(name, obj) {
-      const a = el('a'), url = URL.createObjectURL(new Blob([JSON.stringify(obj)], { type: 'application/json' }));
-      a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // A test file is the dancer's real movement: Dream writes it into its state folder on the Mac and says where it
+    // belongs from there – never a download to whatever device asks, never Dream's code folder.
+    async function testFile(id) {
+      let r = null; try { const s = await api.get(id); if (R.good(s)) r = await api.exp(id, R.testFile(s, id)); } catch (e) { r = null; }
+      listState.textContent = r && r.file
+        ? T('Test file written: {f}. It holds your real movement: move it to a private place (a private repository, folder testdaten/dance-sessions/) – never into Dream’s code folder or a public repository.', { f: r.file })
+        : (r && r.error) || T('The test file could not be written.');
     }
     async function keep(s, text) {
       try { const r = await api.add(s); if (r && r.id) { say(text); if (open) refresh(); return; } say(r && r.error ? r.error : T('Could not be kept.')); }
