@@ -26,15 +26,17 @@
   const HAND = { l: () => T('Left hand'), r: () => T('Right hand') };
   const FROM = { pose: () => T('camera'), marker: () => T('marker'), light: () => T('light'), sensor: () => T('sensor'), hand: () => T('hand AI') };
   // a source's or a target's name as a person reads it; one nobody named yet (a taught gesture): as it is
+  // the name a table has for a key, or null: only the table's own entries, whatever the key says
+  const named = (table, key) => { const f = has(table, key) ? table[key] : null; return typeof f === 'function' ? f() : null; };
   function label(name, fxNames = {}) {
-    if (has(SRC, name)) return SRC[name]();
-    if (has(DST, name)) return DST[name]();
-    const [a, b] = name.split('.');
-    if (has(HAND, a) && has(SRC, b)) return HAND[a]() + ': ' + SRC[b]();
+    const own = named(SRC, name) || named(DST, name);
+    if (own) return own;
+    const [a, b] = name.split('.'), hand = named(HAND, a), what = named(SRC, b);
+    if (hand && what) return hand + ': ' + what;
     if (a === 'fx' && b) return has(fxNames, b) ? fxNames[b] : b;
     return name;
   }
-  const from = src => (src || '').split('+').map(s => (has(FROM, s) ? FROM[s]() : s)).join(' + ');
+  const from = src => (src || '').split('+').map(s => named(FROM, s) || s).join(' + ');
   const BIPOLAR_SRC = new Set(['turn']);
   // the table after a hand changed one thing of a row: {on}, {src}, {dst}, {amount} (its strength 0 … 1) or {remove}.
   // A source that goes both ways (turning) takes the whole input range and steers both ways; the row is the owner's now.
@@ -137,7 +139,7 @@
       }
       const hands = frame ? ['l', 'r'].filter(h => frame.c[h + '.palm'] > 0) : [];
       fingers.hidden = !hands.length;
-      if (hands.length) fingers.textContent = hands.map(h => `${HAND[h]()}: ${label('palm')} ${pct(frame.v[h + '.palm'])} · ${label('spread')} ${pct(frame.v[h + '.spread'])}${frame.v[h + '.pinch'] > 0.5 ? ' · ' + label('pinch') : ''}${frame.v[h + '.snap'] > 0.3 ? ' · ' + label('snap') : ''}`).join('\n');
+      if (hands.length) fingers.textContent = hands.map(h => `${named(HAND, h)}: ${label('palm')} ${pct(frame.v[h + '.palm'])} · ${label('spread')} ${pct(frame.v[h + '.spread'])}${frame.v[h + '.pinch'] > 0.5 ? ' · ' + label('pinch') : ''}${frame.v[h + '.snap'] > 0.3 ? ' · ' + label('snap') : ''}`).join('\n');
       if (held) for (const r of rows) { const dot = map.querySelector(`[data-id="${r.id}"] .dp-live`); if (dot) dot.style.opacity = Math.min(1, Math.abs(held(r.id)) * 1.5).toFixed(2); }
     }
     // Dream's word on the table – not taken while a hand's change is still on its way (its echo would undo the newer one)
