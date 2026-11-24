@@ -3098,7 +3098,7 @@
     pixel: '👾', raster: '▦', rgb: '🌈', glitch: '⚡', hue: '🎨' };
   const FX_LIST = Object.keys(FX_NAMES);
   // #235: the dance card – what Dream sees, and the mapping table (a hand's change goes to Dream, which keeps the table)
-  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => sendCtl({ dance_map: rows }), fxNames: FX_NAMES,
+  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (Array.isArray(rows)) danceRows = rows; sendCtl({ dance_map: rows }); }, fxNames: FX_NAMES,
     sources: DreamDance.SOURCES, targets: DreamDanceMap.targets(DreamFx.ALL) });
   const danceCard = document.querySelector('details.sec[data-sec="dance"]');
   setInterval(() => {                                  // the display, a dozen times a second while its card is open and in view
@@ -3526,7 +3526,7 @@
       if (m.sensors) showSensors(m.sensors);
       if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
       if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
-      if (m.dance && m.dance.map) { danceRows = m.dance.map; dancePanel.map(danceRows); }
+      if (m.dance && m.dance.map && !dancePanel.busy) { danceRows = m.dance.map; dancePanel.map(danceRows); }
       if (m.scene) {
         const sc = m.scene;
         if (sc.from) softPrompt(sc.fade, sc.from);     // the playlist's own fade time

@@ -293,3 +293,22 @@ test('a jump in time starts anew, and a hand that is gone stops counting', () =>
   let out; for (let i = 0; i < 60; i++) out = d2.step({ t: 5 + i / 30, hands: { l: null, r: null }, body: { x: 0.5 + 0.001 * r(), y: 0.4, s: 0.1, c: 0.9 } });
   assert.equal(out.gesture, null); assert.equal(out.c.open, 0);
 });
+
+test('a skeleton that drops out for a frame now and then is no movement: still hands stay still', () => {
+  const d = D.create(); let top = 0, hi = 0, lo = 1;
+  for (let i = 0; i < 300; i++) {
+    const hand = (x, src) => [{ x, y: 0.55, c: 0.9, src }, { x: x + 0.002, y: 0.55, c: 0.9, src: 'marker' }];
+    const out = d.step({ t: i / 30, hands: { l: hand(0.58, 'pose'), r: hand(0.42, 'pose') }, body: i % 4 === 3 ? null : { x: 0.5, y: 0.4, s: 0.1, c: 0.9 } });
+    if (i > 30) { top = Math.max(top, out.v.energy); hi = Math.max(hi, out.v.height); lo = Math.min(lo, out.v.height); }
+    assert.equal(out.gesture, null);
+  }
+  assert.ok(top < 0.03, `energy ${top}`); assert.ok(hi - lo < 0.01, `height swings ${lo}–${hi}`);
+  // … and when it is gone for good, the hands' own middle takes over without a jolt
+  let worst = 0;
+  for (let i = 300; i < 600; i++) worst = Math.max(worst, d.step({ t: i / 30, hands: { l: [{ x: 0.58, y: 0.55, c: 0.9, src: 'marker' }], r: [{ x: 0.42, y: 0.55, c: 0.9, src: 'marker' }] }, body: null }).v.energy);
+  assert.ok(worst < 0.1, `energy while the skeleton is gone: ${worst}`);     // a slow glide, below what any built-in row reacts to
+  // a picture without a size (the camera not ready) poisons nothing
+  const e = D.create(); e.step({ t: 0, hands: { l: null, r: null }, body: { x: NaN, y: 0.4, s: 0.1, c: 0.9 } });
+  const o = e.step({ t: 0.03, hands: { l: { x: 0.6, y: 0.5, c: 0.9, src: 'pose' }, r: { x: 0.4, y: 0.5, c: 0.9, src: 'pose' } }, body: { x: 0.5, y: 0.4, s: 0.1, c: 0.9 } });
+  assert.ok(Number.isFinite(o.v.open) && o.v.open > 0);
+});

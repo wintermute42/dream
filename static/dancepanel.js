@@ -77,9 +77,9 @@
     plus.type = reset.type = 'button'; plus.title = T('One more row: a movement and what it steers'); reset.title = T('Back to the built-in table: your rows are removed');
     btns.append(plus, reset); box.append(see, map, btns);
     let rows = [], drawn = '', timer = 0, lastGesture = null;
-    const say = next => { rows = next; draw(); clearTimeout(timer); timer = setTimeout(() => send(rows), 150); };
+    const say = next => { rows = next; draw(); clearTimeout(timer); timer = setTimeout(() => { timer = 0; send(rows); }, 150); };
     plus.onclick = () => say(add(rows, sources[0] || 'energy', Object.keys(targets)[0] || 'fx.amt'));
-    reset.onclick = () => { clearTimeout(timer); send('reset'); };
+    reset.onclick = () => { clearTimeout(timer); timer = 0; send('reset'); };
     function options(sel, groups, value) {
       for (const [title, names] of groups) {
         const g = document.createElement('optgroup'); g.label = title;
@@ -140,7 +140,8 @@
       if (hands.length) fingers.textContent = hands.map(h => `${HAND[h]()}: ${label('palm')} ${pct(frame.v[h + '.palm'])} · ${label('spread')} ${pct(frame.v[h + '.spread'])}${frame.v[h + '.pinch'] > 0.5 ? ' · ' + label('pinch') : ''}${frame.v[h + '.snap'] > 0.3 ? ' · ' + label('snap') : ''}`).join('\n');
       if (held) for (const r of rows) { const dot = map.querySelector(`[data-id="${r.id}"] .dp-live`); if (dot) dot.style.opacity = Math.min(1, Math.abs(held(r.id)) * 1.5).toFixed(2); }
     }
-    return { map(next) { rows = next || []; draw(); }, show, get rows() { return rows; } };
+    // Dream's word on the table – not taken while a hand's change is still on its way (its echo would undo the newer one)
+    return { map(next) { if (timer) return; rows = next || []; draw(); }, show, get busy() { return !!timer; }, get rows() { return rows; } };
   }
 
   const api = { mount, label, edit, add };
