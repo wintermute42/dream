@@ -57,6 +57,11 @@ command line for now, #231) via `dream-cloud`.
   The panel has one card for it (#250, `static/movecard.js` and `movecard.css`: the mode's buttons, the part of the mode
   in use, the sources); Dream Control has the mode and the mood's strength, and nothing of movement the panel lacks
   (`tests/test_movecard.py`).
+  A mode's page (#251: `/dance`, `static/dance.html`) is a window of its own on this Mac (`rights.LOCAL_ONLY`) that
+  reads the stage through `window.opener.DreamBridge.<name>` (`static/movepage.js`) – it has no connection and no
+  camera of its own, and everything that steers the show is in the panel too. The dance lab (#243) is part of that page.
+  The dance acts on top of what hands and controllers set (`DreamMove.onTop`) and only while its clutch is engaged (the
+  setting `clutch`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
   whether a MIDI controller or sensor can move it; #216: its `weight` – how strongly it shapes the picture – and the
   setting it `needs` to act); the defaults, ranges, guests' keys, `midi.TARGETS`, what "Reset" brings home
@@ -92,7 +97,7 @@ command line for now, #231) via `dream-cloud`.
   "ai.…" the slow sliders). A new gesture, a taught movement or a glove is a new source name, a new effect a new
   target – nothing else changes; the detection is pure and tested on synthetic trajectories (`tests/js/dance.test.mjs`,
   hit rate and false alarms). No camera picture is stored or sent for any of it.
-  The dance lab (#243) is the workshop for it: `static/dancelab.js` (an overlay over the stage: camera with skeleton,
+  The dance lab (#243) is the workshop for it: `static/dancelab.js` (a part of the page of Dream Dance, #251: camera with skeleton,
   hands and markers, the stream as curves, one row of the table to tune, feedback "good"/"bad", sessions) on top of
   `static/dancerec.js` (pure: the session format – the stream's records, the detector's inputs and the points of
   skeleton and hands, frame by frame –, recording, playback, the last seconds of a feedback, test files for the
