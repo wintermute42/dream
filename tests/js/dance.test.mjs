@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { test } from 'node:test';
-import { frames, play, verdict, rng, MOVES, NOT_MOVES } from './dance-sim.mjs';
+import { frames, play, verdict, rng, hand, MOVES, NOT_MOVES } from './dance-sim.mjs';
 
 const D = createRequire(import.meta.url)('../../static/dance.js');
 const last = a => a[a.length - 1];
@@ -224,21 +224,6 @@ test('marker and hand model for one hand: they confirm each other; in the dark a
 });
 
 // ---------- fingers ----------
-// a hand of 21 points: curl (0 straight … 1 fist) per finger, spread (radians between neighbours), pinch, size, turn
-function hand({ curl = 0, spread = 0.12, pinch = false, size = 1, turn = 0, at = [0.5, 0.5] } = {}) {
-  const pts = [[0, 0]], curls = Array.isArray(curl) ? curl : [curl, curl, curl, curl];
-  const thumb = pinch ? [[-0.25, 0.3], [-0.3, 0.6], [-0.2, 0.85], [-0.08, 1.02]] : [[-0.3, 0.25], [-0.55, 0.45], [-0.72, 0.62], [-0.85, 0.78]];
-  pts.push(...thumb);
-  for (let f = 0; f < 4; f++) {
-    const base = (1.5 - f) * -0.22, dir = (f - 1.5) * spread + Math.PI / 2, c = curls[f];
-    let x = base * -1, y = 1.0 - 0.04 * Math.abs(f - 1), a = dir;
-    if (f === 0 && pinch) { pts.push([x, y], [x - 0.08, y + 0.2], [x - 0.2, y + 0.12], [-0.1, 1.04]); continue; }
-    pts.push([x, y]);
-    for (const len of [0.42, 0.26, 0.2]) { a += c * 1.5; x += len * Math.cos(a); y += len * Math.sin(a); pts.push([x, y]); }
-  }
-  const co = Math.cos(turn), si = Math.sin(turn);
-  return pts.map(([x, y]) => [at[0] + size * 0.08 * (x * co - y * si), at[1] - size * 0.08 * (x * si + y * co)]);
-}
 test('fingers from 21 hand points: fist ↔ open hand, spread and pinch – whatever the size and the turn of the hand', () => {
   for (const size of [0.5, 1, 2.5]) for (const turn of [0, 0.8, 2.2, -1.5, Math.PI]) {
     const o = { size, turn }, open = D.fingerValues(hand({ ...o })), fist = D.fingerValues(hand({ ...o, curl: 1 })), half = D.fingerValues(hand({ ...o, curl: 0.45 }));

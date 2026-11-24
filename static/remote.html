@@ -283,6 +283,14 @@
     <div id="devstate" class="hint" role="status" aria-live="polite">The picture of this camera becomes the input “Camera” on the stage. Motion works like a sensor on the arm: learn what it steers, a strike becomes an impulse.</div>
   </section>
 
+  <section data-sec="dancelab" data-only="control">
+    <h2>🧪 Dance lab</h2>
+    <div class="hint">Say how the dance control feels while you dance: Dream keeps the last seconds as numbers (what it detected, what the movement steered) – never a camera picture. The lab itself is on the Mac.</div>
+    <div class="row" style="margin-top:8px"><button id="dl-good" class="big">👍 Good</button><button id="dl-bad" class="big">👎 Bad</button></div>
+    <div class="row" style="margin-top:8px"><button id="dl-rec" aria-pressed="false">● Record</button><button id="dl-open" aria-pressed="false">Lab on the stage</button></div>
+    <div id="dl-state" class="hint" role="status" aria-live="polite"></div>
+  </section>
+
   <section data-sec="eyes" data-only="control">
     <h2>👀 Dreamy Eyes</h2>
     <div class="hint">A phone of its own as an installation: its front camera feeds the dream, its screen shows two dreaming eyes in which the dream is mirrored. Its code may only lend the camera – nothing else.</div>
@@ -306,7 +314,7 @@
     <h2>MIDI · master</h2>
     <label>Master brightness (0 = black)</label><input type="range" id="master" min="0" max="1" step="0.01">
     <div id="midistate" class="hint">no MIDI device at the Mac</div>
-    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
+    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
   </section>
 
   <section data-key data-sec="motion" class="haschar">
@@ -326,6 +334,8 @@
     <select id="flow_device" data-only="control"><option value="">as picture</option></select>
     <select id="flowtrack" hidden aria-hidden="true"><option value="off">Off</option><option value="on">On: fire/LED</option><option value="hand">On: hands (AI)</option><option value="marker">On: LED markers</option></select>
     <label class="check" data-only="control"><input type="checkbox" id="motion"> Movement steers the dream</label>
+    <label class="check" data-only="control"><input type="checkbox" id="dance"> Dance steers the effects</label>
+    <label class="check" data-only="control"><input type="checkbox" id="motion_ai"> Movement also moves the slow AI sliders</label>
     <label data-only="control">Directness (hands paint and swirl) <span class="val" id="v-touch_amt"></span></label><input type="range" id="touch_amt" data-only="control" min="0" max="1" step="0.05">
     <label class="check" data-only="control"><input type="checkbox" id="touch_paint"> Paint (light trails)</label>
     <label class="check" data-only="control"><input type="checkbox" id="touch_warp"> Touch (swirl)</label>
@@ -424,7 +434,7 @@
   setNight(uiPref('night') === '1'); setShow(uiPref('show') === '1');
   const $ = id => document.getElementById(id);
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'touch_amt', 'master']);
-  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast'];
+  const FIELDS = ['cloud_bridge', 'prompt', 'strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'model', 'playlist', 'interval', 'shuffle', 'motion', 'motion_sens', 'flowtrack', 'drift', 'smooth', 'drift_prompt', 'flow_kind', 'touch_amt', 'touch_paint', 'touch_warp', 'touch_mirror', 'touch_content', 'touch_impulse', 'touch_light', 'music_patterns', 'music_drop', 'beat_snap', 'aspect', 'syphon', 'pose', 'pose_scale', 'master', 'auto', 'music_pattern', 'auto_level', 'auto_media', 'auto_cam', 'auto_flow', 'cam_device', 'flow_device', 'fast', 'dance', 'motion_ai'];
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount(document.getElementById('worldband'), { send: set => { Object.assign(state, set); send({ set }); } });   // (one word for all of them)
   let ws = null, state = {}, applying = false;
@@ -534,6 +544,25 @@
   document.querySelectorAll('#backends button').forEach(b => b.onclick = () => chooseBackend(b.dataset.b));
   $('cloud_bridge').addEventListener('change', () => { state.cloud_bridge = $('cloud_bridge').checked; showComputing(); });
   $('run').onclick = () => { setKey('running', !state.running); apply({ running: state.running }); };
+  // #243: the dance lab from here – feedback and recording; the stage keeps the moments and says so
+  let labNow = {}, labNote = 0;
+  const labSay = t => { $('dl-state').textContent = t; clearTimeout(labNote); labNote = setTimeout(labShow, 4000); };
+  function labShow() {
+    $('dl-rec').setAttribute('aria-pressed', String(!!labNow.rec)); $('dl-rec').textContent = labNow.rec ? T('■ Stop') : T('● Record');
+    $('dl-open').setAttribute('aria-pressed', String(!!labNow.open));
+    $('dl-state').textContent = labNow.play ? T('The lab plays a session back.') : labNow.rec ? T('Recording.') : labNow.open ? T('The lab is open on the stage.') : T('Open the lab or record first – then “good” and “bad” keep the last seconds.');
+  }
+  function danceLab(d) {
+    if (d.lab) { labNow = d.lab; labShow(); }
+    if (d.saved) labSay(d.saved.kind === 'feedback' ? (d.saved.good ? T('👍 kept: the last {n} s', { n: Math.round(d.saved.seconds) }) : T('👎 kept: the last {n} s', { n: Math.round(d.saved.seconds) })) : T('Session kept.'));
+  }
+  // a "good"/"bad" only counts while the lab is open on the live dance or a recording runs: say so here, at once
+  const labFb = mark => { if ((labNow.open || labNow.rec) && !labNow.play) send({ cmd: 'dance_fb', arg: mark }); else labSay(T('Nothing kept: open the lab on the live dance or record first.')); };
+  $('dl-good').onclick = () => labFb('good');
+  $('dl-bad').onclick = () => labFb('bad');
+  $('dl-rec').onclick = () => send({ cmd: 'dance_rec' });
+  $('dl-open').onclick = () => send({ cmd: 'dance_lab' });
+  labShow();
   $('restart').onclick = () => send({ cmd: 'restart' });
   $('reseed').onclick = () => setKey('seed', Math.floor(Math.random() * 99999));
   $('qr').onclick = () => send({ cmd: 'qr' });
@@ -836,6 +865,7 @@
       if (m.feeds_mine) feedsMine(m.feeds_mine);
       if (m.feeds) feedsOther(m.feeds, m.feeds_mine || []);
       if (m.sensors) devSensors(m.sensors);
+      if (m.dance) danceLab(m.dance);                  // #243
       if (m.feed_taken) devStop(m.feed_taken, false, T('Another device took over.'));
       if (m.cams) fillCams(m.cams);
       if (m.schema) sliders.schema(m.schema);          // #216

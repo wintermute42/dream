@@ -79,6 +79,8 @@ async def midi_loop():
                 s = hub.state                          # #224: … after the one that shows most, and all of it
                 cur = s["world_to"] if s["world_mix"] > 0.5 else s["world"]
                 await hub.apply({"world": settings.world_next(cur), "world_mix": 0.0}, by="midi")
+            elif a.startswith("dance_"):               # #243: "good"/"bad" for the dance lab – the stage keeps the moment
+                await hub.broadcast({"cmd": "dance_fb", "arg": a[6:], "by": "midi"}, only="stage")
             elif a.startswith("fx_"):                  # effects: the stage knows which ones go together
                 await hub.broadcast({"cmd": "fx", "arg": a[3:]}, only="stage")
         if learned:

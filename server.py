@@ -60,6 +60,7 @@ if config.ROLE == "app":
     import cloud
     import ctl
     import dance
+    import dancelab
     import eyes
     import hub
     import inputs

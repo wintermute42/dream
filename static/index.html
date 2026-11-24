@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/static/sliders.css">
 <link rel="stylesheet" href="/static/worldband.css">
 <link rel="stylesheet" href="/static/dancepanel.css">
+<link rel="stylesheet" href="/static/dancelab.css">
 <link rel="stylesheet" href="/static/signs.css">
 <link rel="stylesheet" href="/static/compute.css">
 <style>
@@ -326,6 +327,8 @@
   <div class="hint" id="keys">Keys: H panel off/on · F fullscreen · Space pause · hold V = speak · S save · Q phone QR · D movement diagnostics · T tap tempo</div>
 </div>
 <div id="flowwarn" role="status"></div>
+<!-- #243: the dance lab (static/dancelab.js), an overlay over the stage -->
+<section id="dancelab" hidden></section>
 <dialog id="startdlg" aria-labelledby="startdlg-text" aria-describedby="startdlg-note">
   <p id="startdlg-text"></p>
   <p id="startdlg-note" class="hint"></p>
@@ -588,6 +591,7 @@
     <label style="display:flex;align-items:center;gap:6px;margin:0 0 6px" title="Movements steer the effects at once, at the full frame rate – nothing waits for the AI. What steers what is the table below."><input type="checkbox" id="dance" checked> Dance steers the effects</label>
     <!-- #235: what Dream sees of the dance, and the mapping table (static/dancepanel.js) -->
     <div id="dancepanel"></div>
+    <button class="btn" id="dancelabbtn" aria-expanded="false" style="width:100%;margin-top:8px" title="See live what Dream detects, tune the table while dancing, say “good” or “bad”, record and play back sessions (key L)">🧪 Dance lab</button>
     <div class="hint">Gestures need two or three repetitions to count. Sources: the camera (hands, LED markers) and a motion sensor on the arm – whatever is there.</div>
   </div>
   </details>
@@ -612,7 +616,7 @@
     <label>MIDI controller</label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
-      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option></select>
+      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
@@ -763,6 +767,8 @@
 <script src="/static/dance.js"></script>
 <script src="/static/dancemap.js"></script>
 <script src="/static/dancepanel.js"></script>
+<script src="/static/dancerec.js"></script>
+<script src="/static/dancelab.js"></script>
 <script src="/static/motion.js"></script>
 <script src="/static/beat.js"></script>
 <script src="/static/soft.js"></script>
@@ -1456,7 +1462,8 @@
     try {
       const res = await fetch('/voice', { method: 'POST', body: fd });
       const r = (res.headers.get('content-type') || '').includes('json') ? await res.json() : {};
-      if (r.text && voiceTarget === 'topic') { $('heard').textContent = T('“{t}”', { t: r.text }); $('pltopic').value = r.text.replace(/[.!?]+$/, ''); }
+      if (r.text && voiceTarget === 'feedback') { $('heard').textContent = T('“{t}”', { t: r.text }); danceLab.voice(r.text); }
+      else if (r.text && voiceTarget === 'topic') { $('heard').textContent = T('“{t}”', { t: r.text }); $('pltopic').value = r.text.replace(/[.!?]+$/, ''); }
       else if (r.text) { $('heard').textContent = T('“{t}”', { t: r.text }); ui.prompt.value = r.prompt || r.text; softPrompt(); tick(); }
       else if (r.error) $('heard').textContent = VOICE_ERRORS[r.error] || VOICE_ERRORS.failed;
       else if (!res.ok) $('heard').textContent = T('Speech recognition not reachable (error {s}).', { s: res.status });
@@ -1531,7 +1538,7 @@
     if (e.key === 'f' || e.key === 'F') full();
     if (e.key === 's' || e.key === 'S') save();
     if (e.key === ' ') { e.preventDefault(); toggleRun(); }
-    if (e.key === 'v' || e.key === 'V') startVoice();
+    if (e.key === 'v' || e.key === 'V') startVoice(null, danceLab.open ? 'feedback' : 'prompt');   // #243: in the dance lab a spoken "good"/"bad"
   });
   addEventListener('keyup', e => { if (e.key === 'v' || e.key === 'V') stopVoice(); });
 
@@ -1712,7 +1719,8 @@
   // one step of the stream: from a camera frame's sources, or – with no camera – from the sensor alone
   function danceStep(cam) {
     const now = performance.now(), fresh = danceSens && now - danceSensAt < 330;
-    danceFrame = danceDet.step({ t: now / 1000, hands: { l: null, r: null }, ...(cam || {}), sensor: fresh ? { g: danceSens.g, age: danceSens.age + (now - danceSensAt) / 1000 } : null });
+    danceInput = { t: now / 1000, hands: { l: null, r: null }, ...(cam || {}), sensor: fresh ? { g: danceSens.g, age: danceSens.age + (now - danceSensAt) / 1000 } : null };
+    danceFrame = danceDet.step(danceInput);
     danceAt = now;
   }
   function danceSensor(m) {                            // the sensor's movement, ~30 times a second (inputs.sensor_dance)
@@ -1720,8 +1728,11 @@
     if (danceOn() && danceSensAt - moAt > 100) danceStep(null);   // no camera frame lately: the sensor keeps the stream going
   }
   // what the targets are at, every frame of the stage: without a fresh record everything glides to rest
+  // #243: while the dance lab plays a session back, its record stands in for the live one
+  let dancePlay = null, danceInput = null, danceFbSecs = 4;
+  const danceNow = () => dancePlay || (danceOn() && danceFrame && performance.now() - danceAt < 500 ? danceFrame : null);
   function danceTargets(dt) {
-    danceOut = danceMap.apply(danceRows, danceOn() && danceFrame && performance.now() - danceAt < 500 ? danceFrame : null, dt);
+    danceOut = danceMap.apply(danceRows, danceNow(), dt);
     return danceOut;
   }
   const poseOn = () => flowOn() && $('pose').checked && typeof poseBlob !== 'undefined' && poseBlob && performance.now() - poseAt < 2000;
@@ -2010,6 +2021,7 @@
         if (k === 'fast_prev') fastPrev = v;
         if (k === 'flow_color' || k === 'flow_short') lightSync();
         if (k === 'marker_l' || k === 'marker_r' || k === 'flow_markers' || k === 'flow_fingers') danceSync(k);
+        if (k === 'dance_fb_secs') { danceFbSecs = +v; danceLab.secs(+v); }
         if (k === 'style_ref' || k === 'model') lookSync();
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
         if (k === 'master') { look.master = +v; $('v-master').textContent = Math.round(v * 100) + ' %'; }
@@ -3105,8 +3117,38 @@
   const danceCard = document.querySelector('details.sec[data-sec="dance"]');
   setInterval(() => {                                  // the display, a dozen times a second while its card is open and in view
     if (!danceCard.open || document.hidden || document.body.classList.contains('hide')) return;
-    dancePanel.show(danceOn() && danceFrame && performance.now() - danceAt < 500 ? danceFrame : null, danceMap.of);
+    dancePanel.show(danceNow(), danceMap.of);
   }, 80);
+  // #243: the dance lab – an overlay over the stage (static/dancelab.js). It reads the live record with what the
+  // detector was fed and the skeleton's points, draws the camera picture (kept nowhere), and hands back a session's
+  // record while it plays one.
+  let danceMapTimer = 0;
+  const danceLab = DanceLab.mount($('dancelab'), { keys: DreamDance.SOURCES, fxNames: FX_NAMES, targets: DreamDanceMap.targets(DreamFx.ALL),
+    video: tracker.video, snapshot: (c, w, h) => view.snapshot(c, w, h),
+    live: () => (danceOn() && danceFrame && performance.now() - danceAt < 300 ? { rec: danceFrame, input: danceInput, landmarks: tracker.frame.landmarks, out: danceOut } : null),
+    rows: () => danceRows,
+    setRows: rows => { danceRows = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: danceRows }); }, 200); },
+    play: rec => { dancePlay = rec; },
+    secs: () => danceFbSecs, setSecs: v => { danceFbSecs = v; sendCtl({ set: { dance_fb_secs: v } }); },
+    colours: () => ({ l: $('marker_l').value, r: $('marker_r').value }),
+    state: st => {
+      const was = $('dancelabbtn').getAttribute('aria-expanded') === 'true';
+      $('dancelabbtn').setAttribute('aria-expanded', String(st.open));
+      if (was && !st.open && (document.activeElement === document.body || $('dancelab').contains(document.activeElement))) $('dancelabbtn').focus();   // closed: back to where it was opened
+      sendCtl({ dance_lab: st });
+    },
+    voice: on => (on ? startVoice(null, 'feedback') : stopVoice()) });
+  $('dancelabbtn').onclick = () => danceLab.show();
+  addEventListener('keydown', e => {
+    // not while typing or choosing; a checkbox, a slider or a button in focus does not swallow the lab's keys
+    const el = e.target, typing = el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !['checkbox', 'range', 'radio', 'button'].includes(el.type));
+    if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing) return;
+    const k = e.key.toLowerCase();
+    if (k === 'l') danceLab.show();
+    else if (danceLab.active && k === 'g') danceLab.feedback('good', 'key');
+    else if (danceLab.active && k === 'b') danceLab.feedback('bad', 'key');
+    else if (danceLab.open && k === 'r') danceLab.record();
+  });
   const fxMine = () => $('fx').value.split('+').filter(e => FX_NAMES[e]);
   // by hand: autopilot off, or a hand on the effects in the last minute (then the autopilot leaves them alone)
   const fxByHand = () => !apOn() || apHands('fx') || apHands('fx_amt') || apHands('fx_beat');
@@ -3474,7 +3516,10 @@
   }
   setInterval(nowLine, 500);
 
-  function onCmd(c, arg) {
+  function onCmd(c, arg, by) {
+    if (c === 'dance_fb') danceLab.feedback(String(arg), by === 'midi' ? 'midi' : 'control');   // #243: from Dream Control or a MIDI button
+    if (c === 'dance_rec') danceLab.record();
+    if (c === 'dance_lab') danceLab.show();
     if (c === 'tap') tapBeat();                       // from the phone or a MIDI button
     if (c === 'relieve') relieve();                    // #152: from Dream Control (guests cannot send it)
     if (c === 'relieve_undo') relieveUndo();
@@ -3523,13 +3568,14 @@
       if (m.set) applyState(m.set);
       if (m.set && m.by) softPrompt();                 // #211: a prompt changed by hand blends in
       else if (m.set || m.state) promptWas = promptNow();
-      if (m.cmd) onCmd(m.cmd, m.arg);
+      if (m.cmd) onCmd(m.cmd, m.arg, m.by);
       if (m.rule) { wake = Math.max(wake, 0.6); status(T('Movement rule: {r}', { r: m.rule })); }
       if (m.midi) showMidi(m.midi);
       if (m.sensors) showSensors(m.sensors);
       if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
       if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
-      if (m.dance && m.dance.map && !dancePanel.busy) { danceRows = m.dance.map; dancePanel.map(danceRows); }
+      if (m.dance && m.dance.map && !dancePanel.busy && !danceMapTimer) { danceRows = m.dance.map; dancePanel.map(danceRows); }
+      if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad
       if (m.scene) {
         const sc = m.scene;
         if (sc.from) softPrompt(sc.fade, sc.from);     // the playlist's own fade time
@@ -3543,6 +3589,7 @@
       }
       if (m.live && 'viewers' in m.live) { outViewers = m.live.viewers || 0; outPreviews = m.live.previews || 0; outBeats = m.live.beats || 0; showOutCount(outViewers, m.live.windows || 0); }
     };
+    ctl.onopen = () => sendCtl({ dance_lab: { open: danceLab.open, rec: danceLab.recording, play: danceLab.playing } });   // #243: after a reconnect Dream Control knows again
     ctl.onclose = () => setTimeout(ctlConnect, 1500);
   }
   renderGallery([]);                                  // five empty places right away (the row never grows later)
