@@ -58,10 +58,14 @@ command line for now, #231) via `dream-cloud`.
   in use, the sources); Dream Control has the mode and the mood's strength, and nothing of movement the panel lacks
   (`tests/test_movecard.py`).
   A mode's page (#251: `/dance`, `static/dance.html`) is a window of its own on this Mac (`rights.LOCAL_ONLY`) that
-  reads the stage through `window.opener.DreamBridge.<name>` (`static/movepage.js`) – it has no connection and no
-  camera of its own, and everything that steers the show is in the panel too. The dance lab (#243) is part of that page.
+  reads the stage through `window.opener.DreamBridge.<name>` (`static/movepage.js`) – it has no control line and no
+  camera of its own (only the lab's sessions go to and from Dream directly, `/dance/sessions`), and everything that steers the show is in the panel too. The dance lab (#243) is part of that page.
   The dance acts on top of what hands and controllers set (`DreamMove.onTop`) and only while its clutch is engaged (the
   setting `clutch`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
+  Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –
+  `tests/js/flowauto.test.mjs`) chooses the kind of detection and the exposure, holds the one performer and watches the
+  calibration; every choice carries its reason and can be taken over by hand. Its page is `/flowtrack`. The sample of
+  the camera it looks at is kept nowhere; what a calibration keeps of the view is a grid of digits, never a picture.
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
   whether a MIDI controller or sensor can move it; #216: its `weight` – how strongly it shapes the picture – and the
   setting it `needs` to act); the defaults, ranges, guests' keys, `midi.TARGETS`, what "Reset" brings home

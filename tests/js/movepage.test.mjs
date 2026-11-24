@@ -91,3 +91,15 @@ test('the page of Dream Dance reads the stage and never talks to Dream itself', 
     for (const part of m[1].split(',')) assert.match(part.trim().split(/\s+/)[0], /^(opacity|transform)$/, m[0]);
   }
 });
+
+test('the page of Flowtrack: the automatic with its reasons, the effect per target – and nothing of its own', () => {
+  const html = read('static/flowtrack.html');
+  assert.ok(html.includes("MovePage.link('flowtrack'"));
+  assert.ok(!/new WebSocket|fetch\(|XMLHttpRequest|getUserMedia/.test(html), 'no connection and no camera of its own');
+  // every choice of the automatic: its value, its reason, the hand's own choice, and the way back to the automatic
+  for (const k of ['kind', 'short', 'person']) for (const part of ['-value', '-why', '-by', '-auto', '-tag']) assert.ok(html.includes(`id="${k}${part}"`), k + part);
+  for (const part of ['id="autobtn"', 'id="calib-why"', 'id="calib-go"', 'id="unproject"', 'id="effects"', 'id="dancelab"']) assert.ok(html.includes(part), part);
+  const stage = read('static/index.html');
+  assert.ok(stage.includes('window.DreamBridge.flowtrack') && stage.includes("window.open('/flowtrack'"));
+  assert.ok(stage.includes('id="flowautobtn"'), 'the automatic\'s switch is in the panel too');
+});

@@ -48,6 +48,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Lichtspuren träumen (Quelle „Leuchtspuren“)](#lichtspuren-träumen-quelle-leuchtspuren)
   - [Umrisse erhalten (ControlNet, #113)](#umrisse-erhalten-controlnet-113)
   - [Pose formt die Figur (ControlNet)](#pose-formt-die-figur-controlnet)
+- [Flowtrack](#flowtrack)
 - [Tanz](#tanz)
   - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
   - [Tanz-Labor](#tanz-labor)
@@ -1214,11 +1215,12 @@ Interaktion“):
     kleine Marke hält den letzten Höchstwert einen Moment; daneben ein Wort: still, ruhig, bewegt, lebhaft, wild –
     oder „keine Quelle“) und „**auch die Mac-Kamera nutzen**“. Stimmung ein- und ausschalten ist ein Klick auf
     **Stimmung** bzw. **Aus**.
-  - **Flowtrack:** was Dream gerade erkennt – die Art, Werte pro Sekunde, ob jemand da ist.
+  - **Flowtrack:** was Dream gerade erkennt – die Art, Werte pro Sekunde, ob jemand da ist –, **Automatik: AN/AUS**
+    und was die Automatik gewählt hat und warum (siehe [Flowtrack](#flowtrack)).
   - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo, die **Kupplung** und das
     **Bewegungs-Set** (siehe [Dream Dance](#dream-dance-die-seite-die-kupplung-die-sets)).
-- **Seite ↗** öffnet die Seite des Modus in einem eigenen Fenster, für einen zweiten Bildschirm, bei den Modi, die
-  eine haben (Dream Dance).
+- **Seite ↗** öffnet die Seite des Modus in einem eigenen Fenster, für einen zweiten Bildschirm: Flowtrack und Dream
+  Dance haben eine, die Stimmung braucht keine.
 - **Quellen** – ein Chip je Art, siehe unten.
 - Darunter eingeklappt: **Kamera und Erkennung** (Art der Erkennung, Kamera, Licht- und Marker-Farben, Finger,
   ⚡ Schnell, Kalibrieren, Projektion abziehen, Diagnose, Pose) und **Was eine Bewegung bewirkt** (was Dream sieht, die
@@ -1432,6 +1434,70 @@ glowing fire ribbons“). „Pose-Stärke“ regelt, wie streng die Haltung eing
   Verwandlung zieht die Bühne das Ausgangsbild etwas Richtung Grau, damit die Figur gegen den bunten Traum ankommt;
   bei sanfter bleibt das Bild, wie es ist. Für eine deutliche Figur: Verwandlung 0,6+ und Pose-Stärke 0,8–1,2.
 
+## Flowtrack
+
+**Flowtrack** ist der Bewegungs-Modus für die Performance **einer Person** – Flow, Feuer, Poi, Tanz: Die Effekte
+sitzen an der Person (Mittelpunkt der Effekte, Malen, Anfassen, Impulse, Licht im Dunkeln), und eine **Automatik**
+stellt alles darauf ein, genau dieser einen Person zu folgen.
+
+**Die Automatik** (standardmäßig an; **Automatik: AN/AUS** in der Karte Bewegung und auf der Seite) sieht sich zweimal
+pro Sekunde einen kleinen Ausschnitt des Kamerabilds an – er wird nirgends gespeichert – und trifft vier
+Entscheidungen. Jede wird mit ihrer Begründung gezeigt, und jede lässt sich von Hand übernehmen:
+
+| Entscheidung | Was die Automatik tut | Von Hand |
+|---|---|---|
+| **Erkennung** | zwei Leucht-Marker in zwei Farben im Bild → **LED-Marker**; dunkler Raum mit hellem Licht → **Feuer/LED** (sie sagt, ob sie es für Feuer oder für LEDs hält); Raum hell genug → **Hände (KI)**. Ein neuer Vorschlag muss drei Sekunden halten, bevor die Art wechselt – eine vorbeigetragene Fackel oder eine Lampe, die kurz ausgeht, schaltet nichts um. | die Art auf der Seite oder unter „Kamera und Erkennung“ wählen |
+| **Belichtung** | kurz und fest für Lichter (der Raum wird schwarz, die Lichter bleiben scharf und behalten ihre Farbe), normal für die Hand-KI; nach 20 Sekunden ohne jedes Licht sieht sie sich den Raum mit normaler Belichtung wieder an. Eine von Hand gewählte Art bekommt die Belichtung, die sie braucht. | kurz / normal auf der Seite oder „kurze Belichtung“ in der Karte |
+| **Person** | Nur was zur Person gehört, zählt: Die Automatik nimmt, wer der Mitte am nächsten ist, folgt ihm – auch bis an den Rand – und **ignoriert, was am Rand oder weit weg ist** (Zuschauer, ein hochgehaltenes Handy, eine Lampe). Ist die Person kurz weg, springt niemand anderes ein; jemand allein am Rand zählt nach drei Sekunden. | „alle zählen“ auf der Seite |
+| **Kalibrierung** | Mit jeder Kalibrierung merkt sich Dream eine Signatur dessen, was die Kamera rund um das eigene Bild sah (ein Helligkeits-Raster, 144 Ziffern – kein Bild). In ruhigen Momenten vergleicht die Automatik: Passt der Blick dreimal hintereinander nicht mehr, sagt sie **neu kalibrieren**. Sie kalibriert nie selbst, und in einem Raum, der zu dunkel oder zu gleichförmig ist, sagt sie das, statt zu raten. | **📐 Kalibrieren** auf der Seite oder in der Karte |
+
+Eine Entscheidung von Hand ist mit „von Hand“ markiert und bleibt deine, bis **↺ Auto** sie zurückgibt; die Automatik
+auszuschalten macht jede Entscheidung zu deiner. Mit der Hand-KI folgt das Modell einem Skelett – wen es wählt,
+entscheidet das Modell; die Automatik lässt dann eine Person am Rand weg, kann das Modell aber nicht auf jemand anderen
+schauen lassen.
+
+**Die Seite.** Im Modus Flowtrack öffnet **Seite ↗** in der Karte Bewegung (oder Taste **L**) die Seite von Flowtrack
+in einem eigenen Fenster – nur an diesem Mac, für einen zweiten Bildschirm, und eine Zusatzansicht wie die Seite von
+Dream Dance (sie liest die Bühne, die sie geöffnet hat; keine eigene Steuerleitung, keine eigene Kamera). Darauf:
+- **Automatik** – der Schalter und die vier Entscheidungen mit ihren Begründungen.
+- **Wirkung** – eine Zeile je Ziel der Flowtrack-Tabelle mit Schalter, Stärke und einem Licht, solange sie wirkt:
+  Malen, Anfassen, Impulse, Licht im Dunkeln, Bewegung formt die Effekte, Inhalt nach Energie, Bewegung schiebt die
+  KI-Regler – und die drei Zeilen eines Armbands (unten).
+- **Bewegungsmuster** – das Kamerabild mit den Spuren der Hände bzw. Props (ausklingende Bahnen, Mehrfachbelichtung),
+  dem **gestrichelten Rahmen**, wo Dreams Bild im Kamerabild liegt (die Kalibrierung; die Seite sagt auch, wie viel
+  der Projektion herausgerechnet wird, solange „Projektion abziehen“ an ist), und dem **grünen Kreis** um die eine
+  Person; daneben die Ausgabe; und die Kurven von Energie, Tempo, Öffnung (der Abstand der Props bzw. Hände), Drehung,
+  Höhe und Ruhe.
+- **Sessions** – **● Aufnehmen** speichert eine Session im Format des Tanz-Labors (nur Zahlen, nie ein Kamerabild;
+  siehe [Tanz-Labor](#tanz-labor)) zum Abspielen, Wiederholen und Exportieren – die Grundlage für spätere Profile einer
+  Person.
+
+Im Bedienfeld: **Automatik: AN/AUS** und die Zeile darunter, die sagt, was erkannt wurde und warum.
+
+**Die Regeln** aus dem Abschnitt Bewegung („Feuer an“, „Feuer aus“, „Schnell“ → Szenenwechsel) gelten in diesem Modus
+wie bisher.
+
+**Ein Armband als zusätzliche Quelle.** Ein Armband oder ein Handy am Arm (siehe
+[Sensor-Eingang](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)) bringt dazu, was der Arm selbst tut –
+ohne Gesten-Auslöser und zusammen mit der Feuer- oder LED-Erkennung der Kamera:
+- seine **Energie** macht die Bewegung im Bild schneller,
+- seine **Drehung** dreht die Effekte, in beide Richtungen,
+- der **Zug an einem geschwungenen Arm** (Fliehkraft; braucht einen Sender, der Beschleunigung meldet) dreht die Farben.
+
+Das sind drei Zeilen der Flowtrack-Tabelle („Drehung des Arms (Sensor) → Drehung der Effekte“ …); sie ruhen, solange
+kein Sensor sendet. Eine Flowtrack-Tabelle, die du vor dieser Version geändert hast, behält ihre Zeilen – „Eingebaute
+Tabelle“ holt die neuen.
+
+**Sicherheit mit Feuer.** Befestige Armband oder Handy so, dass es beim Schwingen nicht rutschen oder wegfliegen
+kann – ein Band, das fest schließt, keine losen Enden, nichts, das sich in einer Kette oder einem Stab verfangen
+kann. Nichts, das schmilzt oder brennt, gehört in die Nähe der Flamme: lieber am Oberarm oder unter einem Ärmel aus
+Naturfaser tragen als am Handgelenk neben einem Docht. Halte Brennstoff weit weg von allem Elektrischen – Mac, Beamer,
+Kabel, Ladegeräte – und von dort, wo das Publikum steht; ein Handy, das Brennstoff abbekommen hat, wird gereinigt und
+gelüftet, bevor es wieder benutzt wird. Dream schaut nur zu: Es ersetzt keine Aufsicht, keine Löschdecke und nicht
+die Regeln des Veranstaltungsorts.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
 ## Tanz
 
 **Tanz steuert die Effekte** – sofort, mit voller Bildrate, ohne auf die KI zu warten. Bei eingeschalteter
@@ -1511,8 +1577,9 @@ selbst rechnet.
 **Die Seite.** Im Modus Dream Dance öffnet **Seite ↗** in der Karte Bewegung (oder Taste **L** auf der Bühne) die
 Seite von Dream Dance in einem eigenen Fenster – für einen zweiten Bildschirm. Sie gehört nur diesem Mac (kein Handy
 oder Tablet erreicht sie) und ist eine Zusatzansicht: Alles, was den Auftritt steuert, gibt es auch im Bedienfeld.
-Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine eigene Verbindung und keine eigene
-Kamera – öffne sie also aus dem Bedienfeld, nicht über ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
+Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine eigene Steuerleitung und keine eigene
+Kamera (nur die Sessions des Labors gehen direkt an Dream und zurück) – öffne sie also aus dem Bedienfeld, nicht über
+ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
 selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
 Bewegungs-Sets, die beiden Uhren und darunter das Tanz-Labor.
 
@@ -1979,10 +2046,16 @@ Bewegungsuhr an bekannten Tempi, Marker allein, eine Hand allein, den Sensor all
 in gemalten Bildern (Lampen und Feuer sind keine) und die Fingerwerte an gemalten Händen jeder Größe und Drehung.
 `node --test tests/js/dancemap.test.mjs` prüft die Zuordnungstabelle (`static/dancemap.js`: Kurve, Bereiche, Glättung,
 Loslassen, wenn eine Quelle nicht bekannt ist) und was die Anzeige der Tabelle aus einer Hand an einer Zeile macht.
+`node --test tests/js/flowauto.test.mjs` (#252) prüft die Automatik von Flowtrack (`static/flowauto.js`) an gemalten
+Kamerabildern: Feuer, LEDs und Marker im dunklen und im hellen Raum, jede Art mit ihrer Begründung; ein Vorschlag, der
+halten muss, bevor die Art wechselt; die Belichtung (auch dass eine kurze Belichtung die Automatik einen hellen Raum
+nicht für einen dunklen halten lässt); die eine Person, der bis an den Rand gefolgt wird, während Zuschauer dort
+ignoriert werden; und die Kalibrierung – derselbe Blick in anderem Licht ist derselbe Blick, eine gedrehte Kamera
+nicht, ein dunkler Raum behauptet nichts.
 `node --test tests/js/movepage.test.mjs` (#251) prüft, was die Seiten der Modi teilen (`static/movepage.js`): Die
 Seite findet die Bühne, die sie geöffnet hat, und merkt, wenn sie neu geladen wird; wer den Schlag gibt, wenn die Uhr
-des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keine eigene Verbindung und keine
-eigene Kamera hat. `tests/js/movement.test.mjs` spielt auch die Kupplung (aus und ein in einer Drittelsekunde, ohne
+des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keinen eigenen Socket und keine
+eigene Kamera öffnet. `tests/js/movement.test.mjs` spielt auch die Kupplung (aus und ein in einer Drittelsekunde, ohne
 Sprung) und den Tanz auf der Grundlage. `tests/test_dance.py` prüft die Bewegungs-Sets (eingebaut, eigene, in der
 Datei, wer sie ändern darf).
 `node --test tests/js/movecard.test.mjs` (#250) prüft die Karte Bewegung (`static/movecard.js`): dieselben Modi in
