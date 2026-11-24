@@ -220,7 +220,7 @@
     const b = c.blobs.slice().sort((p, q) => q.hits - p.hits)[0];
     fire.told = [`fire ${fire.on ? 'ON' : 'off'}   sure ${fire.sure.toFixed(2)} (on above 0.70)`, `strength ${fire.level.toFixed(2)}   fire light ${fire.e.toFixed(0)} px`,
       `warm patches ${c.blobs.length}${c.shift ? '   exposure shifts' : ''}`,
-      b ? `best: ${b.e.toFixed(0)} px, core ${Math.round(100 * b.core / b.n)} %, jumps ${b.hits.toFixed(1)} (fire above 4)${b.even ? ', even beat' : ''}${b.torn ? ', torn' : ''}` : 'no warm light'];
+      b ? `best: ${b.e.toFixed(0)} px, core ${Math.round(100 * b.core / b.n)} %, jumps ${b.hits.toFixed(1)} (fire above ${DreamFire.HITS[1]})${b.even ? ', even beat' : ''}${b.torn ? ', torn' : ''}` : 'no warm light'];
   }
   function fireDraw() {                                // as the camera sees it (not mirrored)
     const s = Math.max(1.5, Math.min(3, W / 400)), x = 8, y = 8, w = FW * s, h = FH * s;
