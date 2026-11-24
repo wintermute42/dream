@@ -38,5 +38,8 @@ input[type=checkbox] { width: 1.25em; height: 1.25em; accent-color: var(--accent
 .mp-dot.music { background: var(--ok); }
 .mp-bpm { color: var(--muted); text-align: right; white-space: nowrap; }
 .mp-detect { font-weight: 600; font-size: .9em; min-height: 1.45em; }
+.mp-detect { color: var(--ok); } .mp-detect.off { color: var(--text); }   /* nothing runs: the reason, and what to do */
+.mp-camnote[hidden] { display: none; }
+.mp-old { border-color: var(--warn); }
 .mp-setrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .btn:active:not(:disabled) { transform: none; } }

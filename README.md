@@ -1475,9 +1475,19 @@ On the page, **Keep as set** keeps the table as it is now under a name of your o
 the tables in `~/.config/dream/dance.json`.
 
 **Detection.** The card “Detection” on the page chooses what Dream Dance detects with – **Dance: Hands (AI)** or
-**Dance: LED markers (2 colours)** – and the camera, and says what runs right now. It is the dance's own choice (the
+**Dance: LED markers (2 colours)** – and, independently of it, the **camera** (the cameras the stage knows; the one in use is chosen), and says what
+runs right now. It is the dance's own choice (the
 same one as in the Movement card); what Flowtrack detects with stays Flowtrack's. Only you change the detection: not
-the autopilot, not “Relieve”, not a change of mode.
+the autopilot, not “Relieve”, not a change of mode. When nothing runs, the card says why and what to do: another
+movement mode or movement off (switch to Dream Dance), the camera still opening, the AI model for the hands loading
+or not loadable, no camera or no permission, the Mac's camera switched off under “Sources” in the Movement card. As
+long as the browser has not named a camera (it does once the camera was allowed), the list holds only “Camera: as
+picture” and a line below says so.
+
+**After an update of Dream, reload the stage.** The page reads the stage window that opened it. A stage window that
+was loaded before Dream was updated still runs the old script and cannot tell the page everything it shows; the page
+then shows a note with the button **Reload the stage** instead of half-working controls (the picture pauses for a
+moment, the page comes back by itself).
 
 **Beat.** The page shows your beat (the tempo of your repetition) and the music beat side by
 side, each with a dot that beats, and says who gives the beat: your dance, the music, both together (also at half
