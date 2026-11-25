@@ -220,7 +220,7 @@ keeps it that way. Since #241 the panel also has:
   brings the master back to 100 %.
 - **■ End** below the camera choice (card “Input & prompt”) while another device lends its live camera (Dream Control,
   Dreamy Eyes): it says who it is and ends it.
-- **👍 Good · 👎 Bad · ● Record** for the dance lab in the Movement card's part “Dream Dance”, while the lab is open on
+- **● Record** for the dance lab in the Movement card's part “Dream Dance”, while the lab is open on
   its page.
 
 **Below the preview** there are always **Pause, New, Fullscreen, Save**, the coloured **status chips** (pause, cloud
@@ -1709,8 +1709,8 @@ signal's way – what Dream sees, the clutch, the sentences, the beat, recording
 starts the tour again (remembered in this browser).
 
 **“Good” and “bad” have left the page.** The dance lab on the page keeps **● Record** for sessions; 👍/👎 (and the
-voice feedback) are no longer on the page – teaching asks “recognised right?” instead. The panel's 👍/👎 buttons, a
-MIDI button and the wristband still mark a session.
+voice feedback) are no longer on the page – teaching asks “recognised right?” instead. A MIDI button (or foot
+pedal) and the wristband still mark a session; the panel and Dream Control have no 👍/👎 buttons any more (#265).
 
 Limits of the prototype: no preview clips of the effects; the dance lab's “Tune a row” is hidden while the slots are
 shown (the rows are Dream's then); the slots are only for Dream Dance (not for the mood or Flowtrack).
@@ -1800,10 +1800,9 @@ dancing:
   saves it, and **↶ Undo** takes it back step by step (up to 30 steps).
 - **Feedback without hands – “good” / “bad”:** each keeps the **last seconds** (slider, 1–15 s, 4 by default) as a
   feedback moment: the features, the recognised gesture, what each target was at, and the table in use. A note at the
-  top of the stage confirms it. Ways to say it: the buttons **👍 Good / 👎 Bad** in the panel's
-  Movement card while the lab is open (#265: no longer on the page – teaching asks “recognised right?” there);
-  **by voice** – hold key V on the stage while the page is open and say “good” or “bad”; the card **“Dream Dance”** in Dream Control;
-  a **MIDI** button or foot pedal (targets “Button: dance lab – good / bad”); a **wristband's button** over OSC (an
+  top of the stage confirms it. Ways to say it (#265: no buttons in the panel, in Dream Control or on the page any more – teaching asks “recognised
+  right?” there):
+  **by voice** – hold key V on the stage while the page is open and say “good” or “bad”; a **MIDI** button or foot pedal (targets “Button: dance lab – good / bad”); a **wristband's button** over OSC (an
   address with `btn` or `button` in it, value 1 while pressed): one press is “good”, two presses within half a second
   are “bad”. Feedback counts while the lab is open on the live dance or a recording runs.
 - **Record a session** (**● Record**, key **R**, or from Dream Control; at most 5 minutes): the same numbers frame by
@@ -1824,8 +1823,7 @@ The files are in `~/.local/state/dream/dance/`, readable only by you, and never 
 Control can list, read, add or delete them – guests, Dreamy Eyes and dream windows cannot. The page costs some frame
 rate while it is open (it draws the camera and the curves): close its window when you do not need it.
 
-**From Dream Control** (card “Dream Dance”): the **clutch**, the **movement set**, **👍 Good**, **👎 Bad**,
-**● Record** and **Page on the Mac** (opens the page on the Mac – the browser there may ask to allow the window). The
+**From Dream Control** (card “Dream Dance”): the **clutch**, the **movement set**, **● Record** and **Page on the Mac** (opens the page on the Mac – the browser there may ask to allow the window). The
 card says what the lab is doing and confirms what was kept; everything else – the views, tuning, playback – is on the
 Mac.
 

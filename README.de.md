@@ -244,7 +244,7 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
     auch; „↺ Zurücksetzen“ bringt den Master auf 100 %.
   - **■ Beenden** unter der Kamera-Wahl (Karte „Eingang & Prompt“), solange ein anderes Gerät seine Live-Kamera leiht
     (Dream Control, Dreamy Eyes): Es sagt, wer es ist, und beendet sie.
-  - **👍 Gut · 👎 Schlecht · ● Aufnehmen** fürs Tanz-Labor im Teil „Dream Dance“ der Bewegungskarte, solange das Labor
+  - **● Aufnehmen** fürs Tanz-Labor im Teil „Dream Dance“ der Bewegungskarte, solange das Labor
     auf seiner Seite offen ist.
 - Die Handy-Fernbedienung hat Show, A−/A+ und 🌙 weiterhin; ihre Abschnitte lassen sich durch Tippen auf die Überschrift zuklappen.
 
@@ -1811,8 +1811,9 @@ Signalwegs hervor – was Dream sieht, die Kupplung, die Sätze, der Takt, Aufne
 beides zurück und startet die Führung neu (in diesem Browser gemerkt).
 
 **„Gut“ und „schlecht“ haben die Seite verlassen.** Das Tanz-Labor auf der Seite behält **● Aufnehmen** für Sessions;
-👍/👎 (und das Feedback per Stimme) stehen nicht mehr auf der Seite – das Lernen fragt dort „richtig erkannt?“. Die
-Knöpfe 👍/👎 im Bedienfeld, ein MIDI-Knopf und das Armband markieren eine Session weiterhin.
+👍/👎 (und das Feedback per Stimme) stehen nicht mehr auf der Seite – das Lernen fragt dort „richtig erkannt?“. Ein
+MIDI-Knopf (oder Fußtaster) und das Armband markieren eine Session weiterhin; Bedienfeld und Dream Control haben keine
+Knöpfe 👍/👎 mehr (#265).
 
 Grenzen des Prototyps: keine Vorschau-Clips der Wirkungen; „Eine Zeile einstellen“ im Tanz-Labor ist ausgeblendet,
 solange die Plätze gezeigt werden (die Zeilen sind dann Dreams); die Plätze gibt es nur für Dream Dance (nicht für
@@ -1908,11 +1909,10 @@ beim Tanzen abstimmen lässt:
   **↶ Rückgängig** nimmt sie Schritt für Schritt zurück (bis zu 30 Schritte).
 - **Feedback ohne Hände – „gut“ / „schlecht“:** Jedes speichert die **letzten Sekunden** (Regler, 1–15 s,
   standardmäßig 4) als Feedback-Moment: die Merkmale, die erkannte Geste, den Stand jedes Ziels und die benutzte
-  Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen: die Knöpfe **👍 Gut / 👎 Schlecht**
-  in der Bewegungskarte des Bedienfelds, solange das Labor offen ist (#265: nicht mehr auf der Seite – dort fragt das
-  Lernen „richtig erkannt?“); **per Sprache** – Taste V auf der Bühne halten, solange die Seite offen ist, und „gut“
+  Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen (#265: keine Knöpfe mehr im Bedienfeld, in Dream Control oder auf der
+  Seite – dort fragt das Lernen „richtig erkannt?“): **per Sprache** – Taste V auf der Bühne halten, solange die Seite offen ist, und „gut“
   oder „schlecht“ sagen;
-  die Karte **„Dream Dance“** in Dream Control; eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
+  eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
   gut / schlecht“); die **Taste eines Armbands** per OSC (eine Adresse mit `btn` oder `button` darin, Wert 1 solange
   gedrückt): einmal drücken ist „gut“, zweimal innerhalb einer halben Sekunde „schlecht“. Feedback zählt, solange das
   Labor im Live-Tanz offen ist oder eine Aufnahme läuft.
@@ -1937,8 +1937,7 @@ Control können sie auflisten, lesen, hinzufügen oder löschen – Gäste, Drea
 kostet etwas Bildrate, solange sie offen ist (sie zeichnet Kamera und Kurven): Schließe ihr Fenster, wenn du sie nicht
 brauchst.
 
-**Aus Dream Control** (Karte „Dream Dance“): die **Kupplung**, das **Bewegungs-Set**, **👍 Gut**, **👎 Schlecht**,
-**● Aufnehmen** und **Seite am Mac** (öffnet die Seite am Mac – der Browser dort fragt womöglich, ob er das Fenster
+**Aus Dream Control** (Karte „Dream Dance“): die **Kupplung**, das **Bewegungs-Set**, **● Aufnehmen** und **Seite am Mac** (öffnet die Seite am Mac – der Browser dort fragt womöglich, ob er das Fenster
 erlauben soll). Die Karte sagt, was das Labor gerade tut, und bestätigt, was gespeichert wurde; alles andere – die
 Ansichten, das Abstimmen, die Wiedergabe – ist am Mac.
 

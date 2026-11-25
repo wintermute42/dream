@@ -596,10 +596,8 @@
           <select id="dance_set" aria-label="Movement set" title="A movement set: a named table of what your movements do. Choosing one makes it the table in use; tune and keep your own on the page."><option value="">Set: your table</option></select>
           <!-- #265 (a prototype): the page shows the old table or the new slots – the owner compares the two -->
           <select id="dance_ui" aria-label="Dream Dance shows" title="Old table: every row as before. New slots: a few places, one effect each – Dream keeps every effect visible (groups, budget, minimum). Switching loses nothing."><option value="table">Dance: old table</option><option value="slots">Dance: new slots</option></select>
-          <!-- #241: while the lab is open on its page, "good"/"bad" and recording are at hand here too -->
+          <!-- #241: while the lab is open on its page, recording is at hand here too ("good"/"bad" live in the learning assistant on the page since #265, and on a MIDI button) -->
           <div class="btns compact labbtns" id="labbtns" role="group" aria-label="Dance lab" hidden>
-            <button type="button" class="btn" id="labgood" title="Keeps the last seconds as good (key G)">👍 Good</button>
-            <button type="button" class="btn" id="labbad" title="Keeps the last seconds as bad (key B)">👎 Bad</button>
             <button type="button" class="btn" id="labrec" aria-pressed="false" title="Records a session of the dance (key R)">● Record</button>
           </div>
           <select id="dance_kind" class="movekind" aria-label="What Dream Dance detects" title="What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice."><option value="hand">Dance: Hands (AI)</option><option value="marker">Dance: LED markers (2 colours)</option></select>
@@ -3402,15 +3400,12 @@
       markerWanted: $('dance_kind').value === 'marker' || $('flow_markers').checked, kind: $('dance_kind').value, running: flowOn() && tracker.status.code === 'running' };
   }
   const labLink = { attach(api) { labApi = api; sendCtl({ dance_lab: labState() }); labBtnsSync(); }, detach() { labApi = null; dancePlay = null; sendCtl({ dance_lab: labState() }); labBtnsSync(); } };
-  // #241: "good", "bad" and recording in the dance's part of the card – shown while the lab is open on its page
+  // #241: "good", recording in the dance's part of the card – shown while the lab is open on its page
   function labBtnsSync() {
     const st = labState();
     $('labbtns').hidden = !(st.open || st.rec);
-    $('labgood').disabled = $('labbad').disabled = st.play;
     $('labrec').setAttribute('aria-pressed', String(st.rec)); $('labrec').textContent = st.rec ? T('■ Stop') : T('● Record');
   }
-  $('labgood').onclick = () => danceLab.feedback('good', 'panel');
-  $('labbad').onclick = () => danceLab.feedback('bad', 'panel');
   $('labrec').onclick = () => danceLab.record();
   window.DreamBridge = { dance: {
     lab: labOpts, ...labLink,

@@ -324,8 +324,7 @@
     <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
     <input type="checkbox" id="clutch" hidden aria-hidden="true">
     <select id="dance_set" aria-label="Movement set" style="margin-top:8px"><option value="">Set: your table</option></select>
-    <div class="hint">Say how the dance control feels while you dance: Dream keeps the last seconds as numbers (what it detected, what the movement steered) – never a camera picture. The lab itself is on the Mac.</div>
-    <div class="row" style="margin-top:8px"><button id="dl-good" class="big">👍 Good</button><button id="dl-bad" class="big">👎 Bad</button></div>
+    <div class="hint">Record a session of your dance: Dream keeps it as numbers (what it detected, what the movement steered) – never a camera picture. The lab itself is on the Mac.</div>
     <div class="row" style="margin-top:8px"><button id="dl-rec" aria-pressed="false">● Record</button><button id="dl-open" aria-pressed="false">Page on the Mac</button></div>
     <div id="dl-state" class="hint" role="status" aria-live="polite"></div>
   </section>
@@ -585,16 +584,12 @@
   function labShow() {
     $('dl-rec').setAttribute('aria-pressed', String(!!labNow.rec)); $('dl-rec').textContent = labNow.rec ? T('■ Stop') : T('● Record');
     $('dl-open').setAttribute('aria-pressed', String(!!labNow.open));
-    $('dl-state').textContent = labNow.play ? T('The lab plays a session back.') : labNow.rec ? T('Recording.') : labNow.open ? T('The lab is open on the stage.') : T('Open the lab or record first – then “good” and “bad” keep the last seconds.');
+    $('dl-state').textContent = labNow.play ? T('The lab plays a session back.') : labNow.rec ? T('Recording.') : labNow.open ? T('The lab is open on the stage.') : T('Record a session, or open the lab on the Mac.');
   }
   function danceLab(d) {
     if (d.lab) { labNow = d.lab; labShow(); }
     if (d.saved) labSay(d.saved.kind === 'feedback' ? (d.saved.good ? T('👍 kept: the last {n} s', { n: Math.round(d.saved.seconds) }) : T('👎 kept: the last {n} s', { n: Math.round(d.saved.seconds) })) : T('Session kept.'));
   }
-  // a "good"/"bad" only counts while the lab is open on the live dance or a recording runs: say so here, at once
-  const labFb = mark => { if ((labNow.open || labNow.rec) && !labNow.play) send({ cmd: 'dance_fb', arg: mark }); else labSay(T('Nothing kept: open the lab on the live dance or record first.')); };
-  $('dl-good').onclick = () => labFb('good');
-  $('dl-bad').onclick = () => labFb('bad');
   $('dl-rec').onclick = () => send({ cmd: 'dance_rec' });
   $('dl-open').onclick = () => send({ cmd: 'dance_lab' });
   labShow();
