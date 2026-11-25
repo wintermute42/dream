@@ -27,7 +27,7 @@
     btn.setAttribute('aria-pressed', String(!!on)); btn.classList.toggle('on', !!on); btn.textContent = clutchText(on);
     if (note) note.textContent = clutchNote(on);
   }
-  const SETS = new Map([['standard', () => T('Standard')], ['waves', () => T('Waves')], ['fire', () => T('Fire')]]);
+  const SETS = new Map([['standard', () => T('Standard')], ['waves', () => T('Flowing')], ['fire', () => T('Wild')]]);
   const setLabel = n => say(SETS, n, n);
   // the choices of a set's select: "your table" (no set), then every set by its name; a name not in the list yet (Dream
   // has not said so) stands as it is. Rebuilt only when something changed, so an open list is not torn away.

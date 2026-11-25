@@ -1787,7 +1787,7 @@ höchstens drei Gruppen wirken gleichzeitig stark – kommt ein Akzent dazu, tri
 solange der Akzent dauert, und kehrt weich zurück. In der alten Tabelle gilt nichts davon: Alles wirkt wie bisher so,
 wie seine Zeilen sagen.
 
-**Sets als Kartenreihe.** Alle Sets stehen nebeneinander; die eingebauten (**Standard**, **Wellen**, **Feuer**) tragen 🔒,
+**Sets als Kartenreihe.** Alle Sets stehen nebeneinander; die eingebauten (**Standard**, **Fließend**, **Wild**) tragen 🔒,
 das aktive ist umrandet. Klick auf eine Karte nimmt sie. Ein eingebautes Set kannst du direkt ändern: Es wird
 **● geändert** (auf der Karte und in einem gelben Band) und wirkt sofort, wird aber nie überschrieben – das Band bietet
 **Als neues Set speichern** mit einem Namensfeld, das du ausfüllst (Vorschlag: „Standard – mein“; Buchstaben, Ziffern,

@@ -76,7 +76,7 @@ test('the clutch and the sets say the same in the panel, on the page and in Drea
   C.clutchShow(btn, true, note);
   assert.deepEqual([attrs['aria-pressed'], attrs.on, btn.textContent], ['true', true, 'Clutch: engaged']);
   assert.match(note.textContent, /^Engaged: /);
-  assert.equal(C.setLabel('waves'), 'Waves'); assert.equal(C.setLabel('My set 1'), 'My set 1'); assert.equal(C.setLabel('constructor'), 'constructor');
+  assert.equal(C.setLabel('waves'), 'Flowing'); assert.equal(C.setLabel('fire'), 'Wild'); assert.equal(C.setLabel('My set 1'), 'My set 1'); assert.equal(C.setLabel('constructor'), 'constructor');
   for (const page of ['static/index.html', 'static/remote.html', 'static/dance.html']) {
     const html = read(page);
     assert.ok(/id="clutchbtn"[^>]*aria-pressed=/.test(html) && html.includes('id="dance_set"'), page);

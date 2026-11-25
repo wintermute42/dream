@@ -1686,7 +1686,7 @@ shift, glitch, pixel, grid) and colour (colour rotation). Of a group only one ef
 three groups act strongly at once – when an accent comes in, the weakest of the others steps back for as long as the
 accent lasts and comes back softly. In the old table none of this applies: everything acts as its rows say, as before.
 
-**Sets as a row of cards.** All sets are visible side by side; the built-in ones (**Standard**, **Waves**, **Fire**)
+**Sets as a row of cards.** All sets are visible side by side; the built-in ones (**Standard**, **Flowing**, **Wild**)
 carry 🔒, the one in use is outlined. Click a card to use it. You can change a built-in set directly: it becomes
 **● changed** (on the card and in a yellow bar) and acts at once, but it is never overwritten – the bar offers
 **Save as a new set** with a name field you fill in (suggested: “Standard – mine”; letters, digits, spaces and
