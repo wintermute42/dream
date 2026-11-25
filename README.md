@@ -36,6 +36,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 - [Output on a projector or second monitor (16:9)](#output-on-a-projector-or-second-monitor-169)
 - [As a source in Resolume (Syphon)](#as-a-source-in-resolume-syphon)
 - [Room light (WLED)](#room-light-wled)
+- [Hue lamps dream along](#hue-lamps-dream-along)
 
 **Phones and tablets**
 
@@ -738,6 +739,73 @@ Panel → card **Output** → **“Room light (WLED) dreams along”**:
 - **Too dark compared to the dream:** “Force max brightness” in WLED's Sync settings, Light strength and master up.
 - **WLED stays on Dream's colour after Dream stopped:** it goes back to its own program after its realtime timeout
   (Sync Interfaces, 2500 ms by default); a much longer timeout there keeps the last colour that long.
+
+<sub>[↑ Contents](#contents)</sub>
+
+---
+
+## Hue lamps dream along
+
+Philips Hue lamps (a Hue Signe, a Play bar, ordinary colour bulbs) take the dream's colour as a **mood**: the lamps and
+rooms you choose glide softly into the smoothed colour of what the audience sees – the same colour the WLED chain gets,
+without its beat and flash –, as bright as the picture, the **Lamp strength** and the master fader say; **Blackout**
+switches them off at once. A drop or a new scene is a soft change of colour, never a jump.
+
+Everything stays at home: Dream talks to the **Hue Bridge** in your network over its own local API (Hue API v2, https
+in the home network) – no Hue account, no cloud, nothing leaves the house.
+
+**The limit: mood, not beat.** The bridge takes about ten commands a second for all lamps together and one for rooms,
+so every lamp changes at most once a second and glides there. Light that follows every beat needs the Hue
+Entertainment API (a stream to an entertainment area) – that is another story; for the beat there is the WLED chain.
+
+### Set up once
+
+1. The bridge (square, with the round button on top) is connected to your router by its cable and is in the **same
+   network as the Mac**. The lamps are set up in the Hue app as usual (rooms and zones included).
+2. **Give the bridge a fixed IP in the router**, so Dream finds it the same way every time – e.g. in a FRITZ!Box:
+   Home Network → Network → the bridge (name like `Philips-hue`) → edit → “Always assign this network device the same
+   IPv4 address”.
+3. Panel → card **Output** → **“Hue lamps dream along”**: type the bridge's **IP address** and press Enter – or tap
+   **“🔍 Find”**: Dream asks the network for Hue Bridges (mDNS `_hue._tcp`, about two seconds) and shows them as
+   buttons; a tap takes it. Dream talks only to addresses in the home network.
+4. **Pair:** tap **“🔗 Pair”**, then press the **round button on the bridge** within 30 seconds. The status says
+   “Now press the round button on the bridge … 27 s” while Dream waits, and then “Paired with …”. Dream keeps the
+   bridge's app key only on this Mac, in `~/.config/dream/hue.json` (readable only by you, mode 0600) – never in the
+   repository, a log or any page; the pages only learn “paired” or not. The key goes only to the bridge it belongs to
+   (its certificate must carry that bridge's id).
+
+### In Dream
+
+- The **rooms, zones and lamps** of the bridge stand as a list, each with its switch: what is ticked dreams along
+  (a room means all its lamps). Lamps that can show only white follow the brightness.
+- The switch **“Hue lamps dream along”** on – the lamps take the dream's colour as soon as the stage draws (it must be
+  open and visible). The small lamp beside the switch glows in the colour the lamps get.
+- **Lamp strength:** how bright the lamps are at most (the master fader and Blackout act on top). A MIDI controller can
+  learn it (“Hue lamps: strength”).
+- **Afterwards the lamps get their own light back:** when a lamp joins, Dream notes what it showed (on or off,
+  brightness, colour or white) and gives exactly that back when it leaves – you untick it, switch the lamps off, the
+  stage closes, or Dream stops. Blackout only darkens; the lamps stay Dream's.
+- Up to ten lamps are told one by one (each in the colours it can show); more lamps in chosen rooms are told as the
+  room, one command a second.
+- **Unpair** makes Dream forget the key (the lamps get their own light back first).
+- Guests (Dream Remote) cannot change any of it; Dream Control can.
+
+### If something does not work
+
+- **“Not found in the network” / “does not answer like a Hue Bridge”:** check the address (the Hue app shows it:
+  Settings → My Hue system → the bridge). On macOS 15 and later the program that started Dream (Terminal, iTerm) needs
+  **System Settings → Privacy & Security → Local Network** – without it nothing reaches devices in the network.
+- **“The button on the bridge was not pressed in time”:** tap “Pair” again and press the button within 30 seconds.
+- **“The bridge no longer knows Dream”:** the app key was removed (in the Hue app under the bridge's apps, or the bridge
+  was reset) – pair again.
+- **“The device at … is not the paired bridge”:** another device answers at that address (the bridge got a new IP –
+  give it a fixed one) or it is a new bridge: enter the right address, or pair again.
+- **“… does not answer – Dream tries again by itself”:** the bridge is off or the network is gone. Nothing else in Dream
+  slows down; Dream asks again, more and more rarely, and goes on as soon as it answers.
+- **The lamps react late or not at all:** another app or the Hue app's “sync” (an entertainment area) also steers
+  them – stop that. A lamp that is unreachable in the Hue app (switched off at the wall) cannot dream along.
+- **The lamps stayed in Dream's colour:** if Dream was killed hard (not stopped), it could not give the lamps their
+  light back – set them in the Hue app.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -2250,7 +2318,7 @@ not have becomes the nearest one for the stage, Dream Control and whoever sent i
 that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. `node --test tests/js/soft.test.mjs` (#211) tests the shares of the soft switches
-(old input picture, old and new prompt, a change during a running fade). `tests/test_wled.py` and `node --test tests/js/roomlight.test.mjs` (#212) test the room light against a fake WLED receiver (a UDP socket on 127.0.0.1): the DDP packets (header, push flag, LED count, several packets for a long chain), the smoothed colour, strength, master and blackout, the beat pulse and the flash, that a device that does not answer slows nothing, that light goes only to the home network, that guests change none of it, and the mDNS answers. `node --test tests/js/gl-stage.test.mjs` (#204) opens
+(old input picture, old and new prompt, a change during a running fade). `tests/test_wled.py` and `node --test tests/js/roomlight.test.mjs` (#212) test the room light against a fake WLED receiver (a UDP socket on 127.0.0.1): the DDP packets (header, push flag, LED count, several packets for a long chain), the smoothed colour, strength, master and blackout, the beat pulse and the flash, that a device that does not answer slows nothing, that light goes only to the home network, that guests change none of it, and the mDNS answers (`tests/test_mdns.py`). `tests/test_hue.py` and `node --test tests/js/huecard.test.mjs` (#272) test the Hue lamps against a fake Hue Bridge (an https server on 127.0.0.1 with a certificate of its own): pairing with and without the link button, the key (only in the config folder, mode 0600, never in a log or a message to a page, never to a device whose certificate is not the bridge's), the rooms, zones and lamps, the colour in each lamp's gamut, at most one change a second per lamp and ten a second in all, master and blackout, the previous state back after every kind of end, that a slow or gone bridge slows nothing, and that guests change none of it. `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master; #215: that the smoothed
@@ -2355,7 +2423,7 @@ may do), the settings (`settings.py`: one table with every setting, its range an
 shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the dance mapping table (`dance.py`; the detection itself is
 `static/dance.js`, the mapping `static/dancemap.js`, the card `static/dancepanel.js`), the dance lab (`dancelab.py`
 keeps the sessions; `static/dancerec.js` is their format, recording and playback, `static/dancelab.js` the lab), the
-outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the room light (`roomlight.py` the dream's colour, `wled.py` the LED chain, `static/roomlight.js` the stage's part), the cloud GPU (`cloud.py`), measuring
+outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the room light (`roomlight.py` the dream's colour, `wled.py` the LED chain, `hue.py` and `static/huecard.js` the Hue lamps, `mdns.py` finding devices, `static/roomlight.js` the stage's part), the cloud GPU (`cloud.py`), measuring
 (`measure.py`), uploads and the gallery (`media.py`), voice (`voice.py`), and the pages with their links (`pages.py`,
 `net.py`). The pages are in `static/`; what they share is in `static/common.js`, the sliders of the panel and of Dream
 Control in `static/sliders.js` (drawn from the settings table: default, range and `weight` of a setting), their moving

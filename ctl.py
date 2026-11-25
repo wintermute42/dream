@@ -15,6 +15,7 @@ import config
 import dance
 import eyes
 import hub
+import hue
 import i18n
 import inputs
 import measure
@@ -35,6 +36,12 @@ async def wled_find(sock) -> None:
     """#212: the WLED devices in the network, to the page that asked."""
     found = await wled.find()
     outbox.post(sock, json.dumps({"wled": {**wled.status, "found": found}}))
+
+
+async def hue_find(sock) -> None:
+    """#272: the Hue Bridges in the network, to the page that asked."""
+    found = await hue.find()
+    outbox.post(sock, json.dumps({"hue": {**hue.status, "found": found}}, ensure_ascii=False))
 
 
 @app.websocket("/ctl")
@@ -87,6 +94,7 @@ async def ctl(sock: WebSocket):
                                          **eyes.drift_msg(time.monotonic()), **hub.status_msg()}, ensure_ascii=False))
     if rights.can(role, "control"):                # #212: the room light's status (after the state: the page knows the switch)
         outbox.post(sock, json.dumps(wled.msg()))
+        outbox.post(sock, json.dumps(hue.msg(), ensure_ascii=False))   # #272: the Hue lamps' (never the bridge's key)
     await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
     try:
@@ -137,6 +145,14 @@ async def ctl(sock: WebSocket):
             if msg.get("wled_find") is True and rights.can(hub.roles.get(sock), "control") and (   # #212: WLED devices
                     not hub.live.get("wled_find") or hub.live["wled_find"].done()):                  # over mDNS, one search at a time
                 hub.live["wled_find"] = asyncio.create_task(wled_find(sock))
+            # #272: the Hue Bridge – find it, pair with it (that writes the key into the config folder), forget the key
+            if rights.can(hub.roles.get(sock), "control"):
+                if msg.get("hue_find") is True and (not hub.live.get("hue_find") or hub.live["hue_find"].done()):
+                    hub.live["hue_find"] = asyncio.create_task(hue_find(sock))
+                if msg.get("hue_pair") is True:
+                    hub.live["hue_pair"] = asyncio.create_task(hue.pair())
+                if msg.get("hue_unpair") is True:
+                    hue.unpair()
             if "glow" in msg:                          # #237: the phone that lends its motion glows as a light marker
                 await glow_set(sock, msg["glow"])
             if rights.can(hub.roles.get(sock), "control"):    # #172: Dream Control sends the eyes into trance / sets how often

@@ -124,6 +124,15 @@ def _host(v: str) -> str:
     return v if HOST_NAME.fullmatch(v) else ""
 
 
+# #272: the Hue lamps and rooms that dream along – "l:<id>" a lamp, "g:<id>" a room or zone of the bridge (its ids are
+# UUIDs), joined by "+"; anything else is dropped
+HUE_ITEM = re.compile(r"[lg]:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+def _hue_items(v: str) -> str:
+    return "+".join(list(dict.fromkeys(k for k in v.lower().split("+") if HUE_ITEM.fullmatch(k)))[:50])
+
+
 # #235: the colours an LED marker on a hand can have – never red, orange or yellow: those are fire
 MARKERS = ("cyan", "magenta", "green", "blue")
 
@@ -174,6 +183,12 @@ SETTINGS: dict[str, Setting] = {
     "wled_host": text("", clean=_host),
     "wled_amt": num(1.0, 0.0, 1.0, target=True),
     "wled_beat": flag(True),
+    # #272: Hue lamps take the dream's colour as a mood (hue.py): on/off, the bridge's address, how bright (a MIDI fader
+    # can move it; the master and its blackout act on top) and which lamps and rooms
+    "hue_lamps": flag(False),
+    "hue_bridge": text("", clean=_host),
+    "hue_lamps_amt": num(1.0, 0.0, 1.0, target=True),
+    "hue_lamps_sel": text("", clean=_hue_items),
     "pose": flag(False),                                        # the dancer's skeleton (flowtrack) shapes the figure
     "pose_scale": num(0.8, 0.2, 1.5, target=True, weight=0.5, needs="pose"),
     # what the Mac's camera detects: on (light: fire, LED) | hand (pose) | marker (#235: two LED markers, one per hand)
