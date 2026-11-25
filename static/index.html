@@ -236,8 +236,14 @@
   /* #212: the room light – the lamp glows in the colour the chain gets (before the device's own correction) */
   .ledlamp { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; background: #000; border: 2px solid var(--line, rgba(255,255,255,.25));
     opacity: .25; box-shadow: 0 0 10px 2px currentColor; color: transparent; }
-  .ledrow.off .ledset { opacity: .55; }
+  .ledrow.off .ledset :is(input, button), .huerow.off .hueset input[type=range] { opacity: .55; }   /* only the controls: the words stay readable */
   .ledstat { margin-top: 4px; min-height: 1.3em; }
+  /* #272: the Hue lamps – the bridge, pairing, the rooms and lamps that dream along */
+  .huerow { border-top: 1px solid var(--line); padding-top: 10px; }
+  .huelist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; margin-top: 6px; }
+  .huelamp { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text); font-size: .9em; min-height: 28px; }
+  .huelamp small { margin-left: auto; }
+  #huepair.on { background: var(--accent); color: #140b1f; border-color: transparent; }
   .labbtns { margin-top: 6px; }
   #prompt.resting { opacity: .7; filter: grayscale(1); }
   .patauto.pale { filter: grayscale(1); opacity: .74; }
@@ -664,7 +670,7 @@
     <label>MIDI controller</label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
-      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="wled_amt">Room light: strength</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select>
+      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="wled_amt">Room light: strength</option><option value="hue_lamps_amt">Hue lamps: strength</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
@@ -789,6 +795,28 @@
     </div>
     <div id="wledstat" class="muted ledstat" role="status"></div>
   </div>
+  <!-- #272: Hue lamps take the dream's colour as a mood – locally over the Hue Bridge (hue.py, huecard.js) -->
+  <div class="row huerow" id="huerow">
+    <div class="btns" style="align-items:center">
+      <label style="display:flex;align-items:center;gap:6px;margin:0;flex:1 1 auto"><input type="checkbox" id="hue_lamps"> Hue lamps dream along</label>
+      <span id="hueglow" class="ledlamp" aria-hidden="true"></span>
+    </div>
+    <div class="hueset">
+      <div class="btns" style="margin-top:6px">
+        <input type="text" id="hue_bridge" placeholder="IP address of the bridge, e.g. 192.168.1.2" aria-label="Hue Bridge: IP address or name" autocomplete="off" spellcheck="false" style="flex:1 1 60%;min-width:0">
+        <button class="btn" id="huefind" title="Look for the Hue Bridge in the Wi-Fi (mDNS, about two seconds)">🔍 Find</button>
+      </div>
+      <div id="huefound" class="btns compact" hidden role="group" aria-label="Hue Bridges found"></div>
+      <div class="btns" style="margin-top:6px">
+        <button class="btn" id="huepair" title="Pairs Dream with the bridge: press this, then the round button on the bridge">🔗 Pair</button>
+        <button class="btn" id="hueunpair" hidden title="Dream forgets the bridge's key; the lamps get their own light back">Unpair</button>
+      </div>
+      <div id="huelist" class="huelist" hidden role="group" aria-label="Rooms and lamps that dream along"></div>
+      <label for="hue_lamps_amt" style="margin-top:6px">Lamp strength <span class="val" id="v-hue_lamps_amt">100 %</span></label>
+      <input type="range" id="hue_lamps_amt" min="0" max="1" step="0.01" value="1">
+    </div>
+    <div id="huestat" class="muted ledstat" role="status"></div>
+  </div>
   </details>
   <details class="sec" data-sec="compute">
     <summary>Computing (local/cloud, model, quality)</summary>
@@ -847,6 +875,7 @@
 <script src="/static/beat.js"></script>
 <script src="/static/soft.js"></script>
 <script src="/static/roomlight.js"></script>
+<script src="/static/huecard.js"></script>
 <script src="/static/dreamface.js" data-detect defer></script><!-- #214: where the painted faces have their eyes and mouth, for the dream windows: found here once per face, in a worker, when Dream asks -->
 <script>
   // #132: the page in the chosen language (the markup is English; I18N.apply translates it once, T() the rest)
@@ -2072,10 +2101,11 @@
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
     cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', flow_auto: 'flow_auto', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt',
-    wled: 'wled', wled_amt: 'wled_amt', wled_beat: 'wled_beat' };   // #212 (the device's address: on "change", below)
+    wled: 'wled', wled_amt: 'wled_amt', wled_beat: 'wled_beat',   // #212 (the device's address: on "change", below)
+    hue_lamps: 'hue_lamps', hue_lamps_amt: 'hue_lamps_amt' };     // #272 (the bridge and the lamps: huecard.js)
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
-  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt', 'wled_amt']);
+  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt', 'wled_amt', 'hue_lamps_amt']);
   let ctl = null, applying = false;
   const sendCtl = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };
   // ---------- #212: the room light – the stage tells Dream the colour of what the audience sees (roomlight.js) ----------
@@ -2090,18 +2120,21 @@
     },
   });
   function ledLamp(rgb) {
-    const lamp = $('ledlamp');
-    lamp.style.background = lamp.style.color = rgb ? `rgb(${rgb.join(',')})` : '#000';
-    lamp.style.opacity = rgb ? (0.25 + 0.75 * +$('wled_amt').value * look.master).toFixed(2) : '.25';
+    for (const [id, amt, on] of [['ledlamp', 'wled_amt', 'wled'], ['hueglow', 'hue_lamps_amt', 'hue_lamps']]) {
+      const lamp = $(id), lit = rgb && $(on).checked;
+      lamp.style.background = lamp.style.color = lit ? `rgb(${rgb.join(',')})` : '#000';
+      lamp.style.opacity = lit ? (0.25 + 0.75 * +$(amt).value * look.master).toFixed(2) : '.25';
+    }
   }
+  // the stage looks at its picture for the room light while one of its outputs is on (#212 WLED, #272 Hue)
+  const lightOn = () => { roomLight.on = $('wled').checked || $('hue_lamps').checked; if (!roomLight.on) ledLamp(null); };
   let ledSt = { st: 'off' };
   function ledShow(st) {
     if (st) ledSt = st;
     const s = ledSt, on = $('wled').checked, h = s.host || $('wled_host').value;
-    roomLight.on = on;
+    lightOn();
     $('ledrow').classList.toggle('off', !on);
     $('v-wled_amt').textContent = Math.round(+$('wled_amt').value * 100) + ' %';
-    if (!on) ledLamp(null);
     const say = !on ? '' : s.st === 'nohost' ? T('Enter the address of the WLED device, or let Dream find it.')
       : s.st === 'looking' ? T('Looking for {h} …', { h })
       : s.st === 'unknown' ? T('{h} is not found in the network – check the address (README: room light).', { h })
@@ -2135,6 +2168,9 @@
   $('wledfind').onclick = () => { $('wledfind').disabled = true; $('wledfind').textContent = T('🔍 Looking …'); sendCtl({ wled_find: true }); };
   ['wled', 'wled_beat'].forEach(id => $(id).addEventListener('change', () => ledShow()));
   $('wled_amt').addEventListener('input', () => ledShow());
+  // #272: the Hue lamps – the bridge, pairing, the rooms and lamps that dream along
+  const hueCard = HueCard.mount({ el: $, send: sendCtl });
+  $('hue_lamps').addEventListener('change', lightOn);
   const readEl = (k, el) => el.type === 'checkbox' ? el.checked : (NUM.has(k) ? +el.value : el.value);
   const timers = {};
   Object.entries(BIND).forEach(([k, id]) => {
@@ -2189,6 +2225,9 @@
         if (k === 'master') { look.master = +v; masterShow(); }
         if (k === 'wled_host' && document.activeElement !== $('wled_host')) $('wled_host').value = v;
         if (k === 'wled' || k === 'wled_amt') ledShow();
+        if (k === 'hue_bridge' && document.activeElement !== $('hue_bridge')) $('hue_bridge').value = v;   // #272
+        if (k === 'hue_lamps_sel') hueCard.choose(v);
+        if (k === 'hue_lamps' || k === 'hue_lamps_amt') { lightOn(); hueCard.update(); }
       }
       if (['move_mode', 'move_off', 'move_cam', 'flow_kind', 'dance_kind'].some(k => k in st)) { moveSync(); lightSync(); }   // #249: once, with all of them in place
       show();
@@ -3986,6 +4025,7 @@
       if (m.playlists) fillPlaylists(m.playlists);
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server
       if (m.wled) { ledShow(m.wled); if (m.wled.found) ledFound(m.wled.found); }   // #212
+      if (m.hue) { hueCard.show(m.hue); if (m.hue.found) hueCard.found(m.hue.found); }   // #272
       if (m.eyes_cfg) $('trancefreqm').value = String(m.eyes_cfg.trance_every);
       if (m.gallery) renderGallery(m.gallery);
       if (m.schema) sliders.schema(m.schema);          // #216

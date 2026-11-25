@@ -198,8 +198,8 @@ def test_the_device_address_is_an_address_or_nothing(server, given, kept):
 @pytest.mark.parametrize("ip,ok", [("192.168.1.40", True), ("10.0.0.7", True), ("172.16.3.4", True),
                                    ("169.254.10.1", True), ("127.0.0.1", True), ("8.8.8.8", False),
                                    ("224.0.0.251", False), ("100.64.1.1", False), ("nonsense", False)])
-def test_light_goes_only_to_the_home_network(wled, ip, ok):
-    assert wled.home_address(ip) is ok
+def test_light_goes_only_to_the_home_network(server, ip, ok):
+    assert server.net.home_address(ip) is ok
 
 
 def stage_url(server):
@@ -387,7 +387,7 @@ def test_a_name_that_is_not_found_is_said_and_tried_again(server, wled, monkeypa
     async def resolve(host):
         asked.append(host)
         return None
-    monkeypatch.setattr(wled, "_resolve", resolve)
+    monkeypatch.setattr(server.net, "resolve", resolve)
     monkeypatch.setattr(wled, "RETRY", 0.05)
 
     async def go():
@@ -398,37 +398,3 @@ def test_a_name_that_is_not_found_is_said_and_tried_again(server, wled, monkeypa
         finally:
             task.cancel()
     asyncio.run(go())
-
-
-# ---------- mDNS ----------
-def dns_name(name: str) -> bytes:
-    return b"".join(bytes([len(p)]) + p.encode() for p in name.split(".")) + b"\0"
-
-
-def mdns_answer() -> bytes:
-    """An answer as a WLED device gives it: PTR to its instance, SRV to its host (with a compression pointer), A."""
-    head = struct.pack("!HHHHHH", 0, 0x8400, 0, 1, 0, 2)
-    svc = dns_name("_wled._tcp.local")
-    ptr_data = bytes([10]) + b"wled-a1b2c" + b"\xc0\x0c"            # "wled-a1b2c" + the service name at offset 12
-    rr_ptr = svc + struct.pack("!HHIH", 12, 1, 120, len(ptr_data)) + ptr_data
-    inst = dns_name("wled-a1b2c._wled._tcp.local")
-    srv_data = struct.pack("!HHH", 0, 0, 80) + dns_name("wled-a1b2c.local")
-    rr_srv = inst + struct.pack("!HHIH", 33, 0x8001, 120, len(srv_data)) + srv_data
-    rr_a = dns_name("wled-a1b2c.local") + struct.pack("!HHIH", 1, 0x8001, 120, 4) + socket.inet_aton("192.168.1.77")
-    return head + rr_ptr + rr_srv + rr_a
-
-
-def test_mdns_question_asks_for_the_wled_service(wled):
-    q = wled.query()
-    assert q[:12] == struct.pack("!HHHHHH", 0, 0, 1, 0, 0, 0)
-    assert q[12:] == dns_name("_wled._tcp.local") + struct.pack("!HH", 12, 0x8001)
-
-
-def test_mdns_answer_gives_the_device(wled):
-    assert wled.parse(mdns_answer()) == [{"name": "wled-a1b2c", "host": "wled-a1b2c.local", "ip": "192.168.1.77"}]
-
-
-@pytest.mark.parametrize("bad", [b"", b"\x00" * 11, mdns_answer()[:40], b"\x00\x00\x84\x00\x00\x01\x00\x00\x00\x00\x00\x00\xc0\x0c",
-                                 struct.pack("!HHHHHH", 0, 0, 0, 1, 0, 0) + mdns_answer()[12:]])
-def test_broken_or_foreign_mdns_packets_give_nothing(wled, bad):
-    assert wled.parse(bad) == []

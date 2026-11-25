@@ -6,21 +6,20 @@ and asks WLED to go back to its own program at once; if that word does not arriv
 by default) does the same.
 
 The device is an address in the home network – an IP or a name such as wled-room.local, entered or found over mDNS
-(`_wled._tcp`, find()). Dream sends only to private, link-local or loopback addresses. Its LED count is read from
-WLED's JSON API (/json/info) with a short timeout beside the sending; without an answer Dream sends a whole packet of
-pixels (WLED ignores the ones it does not have). The chain is a colour per LED (compose): the dream's colour is the
+(`_wled._tcp`, find(), mdns.py). Dream sends only to private, link-local or loopback addresses (net.home_address).
+Its LED count is read from WLED's JSON API (/json/info) with a short timeout beside the sending; without an answer
+Dream sends a whole packet of pixels (WLED ignores the ones it does not have). The chain is a colour per LED (compose): the dream's colour is the
 bottom layer, further layers hang in on top (LAYERS), the strength and the master act last."""
 import asyncio
 import contextlib
-import ipaddress
 import json
-import select
-import socket
 import struct
 import time
 import urllib.request
 
 import hub
+import mdns
+import net
 import outbox
 import rights
 import roomlight
@@ -32,15 +31,6 @@ PER_PACKET = 480                 # DDP: at most 1440 bytes of RGB in one packet
 UNKNOWN_LEDS = PER_PACKET        # the count is not known: one full packet (WLED ignores the pixels it does not have)
 RETRY = 5.0                      # seconds before an address that could not be used is tried again
 HTTP_TIMEOUT = 1.5
-
-
-def home_address(ip: str) -> bool:
-    """Only to a device in the home network (or this Mac): fail closed for anything else."""
-    try:
-        a = ipaddress.ip_address(ip)
-    except ValueError:
-        return False
-    return a.version == 4 and (a.is_private or a.is_link_local or a.is_loopback) and not a.is_multicast
 
 
 # ---------- DDP: the packets ----------
@@ -90,7 +80,7 @@ def encode(base: tuple, buf: list | None, n: int, level: float) -> bytes:
 def _http(url: str, body: dict | None = None) -> dict:
     req = urllib.request.Request(url, data=json.dumps(body).encode() if body is not None else None,
                                  headers={"Content-Type": "application/json"} if body is not None else {})
-    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:     # noqa: S310 – a home-network address (home_address)
+    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as r:     # noqa: S310 – a home-network address (net.home_address)
         return json.loads(r.read(65536) or b"{}")
 
 
@@ -138,20 +128,6 @@ def sync() -> None:
     wake.set()
 
 
-async def _resolve(host: str) -> str | None:
-    try:
-        ipaddress.IPv4Address(host)
-        return host
-    except ValueError:
-        pass
-    try:
-        got = await asyncio.wait_for(asyncio.get_running_loop().getaddrinfo(host, None, family=socket.AF_INET,
-                                                                            type=socket.SOCK_DGRAM), 3.0)
-        return got[0][4][0] if got else None
-    except (OSError, asyncio.TimeoutError, IndexError):
-        return None
-
-
 async def _until_wake(secs: float) -> bool:
     """Waits secs or until a setting changes; True if one did."""
     with contextlib.suppress(asyncio.TimeoutError):
@@ -174,14 +150,14 @@ async def keep() -> None:
             await wake.wait()
             continue
         _say(st="looking", host=host)
-        ip = await _resolve(host)
+        ip = await net.resolve(host)
         if wake.is_set():
             continue
         if not ip:
             _say(st="unknown", host=host)
             await _until_wake(RETRY)
             continue
-        if not home_address(ip):
+        if not net.home_address(ip):
             _say(st="public", host=host)
             await wake.wait()
             continue
@@ -262,114 +238,13 @@ def _known(found: dict) -> dict:
     return {"noinfo": True} if found else {}
 
 
-# ---------- mDNS: WLED devices in the network (_wled._tcp) ----------
+# ---------- mDNS: WLED devices in the network ----------
 SERVICE = "_wled._tcp.local"
-MDNS = ("224.0.0.251", 5353)
-
-
-def query(service: str = SERVICE) -> bytes:
-    """A question for the PTR records of the service, asking for answers to this socket (the "QU" bit)."""
-    name = b"".join(bytes([len(p)]) + p.encode() for p in service.split(".")) + b"\0"
-    return struct.pack("!HHHHHH", 0, 0, 1, 0, 0, 0) + name + struct.pack("!HH", 12, 0x8001)
-
-
-def _name(data: bytes, i: int) -> tuple:
-    """A DNS name at i (with compression); returns (name, the index after it)."""
-    parts, end, hops = [], None, 0
-    while True:
-        n = data[i]
-        if n & 0xC0 == 0xC0:
-            if end is None:
-                end = i + 2
-            i = ((n & 0x3F) << 8) | data[i + 1]
-            hops += 1
-            if hops > 20:
-                raise ValueError("loop")
-            continue
-        if n == 0:
-            return ".".join(parts), (end if end is not None else i + 1)
-        parts.append(data[i + 1:i + 1 + n].decode("utf-8", "replace"))
-        i += 1 + n
-
-
-def parse(data: bytes, service: str = SERVICE) -> list:
-    """The devices in one mDNS answer: [{"name", "host", "ip"}] (ip empty when the answer had no address)."""
-    try:
-        _, flags, qd, an, ns, ar = struct.unpack("!HHHHHH", data[:12])
-        if not flags & 0x8000:
-            return []
-        i = 12
-        for _ in range(qd):
-            _, i = _name(data, i)
-            i += 4
-        ptr, srv, a = [], {}, {}
-        for _ in range(an + ns + ar):
-            name, i = _name(data, i)
-            kind, _, _, size = struct.unpack("!HHIH", data[i:i + 10])
-            i += 10
-            body = i
-            i += size
-            if kind == 12 and name.lower() == service:
-                ptr.append(_name(data, body)[0])
-            elif kind == 33:
-                srv[name.lower()] = _name(data, body + 6)[0]
-            elif kind == 1 and size == 4:
-                a[name.lower()] = socket.inet_ntoa(data[body:body + 4])
-    except (struct.error, IndexError, ValueError):
-        return []
-    out = []
-    for inst in ptr:
-        host = srv.get(inst.lower(), "")
-        ip = a.get(host.lower(), "")
-        if host or ip:
-            out.append({"name": inst.split(".")[0][:40], "host": host.rstrip("."), "ip": ip})
-    return out
-
-
-def browse(secs: float = 2.0) -> list:
-    """Asks the network for WLED devices for secs (blocking: run beside the loop): every device that answers, once,
-    only those in the home network."""
-    socks = []
-    with contextlib.suppress(OSError):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
-        s.bind(("", 0))
-        socks.append(s)
-    with contextlib.suppress(OSError):                  # answers sent to the group (not every device answers directly)
-        g = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        g.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        if hasattr(socket, "SO_REUSEPORT"):
-            g.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        g.bind(("", MDNS[1]))
-        g.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, socket.inet_aton(MDNS[0]) + socket.inet_aton("0.0.0.0"))
-        socks.append(g)
-    found: dict = {}
-    try:
-        if not socks:
-            return []
-        end, asked = time.monotonic() + secs, 0.0
-        while (left := end - time.monotonic()) > 0:
-            if time.monotonic() - asked > 0.7:            # asked again: an answer can get lost on Wi-Fi
-                with contextlib.suppress(OSError):
-                    socks[0].sendto(query(), MDNS)
-                asked = time.monotonic()
-            ready, _, _ = select.select(socks, [], [], min(left, 0.2))
-            for s in ready:
-                with contextlib.suppress(OSError):
-                    data, (src, _) = s.recvfrom(9000)
-                    for d in parse(data):
-                        d["ip"] = d["ip"] or src
-                        if home_address(d["ip"]):
-                            found.setdefault(d["name"], d)
-    finally:
-        for s in socks:
-            s.close()
-    return sorted(found.values(), key=lambda d: d["name"])
 
 
 async def find() -> list:
     """The WLED devices in the network, found in about two seconds beside the loop."""
-    return await asyncio.get_running_loop().run_in_executor(None, browse, 2.0)
+    return await asyncio.get_running_loop().run_in_executor(None, mdns.browse, SERVICE, 2.0)
 
 
 hub.on_change("wled", sync)

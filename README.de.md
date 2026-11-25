@@ -32,6 +32,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Ausgabe auf Beamer oder zweitem Monitor (16:9)](#ausgabe-auf-beamer-oder-zweitem-monitor-169)
 - [Als Quelle in Resolume (Syphon)](#als-quelle-in-resolume-syphon)
 - [Raumlicht (WLED)](#raumlicht-wled)
+- [Hue-Lampen träumen mit](#hue-lampen-träumen-mit)
 
 **Handys und Tablets**
 
@@ -761,6 +762,80 @@ Panel → Karte **Ausgabe** → **„Raumlicht (WLED) träumt mit“**:
 - **Zu dunkel im Vergleich zum Traum:** „Force max brightness“ in WLEDs Sync-Einstellungen, Lichtstärke und Master hoch.
 - **WLED bleibt nach dem Ende von Dream auf Dreams Farbe:** es kehrt nach seinem Realtime-Timeout zu seinem Programm
   zurück (Sync Interfaces, ab Werk 2500 ms); ein viel längerer Timeout dort hält die letzte Farbe so lange.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+---
+
+## Hue-Lampen träumen mit
+
+Philips-Hue-Lampen (eine Hue Signe, eine Play-Leiste, gewöhnliche Farblampen) nehmen die Farbe des Traums als
+**Stimmung** auf: die Lampen und Räume, die du wählst, gleiten sanft in die geglättete Farbe dessen, was das Publikum
+sieht – dieselbe Farbe, die die WLED-Kette bekommt, ohne ihren Takt und ihr Aufblitzen –, so hell, wie das Bild, die
+**Lampenstärke** und der Master-Regler sagen; **Blackout** schaltet sie sofort aus. Ein Drop oder eine neue Szene ist
+ein weicher Farbwechsel, nie ein Sprung.
+
+Alles bleibt zu Hause: Dream spricht mit der **Hue Bridge** in deinem Netz über ihre eigene lokale Schnittstelle
+(Hue-API v2, https im Heimnetz) – kein Hue-Konto, keine Cloud, nichts verlässt das Haus.
+
+**Die Grenze: Stimmung, kein Takt.** Die Bridge nimmt für alle Lampen zusammen etwa zehn Befehle pro Sekunde an und
+für Räume einen, darum ändert sich jede Lampe höchstens einmal pro Sekunde und gleitet dorthin. Licht, das jedem
+Schlag folgt, braucht die Hue-Entertainment-API (ein Strom an einen Entertainment-Bereich) – das ist eine eigene
+Story; für den Takt gibt es die WLED-Kette.
+
+### Einmal einrichten
+
+1. Die Bridge (quadratisch, mit dem runden Knopf oben) hängt per Kabel am Router und ist im **selben Netz wie der
+   Mac**. Die Lampen sind wie gewohnt in der Hue-App eingerichtet (Räume und Zonen eingeschlossen).
+2. **Der Bridge im Router eine feste IP geben**, damit Dream sie jedes Mal gleich findet – z. B. in der FRITZ!Box:
+   Heimnetz → Netzwerk → die Bridge (Name wie `Philips-hue`) → bearbeiten → „Diesem Netzwerkgerät immer die gleiche
+   IPv4-Adresse zuweisen“.
+3. Panel → Karte **Ausgabe** → **„Hue-Lampen träumen mit“**: die **IP-Adresse** der Bridge eintippen und Enter – oder
+   **„🔍 Suchen“**: Dream fragt im Netz nach Hue Bridges (mDNS `_hue._tcp`, etwa zwei Sekunden) und zeigt sie als
+   Knöpfe; ein Tipp übernimmt sie. Dream spricht nur mit Adressen im Heimnetz.
+4. **Koppeln:** **„🔗 Koppeln“** tippen, dann innerhalb von 30 Sekunden den **runden Knopf auf der Bridge** drücken.
+   Solange Dream wartet, sagt der Status „Jetzt den runden Knopf auf der Bridge drücken … 27 s“, danach „Gekoppelt
+   mit …“. Den App-Schlüssel der Bridge behält Dream nur auf diesem Mac, in `~/.config/dream/hue.json` (nur für dich
+   lesbar, Modus 0600) – nie im Repository, in einem Log oder auf einer Seite; die Seiten erfahren nur „gekoppelt“
+   oder nicht. Der Schlüssel geht nur an die Bridge, zu der er gehört (ihr Zertifikat muss die Kennung dieser Bridge
+   tragen).
+
+### In Dream
+
+- Die **Räume, Zonen und Lampen** der Bridge stehen als Liste da, jede mit ihrem Schalter: was angehakt ist, träumt
+  mit (ein Raum heißt: alle seine Lampen). Lampen, die nur Weiß können, folgen der Helligkeit.
+- Den Schalter **„Hue-Lampen träumen mit“** an – die Lampen nehmen die Farbe des Traums an, sobald die Bühne zeichnet
+  (sie muss offen und sichtbar sein). Die kleine Lampe neben dem Schalter leuchtet in der Farbe, die die Lampen bekommen.
+- **Lampenstärke:** wie hell die Lampen höchstens werden (Master-Regler und Blackout wirken obendrauf). Ein
+  MIDI-Controller kann sie lernen („Hue-Lampen: Stärke“).
+- **Danach bekommen die Lampen ihr eigenes Licht zurück:** Wenn eine Lampe dazukommt, merkt sich Dream, was sie zeigte
+  (an oder aus, Helligkeit, Farbe oder Weiß), und gibt genau das zurück, wenn sie geht – du nimmst den Haken weg,
+  schaltest die Lampen aus, die Bühne schließt oder Dream endet. Blackout verdunkelt nur; die Lampen bleiben bei Dream.
+- Bis zu zehn Lampen bekommen ihre Befehle einzeln (jede in den Farben, die sie zeigen kann); mehr Lampen in gewählten
+  Räumen bekommen sie als Raum, ein Befehl pro Sekunde.
+- **Entkoppeln** lässt Dream den Schlüssel vergessen (vorher bekommen die Lampen ihr eigenes Licht zurück).
+- Gäste (Dream Remote) können nichts davon ändern; Dream Control kann es.
+
+### Wenn etwas nicht geht
+
+- **„im Netz nicht zu finden“ / „antwortet nicht wie eine Hue Bridge“:** Adresse prüfen (die Hue-App zeigt sie:
+  Einstellungen → Mein Hue-System → die Bridge). Ab macOS 15 braucht das Programm, das Dream gestartet hat (Terminal,
+  iTerm), **Systemeinstellungen → Datenschutz & Sicherheit → Lokales Netzwerk** – ohne das erreicht nichts die Geräte
+  im Netz.
+- **„Der Knopf auf der Bridge wurde nicht rechtzeitig gedrückt“:** nochmal „Koppeln“ und den Knopf innerhalb von 30
+  Sekunden drücken.
+- **„Die Bridge kennt Dream nicht mehr“:** der App-Schlüssel wurde entfernt (in der Hue-App bei den Apps der Bridge,
+  oder die Bridge wurde zurückgesetzt) – neu koppeln.
+- **„Das Gerät unter … ist nicht die gekoppelte Bridge“:** unter der Adresse antwortet ein anderes Gerät (die Bridge hat
+  eine neue IP bekommen – gib ihr eine feste) oder es ist eine neue Bridge: die richtige Adresse eintragen oder neu
+  koppeln.
+- **„… antwortet nicht – Dream versucht es von selbst wieder“:** die Bridge ist aus oder das Netz weg. Sonst bremst
+  nichts in Dream; Dream fragt immer seltener wieder nach und macht weiter, sobald sie antwortet.
+- **Die Lampen reagieren spät oder gar nicht:** eine andere App oder die „Synchronisierung“ der Hue-App (ein
+  Entertainment-Bereich) steuert sie mit – das beenden. Eine Lampe, die in der Hue-App nicht erreichbar ist (am
+  Wandschalter aus), kann nicht mitträumen.
+- **Die Lampen sind in Dreams Farbe geblieben:** wurde Dream hart beendet (nicht gestoppt), konnte es den Lampen ihr
+  Licht nicht zurückgeben – in der Hue-App einstellen.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2402,7 +2477,7 @@ gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zur�
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
 `node --test tests/js/soft.test.mjs` (#211) prüft die Anteile der weichen Wechsel (altes Eingangsbild, alter und
-neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten. `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
+neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten (`tests/test_mdns.py`). `tests/test_hue.py` und `node --test tests/js/huecard.test.mjs` (#272) prüfen die Hue-Lampen gegen eine nachgebaute Hue Bridge (ein https-Server auf 127.0.0.1 mit eigenem Zertifikat): Koppeln mit und ohne Knopfdruck, den Schlüssel (nur im Konfigurationsordner, Modus 0600, nie in einem Log oder einer Nachricht an eine Seite, nie an ein Gerät, dessen Zertifikat nicht das der Bridge ist), Räume, Zonen und Lampen, die Farbe im Farbraum jeder Lampe, höchstens eine Änderung pro Sekunde und Lampe und zehn pro Sekunde insgesamt, Master und Blackout, den vorherigen Zustand nach jeder Art von Ende, dass eine langsame oder verschwundene Bridge nichts bremst, und dass Gäste nichts davon ändern. `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
@@ -2516,7 +2591,7 @@ darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihr
 darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
 (`inputs.py`), die Tanz-Zuordnungstabelle (`dance.py`; die Erkennung selbst ist `static/dance.js`, die Zuordnung
 `static/dancemap.js`, die Karte `static/dancepanel.js`), das Tanz-Labor (`dancelab.py` hält die Sessions;
-`static/dancerec.js` ist ihr Format, Aufnahme und Wiedergabe, `static/dancelab.js` das Labor), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), das Raumlicht (`roomlight.py` die Farbe des Traums, `wled.py` die LED-Kette, `static/roomlight.js` der Teil der Bühne), die Cloud-GPU
+`static/dancerec.js` ist ihr Format, Aufnahme und Wiedergabe, `static/dancelab.js` das Labor), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), das Raumlicht (`roomlight.py` die Farbe des Traums, `wled.py` die LED-Kette, `hue.py` und `static/huecard.js` die Hue-Lampen, `mdns.py` das Finden von Geräten, `static/roomlight.js` der Teil der Bühne), die Cloud-GPU
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
