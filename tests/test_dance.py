@@ -329,11 +329,12 @@ def test_the_pages_start_with_the_clutch_released_and_say_so():
 
 
 @pytest.mark.parametrize("name,ok", [("waves", True), ("My set 1", True), ("Fire+Water", True), ("a.b-c", True), ("Élan 2", True),
-                                     ("", True), (" lead", False), ("x" * 25, False), ("a/b", False), ("../x", False), ("a\nb", False), ("<b>", False)])
+                                     ("", True), (" lead", False), ("x" * 33, False), ("Waves – mine", True), ("a/b", False), ("../x", False), ("a\nb", False), ("<b>", False)])
 def test_a_sets_name_is_a_short_plain_name(name, ok):
     assert settings.coerce("dance_set", name) == (name if ok else "")
     if name:
-        assert bool(dance.SET_NAME.fullmatch(name)) is ok
+        # a table's set (#251) or a set of slots (#265: a dash and up to 32 characters – "Waves – mine")
+        assert bool(dance.SET_NAME.fullmatch(name) or dance.clean_slot_name(name) == name) is ok
 
 
 def test_the_built_in_sets_are_valid_dance_tables():

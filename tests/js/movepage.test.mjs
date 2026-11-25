@@ -95,7 +95,8 @@ test('the page of Dream Dance reads the stage and never talks to Dream itself', 
   assert.ok(html.includes('id="flow_device"') && html.includes('bridge.setKind(') && html.includes('id="detectstate"'));
   assert.ok(html.includes('<h2>Beat</h2>') && !/Clocks?</.test(html), 'the card is called “Beat”');
   const bridge = read('static/index.html');
-  for (const part of ['setKind:', 'setCam:', 'setFingers:', 'detect:']) assert.ok(bridge.includes(part), part);
+  for (const part of ['setKind:', 'setCam:', 'detect:']) assert.ok(bridge.includes(part), part);
+  assert.ok(!bridge.includes('setFingers:'), '#265: the hand model comes with the dance’s “Hands (AI)” – no page switches it');
   // the stage has no lab of its own any more: the lab is the page
   const stage = read('static/index.html');
   assert.ok(!stage.includes('dancelab.js') && !stage.includes('id="dancelab"'));

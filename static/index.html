@@ -562,13 +562,19 @@
         <button type="button" class="btn movepage" id="movepage" disabled title="Opens the page of this mode in a window of its own (for a second screen)">Page ↗</button>
       </div>
       <select id="move_mode" hidden aria-hidden="true"><option value="off">Off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
+      <!-- #265: one strength for the mood and for Dream Dance (with the slots: all its effects together, on top of the
+           three steps of each slot) – a row of its own, above the part of the mode -->
+      <div class="moveparts moveshared">
+        <div class="movepart" data-for="mood dance">
+          <label for="motion_sens" title="How strongly movement moves the dream: the energy in the room (Mood), all effects of the dance together (Dream Dance with the slots) – 0 = not at all">Strength <span class="val" id="v-msens"></span></label>
+          <input type="range" id="motion_sens" min="0" max="3" step="0.05" value="1">
+        </div>
+      </div>
       <div class="moveparts">
         <div class="movepart on" data-for="off">
           <div class="hint" style="margin:0">Movement is off. Choose a mode: <b>Mood</b> catches the energy in the room, <b>Flowtrack</b> follows one performer, <b>Dream Dance</b> lets your dance steer the dream.</div>
         </div>
         <div class="movepart" data-for="mood">
-          <label for="motion_sens" title="How strongly the energy in the room moves the dream (0 = not at all)">Strength <span class="val" id="v-msens"></span></label>
-          <input type="range" id="motion_sens" min="0" max="3" step="0.05" value="1">
           <div class="moveenergy"><span id="moveenergy-l">Energy</span>
             <span class="movemeter" id="moveenergy" role="meter" aria-labelledby="moveenergy-l" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="fill"></i><i class="peak"></i></span>
             <span class="movemeter-word" id="moveenergy-word">–</span></div>
@@ -617,7 +623,7 @@
         <select id="marker_r" aria-label="Marker colour of the right hand" title="LED marker on the right hand: another colour than the left one" style="flex:1 1 45%;min-width:0">
           <option value="cyan">Right: cyan</option><option value="magenta">Right: magenta</option><option value="green">Right: green</option><option value="blue">Right: blue</option></select>
         <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: the LED markers are followed as well – in the dark and on fast moves they lead, otherwise both confirm each other"><input type="checkbox" id="flow_markers"> LED markers beside the hand AI</label>
-        <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: a second model finds 21 points per hand – fist, spread fingers, pinch and snap become values the dance card can use. Costs some of the graphics chip; downloaded once (about 8 MB)."><input type="checkbox" id="flow_fingers"> Fingers (hand AI, 21 points per hand)</label>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="Shows whether the hand model runs (21 points per hand – fist, spread fingers, pinch, snap): by itself while Dream Dance detects with “Hands (AI)”, so your hands always belong to the dance; never in Flowtrack. Downloaded once (about 8 MB)."><input type="checkbox" id="flow_fingers"> Fingers (hand AI, 21 points per hand)</label>
       </div>
     </div>
   <div class="row">
@@ -656,7 +662,7 @@
     <label>MIDI controller</label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
-      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select>
+      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
@@ -667,7 +673,7 @@
     <div id="sensstate" style="font-size:12px;color:var(--muted)">no sensor data (OSC port 7020, see README)</div>
     <div id="sensbars" style="font-size:11px;margin-top:4px;height:5.6em;overflow:hidden"></div>
     <div class="btns" style="margin-top:4px">
-      <select id="senstarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select>
+      <select id="senstarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select>
       <button class="btn" id="senslearn" title="Choose a target, click, then make the wanted movement for 2 seconds">📡 Learn</button>
     </div>
     <div id="sensmap" style="font-size:12px;margin-top:4px"></div>
@@ -1770,7 +1776,11 @@
   const tableMode = () => (moveMode() === 'off' ? 'dance' : moveMode());   // the table the dance card shows
   // #265: with the slots, the dance table in use is compiled from the slots of the set in use (dance.py); the table
   // the owner made stays as it is and comes back when the old table is chosen again
-  let danceSlots = null;
+  let danceSlots = null, danceProbe = null;
+  // #265: how sure the detection must be of each accent of the slots in use (and of a movement being taught: loose)
+  function toleranceSync() {
+    danceDet.setTolerance({ ...(slotsOn() ? danceSlots.tol : {}), ...(danceProbe ? { [danceProbe]: 'loose' } : {}) });
+  }
   const slotsOn = () => $('dance_ui').value === 'slots' && !!danceSlots;
   const tablesNow = () => (slotsOn() ? { ...moveTables, dance: danceSlots.rows } : moveTables);
   const tableRows = () => tablesNow()[tableMode()] || [];
@@ -2094,7 +2104,7 @@
         if (k === 'clutch') clutchSync();
         if (k === 'flow_auto') flowAutoSync();
         if (k === 'dance_set') { $('dance_set').dataset.want = v; setsSync(); }
-        if (k === 'dance_ui') { setsSync(); moveSync(); }
+        if (k === 'dance_ui') { setsSync(); moveSync(); toleranceSync(); }
         if (k === 'dance_fb_secs') { danceFbSecs = +v; danceLab.secs(+v); }
         if (k === 'style_ref' || k === 'model') lookSync();
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
@@ -2548,18 +2558,23 @@
     $('flow_color').disabled = k !== 'on';
     document.querySelector('.markeropts').classList.toggle('off', k === 'on');
     $('marker_l').disabled = $('marker_r').disabled = k === 'on' || (k === 'hand' && !$('flow_markers').checked);
-    $('flow_markers').disabled = $('flow_fingers').disabled = k !== 'hand';
+    $('flow_markers').disabled = k !== 'hand';
+    $('flow_fingers').disabled = true; $('flow_fingers').checked = fingersOn();   // #265: shown, never chosen
   }
+  // #265: the hand model (21 points per hand) runs exactly while Dream Dance detects with "Hands (AI)" – the hands always
+  // belong to the dance then; Flowtrack never loads it. The setting flow_fingers is no longer asked.
+  const fingersOn = () => moveMode() === 'dance' && camKind() === 'hand';
   // #235: the two marker colours (never the same for both hands), markers beside the hand AI, the fingers
   function danceSync(changed) {
     if ($('marker_l').value === $('marker_r').value) {
       const other = changed === 'marker_r' ? 'marker_l' : 'marker_r', free = [...$(other).options].find(o => o.value !== $(other).value);
       $(other).value = free.value; if (!applying) sendCtl({ set: { [other]: free.value } });
     }
-    tracker.danceOptions({ markers: $('flow_markers').checked, left: $('marker_l').value, right: $('marker_r').value, fingers: $('flow_fingers').checked });
+    tracker.danceOptions({ markers: $('flow_markers').checked, left: $('marker_l').value, right: $('marker_r').value, fingers: fingersOn() });
     lightSync();
   }
-  ['flow_color', 'flow_short', 'flow_kind', 'dance_kind', 'move_mode'].forEach(id => $(id).addEventListener('change', lightSync));
+  ['flow_color', 'flow_short'].forEach(id => $(id).addEventListener('change', lightSync));
+  ['flow_kind', 'dance_kind', 'move_mode'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));   // #265: the hand model comes and goes with them
   ['marker_l', 'marker_r', 'flow_markers', 'flow_fingers'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));
   danceSync();
   setInterval(() => {                                  // what it sees, in one line
@@ -3350,7 +3365,7 @@
   const clutchSync = () => MoveCard.clutchShow($('clutchbtn'), clutchOn(), $('clutchnote'));
   function setClutch(on) { $('clutch').checked = !!on; sendCtl({ set: { clutch: !!on } }); clutchSync(); }
   $('clutchbtn').onclick = () => setClutch(!clutchOn());
-  $('dance_ui').addEventListener('change', () => { setsSync(); moveSync(); });   // #265: the view of Dream Dance
+  $('dance_ui').addEventListener('change', () => { setsSync(); moveSync(); toleranceSync(); });   // #265: the view of Dream Dance
   // #265: with the slots, the select lists the sets of slots and shows the one in use (there is no "your table" then)
   function setsSync() {
     if (slotsOn()) MoveCard.fillSets($('dance_set'), danceSlots.sets, danceSlots.use, { table: false });
@@ -3372,8 +3387,7 @@
       colours: () => ({ l: $('marker_l').value, r: $('marker_r').value }),
       // what the stage detects with right now – the lab says why a view is empty – and the fingers' switch
       detect: () => ({ kind: flowOn() ? tracker.kind : 'off', camera: flowOn() ? tracker.status.code : 'off', status: flowOn() ? tracker.status.text || FLOW_STATE[tracker.status.code] || '' : T('Movement off'),
-        fingers: $('flow_fingers').checked, ready: tracker.fingersReady }),
-      setFingers: on => { $('flow_fingers').checked = !!on; $('flow_fingers').dispatchEvent(new Event('change', { bubbles: true })); },
+        fingers: fingersOn(), ready: tracker.fingersReady }),
       state: st => { sendCtl({ dance_lab: st }); labBtnsSync(); },
       voice: on => (on ? startVoice(null, 'feedback') : stopVoice()) };
   // #265: what the slots page shows live, every frame: what each target is at (after the groups and the budget), what
@@ -3381,7 +3395,8 @@
   function slotLive() {
     const r = danceNow(), inp = danceInput, fresh = !!r && performance.now() - danceAt < 500;
     const hands = fresh && inp ? ['l', 'r'].filter(h => inp.hands && inp.hands[h]) : [];
-    return { out: danceOut, held: id => mover.of('dance', id), gesture: fresh ? r.gesture : null, seen: fresh && (hands.length > 0 || !!(inp && inp.body)),
+    return { out: danceOut, held: id => mover.of('dance', id), gesture: fresh ? r.gesture : null, g: fresh ? r.g || {} : {}, v: fresh ? r.v : {},
+      thr: name => danceDet.threshold(name), seen: fresh && (hands.length > 0 || !!(inp && inp.body)),
       markers: fresh && inp ? hands.filter(h => [].concat(inp.hands[h]).some(c => c && String(c.src || '').includes('marker'))).length : 0,
       markerWanted: $('dance_kind').value === 'marker' || $('flow_markers').checked, kind: $('dance_kind').value, running: flowOn() && tracker.status.code === 'running' };
   }
@@ -3400,7 +3415,7 @@
     lab: labOpts, ...labLink,
     // what the page shows beside the lab: the mode, the clutch (and how far the dance is in), the sets, the two clocks
     state: () => ({ mode: moveMode(), clutch: clutchOn(), hold: mover.hold, set: $('dance_set').value, sets: danceSets, own: danceOwnSets,
-      move: moveClock(), music: musicClock(), camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang, moves: danceMoves,
+      move: moveClock(), music: musicClock(), strength: +$('motion_sens').value, camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang, moves: danceMoves,
       // the dance's own detection (the setting), what the camera really runs, and the cameras to choose from
       kind: $('dance_kind').value, tracking: flowOn() ? tracker.kind : 'off', cam: $('flow_device').value, cams: [...$('flow_device').options].map(o => [o.value, o.textContent]) }),
     setKind: v => { if (DreamMove.DANCE_KINDS.includes(v)) { $('dance_kind').value = v; $('dance_kind').dispatchEvent(new Event('change', { bubbles: true })); } },
@@ -3411,8 +3426,11 @@
     // #265: the slots – which view, the sets of slots, what acts right now; changes go to Dream (dance.py keeps them)
     ui: () => $('dance_ui').value, setUi: v => { if (v === 'table' || v === 'slots') { $('dance_ui').value = v; $('dance_ui').dispatchEvent(new Event('change', { bubbles: true })); moveSync(); setsSync(); } },
     slots: () => danceSlots, slotsDo: op => sendCtl({ dance_slots: op }),
-    adaptSlots: (from, name) => { sendCtl({ dance_slots: { op: 'adapt', name: from, as: name } }); sendCtl({ set: { dance_set: name } }); },
     live: () => slotLive(),
+    // #265: while the page teaches a movement, the detection takes it loosely (every candidate counts: the dancer says
+    // which were right); null ends it
+    probe: name => { danceProbe = typeof name === 'string' ? name : null; toleranceSync(); },
+    levels: () => ({ ...DreamDance.TOL }),            // how sure the detection must be at each tolerance
     // kept first, chosen second: choosing a set loads its rows, and they must be the ones just kept
     saveSet: name => { $('dance_set').dataset.want = name; sendCtl({ dance_set_save: name }); sendCtl({ set: { dance_set: name } }); },
     deleteSet: name => { const mine = $('dance_set').value === name; if (mine) { $('dance_set').dataset.want = ''; $('dance_set').value = ''; }   // the table stays as it is: it is "your table" again
@@ -3907,7 +3925,7 @@
       if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
       if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
       if (m.dance && m.dance.tables && !dancePanel.busy && !danceMapTimer) { moveTables = m.dance.tables; dancePanel.map(tableRows()); }
-      if (m.dance && m.dance.slots && Array.isArray(m.dance.slots.rows)) { danceSlots = m.dance.slots; moveSync(); }   // #265
+      if (m.dance && m.dance.slots && Array.isArray(m.dance.slots.rows)) { danceSlots = m.dance.slots; moveSync(); toleranceSync(); }   // #265
       if (m.dance && Array.isArray(m.dance.moves)) movesSet(m.dance.moves);   // #236
       if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; danceOwnSets = m.dance.own_sets || []; }   // #251
       if (m.dance && (m.dance.sets || m.dance.slots)) setsSync();

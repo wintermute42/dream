@@ -77,7 +77,7 @@
     if (!det) return '';
     if (det.camera !== 'running') return T('The camera is not running.');
     if (det.kind !== 'hand') return T('Fingers need the detection “Hands (AI)” – LED markers have no fingers.');
-    if (!det.fingers) return T('Fingers are off: switch on “Fingers (hand AI)” below – the hand model is loaded once (about 8 MB).');
+    if (!det.fingers) return T('The hand model runs only in Dream Dance with “Hands (AI)” – Flowtrack has no hand detection.');
     if (!det.ready) return T('The hand model is loading (once, about 8 MB) …');
     return '';
   }
@@ -143,6 +143,9 @@
     const secsLab = el('label', 'dl-secs'), secsIn = el('input'), secsVal = el('span', 'val');
     secsIn.type = 'range'; secsIn.min = 1; secsIn.max = 15; secsIn.step = 1; secsLab.append(T('a feedback keeps the last'), secsIn, secsVal);
     tools.append(recBtn, goodBtn, badBtn, voiceBtn, secsLab); bar.append(title, modeTxt, tools);
+    // #265: on the page of Dream Dance "good" and "bad" have left (the teaching asks "recognised right?" instead) –
+    // the panel, a MIDI button and the wristband still mark a session; recording stays
+    if (opts.feedback === false) goodBtn.hidden = badBtn.hidden = voiceBtn.hidden = secsLab.hidden = true;
     // ---------- the three views ----------
     const views = el('div', 'dl-views');
     const [camFig, camCv] = view(T('Camera, skeleton and markers'), T('The camera picture with the detected skeleton, the hands and the LED markers'));
@@ -154,9 +157,9 @@
     const camState = el('div', 'dl-camstate'); camState.setAttribute('role', 'status');
     camOpts.append(camL, multiL, trailL); camFig.append(camState, camOpts); camFig.classList.add('dl-cam');
     const finVals = el('div', 'dl-fvals'), finOpts = el('div', 'dl-opts'),
-      [finL, finOn] = check(T('Fingers (hand AI)'), false, T('A second model finds 21 points per hand – fist, spread fingers, pinch. Needs the detection “Hands (AI)”; loaded once, about 8 MB.'));
+      [finL, finOn] = check(T('Fingers (hand AI)'), false, T('A second model finds 21 points per hand – fist, spread fingers, pinch. It runs by itself while Dream Dance detects with “Hands (AI)”, never in Flowtrack; loaded once, about 8 MB.'));
     finOpts.append(finL); finFig.append(finVals, finOpts);
-    finOn.onchange = () => { if (opts.setFingers) opts.setFingers(finOn.checked); };
+    finOn.disabled = true;                             // #265: shows whether the hand model runs – nobody switches it
     views.append(outFig, finFig);
     // ---------- the curves ----------
     const curves = el('figure', 'dl-curves'), cvCap = el('figcaption', '', T('Feature stream')), gestTxt = el('span', 'dl-gesture'), cvCv = el('canvas');
@@ -565,7 +568,6 @@
           lastVals = now; mode(); camLine(shown, f); drawSources(f, liveSrc);
           const i = k => keys.indexOf(k), pc = v => Math.round(v * 100) + ' %', det = detect(), why = fingerWhy(det);
           if (det && document.activeElement !== finOn) finOn.checked = !!det.fingers;
-          finOn.disabled = !!player || !opts.setFingers || (!!det && det.kind !== 'hand');
           finVals.textContent = why || !f ? why : ['l', 'r'].map(hd => (f.c[i(hd + '.palm')] > 0
             ? `${hd === 'l' ? T('Left hand') : T('Right hand')}: ${label('palm')} ${pc(f.v[i(hd + '.palm')])} · ${label('spread')} ${pc(f.v[i(hd + '.spread')])}${f.v[i(hd + '.pinch')] > 0.5 ? ' · ' + label('pinch') : ''}${f.v[i(hd + '.snap')] > 0.3 ? ' · ' + label('snap') : ''} (${pc(f.c[i(hd + '.palm')])})`
             : `${hd === 'l' ? T('Left hand') : T('Right hand')}: ${player ? T('lost') : T('no hand in the picture')}`)).join('\n');

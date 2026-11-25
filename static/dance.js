@@ -33,6 +33,10 @@
   const N = Math.round(2.5 * RATE);                    // 2.5 s of them
   const LAG_MIN = Math.round(0.3 * RATE), LAG_MAX = Math.round(1.25 * RATE);   // a repetition: 0.3 … 1.25 s (200 … 48 a minute)
   const ON = 0.6, OFF = 0.35, HOLD = 0.4;              // a gesture's hysteresis: on, off, and seconds it outlasts a dip
+  // #265: an accent's tolerance – how sure the detection must be before the gesture counts (tight: fewer false alarms,
+  // loose: more is taken for it); "off" stays the same distance below "on"
+  const TOL = { tight: 0.75, normal: ON, loose: 0.45 };
+  const onOf = level => TOL[level] || ON;
   // how large a movement must be (half its swing, in shoulder widths) to count at all … and to count fully
   const MAX_MOVES = 24;                                // #236: taught moves looked for at a time
   const SIZE = { throw: [0.3, 0.6], accordion: [0.35, 0.7], push: [0.3, 0.6], wave: [0.4, 0.8], circle: [0.15, 0.3] };
@@ -210,7 +214,7 @@
   }
 
   function create({ aspect = 16 / 9 } = {}) {
-    let st, moves = [];                                // #236: the taught moves (compiled templates), gestures like the built-in ones
+    let st, moves = [], tol = {};                      // #265: tol – gesture name → tolerance (none: normal)                                // #236: the taught moves (compiled templates), gestures like the built-in ones
     const names = () => (moves.length ? [...GESTURES, ...moves.map(m => m.id)] : GESTURES);
     const buf = () => ({ ul: [], vl: [], ur: [], vr: [], sg: [], wl: [], wr: [] });
     function reset() {
@@ -312,8 +316,9 @@
         st.g[g] += (s - st.g[g]) * (s > st.g[g] ? 0.3 : 0.15);
       }
       const lead = all.reduce((a, g) => (st.g[g] > st.g[a] ? g : a));
-      if (st.active && st.g[st.active] < OFF) { st.below += 2 / RATE; if (st.below > HOLD) { out.events.push('end:' + st.active); st.active = null; } } else st.below = 0;
-      if (st.g[lead] >= ON && st.active !== lead) { if (st.active) out.events.push('end:' + st.active); st.active = lead; st.below = 0; out.events.push('gesture:' + lead); }
+      const on = g => onOf(tol[g]), off = g => on(g) - (ON - OFF);
+      if (st.active && st.g[st.active] < off(st.active)) { st.below += 2 / RATE; if (st.below > HOLD) { out.events.push('end:' + st.active); st.active = null; } } else st.below = 0;
+      if (st.g[lead] >= on(lead) && st.active !== lead) { if (st.active) out.events.push('end:' + st.active); st.active = lead; st.below = 0; out.events.push('gesture:' + lead); }
       if (st.active && size[st.active] != null) st.size += (size[st.active] - st.size) * 0.3;
       if (!st.active) st.size = 0;
 
@@ -488,11 +493,13 @@
       for (const k of keep) if (!(k in st.g)) st.g[k] = 0;
       if (st.active && !keep.includes(st.active)) { st.active = null; st.size = 0; }
     }
-    return { step, reset, setMoves, kick(strength = 1) { st.impulse = Math.max(st.impulse, clamp(+strength || 0, 0, 1)); },
+    // #265: how sure the detection must be of each gesture: {name: 'tight' | 'normal' | 'loose'} (what is not named: normal)
+    function setTolerance(map) { tol = {}; for (const [g, v] of Object.entries(map && typeof map === 'object' ? map : {})) if (v in TOL) tol[g] = v; }
+    return { step, reset, setMoves, setTolerance, threshold: g => onOf(tol[g]), kick(strength = 1) { st.impulse = Math.max(st.impulse, clamp(+strength || 0, 0, 1)); },
       get clock() { return { period: st.clock.period, phase: st.clock.phase, c: st.clock.c }; } };
   }
 
-  const api = { create, bodyFrom, findMarkers, fuseHand, armMarker, fingerValues, osc, phaseOf, FEATURES, FINGERS, GESTURES, SOURCES, HANDS, MARKER_HUES, RATE, MAX_MOVES };
+  const api = { create, bodyFrom, findMarkers, fuseHand, armMarker, fingerValues, osc, phaseOf, FEATURES, FINGERS, GESTURES, SOURCES, HANDS, MARKER_HUES, RATE, MAX_MOVES, TOL };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamDance = api;
 })(typeof window !== 'undefined' ? window : globalThis);

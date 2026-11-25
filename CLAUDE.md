@@ -76,10 +76,15 @@ command line for now, #231) via `dream-cloud`.
   select of the page only by `MovePage.pick`/`fillCams`. The dance lab (#243) is part of that page.
   The dance acts on top of what hands and controllers set (`DreamMove.onTop`) and only while its clutch is engaged (the
   setting `clutch`: released after every start – `hub.py` – and shown as such by `MoveCard.clutchShow`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`). #265 (a prototype): with the setting `dance_ui` = "slots" the page of
-  Dream Dance shows slots (`static/danceslots.js`) instead of the table; `dance.py` compiles them into the dance table's
-  rows (`compile_slots`; built-in sets of slots are never changed, own ones are copies), and the engine applies the
-  groups, the budget and the minimum to that table only then (`DreamDanceMap` `rules`, `tests/js/dancemap.test.mjs`) –
-  with "table" everything behaves as before.
+  Dream Dance shows slots as sentences in three lanes (`static/danceslots.js`: "When I … → …", three strengths, an
+  accent's tolerance, new sentences by showing, the band of the signal's way; `static/danceintro.js`: the tour on first
+  opening) instead of the table; `dance.py` compiles them into the dance table's rows (`compile_slots`; a change is a
+  draft kept in memory per set and played at once – a built-in set is never changed, its draft is saved as a new set
+  under a name the dancer gives), and the engine applies the groups, the budget and the minimum to that table only
+  then (`DreamDanceMap` `rules`, `tests/js/dancemap.test.mjs`) – with "table" everything behaves as before. Teaching a
+  movement (#236 moves of one's own, the wizard with counter-check and 👍/👎 per hit, the tolerance it chooses) is
+  `static/moveteach.js` on `dancemoves.py`/`static/dancemoves.js`; an own move is an accent. The hand model runs exactly
+  while Dream Dance detects with "Hands (AI)" (never in Flowtrack; `fingersOn` in the stage).
   Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –
   `tests/js/flowauto.test.mjs`) chooses the kind of detection and the exposure, holds the one performer and watches the
   calibration; every choice carries its reason and can be taken over by hand. Its page is `/flowtrack`. The sample of

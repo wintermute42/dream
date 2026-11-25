@@ -10,6 +10,7 @@
 .movepage:disabled { opacity: .45; cursor: default; }
 /* the parts of the modes lie on top of each other: the card keeps its height, the part of the mode in use fades in */
 .moveparts { display: grid; }
+.moveshared:not(:has(.movepart.on)) { display: none; }   /* #265: the strength of mood and dance – gone in the other modes */
 .movepart { grid-area: 1 / 1; display: grid; gap: 4px; align-content: start; opacity: 0; visibility: hidden; pointer-events: none;
   transform: translateY(6px); transition: opacity .25s ease-out, transform .25s ease-out, visibility 0s linear .25s; }
 .movepart.on { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-delay: 0s; }

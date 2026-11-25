@@ -283,11 +283,12 @@ def keep() -> None:
 
 def drop_source(src: str) -> bool:
     """#236: a source is gone for good (a taught move was deleted) – the rows that had it leave every table and every
-    set of the owner's. Whether anything changed."""
+    set of the owner's, and (#265) the accents that had it leave the sets of slots. Whether anything changed."""
+    slots_changed = drop_slot_source(src)
     new_tables = {m: [r for r in rows if r["src"] != src] for m, rows in tables.items()}
     new_sets = {k: [r for r in rows if r["src"] != src] for k, rows in sets.items()}
     if new_tables == tables and new_sets == sets:
-        return False
+        return slots_changed
     sets.clear()
     sets.update(new_sets)
     tables.update(new_tables)
@@ -326,44 +327,58 @@ def row_on(mode: str, dst: str) -> bool:
 
 # ---------- #265: slots instead of the table (a prototype for Dream Dance) ----------
 # The table stays the engine's format; with the setting dance_ui = "slots" the page of Dream Dance shows a few fixed
-# places instead, and they are compiled into the rows of the dance table. A set of slots:
+# places instead – read as sentences ("When I throw → trails follow") – and they are compiled into the rows of the dance
+# table. A set of slots:
 #
-#   {"base": [{"src": "energy", "fx": "waves", "amt": 0.6}, …2], "accents": [{"src": "g.wave", "fx": "mandala", "amt": 1}, …4],
-#    "hands": ["paint", "warp"]}
+#   {"base": [{"src": "energy", "fx": "waves", "amt": 0.6}, …2],
+#    "accents": [{"src": "g.wave", "fx": "mandala", "amt": 1, "tol": "normal"}, …4], "hands": ["paint", "warp"]}
 #
-# – a slot is a movement and one effect with one strength (or null: empty); Dream picks curve, ranges and smoothing.
+# – a slot is a movement and one effect with one of three strengths (light, medium, strong) or null: empty; an accent
+# also has its tolerance (tight, normal, loose: how sure the detection must be). Dream picks curve, ranges and smoothing.
+# An accent's movement is a built-in gesture or a move the dancer taught (#236: "g.<its id>", dancemoves.py).
 # The groups below are the engine's (static/dancemap.js GROUPS: one effect per group acts strongly, at most three
-# groups at once, every occupied slot at least visibly – tests/js/dancemap.test.mjs). The built-in slot sets can't be
-# changed: "adapt" makes an own copy, "reset" brings an own copy back to the set it was made from; a set without any
-# occupation does not exist (it is Standard's then).
+# groups at once, every occupied slot at least visibly – tests/js/dancemap.test.mjs). The built-in slot sets are never
+# changed: a change is a draft (kept in memory, per set, until it is saved or thrown away – the stage plays it already),
+# and a draft of a built-in set is saved as a new set of the dancer's own under a name the dancer gives it. A set
+# without any occupation does not exist (it is Standard's then).
 SLOT_FX = playlists.FX
 GROUPS = {"symmetry": ("kaleido", "mandala", "mirror"), "space": ("tunnel", "waves"), "afterglow": ("trails", "feedback"),
           "disturbance": ("rgb", "glitch", "pixel", "raster"), "colour": ("hue",)}
 GROUP_OF = {e: g for g, effects in GROUPS.items() for e in effects}
 BASE_SOURCES = ("energy", "open", "turn", "height")
-# the built-in gestures; a taught movement (#236: "own.<name>") gets its place among the accents later
 ACCENT_SOURCES = ("g.throw", "g.accordion", "g.push", "g.circle", "g.wave")
+OWN_MOVE = re.compile(r"g\.m[0-9a-f]{8}")             # #236: a taught move (dancemoves.ID)
 HANDS = ("paint", "warp", "impulse", "light")
 BASE_SLOTS, ACCENT_SLOTS, MAX_HANDS = 2, 4, 2
-SLOT_MIN = 0.35                                      # the engine's minimum (dancemap.js RULES.MIN): strength 0 is still seen
+SLOT_MIN = 0.35                                      # the engine's minimum (dancemap.js RULES.MIN): "light" is still seen
+STEPS = (0.0, 0.5, 1.0)                              # light, medium, strong – the strength a slot is kept with
+TOLERANCES = ("tight", "normal", "loose")             # how sure an accent's detection must be (dance.js TOL)
 # what Dream picks for a continuous movement: from where to where it counts, its curve, its smoothing
 BASE_SHAPE = {"energy": (0.1, 0.8, "soft", 0.25), "open": (0.45, 0.95, "s", 0.3), "turn": (-1.0, 1.0, "v", 0.3),
               "height": (0.55, 1.0, "hard", 0.2)}
 
 
-def _slot(src, fx, amt=1.0):
-    return {"src": src, "fx": fx, "amt": amt}
+def step_of(amt) -> float:
+    """The one of the three strengths nearest to a number (what an older file or a page says)."""
+    return min(STEPS, key=lambda s: abs(s - amt))
+
+
+def _slot(src, fx, amt=1.0, tol=None):
+    return {"src": src, "fx": fx, "amt": amt, **({"tol": tol} if tol else {})}
 
 
 SLOT_SETS = {
-    "standard": {"base": [_slot("energy", "trails", 0.5), _slot("open", "kaleido", 0.6)],
-                 "accents": [_slot("g.throw", "tunnel"), _slot("g.push", "rgb"), _slot("g.wave", "waves"), _slot("g.circle", "hue")],
+    "standard": {"base": [_slot("energy", "trails", 0.5), _slot("open", "kaleido", 0.5)],
+                 "accents": [_slot("g.throw", "tunnel", 1.0, "normal"), _slot("g.push", "rgb", 1.0, "normal"),
+                             _slot("g.wave", "waves", 1.0, "normal"), _slot("g.circle", "hue", 1.0, "normal")],
                  "hands": ["paint", "warp"]},
-    "waves": {"base": [_slot("energy", "waves", 0.6), _slot("open", "trails", 0.4)],
-              "accents": [_slot("g.wave", "mandala"), _slot("g.circle", "kaleido"), _slot("g.accordion", "mirror"), _slot("g.push", "hue")],
+    "waves": {"base": [_slot("energy", "waves", 0.5), _slot("open", "trails", 0.5)],
+              "accents": [_slot("g.wave", "mandala", 1.0, "normal"), _slot("g.circle", "kaleido", 1.0, "normal"),
+                          _slot("g.accordion", "mirror", 1.0, "normal"), _slot("g.push", "hue", 1.0, "normal")],
               "hands": ["paint", "impulse"]},
-    "fire": {"base": [_slot("energy", "feedback", 0.6), _slot("height", "rgb", 0.4)],
-             "accents": [_slot("g.throw", "tunnel"), _slot("g.push", "waves"), _slot("g.circle", "kaleido"), _slot("g.wave", "hue")],
+    "fire": {"base": [_slot("energy", "feedback", 0.5), _slot("height", "rgb", 0.0)],
+             "accents": [_slot("g.throw", "tunnel", 1.0, "normal"), _slot("g.push", "waves", 1.0, "normal"),
+                         _slot("g.circle", "kaleido", 1.0, "normal"), _slot("g.wave", "hue", 1.0, "normal")],
              "hands": ["warp", "impulse"]},
 }
 
@@ -381,23 +396,30 @@ def slot_conflict(slots: dict, where: str, i: int, fx: str) -> str | None:
     return None
 
 
+def _accent_source(src) -> bool:
+    return src in ACCENT_SOURCES or (isinstance(src, str) and OWN_MOVE.fullmatch(src) is not None)
+
+
 def clean_slots(data) -> dict | None:
     """A set of slots as Dream keeps it, or None when it is no set of slots. What does not fit is left empty (fail
-    closed: a slot that breaks a rule is dropped, never forced); nothing occupied at all is Standard's occupation."""
+    closed: a slot that breaks a rule is dropped, never forced); a strength is one of the three steps, an accent's
+    tolerance one of the three (normal when it says none); nothing occupied at all is Standard's occupation."""
     if not isinstance(data, dict):
         return None
     out = {"base": [None] * BASE_SLOTS, "accents": [None] * ACCENT_SLOTS, "hands": []}
-    for where, n, sources in (("base", BASE_SLOTS, BASE_SOURCES), ("accents", ACCENT_SLOTS, ACCENT_SOURCES)):
+    for where, n, known in (("base", BASE_SLOTS, BASE_SOURCES.__contains__), ("accents", ACCENT_SLOTS, _accent_source)):
         got = data.get(where)
         for i, s in enumerate(got[:n] if isinstance(got, list) else ()):
-            if not isinstance(s, dict) or s.get("src") not in sources or s.get("fx") not in SLOT_FX:
+            if not isinstance(s, dict) or not known(s.get("src")) or s.get("fx") not in SLOT_FX:
                 continue
             try:
-                amt = _num(s.get("amt", 1.0), 0.0, 1.0)
+                amt = step_of(_num(s.get("amt", 1.0), 0.0, 1.0))
             except (ValueError, TypeError, OverflowError):
                 continue
+            if where == "accents" and s.get("tol", "normal") not in TOLERANCES:
+                continue
             if slot_conflict(out, where, i, s["fx"]) is None:
-                out[where][i] = _slot(s["src"], s["fx"], amt)
+                out[where][i] = _slot(s["src"], s["fx"], amt, s.get("tol", "normal") if where == "accents" else None)
     hands = data.get("hands")
     out["hands"] = [h for h in HANDS if isinstance(hands, list) and h in hands][:MAX_HANDS]
     if not any(out["base"]) and not any(out["accents"]) and not out["hands"]:
@@ -405,13 +427,15 @@ def clean_slots(data) -> dict | None:
     return out
 
 
+def peak(amt: float) -> float:
+    """How far a slot's effect goes at its peak: light is the engine's minimum, strong the whole way."""
+    return round(SLOT_MIN + (1 - SLOT_MIN) * step_of(amt), 4)
+
+
 def compile_slots(slots: dict) -> list:
     """The rows of the dance table a set of slots stands for: one row per occupied slot (its strength above the
     engine's minimum), the beat's push and turning as Dream picks them, and the hands in the picture as switches."""
     rows = []
-
-    def peak(amt):
-        return round(SLOT_MIN + (1 - SLOT_MIN) * amt, 4)
     for i, s in enumerate(slots["base"]):
         if s:
             lo, hi, curve, smooth = BASE_SHAPE[s["src"]]
@@ -427,7 +451,18 @@ def compile_slots(slots: dict) -> list:
     return rows
 
 
-SLOT_NAME = SET_NAME
+def tolerance_of(slots: dict) -> dict:
+    """How sure the detection must be of each accent's movement: {gesture name: tolerance} (the stage's detector)."""
+    return {s["src"][2:]: s.get("tol", "normal") for s in slots["accents"] if s}
+
+
+# a set's name: a short plain name – letters, digits, spaces and . + - – (the suggestion is "<set> – mine")
+SLOT_NAME = re.compile(r"[^\W_][\w .+\-–]{0,31}")
+
+
+def clean_slot_name(name) -> str | None:
+    name = " ".join(name.split()) if isinstance(name, str) else ""
+    return name if SLOT_NAME.fullmatch(name) else None
 
 
 def builtin_slots() -> dict:
@@ -443,7 +478,7 @@ def load_slots() -> tuple:
         got = data.get("slots") if isinstance(data, dict) else None
         if isinstance(got, dict):
             for name, v in list((got.get("sets") or {}).items())[:MAX_SETS] if isinstance(got.get("sets"), dict) else ():
-                if isinstance(name, str) and SLOT_NAME.fullmatch(name) and name not in SLOT_SETS and isinstance(v, dict):
+                if clean_slot_name(name) == name and name not in SLOT_SETS and isinstance(v, dict):
                     slots = clean_slots(v.get("slots"))
                     if slots:
                         own[name] = {"from": v["from"] if v.get("from") in SLOT_SETS else "standard", "slots": slots}
@@ -455,15 +490,22 @@ def load_slots() -> tuple:
 
 
 slot_sets, slot_use = load_slots()
+slot_drafts: dict = {}                               # set name → its changed slots, not saved yet (never in the file)
 
 
 def all_slots() -> dict:
-    """Every set of slots by name: the built-in ones first, then the owner's."""
+    """Every set of slots by name, as it is kept: the built-in ones first, then the owner's."""
     return {**builtin_slots(), **{k: v["slots"] for k, v in slot_sets.items()}}
 
 
+def slots_now() -> dict:
+    """The slots that act: the draft of the set in use, if it has one, or the set as it is kept."""
+    return slot_drafts.get(slot_use) or all_slots()[slot_use]
+
+
 def use_slots(name) -> bool:
-    """The set of slots in use from now on (the setting dance_set while dance_ui is "slots")."""
+    """The set of slots in use from now on (the setting dance_set while dance_ui is "slots"). Drafts stay where they
+    are: coming back to a set brings its changes back."""
     global slot_use
     if not isinstance(name, str) or name not in all_slots():
         return False
@@ -473,54 +515,95 @@ def use_slots(name) -> bool:
     return True
 
 
-def save_slots(name, data) -> bool:
-    """An own set of slots changed by hand. A built-in set is never changed (it is adapted: `adapt_slots`)."""
+def draft_slots(name, data) -> bool:
+    """A hand changed a set (a built-in one too): its draft, played at once, kept until saved or thrown away. A draft
+    that is the set as it is kept is no draft."""
     slots = clean_slots(data)
+    if name not in all_slots() or slots is None:
+        return False
+    if slots == all_slots()[name]:
+        slot_drafts.pop(name, None)
+    else:
+        slot_drafts[name] = slots
+    return True
+
+
+def discard_slots(name) -> bool:
+    return slot_drafts.pop(name, None) is not None
+
+
+def save_slots(name, data=None) -> bool:
+    """An own set of slots kept as its draft (or as `data`) says. A built-in set is never changed: its changes are
+    saved as a new set (`save_slots_as`)."""
+    slots = clean_slots(data if data is not None else slot_drafts.get(name))
     if not isinstance(name, str) or name not in slot_sets or slots is None:
         return False
     slot_sets[name]["slots"] = slots
+    slot_drafts.pop(name, None)
     keep()
     return True
 
 
-def adapt_slots(source, name) -> bool:
-    """An own copy of a set of slots under a new name – the way to change a built-in set."""
-    if not isinstance(name, str) or not SLOT_NAME.fullmatch(name) or name in all_slots() or source not in all_slots():
+def save_slots_as(name, data, source="standard") -> bool:
+    """A new set of the dancer's own, under a name nobody has, with these slots – in use from now on. The draft of the
+    set it came from is gone then (it is the new set). Also the way back of a deleted set (undo)."""
+    global slot_use
+    name, slots = clean_slot_name(name), clean_slots(data)
+    if name is None or name in all_slots() or slots is None or len(slot_sets) >= MAX_SETS:
         return False
-    if len(slot_sets) >= MAX_SETS:
-        return False
-    origin = source if source in SLOT_SETS else slot_sets[source]["from"]
-    slot_sets[name] = {"from": origin, "slots": json.loads(json.dumps(all_slots()[source]))}
+    origin = source if source in SLOT_SETS else slot_sets[source]["from"] if source in slot_sets else "standard"
+    slot_sets[name] = {"from": origin, "slots": slots}
+    slot_drafts.pop(source, None)
+    slot_use = name
     keep()
     return True
 
 
-def reset_slots(name) -> bool:
-    """An own set of slots back to the occupation of the built-in set it was made from (a built-in one is as it was)."""
-    if name in SLOT_SETS:
-        return True
-    if name not in slot_sets:
+def rename_slots(name, new) -> bool:
+    """An own set gets another name (one nobody has); its draft and whether it is in use go with it."""
+    global slot_use
+    new = clean_slot_name(new)
+    if name not in slot_sets or new is None or new in all_slots():
         return False
-    slot_sets[name]["slots"] = builtin_slots()[slot_sets[name]["from"]]
+    slot_sets[new] = slot_sets.pop(name)
+    if name in slot_drafts:
+        slot_drafts[new] = slot_drafts.pop(name)
+    if slot_use == name:
+        slot_use = new
     keep()
     return True
 
 
 def delete_slots(name) -> bool:
+    """An own set goes (the page offers to undo it: it saves it again). The set in use then is the one it came from."""
     global slot_use
     if not isinstance(name, str) or name not in slot_sets:
         return False
     gone = slot_sets.pop(name)
+    slot_drafts.pop(name, None)
     if slot_use == name:
         slot_use = gone["from"]
     keep()
     return True
 
 
+def drop_slot_source(src: str) -> bool:
+    """#236: a taught move is gone – the accents that had it are empty in every own set and every draft."""
+    changed = False
+    for slots in [v["slots"] for v in slot_sets.values()] + list(slot_drafts.values()):
+        for i, s in enumerate(slots["accents"]):
+            if s and s["src"] == src:
+                slots["accents"][i] = None
+                changed = True
+    if changed:
+        keep()
+    return changed
+
+
 def slots_msg() -> dict:
-    sets_ = all_slots()
-    return {"use": slot_use, "sets": list(sets_), "own": list(slot_sets), "data": sets_,
-            "from": {k: v["from"] for k, v in slot_sets.items()}, "rows": compile_slots(sets_[slot_use])}
+    sets_, now = all_slots(), slots_now()
+    return {"use": slot_use, "sets": list(sets_), "own": list(slot_sets), "data": sets_, "drafts": dict(slot_drafts),
+            "from": {k: v["from"] for k, v in slot_sets.items()}, "rows": compile_slots(now), "tol": tolerance_of(now)}
 
 
 def msg() -> dict:

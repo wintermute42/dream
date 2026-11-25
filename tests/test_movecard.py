@@ -38,9 +38,12 @@ def test_one_card_holds_all_of_movement():
         assert element in card, element
     # the modes: every mode Dream knows, and a part of the card for each
     assert re.findall(r'<div class="movepart[^"]*" data-for="(\w+)"', card) == list(settings.MOVE_MODES)
-    # the mood needs no gestures: its part has the strength, the energy and the camera switch – and nothing else to set
+    # the mood needs no gestures: its part has the energy and the camera switch – and nothing else to set; the strength
+    # is the mood's and (#265) the dance's, in a part of their own
     mood = card[card.index('data-for="mood"'):card.index('data-for="flowtrack"')]
-    assert ids(mood) == {"motion_sens", "move_cam"}
+    assert ids(mood) == {"move_cam"}
+    both = card[card.index('data-for="mood dance"'):card.index('data-for="mood"')]
+    assert ids(both) == {"motion_sens"}
 
 
 def test_no_setting_of_the_old_cards_is_left_in_a_page():
@@ -77,7 +80,7 @@ def test_dream_control_has_the_mode_and_the_moods_strength_and_no_pages():
 def test_the_strength_of_the_mood_is_a_target_a_controller_can_move():
     assert settings.SETTINGS["motion_sens"].target and settings.SETTINGS["motion_sens"].needs == "move_mode"
     for page in ("index.html", "remote.html"):
-        assert '<option value="motion_sens">Mood: strength</option>' in read(page), page
+        assert '<option value="motion_sens">Movement: strength</option>' in read(page), page   # #265: the mood's and the dance's
 
 
 def test_the_pages_of_the_modes_are_this_macs_and_extra_views():
@@ -95,3 +98,22 @@ def test_the_pages_of_the_modes_are_this_macs_and_extra_views():
     card = section(panel, "motion", "details")
     for essential in ("clutchbtn", "dance_set", "flowautobtn", "flowwhy"):      # the essentials are in the panel
         assert f'id="{essential}"' in card, essential
+
+
+def test_the_hand_model_comes_with_the_dances_hands_and_never_with_flowtrack():
+    """#265: with Dream Dance detecting "Hands (AI)" the hand model (21 points per hand) is always loaded and its hands
+    always belong to the dance; in Flowtrack (or Dream Dance with LED markers) it is never asked for. Nobody switches
+    it: the old switch "Fingers" only shows it."""
+    panel, motion = read("index.html"), read("motion.js")
+    assert "const fingersOn = () => moveMode() === 'dance' && camKind() === 'hand';" in panel
+    assert "fingers: fingersOn() });" in panel and "fingers: $('flow_fingers').checked" not in panel   # the detection asks the rule, not the switch
+    assert "$('flow_fingers').disabled = true; $('flow_fingers').checked = fingersOn();" in panel
+    # it changes the moment the mode or a detection kind changes
+    assert "['flow_kind', 'dance_kind', 'move_mode'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));" in panel
+    # the detection loads the hand model only when asked and only for "Hands (AI)"
+    assert motion.count("loadHands().catch") == 2
+    assert "if (k === 'hand' && hands21.on) loadHands()" in motion and "if (f && running && kind === 'hand') loadHands()" in motion
+    assert "hands21.on = !!f;" in motion
+    # the lab shows it, it does not switch it
+    lab = read("dancelab.js")
+    assert "finOn.disabled = true;" in lab and "setFingers" not in lab and "setFingers" not in panel

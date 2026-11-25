@@ -96,8 +96,9 @@ MOVE_SOURCES = ("camera", "eyes", "phone", "band")
 
 
 def _set_name(v: str) -> str:
-    """#251: the name of a movement set – a short plain name, or none."""
-    return v if re.fullmatch(r"[\w][\w .+-]{0,23}", v) else ""
+    """#251: the name of a movement set – a short plain name, or none (#265: a set of slots may have a dash and 32
+    characters: "Waves – mine")."""
+    return v if re.fullmatch(r"[^\W_][\w .+\-–]{0,31}", v) or re.fullmatch(r"[\w][\w .+-]{0,23}", v) else ""
 
 
 def _sources(v: str) -> str:

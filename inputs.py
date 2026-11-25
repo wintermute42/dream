@@ -272,20 +272,28 @@ def dance_sets(msg: dict) -> dict:
 
 
 def dance_slots(op) -> dict:
-    """#265: Dream Control or this Mac changes the slots: {"op": "save", "name", "slots"} (an own set only),
-    {"op": "adapt", "name": the set to copy, "as": the copy's name}, {"op": "reset", "name"}, {"op": "delete", "name"}.
-    A built-in set is never changed – whatever a page sends."""
+    """#265: Dream Control or this Mac changes the slots: {"op": "draft", "name", "slots"} (a change, played at once,
+    not kept yet – a built-in set too), {"op": "discard", "name"}, {"op": "save", "name"} (an own set keeps its draft),
+    {"op": "save_as", "name": the new name, "slots", "from": the set it came from} (a new set of one's own, in use from
+    now on – also the undo of a deletion), {"op": "rename", "name", "as"}, {"op": "delete", "name"} (own sets only).
+    A built-in set is never changed – whatever a page sends. The set in use is the setting dance_set too."""
     if isinstance(op, dict):
-        name = op.get("name")
-        if op.get("op") == "save":
-            dance.save_slots(name, op.get("slots"))
-        elif op.get("op") == "adapt":
-            dance.adapt_slots(name, op.get("as"))
-        elif op.get("op") == "reset":
-            dance.reset_slots(name)
-        elif op.get("op") == "delete":
+        name, what = op.get("name"), op.get("op")
+        if what == "draft":
+            dance.draft_slots(name, op.get("slots"))
+        elif what == "discard":
+            dance.discard_slots(name)
+        elif what == "save":
+            dance.save_slots(name)
+        elif what == "save_as":
+            dance.save_slots_as(name, op.get("slots"), op.get("from"))
+        elif what == "rename":
+            dance.rename_slots(name, op.get("as"))
+        elif what == "delete":
             dance.delete_slots(name)
-    return dance.msg()
+        if slots_ui() and hub.state.get("dance_set") != dance.slot_use:
+            hub.state["dance_set"] = dance.slot_use
+    return {**dance.msg(), **({"set": {"dance_set": dance.slot_use}} if slots_ui() else {})}
 
 
 def dance_map(new, mode: str = "dance") -> dict:

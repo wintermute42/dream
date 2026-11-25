@@ -1,6 +1,7 @@
-"""#265 (a prototype): the slots of Dream Dance – what a set of slots may say, how it becomes rows of the dance table,
-the built-in sets that can't be changed (not through /ctl either), and the switch between the old table and the slots
-that loses nothing."""
+"""#265 (a prototype): the slots of Dream Dance – what a set of slots may say (three strengths, an accent's tolerance,
+moves of one's own), how it becomes rows of the dance table, the built-in sets that are never changed (a change is a
+draft, saved as a new set – not through /ctl either), renaming, deleting and its undo, and the switch between the old
+table and the slots that loses nothing."""
 import asyncio
 import json
 import os
@@ -23,6 +24,7 @@ def slots(monkeypatch):
     monkeypatch.setattr(dance, "sets", {})
     monkeypatch.setattr(dance, "slot_sets", {})
     monkeypatch.setattr(dance, "slot_use", "standard")
+    monkeypatch.setattr(dance, "slot_drafts", {})
     yield dance
     if os.path.exists(dance.MAP_FILE):
         os.remove(dance.MAP_FILE)
@@ -82,25 +84,72 @@ def test_slots_become_rows_of_the_dance_table():
     assert [r["curve"] for r in turned if r["id"] == "base0"] == ["v"] and not any(r["dst"] == "fx.spin" for r in turned)
 
 
-def test_a_built_in_set_is_never_changed_and_an_own_copy_can_be_reset(slots):
+def test_a_strength_is_one_of_three_steps_each_clearly_seen():
+    got = dance.clean_slots({"base": [{"src": "energy", "fx": "waves", "amt": 0.2}, {"src": "open", "fx": "kaleido", "amt": 0.3}],
+                             "accents": [{"src": "g.throw", "fx": "trails", "amt": 0.8}]})
+    assert [s["amt"] for s in got["base"]] + [got["accents"][0]["amt"]] == [0.0, 0.5, 1.0]     # light, medium, strong
+    peaks = [dance.peak(a) for a in dance.STEPS]
+    assert peaks == [dance.SLOT_MIN, 0.675, 1.0] and all(b - a > 0.3 for a, b in zip(peaks, peaks[1:]))   # light is seen, each step is another
+    rows = {r["id"]: r for r in dance.compile_slots(got)}
+    assert [rows["base0"]["out"][1], rows["base1"]["out"][1], rows["accent0"]["out"][1]] == peaks
+    for s in dance.SLOT_SETS.values():                                           # the built-in sets use the steps
+        assert {x["amt"] for w in ("base", "accents") for x in s[w]} <= set(dance.STEPS)
+
+
+def test_an_accent_has_its_tolerance_and_may_be_a_move_of_ones_own():
+    got = dance.clean_slots({"accents": [{"src": "g.throw", "fx": "tunnel"}, {"src": "g.m0a1b2c3d", "fx": "rgb", "tol": "loose"},
+                                         {"src": "g.push", "fx": "hue", "tol": "sloppy"}, {"src": "g.mNOPE", "fx": "glitch"}]})
+    assert got["accents"] == [{"src": "g.throw", "fx": "tunnel", "amt": 1.0, "tol": "normal"}, {"src": "g.m0a1b2c3d", "fx": "rgb", "amt": 1.0, "tol": "loose"}, None, None]
+    assert dance.tolerance_of(got) == {"throw": "normal", "m0a1b2c3d": "loose"}  # what the stage's detector is told
+    assert "tol" not in dance.clean_slots({"base": [{"src": "energy", "fx": "waves", "tol": "tight"}]})["base"][0]   # base movements have none
+    js = open(os.path.join(os.path.dirname(dance.__file__), "static", "dance.js")).read()
+    assert "const TOL = { tight: 0.75, normal: ON, loose: 0.45 };" in js and list(dance.TOLERANCES) == ["tight", "normal", "loose"]
+
+
+def test_a_change_is_a_draft_and_a_built_in_set_is_saved_as_a_new_set(slots):
     before = slots.builtin_slots()
-    assert slots.save_slots("waves", {"base": [{"src": "energy", "fx": "glitch"}]}) is False
-    assert slots.reset_slots("waves") is True and slots.delete_slots("waves") is False
-    assert slots.adapt_slots("waves", "waves") is False and slots.adapt_slots("nope", "Mine") is False
-    assert slots.adapt_slots("waves", "My waves") is True and slots.adapt_slots("waves", "My waves") is False
-    assert slots.save_slots("My waves", {"base": [{"src": "energy", "fx": "glitch", "amt": 0.3}]})
-    assert slots.all_slots()["My waves"]["base"] == [{"src": "energy", "fx": "glitch", "amt": 0.3}, None]
-    assert slots.builtin_slots() == before and slots.SLOT_SETS == before          # the built-in ones as they were
-    # a copy of a copy remembers the built-in set it came from; reset brings that one's slots
-    assert slots.adapt_slots("My waves", "Copy 2") and slots.slot_sets["Copy 2"]["from"] == "waves"
-    assert slots.reset_slots("My waves") and slots.all_slots()["My waves"] == before["waves"]
-    # kept in the file, read back the same
-    assert slots.use_slots("Copy 2") and os.path.exists(slots.MAP_FILE)
-    assert slots.load_slots() == (slots.slot_sets, "Copy 2")
-    # removing the set in use goes back to the built-in one it came from; with nothing of the owner's left the file goes
-    assert slots.delete_slots("Copy 2") and slots.slot_use == "waves"
-    assert slots.delete_slots("My waves") and slots.use_slots("standard")
-    assert not os.path.exists(slots.MAP_FILE)
+    changed = {**before["waves"], "hands": ["light"]}
+    assert slots.use_slots("waves") and slots.draft_slots("waves", changed)
+    assert slots.slots_now()["hands"] == ["light"] and slots.slots_msg()["drafts"] == {"waves": slots.clean_slots(changed)}   # played at once
+    assert slots.slots_msg()["rows"] == slots.compile_slots(slots.slots_now())
+    assert slots.save_slots("waves") is False and slots.builtin_slots() == before and slots.SLOT_SETS == before   # never changed
+    assert json.load(open(slots.MAP_FILE))["slots"] == {"use": "waves", "sets": {}}   # a draft is never in the file
+    # the name is the dancer's: a valid one nobody has – never a number added silently
+    for bad in ("waves", "Standard/2", "", "x" * 33):
+        assert slots.save_slots_as(bad, changed, "waves") is False, bad
+    assert slots.save_slots_as("Waves – mine", changed, "waves")
+    assert slots.slot_use == "Waves – mine" and slots.slot_drafts == {} and slots.slot_sets["Waves – mine"] == {"from": "waves", "slots": slots.clean_slots(changed)}
+    assert slots.load_slots() == (slots.slot_sets, "Waves – mine")             # kept in the file, read back the same
+    # an own set keeps its draft with "save"; "discard" throws a draft away; a draft that is the set is none
+    assert slots.draft_slots("Waves – mine", before["fire"]) and slots.save_slots("Waves – mine")
+    assert slots.all_slots()["Waves – mine"] == before["fire"] and slots.slot_drafts == {}
+    assert slots.draft_slots("Waves – mine", before["standard"]) and slots.discard_slots("Waves – mine")
+    assert slots.all_slots()["Waves – mine"] == before["fire"] and not slots.discard_slots("Waves – mine")
+    assert slots.draft_slots("Waves – mine", before["fire"]) and slots.slot_drafts == {}
+    # switching keeps a draft where it is: coming back brings the changes back
+    assert slots.draft_slots("standard", changed) and slots.use_slots("fire") and slots.slots_now() == before["fire"]
+    assert slots.use_slots("standard") and slots.slots_now() == slots.clean_slots(changed)
+
+
+def test_an_own_set_is_renamed_and_deleted_and_the_deletion_undone(slots):
+    assert slots.save_slots_as("Mine", slots.SLOT_SETS["fire"], "fire") and slots.save_slots_as("Other", slots.SLOT_SETS["waves"], "waves")
+    assert slots.rename_slots("waves", "x") is False and slots.rename_slots("Mine", "Other") is False and slots.rename_slots("Mine", "a/b") is False
+    assert slots.draft_slots("Other", slots.SLOT_SETS["standard"]) and slots.rename_slots("Other", "Night – 2")
+    assert slots.slot_use == "Night – 2" and "Night – 2" in slots.slot_drafts and "Other" not in slots.all_slots()   # its draft and its use go along
+    kept = slots.slot_sets["Night – 2"]
+    assert slots.delete_slots("Night – 2") and slots.slot_use == "waves" and slots.slot_drafts == {}   # back to the set it came from
+    assert slots.delete_slots("standard") is False and slots.delete_slots("Night – 2") is False
+    assert slots.save_slots_as("Night – 2", kept["slots"], kept["from"]) and slots.slot_sets["Night – 2"] == kept   # the undo
+    assert slots.delete_slots("Mine") and slots.delete_slots("Night – 2") and slots.use_slots("standard")
+    assert not os.path.exists(slots.MAP_FILE)                                    # nothing of the owner's left: no file
+
+
+def test_a_deleted_move_leaves_the_accents(slots):
+    own = {"accents": [{"src": "g.m0a1b2c3d", "fx": "rgb"}, {"src": "g.throw", "fx": "tunnel"}]}
+    assert slots.save_slots_as("Mine", own, "standard") and slots.draft_slots("standard", own)
+    assert slots.drop_source("g.m0a1b2c3d") is True
+    assert slots.all_slots()["Mine"]["accents"][0] is None and slots.slot_drafts["standard"]["accents"][0] is None
+    assert slots.all_slots()["Mine"]["accents"][1]["src"] == "g.throw" and slots.drop_source("g.m0a1b2c3d") is False
 
 
 def test_slots_in_a_broken_file_are_no_slots(slots):
@@ -128,28 +177,30 @@ def _talk(server, role, *msgs):
 @pytest.mark.parametrize("role", ["local", "control", "guest", "eyes"])
 def test_no_device_overwrites_a_built_in_set_through_ctl(server, slots, saved_state, role):
     before = slots.builtin_slots()
-    _talk(server, role, {"dance_slots": {"op": "save", "name": "standard", "slots": {"base": [{"src": "energy", "fx": "glitch"}]}}},
-          {"dance_slots": {"op": "reset", "name": "fire"}}, {"dance_slots": {"op": "delete", "name": "waves"}},
-          {"dance_slots": {"op": "adapt", "name": "glitch", "as": "standard"}})
+    _talk(server, role, {"dance_slots": {"op": "draft", "name": "standard", "slots": {"base": [{"src": "energy", "fx": "glitch"}]}}},
+          {"dance_slots": {"op": "save", "name": "standard"}}, {"dance_slots": {"op": "delete", "name": "waves"}},
+          {"dance_slots": {"op": "rename", "name": "fire", "as": "Mine"}}, {"dance_slots": {"op": "save_as", "name": "standard", "slots": {}, "from": "fire"}})
     assert server.dance.builtin_slots() == before and server.dance.slot_sets == {}
+    assert ("standard" in server.dance.slot_drafts) is (role in ("local", "control"))   # a draft is a hand's change, played – never kept
 
 
 @pytest.mark.parametrize("role,may", [("local", True), ("control", True), ("guest", False), ("eyes", False)])
-def test_only_control_and_this_mac_adapt_and_change_slots(server, slots, saved_state, role, may):
-    _talk(server, role, {"set": {"dance_ui": "slots"}}, {"dance_slots": {"op": "adapt", "name": "fire", "as": "Mine"}},
-          {"dance_slots": {"op": "save", "name": "Mine", "slots": {"accents": [{"src": "g.wave", "fx": "pixel", "amt": 0.5}]}}},
-          {"set": {"dance_set": "Mine"}})
+def test_only_control_and_this_mac_change_and_save_slots(server, slots, saved_state, role, may):
+    _talk(server, role, {"set": {"dance_ui": "slots"}}, {"set": {"dance_set": "fire"}},
+          {"dance_slots": {"op": "draft", "name": "fire", "slots": {"accents": [{"src": "g.wave", "fx": "pixel", "amt": 0.5, "tol": "tight"}]}}},
+          {"dance_slots": {"op": "save_as", "name": "Fire – mine", "slots": {"accents": [{"src": "g.wave", "fx": "pixel", "amt": 0.5, "tol": "tight"}]}, "from": "fire"}})
     if may:
-        assert server.dance.all_slots()["Mine"]["accents"][0] == {"src": "g.wave", "fx": "pixel", "amt": 0.5}
-        assert server.dance.slot_use == "Mine" and server.dance.slots_msg()["rows"] == dance.compile_slots(server.dance.all_slots()["Mine"])
+        assert server.dance.all_slots()["Fire – mine"]["accents"][0] == {"src": "g.wave", "fx": "pixel", "amt": 0.5, "tol": "tight"}
+        assert server.dance.slot_use == "Fire – mine" and server.hub.state["dance_set"] == "Fire – mine"   # in use, and the setting says so
+        assert server.dance.slots_msg()["rows"] == dance.compile_slots(server.dance.all_slots()["Fire – mine"]) and server.dance.slot_drafts == {}
     else:
-        assert server.dance.slot_sets == {} and server.dance.slot_use == "standard"
+        assert server.dance.slot_sets == {} and server.dance.slot_drafts == {}
 
 
 def test_switching_between_the_table_and_the_slots_loses_nothing(server, slots, saved_state):
     assert settings.SETTINGS["dance_ui"].default == "table"                     # as before, until the owner switches
     _talk(server, "control", {"dance_map": [GOOD_ROW]}, {"set": {"dance_ui": "slots"}}, {"set": {"dance_set": "waves"}},
-          {"dance_slots": {"op": "adapt", "name": "waves", "as": "Mine"}}, {"set": {"dance_set": "Mine"}})
+          {"dance_slots": {"op": "save_as", "name": "Mine", "slots": dance.SLOT_SETS["waves"], "from": "waves"}})
     # with the slots, choosing a set chose a set of slots – the table stayed exactly the owner's
     assert server.dance.tables["dance"] == [GOOD_ROW] and server.dance.slot_use == "Mine"
     assert server.inputs.next_set(server.hub.state["dance_set"]) == "standard"   # the MIDI button walks the sets of slots
