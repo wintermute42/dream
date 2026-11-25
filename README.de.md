@@ -31,6 +31,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Playlists und Autostart](#playlists-und-autostart)
 - [Ausgabe auf Beamer oder zweitem Monitor (16:9)](#ausgabe-auf-beamer-oder-zweitem-monitor-169)
 - [Als Quelle in Resolume (Syphon)](#als-quelle-in-resolume-syphon)
+- [Raumlicht (WLED)](#raumlicht-wled)
 
 **Handys und Tablets**
 
@@ -668,6 +669,98 @@ Schalter „Syphon-Ausgabe „Dream“ für Resolume“ (Bühne oder Handy). Dan
 weich zwischen den KI-Bildern über – mit „Formen wandern zwischen den Bildern“ (#205) morpht es sie entlang des
 Flussfelds, wie die Bühne –, damit es auch bei 2–5 KI-Bildern pro Sekunde flüssig wirkt. Die Bühne muss
 dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+## Raumlicht (WLED)
+
+Der Raum träumt mit: eine LED-Kette leuchtet in der Farbe des Traums – dem geglätteten Durchschnitt dessen, was das
+Publikum sieht, Effekte eingeschlossen –, pulsiert im Takt, blitzt kurz auf bei einem Drop und wenn die Dreamy Eyes
+in Trance gehen, und folgt dem Master-Regler und seinem **Blackout**. Das Licht kommt von einem **WLED**-Gerät (ein
+ESP32-LED-Controller mit der freien Firmware WLED) im WLAN; Dream schickt ihm live per **DDP** (UDP, Port 4048) 40
+Bilder pro Sekunde. Heute zeigt die ganze Kette eine Farbe; mehrere Zonen folgen später.
+
+So funktioniert es: Die Bühne schaut sich ihr eigenes Bild winzig an (16×16 Punkte, etwa 12-mal pro Sekunde, ohne die
+Grafikkarte warten zu lassen – die KI merkt davon nichts) und sagt Dream die Durchschnittsfarbe; Dream macht sie etwas
+farbiger, gleitet sanft von Farbe zu Farbe und schickt sie weiter. Ein Gerät, das nicht antwortet, bremst nichts: Dream
+wartet nie darauf. Schaltest du das Licht aus, schließt die Bühne oder endet Dream, bittet Dream WLED sofort, zu
+seinem eigenen Programm zurückzukehren; geht das verloren, tut WLED es nach seinem Realtime-Timeout (2,5 s) selbst.
+
+### Was kaufen (die getestete Kombination)
+
+- **Controller:** Gledopto **GL-C-017WL-D** – ESP32 mit vorinstalliertem WLED, 4 Ausgänge, Stromeingang 5–24 V.
+- **LEDs:** eine **WS2811-Lichterkette, 12 V** (z. B. von BTF-Lighting) – jedes „Pixel“ ist ein Chip mit seiner
+  Lampe oder einer Gruppe von 3 LEDs; die LED-Zahl in WLED ist also die Zahl der Pixel, nicht der einzelnen LEDs.
+- **Netzteil:** **12 V, 60 W** (IP67 für draußen oder feuchte Räume).
+- Strombedarf: ein 12-V-WS2811-Pixel braucht bei vollem Weiß bis etwa 0,25–0,3 W, 50 Pixel also etwa 15 W, 100
+  Pixel etwa 30 W. Das 60-W-Netzteil (5 A) reicht für etwa 150–200 Pixel in vollem Weiß; stell die Stromgrenze in
+  WLED auf etwa 4500 mA (unten). Dreams Licht ist selten voll weiß – eine Traumfarbe braucht weit weniger.
+- Alternative (klein, 5 V): ein **M5Stack Atom Lite** mit einem **SK6812**-Streifen und einem 5-V-Netzteil (etwa
+  60 mA pro LED bei vollem Weiß: 30 LEDs ≈ 1,8 A). WLED kommt aus Chrome auf den Atom: https://install.wled.me
+  (USB-Kabel, „Install“); die Datenleitung ist G26 oder G32 (Grove-Anschluss). Ein RGBW-Streifen (SK6812 RGBW) geht
+  auch – den Weißkanal rechnet WLED selbst (LED Preferences → „Auto-calculate white channel“).
+
+### Anschließen (Strom aus, solange du verkabelst)
+
+1. Netzteil **12 V+ und GND** an den Stromeingang des Controllers (V+ / GND oder die DC-Buchse).
+2. Das **Eingangsende** der Kette (der Pfeil auf der Kette zeigt davon weg) an **Ausgang 1** des Controllers:
+   12 V (meist rot) an V+, GND (meist weiß oder schwarz) an GND, **Daten** (meist grün) an DATA dieses Ausgangs.
+3. Eine längere Kette (mehr als etwa 100 Pixel) bekommt zusätzlich am fernen Ende 12 V und GND vom Netzteil
+   („Einspeisung“), sonst wird das Ende gelblich. GND bleibt immer mit dem Controller verbunden.
+
+### WLED einrichten
+
+1. Einschalten. Der Controller öffnet ein eigenes WLAN **`WLED-AP`**, Passwort **`wled1234`**. Mit Handy oder Mac
+   verbinden; die WLED-Seite öffnet sich von selbst (oder http://4.3.2.1 öffnen).
+2. **WiFi Setup:** Name und Passwort deines Heim-WLANs → Save. Der Controller startet neu in deinem WLAN.
+3. Seine Adresse finden: in der Geräteliste des Routers (Name wie `wled-…`), in der WLED-App, oder Dream suchen lassen
+   („🔍 Suchen“, unten).
+4. **Im Router eine feste IP geben**, damit Dream es jedes Mal gleich findet – z. B. in der FRITZ!Box: Heimnetz →
+   Netzwerk → das WLED-Gerät → bearbeiten → „Diesem Netzwerkgerät immer die gleiche IPv4-Adresse zuweisen“.
+5. In WLED **Config → LED Preferences:**
+   - LED-Typ **WS281x**, **Farbreihenfolge** wie deine Kette sie braucht (WS2811-Ketten meist **GRB** oder **RGB**;
+     prüfen, siehe unten), **Length** = Zahl der Pixel, der GPIO des benutzten Ausgangs (Gledopto: für Ausgang 1
+     voreingestellt).
+   - **Automatic Brightness Limiter:** Höchststrom etwa **4500 mA** für das 60-W-Netzteil.
+6. **Config → Sync Interfaces → Realtime:** „Receive UDP realtime“ an (ist es ab Werk), Timeout 2500 ms. Haken bei
+   **„Force max brightness“** – dann bestimmen Dreams Stärke und Master, wie hell es ist (sonst dimmt WLEDs eigene
+   Helligkeit Dreams Licht mit).
+7. Farbreihenfolge prüfen: in WLED im Farbrad reines Rot wählen – die Kette muss rot leuchten, dann Grün, dann Blau.
+   Zeigt sie eine andere Farbe, die Farbreihenfolge in LED Preferences ändern, bis alle drei stimmen.
+
+### In Dream
+
+Panel → Karte **Ausgabe** → **„Raumlicht (WLED) träumt mit“**:
+
+- den Schalter **an**;
+- das Gerät: seine **IP-Adresse** (oder einen Namen wie `wled-room.local`) eintippen und Enter – oder **„🔍 Suchen“**:
+  Dream fragt im WLAN nach WLED-Geräten (mDNS `_wled._tcp`, etwa zwei Sekunden) und zeigt sie als Knöpfe; ein Tipp
+  übernimmt es. Dream schickt nur an Adressen im Heimnetz.
+- **Lichtstärke:** wie hell die Kette leuchtet (Master-Regler und Blackout wirken obendrauf). Ein MIDI-Controller kann
+  sie lernen („Raumlicht: Stärke“).
+- **Im Takt pulsieren:** mit Musik sinkt das Licht zwischen den Schlägen etwas ab und ist auf jedem Schlag voll
+  (Beat-Erkennung der Karte Musik). Aus: ruhiges Licht.
+- Die Lampe neben dem Schalter leuchtet in der Farbe, die die Kette bekommt, und schwillt im Takt. Darunter sagt Dream,
+  was es tut: „Live: wled-… · 50 LEDs“ (Name und LED-Zahl des Geräts aus seiner JSON-API), „Warte auf das Bild der
+  Bühne …“ (die Bühne zeichnet nicht – sie muss offen und sichtbar sein), „… das Gerät antwortet nicht“ (Dream sendet,
+  aber WLED antwortet nicht unter der Adresse), „im Netz nicht zu finden“, „liegt nicht im Heimnetz“.
+- Gäste (Dream Remote) können nichts davon ändern; die Einstellung bleibt nach einem Neustart, wie sie war.
+
+### Wenn etwas nicht geht
+
+- **Gar kein Licht:** Ist WLED eingeschaltet (Power-Knopf in der WLED-App) und im selben WLAN wie der Mac? Sagt der
+  Status „Live“? Ist „Receive UDP realtime“ an? Ab macOS 15 braucht das Programm, das Dream gestartet hat (Terminal,
+  iTerm), **Systemeinstellungen → Datenschutz & Sicherheit → Lokales Netzwerk** – ohne das erreicht nichts die Geräte
+  im WLAN. Verkabelung prüfen: Daten am Eingangsende der Kette, GND gemeinsam.
+- **Falsche Farben** (Rot zeigt Grün, …): Farbreihenfolge in WLEDs LED Preferences (siehe oben).
+- **Nur ein Teil der Kette leuchtet:** Length in LED Preferences; bei „das Gerät antwortet nicht“ schickt Dream 480
+  Pixel, eine längere Kette braucht die Antwort der JSON-API.
+- **Flackern oder Ruckeln:** in WLED **WiFi sleep** ausschalten (Config → WiFi Setup → „Disable WiFi sleep“), den
+  Controller näher an den Router, prüfen, dass GND gemeinsam ist und das Netzteil reicht (ein dunkles, gelbliches Ende:
+  Einspeisung). Dream gleitet von Farbe zu Farbe, kurze WLAN-Aussetzer halten nur die Farbe an.
+- **Zu dunkel im Vergleich zum Traum:** „Force max brightness“ in WLEDs Sync-Einstellungen, Lichtstärke und Master hoch.
+- **WLED bleibt nach dem Ende von Dream auf Dreams Farbe:** es kehrt nach seinem Realtime-Timeout zu seinem Programm
+  zurück (Sync Interfaces, ab Werk 2500 ms); ein viel längerer Timeout dort hält die letzte Farbe so lange.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2309,7 +2402,7 @@ gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zur�
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
 `node --test tests/js/soft.test.mjs` (#211) prüft die Anteile der weichen Wechsel (altes Eingangsbild, alter und
-neuer Prompt, ein Wechsel während einer laufenden Überblendung). `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
+neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten. `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
@@ -2423,7 +2516,7 @@ darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihr
 darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
 (`inputs.py`), die Tanz-Zuordnungstabelle (`dance.py`; die Erkennung selbst ist `static/dance.js`, die Zuordnung
 `static/dancemap.js`, die Karte `static/dancepanel.js`), das Tanz-Labor (`dancelab.py` hält die Sessions;
-`static/dancerec.js` ist ihr Format, Aufnahme und Wiedergabe, `static/dancelab.js` das Labor), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
+`static/dancerec.js` ist ihr Format, Aufnahme und Wiedergabe, `static/dancelab.js` das Labor), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), das Raumlicht (`roomlight.py` die Farbe des Traums, `wled.py` die LED-Kette, `static/roomlight.js` der Teil der Bühne), die Cloud-GPU
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und

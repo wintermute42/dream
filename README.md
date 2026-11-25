@@ -35,6 +35,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 - [Playlists and autostart](#playlists-and-autostart)
 - [Output on a projector or second monitor (16:9)](#output-on-a-projector-or-second-monitor-169)
 - [As a source in Resolume (Syphon)](#as-a-source-in-resolume-syphon)
+- [Room light (WLED)](#room-light-wled)
 
 **Phones and tablets**
 
@@ -646,6 +647,97 @@ under **Sources → Syphon**. Dream sends it at 30 pictures per second and blend
 “Shapes travel between the pictures” on (#205) it morphs them along the flow field, like the stage –, so it
 looks fluid even at 2–5 AI pictures per second. The stage must be open for it (it delivers the pictures). Without
 Resolume just leave it off.
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Room light (WLED)
+
+The room dreams along: an LED chain glows in the colour of the dream – the smoothed average of what the audience
+sees, effects included –, pulses on the beat, flashes briefly on a drop and when Dreamy Eyes go into trance, and
+follows the master fader and its **Blackout**. The light comes from a **WLED** device (an ESP32 LED controller with
+the free WLED firmware) in your Wi-Fi; Dream sends to it live over **DDP** (UDP, port 4048) at 40 frames per second.
+Today the whole chain shows one colour; several zones come later.
+
+How it works: the stage looks at its own picture tiny (16×16 points, about 12 times a second, read back without making
+the graphics card wait – the AI does not notice it) and tells Dream the average colour; Dream makes it a little more
+colourful, glides softly from colour to colour and sends it on. A device that does not answer slows nothing down: Dream
+never waits for it. When you switch the light off, close the stage or Dream stops, Dream asks WLED to go back to its
+own program at once; if that word gets lost, WLED does it by itself after its realtime timeout (2.5 s).
+
+### What to buy (the tested combination)
+
+- **Controller:** Gledopto **GL-C-017WL-D** – ESP32 with WLED preinstalled, 4 outputs, power input 5–24 V.
+- **LEDs:** a **WS2811 light chain, 12 V** (e.g. from BTF-Lighting) – each “pixel” is one chip with its bulb or a
+  group of 3 LEDs, so the LED count in WLED is the number of pixels, not of single LEDs.
+- **Power supply:** **12 V, 60 W** (IP67 for outdoors or damp rooms).
+- Current draw: a 12 V WS2811 pixel takes up to about 0.25–0.3 W at full white, so 50 pixels about 15 W, 100 pixels
+  about 30 W. The 60 W supply (5 A) is enough for about 150–200 pixels at full white; set WLED's current limit to
+  about 4500 mA (below). Dream's light is rarely full white – a dream colour takes far less.
+- Alternative (small, 5 V): an **M5Stack Atom Lite** with an **SK6812** strip and a 5 V power supply (about 60 mA per
+  LED at full white: 30 LEDs ≈ 1.8 A). WLED goes onto the Atom from Chrome at https://install.wled.me (USB cable, “Install”);
+  the data line is G26 or G32 (Grove port). An RGBW strip (SK6812 RGBW) works too – WLED makes the white channel
+  itself (LED Preferences → “Auto-calculate white channel”).
+
+### Wiring (power off while you connect)
+
+1. Power supply **12 V+ and GND** to the controller's power input (V+ / GND, or the DC socket).
+2. The chain's **input end** (the arrow on the chain points away from it) to **output 1** of the controller:
+   12 V (usually red) to V+, GND (usually white or black) to GND, **data** (usually green) to DATA of that output.
+3. A longer chain (more than about 100 pixels) also gets 12 V and GND from the power supply at its far end
+   (“power injection”), otherwise the far end turns yellowish. GND always stays connected to the controller.
+
+### WLED first setup
+
+1. Switch on. The controller opens its own Wi-Fi **`WLED-AP`**, password **`wled1234`**. Join it with a phone or the
+   Mac; the WLED page opens by itself (or open http://4.3.2.1).
+2. **WiFi Setup:** your home Wi-Fi's name and password → Save. The controller restarts in your Wi-Fi.
+3. Find its address: in the router's list of devices (name like `wled-…`), in the WLED app, or let Dream find it
+   (“🔍 Find”, below).
+4. **Give it a fixed IP in the router**, so Dream finds it the same way every time – e.g. in a FRITZ!Box: Home Network →
+   Network → the WLED device → edit → “Always assign this network device the same IPv4 address”.
+5. In WLED, **Config → LED Preferences:**
+   - LED type **WS281x**, **colour order** as your chain needs (WS2811 chains are mostly **GRB** or **RGB**; check it,
+     see below), **Length** = the number of pixels, the GPIO of the output you used (Gledopto: as preset for output 1).
+   - **Automatic Brightness Limiter:** maximum current about **4500 mA** for the 60 W supply.
+6. **Config → Sync Interfaces → Realtime:** “Receive UDP realtime” on (it is by default), timeout 2500 ms. Tick
+   **“Force max brightness”** – then Dream's strength and master decide how bright it is (otherwise WLED's own
+   brightness dims Dream's light too).
+7. Check the colour order: in WLED choose pure red in the colour wheel – the chain must glow red, then green, then
+   blue. If it shows another colour, change the colour order in LED Preferences until all three are right.
+
+### In Dream
+
+Panel → card **Output** → **“Room light (WLED) dreams along”**:
+
+- the switch **on**;
+- the device: type its **IP address** (or a name such as `wled-room.local`) and press Enter – or tap **“🔍 Find”**:
+  Dream asks the Wi-Fi for WLED devices (mDNS `_wled._tcp`, about two seconds) and shows them as buttons; a tap
+  takes it. Dream sends only to addresses in the home network.
+- **Light strength:** how bright the chain glows (the master fader and Blackout act on top). A MIDI controller can
+  learn it (“Room light: strength”).
+- **Pulse on the beat:** with music the light sinks a little between the beats and is full on each beat (beat detection
+  of the card Music). Off: a steady light.
+- The lamp beside the switch glows in the colour the chain gets and swells on the beat. Below it Dream says what it
+  does: “Live: wled-… · 50 LEDs” (the device's name and LED count from its JSON API), “Waiting for the picture of the
+  stage …” (the stage is not drawing – it must be open and visible), “… the device does not answer” (Dream sends,
+  but WLED does not answer its address), “not found in the network”, “not in the home network”.
+- Guests (Dream Remote) cannot change any of it; the setting stays as it was after a restart.
+
+### If something does not work
+
+- **No light at all:** is WLED switched on (power button in the WLED app) and in the same Wi-Fi as the Mac? Does the
+  status say “Live”? Is “Receive UDP realtime” on? On macOS 15 and later the program that started Dream (Terminal,
+  iTerm) needs **System Settings → Privacy & Security → Local Network** – without it nothing reaches devices in the
+  Wi-Fi. Check the wiring: data on the chain's input end, GND shared.
+- **Wrong colours** (red shows green, …): colour order in WLED's LED Preferences (see above).
+- **Only part of the chain lights:** Length in LED Preferences; with “the device does not answer” Dream sends 480
+  pixels, a longer chain needs the JSON API to answer.
+- **Flicker or stutter:** turn off **WiFi sleep** in WLED (Config → WiFi Setup → “Disable WiFi sleep”), put the
+  controller closer to the router, check that GND is shared and the power supply is strong enough (a dim, yellowish
+  far end: power injection). Dream glides from colour to colour, so short Wi-Fi drop-outs only hold the colour.
+- **Too dark compared to the dream:** “Force max brightness” in WLED's Sync settings, Light strength and master up.
+- **WLED stays on Dream's colour after Dream stopped:** it goes back to its own program after its realtime timeout
+  (Sync Interfaces, 2500 ms by default); a much longer timeout there keeps the last colour that long.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -2158,7 +2250,7 @@ not have becomes the nearest one for the stage, Dream Control and whoever sent i
 that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. `node --test tests/js/soft.test.mjs` (#211) tests the shares of the soft switches
-(old input picture, old and new prompt, a change during a running fade). `node --test tests/js/gl-stage.test.mjs` (#204) opens
+(old input picture, old and new prompt, a change during a running fade). `tests/test_wled.py` and `node --test tests/js/roomlight.test.mjs` (#212) test the room light against a fake WLED receiver (a UDP socket on 127.0.0.1): the DDP packets (header, push flag, LED count, several packets for a long chain), the smoothed colour, strength, master and blackout, the beat pulse and the flash, that a device that does not answer slows nothing, that light goes only to the home network, that guests change none of it, and the mDNS answers. `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master; #215: that the smoothed
@@ -2263,7 +2355,7 @@ may do), the settings (`settings.py`: one table with every setting, its range an
 shared state (`hub.py`), the control line (`ctl.py`), playlists (`scenes.py`), MIDI and sensors (`inputs.py`), the dance mapping table (`dance.py`; the detection itself is
 `static/dance.js`, the mapping `static/dancemap.js`, the card `static/dancepanel.js`), the dance lab (`dancelab.py`
 keeps the sessions; `static/dancerec.js` is their format, recording and playback, `static/dancelab.js` the lab), the
-outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the cloud GPU (`cloud.py`), measuring
+outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), the room light (`roomlight.py` the dream's colour, `wled.py` the LED chain, `static/roomlight.js` the stage's part), the cloud GPU (`cloud.py`), measuring
 (`measure.py`), uploads and the gallery (`media.py`), voice (`voice.py`), and the pages with their links (`pages.py`,
 `net.py`). The pages are in `static/`; what they share is in `static/common.js`, the sliders of the panel and of Dream
 Control in `static/sliders.js` (drawn from the settings table: default, range and `weight` of a setting), their moving

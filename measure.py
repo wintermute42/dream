@@ -52,7 +52,8 @@ def measure_table(r: dict) -> str:
     for kind, d in sorted(r["devices"].items()):
         lines.append(f"{kind:12} {d.get('n', 1)}× · {RENDER_NAMES.get(d.get('render'), '')}{d.get('fps', '–')} fps display · frame {d.get('ms_avg', '–')} ms"
                      f" (p95 {d.get('ms_p95', '–')}) · slow frames {d.get('slow_pct', '–')} %"
-                     + (f" · flow field for {d['flow_pct']} % of the pictures ({d['flow_ms']} ms each)" if "flow_pct" in d else ""))
+                     + (f" · flow field for {d['flow_pct']} % of the pictures ({d['flow_ms']} ms each)" if "flow_pct" in d else "")
+                     + (f" · room light {d['light_ms']} ms per look" if "light_ms" in d else ""))
     return "\n".join(lines)
 
 
@@ -75,16 +76,17 @@ async def measure_run(seconds: int, fixed: bool):
         devices: dict = {}
         for (kind, _), rep_ in measure["reports"].items():
             d = devices.setdefault(kind, {"n": 0, "fps": [], "ms_avg": [], "ms_p95": [], "slow_pct": [], "render": set(),
-                                          "flow_pct": [], "flow_ms": []})
+                                          "flow_pct": [], "flow_ms": [], "light_ms": []})
             d["n"] += 1
             d["render"].add(rep_.get("render"))
             for k in ("fps", "ms_avg", "ms_p95", "slow_pct"):
                 d[k].append(rep_.get(k, 0))
-            for k in ("flow_pct", "flow_ms"):      # #205: only the stage tells these
+            for k in ("flow_pct", "flow_ms", "light_ms"):   # #205, #212: only the stage tells these
                 if k in rep_:
                     d[k].append(rep_[k])
         devices = {k: {"n": d["n"], **{f: round(sum(d[f]) / len(d[f]), 1) for f in ("fps", "ms_avg", "ms_p95", "slow_pct")},
                        **{f: round(sum(d[f]) / len(d[f]), 1) for f in ("flow_pct", "flow_ms") if d[f]},
+                       **({"light_ms": round(sum(d["light_ms"]) / len(d["light_ms"]), 2)} if d["light_ms"] else {}),
                        "render": "mixed" if len(d["render"]) > 1 else next(iter(d["render"]))}
                    for k, d in devices.items()}
         st = render_api.stats()
