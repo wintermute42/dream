@@ -5,7 +5,7 @@
 <p align="center"><b>Live-KI-Visuals für VJs, Künstler und Installationen</b><br>
 <i>Deutsch · English: <a href="README.md">README.md</a></i></p>
 
-<p align="center"><a href="#auf-einen-blick">Schnellstart</a> · <a href="#starten">Starten</a> · <a href="#bedienung">Bedienung</a> · <a href="#fernbedienung-per-handy">Handys</a> · <a href="#dreamy-eyes--ein-handy-als-träumende-augen-installation">Dreamy Eyes</a> · <a href="#bewegung">Bewegung</a> · <a href="#scaleway-gpu">Cloud-GPU</a> · <a href="#wenn-etwas-hakt">Hilfe</a> · <a href="#lizenzen">Lizenzen</a></p>
+<p align="center"><a href="#installation-in-drei-befehlen">Installieren</a> · <a href="#auf-einen-blick">Schnellstart</a> · <a href="#starten">Starten</a> · <a href="#bedienung">Bedienung</a> · <a href="#fernbedienung-per-handy">Handys</a> · <a href="#dreamy-eyes--ein-handy-als-träumende-augen-installation">Dreamy Eyes</a> · <a href="#bewegung">Bewegung</a> · <a href="#scaleway-gpu">Cloud-GPU</a> · <a href="#wenn-etwas-hakt">Hilfe</a> · <a href="#lizenzen">Lizenzen</a></p>
 
 Dream ist ein endloser, sich ständig verwandelnder Bilderstrom: Ein schnelles Bildmodell (SD-Turbo bzw. SDXL-Turbo)
 verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im Browser, nur unter
@@ -17,6 +17,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 
 **Loslegen**
 
+- [Installation in drei Befehlen](#installation-in-drei-befehlen)
 - [Auf einen Blick](#auf-einen-blick)
 - [Starten](#starten)
   - [Aktualisieren](#aktualisieren)
@@ -70,6 +71,21 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Lizenzen](#lizenzen)
 
 ---
+
+## Installation in drei Befehlen
+
+Auf einem Mac mit Apple Silicon (M1 oder neuer) und 16 GB Arbeitsspeicher oder mehr, mit installiertem [Homebrew](https://brew.sh):
+
+```bash
+brew install uv
+git clone https://github.com/wintermute42/dream && cd dream
+./dream.sh --open
+```
+
+Der erste Start installiert die Python-Pakete selbst; beim ersten Bild wird das Bildmodell geladen (etwa 2,6 GB,
+einmalig). Optionales (Ollama, ffmpeg, eine Cloud-GPU) steht unter [Starten](#starten).
+
+<sub>[↑ Inhalt](#inhalt)</sub>
 
 ## Auf einen Blick
 
