@@ -5,7 +5,7 @@
 <p align="center"><b>Live AI visuals for VJs, artists and installations</b><br>
 <i>English · Deutsch: <a href="README.de.md">README.de.md</a></i></p>
 
-<p align="center"><a href="#at-a-glance">Quick start</a> · <a href="#starting">Start</a> · <a href="#using-dream">Use</a> · <a href="#phone-remote">Phones</a> · <a href="#dreamy-eyes--a-phone-as-dreaming-eyes-installation">Dreamy Eyes</a> · <a href="#movement">Movement</a> · <a href="#cloud-gpu">Cloud GPU</a> · <a href="#when-something-gets-stuck">Help</a> · <a href="#licences">Licences</a></p>
+<p align="center"><a href="#installation-in-three-commands">Install</a> · <a href="#at-a-glance">Quick start</a> · <a href="#starting">Start</a> · <a href="#using-dream">Use</a> · <a href="#phone-remote">Phones</a> · <a href="#dreamy-eyes--a-phone-as-dreaming-eyes-installation">Dreamy Eyes</a> · <a href="#movement">Movement</a> · <a href="#cloud-gpu">Cloud GPU</a> · <a href="#when-something-gets-stuck">Help</a> · <a href="#licences">Licences</a></p>
 
 Dream is an endless, ever-changing stream of pictures: a fast image model (SD-Turbo or SDXL-Turbo) turns each picture
 into the next. It runs on a Mac with Apple Silicon, in the browser, only on `127.0.0.1` (the phone remote and a
@@ -21,6 +21,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 
 **Get started**
 
+- [Installation in three commands](#installation-in-three-commands)
 - [At a glance](#at-a-glance)
 - [Starting](#starting)
   - [Updating](#updating)
@@ -76,6 +77,21 @@ The whole interface is available in English and German (switch **DE | EN** at th
 - [Licences](#licences)
 
 ---
+
+## Installation in three commands
+
+On a Mac with Apple Silicon (M1 or newer) and 16 GB memory or more, with [Homebrew](https://brew.sh) installed:
+
+```bash
+brew install uv
+git clone https://github.com/wintermute42/dream && cd dream
+./dream.sh --open
+```
+
+The first start installs the Python packages by itself; the first picture downloads the image model (about 2.6 GB,
+once). Optional extras (Ollama, ffmpeg, a cloud GPU) are listed under [Starting](#starting).
+
+<sub>[↑ Contents](#contents)</sub>
 
 ## At a glance
 
