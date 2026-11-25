@@ -67,5 +67,8 @@ test('the card moves only transform and opacity', () => {
     if (m[1].trim() === 'none') continue;
     for (const part of m[1].split(',')) assert.match(part.trim().split(/\s+/)[0], /^(opacity|transform|visibility)$/, m[0]);
   }
-  assert.ok(!/animation\s*:/.test(css) && /prefers-reduced-motion/.test(css));
+  // #265: one animation – the symbol of the traffic light that blocks pulses: transform only, and never with reduced motion
+  assert.deepEqual([...css.matchAll(/animation\s*:\s*([\w-]+)/g)].map(m => m[1]).filter(n => n !== 'none'), ['mc-pulse']);
+  for (const m of css.matchAll(/@keyframes[^{]+\{((?:[^{}]*\{[^{}]*\})+)/g)) for (const p of m[1].matchAll(/([a-z-]+)\s*:/g)) assert.ok(['opacity', 'transform'].includes(p[1]), p[1]);
+  assert.ok(/prefers-reduced-motion: reduce\) \{ \.mc-sym\[data-state=block\] \{ animation: none; \}/.test(css));
 });

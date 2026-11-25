@@ -75,7 +75,19 @@ command line for now, #231) via `dream-cloud`.
   some of it and is asked to reload (`MovePage.link`'s `old`), never shown half; a choice of the stage is written into a
   select of the page only by `MovePage.pick`/`fillCams`. The dance lab (#243) is part of that page.
   The dance acts on top of what hands and controllers set (`DreamMove.onTop`) and only while its clutch is engaged (the
-  setting `clutch`: released after every start – `hub.py` – and shown as such by `MoveCard.clutchShow`; in and out in `DreamMove.CLUTCH` seconds); a movement set is a named dance table (`dance.sets`).
+  setting `clutch`: released after every start – `hub.py` – and shown as such by `MoveCard.clutchShow`; in and out in `DreamMove.CLUTCH` seconds); a movement set (#251, #265) is what the dancer sees and changes of Dream
+  Dance – its only controls: sentences in three lanes (`static/danceslots.js`: "When I … → …", three strengths, an
+  accent's tolerance, new sentences by showing, the band of the signal's way, the traffic light `MoveCard.lamp` shared
+  with the panel; `static/danceintro.js`: the tour on first opening). `dance.py` compiles the set in use into the dance
+  table (`compile_slots`; the dance table is never changed row by row – `dance_map` takes only the mood's and
+  flowtrack's; a change is a draft kept in memory per set and played at once – a built-in set is never changed, its
+  draft is saved as a new set under a name the dancer gives), and the engine applies the groups, the budget and the
+  minimum to the dance table only (`DreamDanceMap` `rules`, `tests/js/dancemap.test.mjs`). A `dance.json` of an earlier
+  version (the dance's own table, table-based sets) is migrated into sets once (`dance.migrate`, version 3; a broken or
+  unknown file: the built-in sets act). Teaching a
+  movement (#236 moves of one's own, the wizard with counter-check and 👍/👎 per hit, the tolerance it chooses) is
+  `static/moveteach.js` on `dancemoves.py`/`static/dancemoves.js`; an own move is an accent. The hand model runs exactly
+  while Dream Dance detects with "Hands (AI)" (never in Flowtrack; `fingersOn` in the stage).
   Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –
   `tests/js/flowauto.test.mjs`) chooses the kind of detection and the exposure, holds the one performer and watches the
   calibration; every choice carries its reason and can be taken over by hand. Its page is `/flowtrack`. The sample of
@@ -116,7 +128,7 @@ command line for now, #231) via `dream-cloud`.
   target – nothing else changes; the detection is pure and tested on synthetic trajectories (`tests/js/dance.test.mjs`,
   hit rate and false alarms). No camera picture is stored or sent for any of it.
   The dance lab (#243) is the workshop for it: `static/dancelab.js` (a part of the page of Dream Dance, #251: camera with skeleton,
-  hands and markers, the stream as curves, one row of the table to tune, feedback "good"/"bad", sessions) on top of
+  hands and markers, the stream as curves, one row of the table to tune – on the page of Flowtrack only, #265 –, feedback "good"/"bad" – a MIDI button or the wristband, no button on the page of Dream Dance –, sessions) on top of
   `static/dancerec.js` (pure: the session format – the stream's records, the detector's inputs and the points of
   skeleton and hands, frame by frame –, recording, playback, the last seconds of a feedback, test files for the
   detection: `tests/js/dancerec.test.mjs`, and every file in `tests/js/dance-sessions/` is checked against the

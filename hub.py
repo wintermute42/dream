@@ -30,6 +30,7 @@ state["style"] = playlists.OLD_STYLES.get(state["style"], state["style"])
 # the movement mode is remembered like every other setting (#90, #249)
 state["backend"] = "local"        # #102: every start computes on this Mac; the cloud (it costs) only when chosen
 state["clutch"] = False           # #251: every start has the dance's clutch released – it is engaged only on purpose
+state["dance_set"] = dance.slot_use   # #265: the set in use is kept with the sets (dance.json; a set of an earlier version is migrated there)
 if state.get("cam_device") == "device":          # #146: a device's live camera never outlives the run it was sent in
     state["cam_device"] = ""
     if state.get("mode") == "cam":

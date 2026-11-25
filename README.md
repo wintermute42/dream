@@ -56,6 +56,8 @@ The whole interface is available in English and German (switch **DE | EN** at th
 - [Flowtrack](#flowtrack)
 - [Dance](#dance)
   - [Dream Dance: the page, the clutch, the sets](#dream-dance-the-page-the-clutch-the-sets)
+  - [The sentences – what your dance does](#the-sentences--what-your-dance-does)
+  - [Moves of your own – teaching a movement](#moves-of-your-own--teaching-a-movement)
   - [Dance lab](#dance-lab)
 - [MIDI controller](#midi-controller)
 - [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
@@ -179,6 +181,19 @@ DREAM_PORT=7860
 `dream.sh`, `dream-cloud` and `install-autostart.sh` use the same folders; the autostart also takes `DREAM_PORT` from
 `dream.env`.
 
+**A test copy** (to try something new without touching your real Dream): `./dream.sh --test-copy` starts Dream with
+its own folders under `~/dream-test-copy` (`state`, `config`, `pictures`; another place: `--test-copy=<folder>`) on
+port **7870** (https 7470, sensors 7170) – whatever a `dream.env` says. The real settings, keys, tables and pictures
+stay as they are. To start it with your own settings, copy your `dream.env` into it once:
+
+```bash
+mkdir -p ~/dream-test-copy/config && cp ~/.config/dream/dream.env ~/dream-test-copy/config/
+./dream.sh --test-copy --open        # panel: http://127.0.0.1:7870/
+```
+
+Don't run the real Dream and the copy on the cloud GPU at the same time: both would use the cloud tunnel's port 7861.
+Remove the copy with `rm -rf ~/dream-test-copy`.
+
 <sub>[↑ Contents](#contents)</sub>
 
 ---
@@ -221,7 +236,7 @@ keeps it that way. Since #241 the panel also has:
   brings the master back to 100 %.
 - **■ End** below the camera choice (card “Input & prompt”) while another device lends its live camera (Dream Control,
   Dreamy Eyes): it says who it is and ends it.
-- **👍 Good · 👎 Bad · ● Record** for the dance lab in the Movement card's part “Dream Dance”, while the lab is open on
+- **● Record** for the dance lab in the Movement card's part “Dream Dance”, while the lab is open on
   its page.
 
 **Below the preview** there are always **Pause, New, Fullscreen, Save**, the coloured **status chips** (pause, cloud
@@ -1215,15 +1230,17 @@ interaction”):
     “**also use the Mac's camera**”. Switching the mood on and off is one click on **Mood** or **Off**.
   - **Flowtrack:** what Dream detects right now – the kind, values a second, whether someone is there –,
     **Automatic: ON/OFF** and what the automatic chose and why (see [Flowtrack](#flowtrack)).
-  - **Dream Dance:** the recognised gesture with how sure Dream is and your tempo, the **clutch** and the
-    **movement set** (see [Dream Dance](#dream-dance-the-page-the-clutch-the-sets)).
+  - **Dream Dance:** the recognised gesture with how sure Dream is and your tempo, the **traffic light** (what blocks
+    the dance), the **clutch**, the **movement set** and the slider **Strength** – all effects of the dance together
+    (see [Dream Dance](#dream-dance-the-page-the-clutch-the-sets)).
 - **Page ↗** opens the page of the mode in a window of its own, for a second screen: Flowtrack and Dream Dance have
   one, the mood needs none.
 - **Sources** – one chip per kind, see below.
 - Folded away below: **Camera and detection** (the kind of detection, the camera, light and marker colours, fingers,
   ⚡ Fast, calibrating, subtracting the projection, diagnostics, the pose) and **What a movement does** (what Dream
-  sees, the table of the mode in use, the dance lab, the directness of the hands and “Mirror”).
-- **Dream Control** has only the four mode buttons and the mood's strength (“Mood – strength”). The kind of
+  sees, the table of the mood or of Flowtrack – Dream Dance says it in sentences on its page –, the directness of the
+  hands and “Mirror”).
+- **Dream Control** has only the four mode buttons and the strength of the mood and the dance (“Movement – strength”). The kind of
   detection, the camera for movement, ⚡ Fast, the directness, “Mirror” and the pose are set in the panel on the Mac
   (the main control), and the pages are the Mac's. Whatever Dream Control offers of movement, the panel offers too
   (a test checks it).
@@ -1524,7 +1541,8 @@ once or swaying set nothing off. Its size becomes the effect's strength, its tem
   beat, the turning – or one of the slow **AI sliders** (transformation, dream share, zoom pull, rotation, colour
   drift; they follow within half a second at the earliest and are added on top of the slider).
   More targets: the tempo of the picture's own motion, calming the dream, the direct interaction (paint, touch,
-  impulses, light in the dark, movement shapes the effects), the content by energy, and the push on the AI sliders.
+  impulses, light in the dark, movement shapes the effects), the content by energy, the push on the AI sliders, and
+  the prompt piece of a move of your own (see [Moves of your own](#moves-of-your-own--teaching-a-movement)).
   The tables – one per mode – are saved in `~/.config/dream/dance.json`; only this Mac and Dream Control can change
   them.
 
@@ -1558,11 +1576,12 @@ Movement card shows the choice of the mode in use.
   and its strikes are the source “Strike (sensor)”; position, opening and the gestures need the camera. Together:
   a sensor swinging in the tempo the camera sees confirms a gesture (a small movement then counts sooner), an arm at
   rest doubts it, and when one source fails the other carries on.
-- **Fingers (hand AI, 21 points per hand)** (checkbox, with “Hands (AI)”; a second model, downloaded once, about
-  8 MB, it costs some of the graphics chip): per hand **fist ↔ open hand**, **fingers spread**, **pinch** (thumb on
-  index finger, held until they are clearly apart) and **snap** (the hand flying open). They are sources for the
-  table like all others, e.g. “Right hand: fist ↔ open hand → kaleidoscope”. Expect limits at a distance, in the dark
-  and on fast moves – the display shows when a hand is lost.
+- **Fingers (hand AI, 21 points per hand)** (a second model, downloaded once, about 8 MB, it costs some of the
+  graphics chip; it runs by itself while Dream Dance detects with “Hands (AI)”, never in Flowtrack – the checkbox only
+  shows it): per hand **fist ↔ open hand**, **fingers spread**, **pinch** (thumb on
+  index finger, held until they are clearly apart) and **snap** (the hand flying open). They join the feature stream
+  (the dance lab shows them). Expect limits at a distance, in the dark and on fast moves – the display shows when a
+  hand is lost.
 
 Nothing of the camera is stored or sent anywhere for this: the features are numbers computed in the stage.
 
@@ -1574,7 +1593,9 @@ it), and it is an extra view: everything that steers the show is in the panel to
 window that opened it; it has no control line and no camera of its own (only the lab's sessions are read from and
 written to Dream directly), so open it from the panel, not by its address.
 If the stage is reloaded, the page finds it again by itself. If the browser blocks the window, allow pop-ups for
-Dream. On the page: the clutch, the detection, the movement sets, the beat, and below them the dance lab.
+Dream. On the page: the clutch, the detection, the beat, below them the sentences with the sets
+(see [The sentences](#the-sentences--what-your-dance-does)), your own moves
+(see [Moves of your own](#moves-of-your-own--teaching-a-movement)) and the dance lab.
 
 **The clutch** decides whether your dance acts. What the sliders, the panel and a MIDI controller set is the **base**;
 the dance acts **on top of it** – an effect at 30 % by hand and 40 % by the dance shows at 70 %, and a fader moved
@@ -1592,19 +1613,13 @@ your dance does nothing until you engage it on purpose – Dream does not rememb
 edge and reads “Clutch: released”, and the line below it says that your dance does nothing yet – in the Movement
 card, on the page and in Dream Control alike. A wristband's button stays the lab's “good/bad” for now.
 
-**Movement sets** are named tables of what your movements do – one per piece or mood of a show. Built in:
-**Standard** (the built-in table), **Waves** (energy → waves, opening → tunnel, arm wave → afterglow, circling →
-mandala, accordion → mirror) and **Fire** (energy → feedback, hands up → RGB shift, throwing up → afterglow, pushing →
-waves, circling → kaleidoscope). Choosing a set makes its rows the table in use; tuning the table afterwards never
-changes the set. Choose one
-- in the Movement card (mode Dream Dance) or on the page,
+**Movement sets** say what your movements do – one per piece or mood of a show, each a few sentences (see
+[The sentences](#the-sentences--what-your-dance-does)). Built in: **Standard**, **Flowing** and **Wild**. Choose one
+- in the Movement card (mode Dream Dance) or in the bar of sets on the page,
 - with a MIDI button: “**Button: next movement set**” walks through them,
 - in Dream Control,
-- in a playlist scene: `"settings": {"dance_set": "waves"}` in a scene of a playlist file.
-
-On the page, **Keep as set** keeps the table as it is now under a name of your own (letters, digits, spaces and
-`. + -`, at most 24 characters, up to 24 sets); **Remove this set** removes one of your own. Your sets are saved with
-the tables in `~/.config/dream/dance.json`.
+- in a playlist scene: `"settings": {"dance_set": "waves"}` in a scene of a playlist file (the keys of the built-in
+  sets are `standard`, `waves` for Flowing and `fire` for Wild; a set of your own by its name).
 
 **Detection.** The card “Detection” on the page chooses what Dream Dance detects with – **Dance: Hands (AI)** or
 **Dance: LED markers (2 colours)** – and, independently of it, the **camera** (the cameras the stage knows; the one in use is chosen), and says what
@@ -1624,7 +1639,154 @@ moment, the page comes back by itself).
 **Beat.** The page shows your beat (the tempo of your repetition) and the music beat side by
 side, each with a dot that beats, and says who gives the beat: your dance, the music, both together (also at half
 or double time) or two different beats. Effects on the beat are pushed by both – the row “Own beat → Push on the
-beat” of the table for your movement, the music's beat as always.
+beat” for your movement (Dream adds it to every set), the music's beat as always.
+
+### The sentences – what your dance does
+
+The middle of the page of Dream Dance says in a few sentences you can read aloud what your dance does – they are the
+only controls of it: **“When I [throw my arms up] → [a tunnel tears open]”**. Dream turns them into the rules its
+engine applies every frame (curve, range and smoothing are Dream's choice), and it keeps every effect visible.
+
+**The way of the signal.** A narrow band at the top of the middle part shows the chain your movement goes through:
+**Detection → Movements → Clutch → Effects → Strength**. Each link glows while it lets your movement through – so you
+see at a glance where it stops (nobody detected, standing still, clutch released, nothing acting, strength 0). Beside
+it the **traffic light**: the lamp is green when nothing blocks; three symbols light up red for what does – 🔓 the
+clutch is released (click it to engage), 👤 nobody is detected, ◉ LED markers are chosen but none is seen. The words
+are on hover (and for screen readers).
+
+**Sentences in three lanes.** Every sentence says one thing, e.g. **“When I [throw my arms up] → [trails follow]”**:
+- **Base movement** (warm yellow, *as long as you move*) – 2 sentences. A continuous movement (moving a lot, opening
+  the arms, turning, raising the arms) sets one effect: “When I move a lot → the waves grow stronger”.
+- **Accents** (cold blue, *a short moment*) – 4 sentences. A gesture (throwing the arms up, the accordion, pushing,
+  drawing a circle, a wave) or a move of your own sets off one effect: “When I draw a circle → a mandala blooms”.
+- **Hands in the picture** (green, *where your hands are*) – one sentence of switches: “My hands [paint trails of
+  light] [stir the picture] [send impulses] [light up the dark]”, at most two at once.
+
+The magenta half of a sentence is your movement, the other half (edged in the colour of its effect group) is what
+happens in the picture. **Click a half to change it:** the movement opens a choice of movements of that lane, each with
+a small figure; the effect opens a choice of effects by group – effects that would not fit are greyed out, hovering
+says why (already in another sentence, the same group as the other base movement, the same group as a base
+movement). Esc closes without a change. **✕** removes a sentence (with “Undo”), **＋ Sentence** adds one while the lane
+has room. Every sentence starts with a small figure of its movement.
+
+**Strength: three steps.** Each sentence has **mild · medium · strong** – each clearly different, and even “mild” is
+clearly seen (a sentence is there or not, never “almost nothing”). Dream picks the curve, the range and the smoothing
+for each movement itself. To tune everything together, use **Strength** in the panel's Movement card (it is the
+mood's strength too, a MIDI controller can move it as “Movement: strength”, and the band shows it as its last link):
+it scales all effects of the dance (0 = nothing, 1 = as the steps say, up to 3).
+
+**Tolerance of an accent.** Under each accent: **detect tight · normal · loose** and a bar of how sure Dream is of
+that movement right now, with a mark where it counts. Tight takes only a clear movement (fewer false alarms), loose
+takes a hint of it (it comes more easily, now and then by mistake). The mark moves with the tolerance. The teaching
+wizard (below) sets it for you.
+
+**See it act.** A sentence glows in its lane's colour while it acts, with a level bar (a sentence held back by its
+group or the budget glows less); an accent flashes when its gesture is recognised. On the left the live figure: the
+skeleton or the markers, each hand glowing in the colour of the effect that acts most.
+
+**A new sentence by showing it.** **＋ New sentence: show it** – 1. tap the effect that should happen, 2. move: Dream
+watches for four seconds and takes the clearest movement (a gesture for an accent, else the value that changed most
+for a base movement), 3. **“That was: Throwing up → Waves?”** with what it will replace – **Yes, like that** · **Again**
+· **Another** (choose the movement yourself). If nothing was clear, Dream offers to **teach it (3×)**: show the new
+movement three times and it becomes a move of your own on an accent with that effect. An effect that was in another
+sentence moves to the new one.
+
+**Dream keeps every effect visible – in the engine, not only on the page.** The effects are in five groups:
+symmetry (kaleidoscope, mandala, mirror), space (tunnel, waves), afterglow (afterglow, feedback), disturbance (RGB
+shift, glitch, pixel, grid) and colour (colour rotation). Of a group only one effect acts strongly at a time; at most
+three groups act strongly at once – when an accent comes in, the weakest of the others steps back for as long as the
+accent lasts and comes back softly. (The tables of the mood and of Flowtrack act as their rows say.)
+
+**Sets as a row of cards.** All sets are visible side by side; the built-in ones (**Standard**, **Flowing**, **Wild**)
+carry 🔒, the one in use is outlined. Click a card to use it. You can change a built-in set directly: it becomes
+**● changed** (on the card and in a yellow bar) and acts at once, but it is never overwritten – the bar offers
+**Save as a new set** with a name field you fill in (suggested: “Standard – mine”; letters, digits, spaces and
+`. + - –`, at most 32 characters, no name twice) and **Discard**. A set of your own shows **Save** and **Discard**
+while changed; on its card **✎** renames it and **🗑** deletes it – “Undo” in the message brings it back. After saving,
+the new card is there and in use, with a short confirmation. Switching to another card keeps the changes of the set
+you leave marked with ● – come back to save or discard them (they are kept in Dream's memory until then, not in the
+file, so a restart of Dream drops them). The set is also chosen in the Movement card, with a MIDI button, in Dream
+Control and in a playlist scene's `dance_set`. Your sets (at most 24) and the one in use are kept in
+`~/.config/dream/dance.json`, beside the tables of the mood and of Flowtrack.
+
+**Tables of earlier versions become sets – once.** Before, Dream Dance had a table to change row by row and movement
+sets that were such tables. On the first start after the update Dream turns them into sets of sentences, as well as
+they go: your own dance table (if it was not one of the built-in sets) becomes the set **“My table”**, and each set of
+your own a set of the same name (with a number after it if a built-in set is called so already). A row of a
+continuous movement (energy, opening, turning, height) becomes a base movement, a gesture or a move of your own an
+accent with the strength nearest to the row's, and the hands in the picture stay switched on as they were (at most two); what a
+sentence cannot say (finger values, the AI sliders, effects that would cancel each other out) is left out, and the
+strongest rows go first when a lane is full. The set that was in use stays in use. Have a look at them on the page
+once – and change what got lost. A file Dream cannot read is left alone and the built-in sets act.
+
+**Hands (AI) means: hands always included.** While Dream Dance detects with **“Hands (AI)”**, the hand model (21
+points per hand) is loaded with the pose model by itself, and your hands always belong to the dance (the finger values
+join the feature stream). Flowtrack never loads the hand model. “Fingers (hand AI)” in the panel (under “Camera and
+detection”) and in the lab only shows whether it runs – there is nothing to switch.
+
+**In the panel** the Movement card shows for Dream Dance what a show needs at hand: what Dream recognises right now,
+the traffic light (the same three symbols as on the page, the words on hover), the clutch, the set and the strength.
+“What a movement does” below it shows what Dream sees; the sentences themselves are on the page.
+
+**Introduction and help.** The first time the page is opened, a short tour lights up its parts in the order of the
+signal's way – what Dream sees, the clutch, the sentences, the beat, recording and teaching – one sentence each,
+**Next** goes on. **Help off** ends it and hides the page's explanations; the **?** in the head brings both back and
+starts the tour again (remembered in this browser).
+
+**“Good” and “bad” have left the page.** The dance lab on the page keeps **● Record** for sessions; 👍/👎 (and the
+voice feedback) are no longer on the page – teaching asks “recognised right?” instead. A MIDI button (or foot
+pedal) and the wristband still mark a session; the panel and Dream Control have no 👍/👎 buttons any more.
+
+### Moves of your own – teaching a movement
+
+Below the sentences is **🕺 Your moves**: the moves you taught, and the wizard that teaches Dream a movement – a
+built-in one more exactly, or one of your own. Start it with **🎓 Teach a movement …** (or key **T**), with
+**＋ A move of your own …** in the accents, with **🎓 Tune** on a move in the list, or from “That was …?” when Dream
+saw nothing it knows.
+
+1. **Choose** the movement: a built-in gesture, one of your moves, or **＋ A new move of your own**.
+2. **Show it 5×.** A built-in gesture or a move you have: do it five times with a short pause between them – the
+   counter goes on every time Dream takes it. A new move: a countdown of three seconds, then the take runs; show your
+   move **five times in a row** (three are enough, give it one more: the first and the last, where the arms come up and
+   go down, are often not counted). Dream finds the repetitions itself and shows them at once, each as a small
+   skeleton that runs round; **✕** throws away one that went wrong. Give it a **name** (letters, digits, spaces and
+   `. + -`, at most 32 characters) – **Keep and go on →** keeps it on this Mac.
+3. **Counter-check: 30 seconds dancing freely – without the movement.** Dream counts how often it would take something
+   else for it (that prevents false alarms). **Skip** goes on earlier.
+4. **Check.** Dance with and without it: every time Dream takes it, a dot appears and asks – **👍 recognised right**
+   (key **G**) or **👎 recognised wrongly** (key **B**). **Done → result** when you have enough.
+5. **Result.** Dots for hits, missed ones and false alarms, and the **tolerance** Dream chose from them (the loosest
+   one without a false alarm; if every one has some, the one with the fewest). **Keep** puts it on the accent with
+   this movement – a new move becomes an accent then, with the effect you chose before or the first one that fits
+   (the set is then “● changed”). **Another round** shows, checks and confirms once more – the more rounds, the more
+   exactly Dream knows it.
+
+While the wizard runs, the detection takes that movement loosely (every candidate counts – you say which were right);
+**✕** or **Esc** stops it, and a new move not kept yet is thrown away. The quick way (“Teach it (3×)” from a new
+sentence by showing) takes three repetitions and puts the move on an accent at once.
+
+- **A move** is a rhythmic movement of your hands, like the built-in gestures: the same way again and again, one
+  repetition in a third of a second to a good second (0.3–1.25 s). One hand or both; it is measured on your own body,
+  so where you stand in the picture and how near does not matter. It works with whatever Dream Dance detects (hands
+  by AI or LED markers) – teach a move with the detection you will dance it with. At most 24 moves are kept.
+- **Recognition.** The stage recognises a move like a built-in gesture: it compares the last two repetitions of your
+  hands with the move by dynamic time warping, so a variant still fits – a little faster or slower (about 0.7 to 1.4
+  times the taught tempo), larger or smaller, at any point of the repetition – while another way of the hands, the
+  same way at double tempo or a shoulder width higher does not. It comes after **two to three repetitions**; one
+  gesture at a time. The size of the movement is its strength. A move that looks like a built-in gesture goes before
+  it. The bar under each move in the list shows how sure Dream is of it right now; the frame turns green while it is
+  the recognised one.
+- **What it does** is an accent: “When I dance “Lasso” → a tunnel tears open” – so it acts **only while the clutch is
+  engaged** and belongs to the set. Its **prompt piece** (e.g. `fire, glowing embers`) is blended into the prompt
+  while its accent acts, as strongly as the accent's strength says.
+- **Rename, change, delete** in the list: the name and the prompt piece are text fields (saved when you leave the
+  field), **🗑** deletes after asking once more on the button. Deleting a move empties its accents (in your sets and in
+  changes not saved yet) and removes its rows from the tables.
+- **What is kept:** per repetition the features, what the sources saw of the hands, the points of the skeleton, the
+  hands in body units and whether the clutch was engaged, each with its time – the frames of a dance session – and
+  the mean way of the hands as the template. **Numbers only, never a camera picture.** The moves are in
+  `~/.local/state/dream/dance/moves/` on this Mac; only this Mac and Dream Control can read or change them, and
+  nothing of them leaves the Mac.
 
 ### Dance lab
 
@@ -1642,10 +1804,10 @@ dancing:
 - **Output with effects:** what the audience sees.
 - **Fingers (hand AI):** the 21 points of each hand enlarged as a hand skeleton, with fine trails of the finger tips
   and – with multiple exposure – the last hand poses pale behind it (a snap becomes a visible sequence); below it
-  fist ↔ open hand, spread, pinch and snap with how sure the hand AI is. The switch **Fingers (hand AI)** sits right
-  below the view (the same one as in the Movement card). An empty view says why: fingers need the detection
-  “Hands (AI)”, the switch is off, the hand model is still loading (once, about 8 MB), or there is no hand in the
-  picture.
+  fist ↔ open hand, spread, pinch and snap with how sure the hand AI is. The checkbox **Fingers (hand AI)** below the
+  view shows whether the hand model runs (it does by itself with Dream Dance and “Hands (AI)”). An empty view says
+  why: fingers need the detection “Hands (AI)” in Dream Dance, the hand model is still loading (once, about 8 MB), or
+  there is no hand in the picture.
 - **Feature stream:** energy, tempo, phase, opening, turning, height and stillness as running curves over the last 12
   seconds, the recognised gesture as a band above them, and – once a hand was seen – the finger values per hand. Where
   a value is not known (a hand lost, no rhythm) the curve has a **gap**, marked by a dashed red line: that is where
@@ -1653,15 +1815,15 @@ dancing:
   curves. The table below the curves says for every feature **what it is computed from** (e.g. opening: the distance
   between the two hands in shoulder widths), its **source right now** (skeleton, LED markers, motion sensor …) and
   **how sure** it is. In a playback the sources are not shown – a session keeps values and confidences only.
-- **Tune a row:** pick a row of the table and change its target, its curve (straight, early, late, S), from where to
+- **Tune a row** (on the page of Flowtrack; Dream Dance has its sentences instead): pick a row of the table and change its target, its curve (straight, early, late, S), from where to
   where the movement comes in (the lower end is the threshold), from where to where the effect goes out, and the
   smoothing. A small picture shows the curve with the live value as a dot. Every change **applies at once**, Dream
   saves it, and **↶ Undo** takes it back step by step (up to 30 steps).
 - **Feedback without hands – “good” / “bad”:** each keeps the **last seconds** (slider, 1–15 s, 4 by default) as a
   feedback moment: the features, the recognised gesture, what each target was at, and the table in use. A note at the
-  top of the stage confirms it. Ways to say it: the buttons **👍 Good / 👎 Bad** (on the page, and in the panel's
-  Movement card while the lab is open) or keys **G / B**; **by voice** – hold **🎙** (or key V on the stage while the page is open) and say “good” or “bad”; the card **“Dream Dance”** in Dream Control;
-  a **MIDI** button or foot pedal (targets “Button: dance lab – good / bad”); a **wristband's button** over OSC (an
+  top of the stage confirms it. Ways to say it (#265: no buttons in the panel, in Dream Control or on the page any more – teaching asks “recognised
+  right?” there):
+  **by voice** – hold key V on the stage while the page is open and say “good” or “bad”; a **MIDI** button or foot pedal (targets “Button: dance lab – good / bad”); a **wristband's button** over OSC (an
   address with `btn` or `button` in it, value 1 while pressed): one press is “good”, two presses within half a second
   are “bad”. Feedback counts while the lab is open on the live dance or a recording runs.
 - **Record a session** (**● Record**, key **R**, or from Dream Control; at most 5 minutes): the same numbers frame by
@@ -1682,8 +1844,7 @@ The files are in `~/.local/state/dream/dance/`, readable only by you, and never 
 Control can list, read, add or delete them – guests, Dreamy Eyes and dream windows cannot. The page costs some frame
 rate while it is open (it draws the camera and the curves): close its window when you do not need it.
 
-**From Dream Control** (card “Dream Dance”): the **clutch**, the **movement set**, **👍 Good**, **👎 Bad**,
-**● Record** and **Page on the Mac** (opens the page on the Mac – the browser there may ask to allow the window). The
+**From Dream Control** (card “Dream Dance”): the **clutch**, the **movement set**, **● Record** and **Page on the Mac** (opens the page on the Mac – the browser there may ask to allow the window). The
 card says what the lab is doing and confirms what was kept; everything else – the views, tuning, playback – is on the
 Mac.
 
@@ -2036,8 +2197,15 @@ view in other light is the same view, a turned camera is not, a dark room claims
 page finds the stage that opened it and notices when it is reloaded, who gives the beat when the dancer's clock and
 the music's are compared, and that the page of Dream Dance opens no socket and no camera of its own;
 `tests/js/movement.test.mjs` also plays the clutch (out and in within a third of a second, without a step) and the
-dance on top of the base. `tests/test_dance.py` checks the movement sets (built in, own, kept in the file, who may
-change them).
+dance on top of the base. `tests/test_dance.py` checks the tables (kept in the file, who may change them – the dance's
+never by rows) and how a set is chosen (MIDI, scene).
+The sentences of Dream Dance (#265): `node --test tests/js/dancemap.test.mjs` checks the engine's rules (one effect
+per group, at most three groups at once – the weakest steps back for an accent and returns softly – and every
+sentence visible; only for the dance's table), `tests/js/danceslots.test.mjs` what fits into which place, the glowing
+sentences and the introduction, `tests/js/movecard.test.mjs` the traffic light; `tests/test_slots.py` how sentences
+become rows, that a built-in set can't be changed (not through `/ctl` either), renaming, deleting and its undo, and the
+one-time migration of the tables and sets of earlier versions (a typical file, an empty, a broken and an over-full
+one, names that collide with the built-in sets).
 `node --test tests/js/movecard.test.mjs` (#250) tests the movement card (`static/movecard.js`): the same modes in
 both pages, the energy in a word, the chips of the sources, the line that says what Dream detects, and that its
 styles move only transform and opacity; `tests/test_movecard.py` that the one card holds everything the three cards
@@ -2049,6 +2217,13 @@ Eyes work out from two small pictures (noise is no movement, only two numbers co
 checks Dream's part: the register of sources, that Dreamy Eyes can report a number and nothing else, that “nobody
 there / someone comes” is read from Dreamy Eyes only and never from the Mac's camera, and that the settings of earlier
 versions are carried over once.
+`node --test tests/js/dancemoves.test.mjs` (#236) tests the moves of one's own (`static/dancemoves.js`, recognised in
+`static/dance.js`) the same way: the simulated dancer teaches four moves that are no built-in gesture and dances them
+in 108 variants each (size, tempo, place, body size, jitter, frame rate) – the hit rate, the false alarms on walking,
+waving, talking hands and the like (none), the built-in gestures beside the taught ones, repetitions and hysteresis,
+the ends of the tolerance, and how a take is cut into its repetitions. `node --test tests/js/moveteach.test.mjs` tests
+the teaching card's parts without a page (a take, the file that is kept, the row of the table, the clutch);
+`tests/test_dancemoves.py` what Dream keeps of a move, who may reach it and that deleting one removes its rows.
 `node --test tests/js/dancerec.test.mjs` (#243) tests the dance lab's sessions (`static/dancerec.js`): a recorded
 simulated dance plays back the very features it was made from and holds nothing but numbers, feeding its inputs to a
 fresh detector gives the same gestures, a feedback keeps exactly its seconds, playback (pause, slow motion, jumps, a

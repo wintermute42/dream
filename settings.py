@@ -95,9 +95,12 @@ MOVE_MODES = ("off", "mood", "flowtrack", "dance")
 MOVE_SOURCES = ("camera", "eyes", "phone", "band")
 
 
+# #251, #265: the name of a movement set – a short plain name: letters, digits, spaces and . + - – ("Flowing – mine")
+SET_NAME = re.compile(r"[^\W_][\w .+\-–]{0,31}")
+
+
 def _set_name(v: str) -> str:
-    """#251: the name of a movement set – a short plain name, or none."""
-    return v if re.fullmatch(r"[\w][\w .+-]{0,23}", v) else ""
+    return v if SET_NAME.fullmatch(v) else ""
 
 
 def _sources(v: str) -> str:
@@ -154,10 +157,10 @@ SETTINGS: dict[str, Setting] = {
     # what the Mac's camera detects: on (light: fire, LED) | hand (pose) | marker (#235: two LED markers, one per hand)
     "flow_kind": text("hand", choices=("on", "hand", "marker")),
     # #251: Dream Dance – the clutch (the dance acts only while it is engaged; released: only what the hands and the
-    # controllers set; released after every start – hub.py – and engaged only on purpose) and the movement set last
-    # chosen (a named table of what a movement does, dance.py)
+    # controllers set; released after every start – hub.py – and engaged only on purpose) and the movement set in use
+    # (#265: its sentences are the dance's table, dance.py)
     "clutch": flag(False),
-    "dance_set": text("", clean=_set_name),
+    "dance_set": text("standard", clean=_set_name),
     "flow_auto": flag(True),                                    # #252: flowtrack's automatic chooses kind and exposure, holds the one person
     # … and what it detects for Dream Dance: a mode is a preset, so the dance keeps its own choice – light chosen for
     # flowtrack never becomes the dance's detection (a bright window would stand in for the hands)
@@ -166,7 +169,6 @@ SETTINGS: dict[str, Setting] = {
     "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand
     "marker_r": text("magenta", choices=MARKERS),
     "dance_fb_secs": num(4.0, 1.0, 15.0),                       # #243: the seconds a "good"/"bad" of the dance lab keeps
-    "flow_fingers": flag(False),                                # … the hand model's 21 points per hand (finger values)
     "drift": num(0.5, 0.0, 1.0, guest=True, target=True, weight=0.6),       # keeps the dream alive without new input (0 = off)
     "drift_prompt": flag(True, guest=True),
     "music_patterns": flag(True),                               # music: changing patterns, drop → next scene

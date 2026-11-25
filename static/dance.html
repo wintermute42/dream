@@ -9,13 +9,18 @@
 <link rel="stylesheet" href="/static/movepage.css">
 <link rel="stylesheet" href="/static/movecard.css">
 <link rel="stylesheet" href="/static/dancelab.css">
+<link rel="stylesheet" href="/static/danceslots.css">
+<link rel="stylesheet" href="/static/moveteach.css">
 </head>
 <body class="mp-body">
 <!-- #251: the page of the mode Dream Dance – on this Mac only, in a window of its own beside the stage. Everything
-     that steers the show is in the panel too (the clutch, the set); here is the room to watch, tune and teach. -->
+     that steers the show is in the panel too (the clutch, the set); here is the room to watch, to say in sentences what
+     the movements do (#265) and to teach (#236: moves of one's own). -->
 <header class="mp-head">
   <h1>Dream Dance</h1>
   <div class="mp-status" id="pagestate" role="status"></div>
+  <!-- #265: the introduction over the page, and the page's explanations: on or off -->
+  <button type="button" class="btn mp-help" id="help" aria-pressed="true" title="Help: start the introduction again and show the explanations" aria-label="Help: start the introduction again">?</button>
 </header>
 <div class="mp-note" id="nostage">
   <span>This page shows the dance of the stage that opened it. Open it from the panel: card “Movement” → Dream Dance → “Page ↗” (or key L on the stage).</span>
@@ -29,7 +34,7 @@
     <span id="nomode-text"></span>
     <button type="button" class="btn" id="tomode">Switch to Dream Dance</button>
   </div>
-  <section class="mp-top" aria-label="Clutch, detection, movement set and beat">
+  <section class="mp-top" aria-label="Clutch, detection and beat">
     <div class="mp-card mp-clutch">
       <h2>Clutch</h2>
       <button type="button" class="btn clutchbtn" id="clutchbtn" aria-pressed="false" title="Engage or release the clutch (key K)">Clutch: released</button>
@@ -45,19 +50,9 @@
       <select id="flow_device" title="Camera for movement, e.g. an infrared camera" aria-describedby="camnote"><option value="">Camera: as picture</option></select>
       <div class="hint mp-camnote" id="camnote" hidden>The browser has not named a camera yet: allow the camera for Dream (it asks when the camera starts), then they are listed here.</div>
       <div class="mp-detect" id="detectstate" role="status"></div>
-      <div class="hint">Dream Dance has its own detection – what Flowtrack detects with (fire/LED too) stays Flowtrack’s. Only you change it: here or in the Movement card. The fingers’ switch is at the finger view below.</div>
+      <div class="hint">Dream Dance has its own detection – what Flowtrack detects with (fire/LED too) stays Flowtrack’s. Only you change it: here or in the Movement card. With “Hands (AI)” the hand model comes along by itself – your hands always belong to the dance.</div>
     </div>
-    <div class="mp-card">
-      <h2>Movement set</h2>
-      <select id="dance_set" aria-label="Movement set"><option value="">Set: your table</option></select>
-      <div class="mp-setrow">
-        <input type="text" id="setname" maxlength="24" aria-label="Name for a set of your own" placeholder="Name for a set of your own">
-        <button type="button" class="btn" id="setsave" title="Keep the table as it is now as a set of this name">Keep as set</button>
-      </div>
-      <button type="button" class="btn" id="setdelete" disabled title="Remove this set of your own (the built-in ones stay)">Remove this set</button>
-      <div class="hint" id="setstate" role="status">A set is a named table of what your movements do. Choose one here, in the panel, with a MIDI button (“Button: next movement set”) or in a playlist scene.</div>
-    </div>
-    <div class="mp-card">
+    <div class="mp-card" id="beatcard">
       <h2>Beat</h2>
       <div class="mp-clocks">
         <i class="mp-dot" id="dot-move" aria-hidden="true"></i><span>Your beat</span><span class="mp-bpm" id="bpm-move">–</span>
@@ -66,6 +61,8 @@
       <div class="hint" id="clockstate" role="status"></div>
     </div>
   </section>
+  <section id="slots" aria-label="What your movements do: the sentences"></section>
+  <section id="moveteach"></section>
   <section id="dancelab" hidden></section>
 </main>
 <script src="/static/i18n.js"></script>
@@ -73,65 +70,90 @@
 <script src="/static/dancepanel.js"></script>
 <script src="/static/dancerec.js"></script>
 <script src="/static/dancelab.js"></script>
+<script src="/static/danceslots.js"></script>
+<script src="/static/dancemoves.js"></script>
+<script src="/static/moveteach.js"></script>
+<script src="/static/danceintro.js"></script>
 <script src="/static/movecard.js"></script>
 <script src="/static/movepage.js"></script>
 <script>
 (() => {
   const T = I18N.t, $ = id => document.getElementById(id);
   I18N.apply();
-  let bridge = null, lab = null, shown = {};
+  let bridge = null, lab = null, slots = null, teach = null, shown = {}, namesKey = '';
   const say = (id, text) => { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } };
+  const intro = DanceIntro.mount($('help'));          // #265: the introduction – the first time, and with "?"
 
   // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
   // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
-  const NEEDS = { calls: ['attach', 'detach', 'state', 'setClutch', 'setSet', 'setMode', 'setKind', 'setCam', 'saveSet', 'deleteSet', 'lab.detect'],
-    state: ['mode', 'clutch', 'hold', 'set', 'sets', 'own', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams'] };
+  const NEEDS = { calls: ['attach', 'detach', 'state', 'setClutch', 'setSet', 'setMode', 'setKind', 'setCam', 'lab.detect',
+    'slots', 'slotsDo', 'live', 'probe', 'levels', 'movesChanged'],
+    state: ['mode', 'clutch', 'hold', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams', 'moves', 'strength'] };
   MovePage.link('dance', {
     needs: NEEDS,
     old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },
     on(b) {                                            // the stage is there: the lab reads it from now on
       bridge = b; $('nostage').hidden = true; $('oldstage').hidden = true; $('page').hidden = false;
-      lab = DanceLab.mount($('dancelab'), b.lab); lab.show(true); b.attach(lab);
+      // #265: "good" and "bad" have left this page (teaching asks "recognised right?" instead), and so has the row to
+      // tune (the sentences are the controls); recording stays
+      lab = DanceLab.mount($('dancelab'), Object.assign({}, b.lab, { feedback: false, tune: false })); lab.show(true); b.attach(lab);
+      const moves = () => { try { return b.state().moves || []; } catch (e) { return []; } };
+      const names = () => Object.fromEntries(moves().map(m => [m.id, m.name]));
+      // #265: the sentences, with the live figure – the hands in their marker colours, glowing in the colour of their effect
+      const HAND_COL = { cyan: '#35e6f0', magenta: '#f040dc', green: '#59e06a', blue: '#5b8cff' };
+      slots = DanceSlots.mount($('slots'), { bridge: b, fxNames: b.lab.fxNames, fxIcons: b.lab.fxIcons, label: n => DancePanel.label(n, b.lab.fxNames), setLabel: MoveCard.setLabel, names,
+        learn: o => teach && teach.wizard(o),
+        frame: () => { try { const l = b.lab.live(); return l ? DreamDanceRec.pack(performance.now() / 1000, b.lab.keys, l.rec, l.input, l.landmarks, l.out) : null; } catch (e) { return null; } },
+        figure: (c, w, h, f, glow) => DanceLab.drawFigure(c, w, h, f, { text: '#f2eefb', glow, handCol: hd => HAND_COL[(b.lab.colours() || {})[hd]] || (hd === 'l' ? HAND_COL.cyan : HAND_COL.magenta) }) });
+      // #236, #265: teaching a movement – a built-in one more exactly, or one of your own, which becomes an accent
+      teach = MoveTeach.mount($('moveteach'), { keys: b.lab.keys, fxNames: b.lab.fxNames, live: b.lab.live, sure: () => b.live(), colours: b.lab.colours, moves,
+        clutch: () => { try { return b.state().clutch; } catch (e) { return false; } }, changed: () => { try { b.movesChanged(); } catch (e) { /* the stage is reloading */ } },
+        levels: () => b.levels(), probe: name => b.probe(name), gestures: DanceSlots.ACCENTS.map(g => g.slice(2)), pictogram: DanceSlots.pictogram, keep: taught });
+      slots.draw();
+      setTimeout(() => intro.start(), 400);            // once the page has its size
     },
     lost() { bridge = null; $('nostage').hidden = false; $('oldstage').hidden = true; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
   });
-  addEventListener('pagehide', () => { try { if (bridge) bridge.detach(); } catch (e) { /* the stage is gone already */ } });
+  addEventListener('pagehide', () => { try { if (bridge) { bridge.probe(null); bridge.detach(); } } catch (e) { /* the stage is gone already */ } });
+
+  // #265: what teaching found – its tolerance on the accents with that movement; a movement on none of them (a new
+  // move of one's own) becomes an accent: with the effect chosen before, or the first one that fits
+  function taught({ src, tol, fx }) {
+    if (!slots) return;
+    let s = slots.slots();
+    if (!s.accents.some(a => a && a.src === src)) {
+      const want = fx || DanceSlots.EFFECTS.find(e => !DanceSlots.assign(s, 'accents', src, e).why), r = want ? DanceSlots.assign(s, 'accents', src, want) : null;
+      if (!r || r.why) { slots.hint(T('No effect fits beside the others – change an accent’s sentence, then choose the movement there.')); return; }
+      s = r.slots;
+    }
+    slots.change({ ...s, accents: s.accents.map(a => (a && a.src === src ? { ...a, tol } : a)) });
+  }
 
   $('clutchbtn').onclick = () => bridge && bridge.setClutch($('clutchbtn').getAttribute('aria-pressed') !== 'true');
-  $('dance_set').onchange = () => bridge && bridge.setSet($('dance_set').value);
   $('stagereload').onclick = () => { if (MovePage.reloadStage()) say('pagestate', T('The stage is loading anew …')); };
   $('tomode').onclick = () => bridge && bridge.setMode('dance');
   $('dance_kind').onchange = () => bridge && bridge.setKind($('dance_kind').value);
   $('flow_device').onchange = () => bridge && bridge.setCam($('flow_device').value);
-  const nameOk = () => /^[\p{L}\p{N}_][\p{L}\p{N}_ .+-]{0,23}$/u.test($('setname').value.trim());
-  $('setsave').onclick = () => {
-    const name = $('setname').value.trim();
-    if (!bridge) return;
-    if (!nameOk()) { say('setstate', T('A name: letters, digits, spaces and . + - , at most 24 characters.')); $('setname').focus(); return; }
-    if (bridge.state().sets.includes(name) && !bridge.state().own.includes(name)) { say('setstate', T('“{n}” is a built-in set – choose another name.', { n: name })); $('setname').focus(); return; }
-    bridge.saveSet(name); $('setname').value = ''; say('setstate', T('Kept as “{n}”.', { n: name }));
-  };
-  $('setname').addEventListener('keydown', e => { if (e.key === 'Enter') $('setsave').click(); });
-  $('setdelete').onclick = () => { const name = $('dance_set').value; if (bridge && name) { bridge.deleteSet(name); say('setstate', T('“{n}” removed.', { n: name })); } };
   addEventListener('keydown', e => {
     if (!bridge || MovePage.typing(e)) return;
     const k = e.key.toLowerCase();
     if (k === 'k') $('clutchbtn').click();
-    else if (lab && k === 'g') lab.feedback('good', 'key');
-    else if (lab && k === 'b') lab.feedback('bad', 'key');
     else if (lab && k === 'r') lab.record();
+    else if (teach && k === 't' && teach.phase === 'idle') teach.wizard({});
   });
 
-  // what the stage is at, with every frame: the clutch, how far the dance is in, the detection, the set, the two beats
+  // what the stage is at, with every frame: the clutch, how far the dance is in, the detection, the sentences, the two beats
   (function tick() {
     requestAnimationFrame(tick);
     if (!bridge) return;
     let st; try { st = bridge.state(); } catch (e) { return; }   // the stage is reloading: `link` notices
+    if (slots) slots.tick();
     const b = $('clutchbtn');
+    // #236: the names of the taught moves, wherever this page names a movement
+    const nk = JSON.stringify(st.moves.map(m => [m.id, m.name]));
+    if (nk !== namesKey) { namesKey = nk; DancePanel.setNames(st.moves); }
     if (b.getAttribute('aria-pressed') !== String(st.clutch)) MoveCard.clutchShow(b, st.clutch, $('clutchnote'));
     $('hold').style.transform = `scaleX(${(st.mode === 'dance' ? st.hold : 0).toFixed(3)})`;
-    MoveCard.fillSets($('dance_set'), st.sets, st.set);
-    $('setdelete').disabled = !st.own.includes(st.set);
     MovePage.beat($('dot-move'), st.move); MovePage.beat($('dot-music'), st.music);
     say('bpm-move', MovePage.clockText(st.move)); say('bpm-music', MovePage.clockText(st.music));
     say('clockstate', MovePage.agreeText(st.move, st.music));

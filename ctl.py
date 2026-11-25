@@ -171,11 +171,11 @@ async def ctl(sock: WebSocket):
                 lab = {k: bool(msg["dance_lab"].get(k)) for k in ("open", "rec", "play")}
                 hub.live["dance_lab"] = lab
                 await hub.broadcast({"dance": {"lab": lab}}, exclude=sock)
-            if "dance_map" in msg and rights.can(hub.roles.get(sock), "control"):   # #235: never a guest
-                mode = msg.get("mode") if is_name(msg.get("mode")) and msg["mode"] in dance.MODES else "dance"   # #249
-                await hub.broadcast(inputs.dance_map(msg["dance_map"], mode))
-            if ("dance_set_save" in msg or "dance_set_delete" in msg) and rights.can(hub.roles.get(sock), "control"):   # #251
-                await hub.broadcast(inputs.dance_sets(msg))
+            # #235: never a guest; #249: the mode whose table it is – #265: the mood's or flowtrack's, never the dance's
+            if "dance_map" in msg and rights.can(hub.roles.get(sock), "control") and is_name(msg.get("mode")) and msg["mode"] in dance.TABLE_MODES:
+                await hub.broadcast(inputs.dance_map(msg["dance_map"], msg["mode"]))
+            if "dance_slots" in msg and rights.can(hub.roles.get(sock), "control"):   # #265: the movement sets of Dream Dance
+                await hub.broadcast(inputs.dance_slots(msg["dance_slots"]))
             if "midi_forget" in msg:
                 inputs.midi_map.pop(str(msg["midi_forget"]), None)
                 midi.save_map(inputs.midi_map)

@@ -54,6 +54,8 @@
   function unpack(frame, keys) {
     const v = {}, c = {}, src = {};
     keys.forEach((k, n) => { v[k] = frame.v[n]; c[k] = frame.c[n]; src[k] = ''; });
+    // #236: a taught move is no key of a session (they come and go) – the frame says which gesture was on, and how large
+    if (frame.g && !keys.includes('g.' + frame.g)) { v['g.' + frame.g] = frame.s || 0; c['g.' + frame.g] = frame.gc || 0; src['g.' + frame.g] = ''; }
     return { t: frame.t, v, c, src, bpm: frame.b || 0, gesture: frame.g || null, gc: frame.gc || 0, size: frame.s || 0, g: {}, hands: { l: null, r: null }, events: [] };
   }
   // … and what the detector was fed in that frame: feeding a session's inputs to a fresh detector gives its features again
