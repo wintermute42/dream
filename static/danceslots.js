@@ -1,5 +1,5 @@
-/* Dream – the slots of Dream Dance (#265, a prototype): a few fixed places instead of the mapping table, read as
-   sentences.
+/* Dream – the sentences of Dream Dance (#265): what the dancer's movements do, as a few fixed places read as
+   sentences – the only controls of the dance (the engine's table is compiled from them, dance.py).
 
    Every slot is a sentence that says what will happen: "When I [throw my arms up] → [trails follow] [light|medium|
    strong]". The pill of the movement and the pill of the effect are buttons – each half of a sentence is changed with
@@ -16,12 +16,13 @@
    What acts is seen without reading: a band of the signal's way (detection → movements → clutch → effects →
    strength) whose links glow while they let it through, sentences that glow with a level while they act, accents
    that flash when their gesture is recognised, the skeleton's hands glowing in the colour of the effect, and a
-   traffic light of three symbols (clutch released, nobody detected, markers not seen) – text only on hover.
+   traffic light of three symbols (clutch released, nobody detected, markers not seen – movecard.js `lamp`, the panel
+   shows it too) – text only on hover.
    Sets are a row of cards: the built-in ones with a lock; a change makes a draft ("● changed", played at once), and a
    bar offers to save it – a built-in set always as a new set under a name the dancer gives – or to throw it away. An
    own set is renamed and deleted on its card; a deletion can be undone.
 
-   `fits`, `handFits`, `place`, `level`, `glow`, `light`, `phrase`, `stepOf`, `suggestName`, `nameProblem`, `chain`,
+   `fits`, `handFits`, `place`, `level`, `glow`, `phrase`, `stepOf`, `suggestName`, `nameProblem`, `chain`,
    `strongest`, `assign` are pure (tests/js/danceslots.test.mjs). Looks: danceslots.css – only transform and opacity
    move. A global `DanceSlots`. */
 (function (root) {
@@ -41,7 +42,7 @@
   const EFFECTS = Object.values(M.GROUPS).flat();
   const COLOURS = { symmetry: '#c78bff', space: '#5bb8ff', afterglow: '#ffc857', disturbance: '#ff7a8a', colour: '#7fe3a0' };
   const GROUP_NAMES = { symmetry: () => T('Symmetry'), space: () => T('Space'), afterglow: () => T('Afterglow'), disturbance: () => T('Disturbance'), colour: () => T('Colour') };
-  const STEP_NAMES = [() => T('light'), () => T('medium'), () => T('strong')];
+  const STEP_NAMES = [() => T('mild'), () => T('medium'), () => T('strong')];   // “mild”: “light” is the light in the dark
   const TOL_NAMES = { tight: () => T('tight'), normal: () => T('normal'), loose: () => T('loose') };
   const TOL_WHAT = { tight: () => T('Tight: only a clear movement counts – fewer false alarms'), normal: () => T('Normal: as Dream detects it out of the box'),
     loose: () => T('Loose: a hint of the movement counts – it comes more easily, now and then by mistake') };
@@ -107,14 +108,6 @@
     });
     return best ? { l: best, r: best } : null;
   }
-  // The traffic light: what blocks the dance. st: the bridge's state (clutch, mode); live: the bridge's live().
-  // → {green, clutch, person, marker}: each 'ok' | 'block' | 'none' (does not apply)
-  function light(st, live) {
-    const clutch = st && st.clutch ? 'ok' : 'block';
-    const person = live && live.seen ? 'ok' : 'block';
-    const marker = !live || !live.markerWanted ? 'none' : live.markers > 0 ? 'ok' : 'block';
-    return { green: !!st && st.mode === 'dance' && clutch === 'ok' && person === 'ok' && marker !== 'block', clutch, person, marker };
-  }
   // The words of a sentence: {lead, move, fx} – where: 'base' | 'accents'; names: {move id → the name the dancer gave it}.
   function phrase(where, slot, names = {}) {
     const own = OWN.test(slot.src) ? names[slot.src.slice(2)] || T('a move of yours') : null;
@@ -123,16 +116,18 @@
   }
   // A name for a new set made of this one: "<shown name> – mine" (the dancer changes it as they like); with a number
   // only when that one is taken already – shown in the field, never added silently.
+  // taken: the names a new set may not have – compared without regard to case (dance.py does the same)
+  const has = (taken, n) => taken.some(t => String(t).toLowerCase() === n.toLowerCase());
   function suggestName(shown, taken) {
     const base = T('{s} – mine', { s: String(shown).replace(/[^\p{L}\p{N}_ .+\-–]/gu, '').trim().slice(0, 24) || 'Set' });
-    if (!taken.includes(base)) return base;
-    for (let n = 2; n < 100; n++) if (!taken.includes(`${base} ${n}`)) return `${base} ${n}`;
+    if (!has(taken, base)) return base;
+    for (let n = 2; n < 100; n++) if (!has(taken, `${base} ${n}`)) return `${base} ${n}`;
     return base;
   }
   // What is wrong with a name for a new set: null, 'chars' (letters, digits, spaces and . + - –, at most 32) or 'taken'.
   function nameProblem(name, taken) {
     const n = String(name || '').trim().replace(/\s+/g, ' ');
-    return !NAME_OK.test(n) ? 'chars' : taken.includes(n) ? 'taken' : null;
+    return !NAME_OK.test(n) ? 'chars' : has(taken, n) ? 'taken' : null;
   }
   // The band of the signal's way – which link lets it through right now: {detect, moves, clutch, effects, strength}.
   // st: the bridge's state (clutch, strength); live: the bridge's live(); acting: the strongest slot's level now.
@@ -213,14 +208,9 @@
       const li = el('li', 'ds-link'), b = el('b', '', name), s = el('span', '', what);
       li.dataset.k = k; li.append(b, s); band.append(li); link[k] = { li, s };
     }
-    const lamp = el('div', 'ds-light'); lamp.setAttribute('role', 'group'); lamp.setAttribute('aria-label', T('What blocks the dance'));
-    const dot = el('i', 'ds-lamp'); dot.setAttribute('aria-hidden', 'true');
-    const symClutch = el('button', 'ds-sym', '🔓'); symClutch.type = 'button';
-    const symPerson = el('span', 'ds-sym', '👤'), symMarker = el('span', 'ds-sym', '◉');
-    symPerson.setAttribute('role', 'img'); symMarker.setAttribute('role', 'img');
-    symClutch.onclick = () => { const st = bridge.state(); bridge.setClutch(!st.clutch); };
-    lamp.append(dot, symClutch, symPerson, symMarker);
-    top.append(band, lamp);
+    const MC = node ? require('./movecard.js') : root.MoveCard;    // the traffic light is the movement card's (the panel shows it too)
+    const lampBox = el('div'), lamp = MC.lamp(lampBox, { clutch: () => { const st = bridge.state(); bridge.setClutch(!st.clutch); } });
+    top.append(band, lampBox);
 
     // ---- the sets: a row of cards, the bar of a changed one ----
     const setBar = el('div', 'ds-sets'); setBar.setAttribute('role', 'group'); setBar.setAttribute('aria-label', T('Sets'));
@@ -274,6 +264,8 @@
     let pending = null, timer = 0, renaming = null, popped = '';
     const info = () => bridge.slots() || { use: 'standard', sets: ['standard', 'waves', 'fire'], own: [], data: {}, drafts: {}, from: {}, rows: [], tol: {} };
     const builtin = n => !info().own.includes(n);
+    // the names a new name may not be: every set's, and what the built-in ones are called here (but: a set's own)
+    const takenNames = (self = null) => info().sets.filter(n => n !== self).flatMap(n => [n, opts.setLabel(n)]);
     const drafts = () => info().drafts || {};
     const empty = { base: [null, null], accents: [null, null, null, null], hands: [] };
     const cur = () => pending || drafts()[info().use] || info().data[info().use] || empty;
@@ -300,7 +292,7 @@
             if (e.key !== 'Enter') return;
             const v = inp.value.trim().replace(/\s+/g, ' ');
             if (v === n) { renaming = null; drawSets(); return; }
-            const why = nameProblem(v, i.sets);
+            const why = nameProblem(v, takenNames(n));
             if (why) { hint(why === 'taken' ? T('“{n}” exists already – choose another name.', { n: v }) : T('A name: letters, digits, spaces and . + - –, at most 32 characters.'), null, inp); return; }
             send({ op: 'rename', name: n, as: v }); renaming = null; popped = v; hint(T('Renamed: “{n}”.', { n: v }));
           });
@@ -347,10 +339,10 @@
       if (!d) return;
       dirtyText.textContent = own ? T('“{n}” ● changed.', { n: opts.setLabel(i.use) }) : T('“{n}” ● changed. Built-in sets stay as they are – save your changes as a new set.', { n: opts.setLabel(i.use) });
       nameLab.hidden = saveAsBtn.hidden = own; saveBtn.hidden = !own; nameWhy.textContent = '';
-      if (!own && document.activeElement !== nameIn) nameIn.value = suggestName(opts.setLabel(i.use), i.sets);
+      if (!own && document.activeElement !== nameIn) nameIn.value = suggestName(opts.setLabel(i.use), takenNames());
     }
     function saveAs() {
-      const i = info(), name = nameIn.value.trim().replace(/\s+/g, ' '), why = nameProblem(name, i.sets);
+      const i = info(), name = nameIn.value.trim().replace(/\s+/g, ' '), why = nameProblem(name, takenNames());
       if (why) { nameWhy.textContent = why === 'taken' ? T('“{n}” exists already – choose another name.', { n: name }) : T('A name: letters, digits, spaces and . + - –, at most 32 characters.'); nameIn.focus(); return; }
       clearTimeout(timer); timer = 0;
       send({ op: 'save_as', name, slots: cur(), from: i.use }); pending = null; popped = name;
@@ -364,7 +356,8 @@
     // ---- the sentences ----
     const rows = [];                                   // {where, i, row, meter, conf, mark, flash, id, dst, src}
     let handRow = null, drawnKey = '', focusAfter = null;   // focusAfter: [where, i, pill class] – where focus goes after a choice
-    function pill(cls, text, title, onclick) { const b = el('button', 'ds-pill ' + cls, text); b.type = 'button'; tip(b, title); b.onclick = onclick; return b; }
+    // a pill is named by the words it shows (they are half of the sentence); what a click does is its description
+    function pill(cls, text, title, onclick) { const b = el('button', 'ds-pill ' + cls, text); b.type = 'button'; b.title = title; b.onclick = onclick; return b; }
     function steps(group, names, current, label, onpick) {
       const g = el('span', 'ds-steps ' + group); g.setAttribute('role', 'group'); g.setAttribute('aria-label', label);
       names.forEach((n, k) => {
@@ -410,7 +403,7 @@
         if (!s[where].some(Boolean)) list.append(el('div', 'ds-none', where === 'base' ? T('No base movement – the picture rests while you move.') : T('No accent – your gestures set nothing off.')));
         more.dataset.where = where; more.dataset.i = 'more';
         const free = s[where].findIndex(x => !x);
-        const add = btn(T('＋ Sentence'), free < 0 ? T('All {n} places are taken – remove a sentence first', { n: SLOTS[where] }) : T('Add a sentence – then choose its movement and effect'), 'ds-add');
+        const add = btn(T('＋ Sentence'), free < 0 ? T('All {n} sentences of this lane are there – remove one first', { n: SLOTS[where] }) : T('Add a sentence – then choose its movement and effect'), 'ds-add');
         add.disabled = free < 0; add.onclick = () => addSentence(where);
         more.append(add);
         if (where === 'accents') {
@@ -623,15 +616,7 @@
       if (link.strength.s.textContent !== stTxt) link.strength.s.textContent = stTxt;
       const cTxt = st.clutch ? T('Engaged: your movement gets through') : T('Released, nothing gets through');
       if (link.clutch.s.textContent !== cTxt) link.clutch.s.textContent = cTxt;
-      const lt = light(st, live), set = (e, state, ok, block, none) => {
-        e.dataset.state = state; const text = state === 'ok' ? ok : state === 'block' ? block : none;
-        if (e.title !== text) tip(e, text);
-      };
-      set(symClutch, lt.clutch, T('Clutch engaged – your dance steers (click or key K to release)'), T('Clutch released – your dance does nothing yet (click or key K)'));
-      set(symPerson, lt.person, T('Someone is detected'), T('Nobody detected – step into the camera’s view'));
-      set(symMarker, lt.marker, T('LED markers are seen'), T('LED markers chosen, but none is seen'), T('No LED markers chosen'));
-      lamp.dataset.state = lt.green ? 'go' : 'stop';
-      tip(lamp, lt.green ? T('Green: nothing blocks – your dance steers the dream') : T('Something blocks the dance – see the symbols'));
+      lamp.show(st, live);
       if (now - figAt > 33) { figAt = now; drawFig(s, live); }
     }
     const sizes = { w: 0, h: 0 };
@@ -648,7 +633,7 @@
     return { tick, draw: () => draw(true), slots: cur, change, hint, set hidden(v) { box.hidden = v; }, get hidden() { return box.hidden; } };
   }
 
-  const api = { mount, fits, handFits, place, level, glow, light, phrase, stepOf, suggestName, nameProblem, chain, strongest, assign, pictogram,
+  const api = { mount, fits, handFits, place, level, glow, phrase, stepOf, suggestName, nameProblem, chain, strongest, assign, pictogram,
     BASE, ACCENTS, HANDS, MAX_HANDS, STEPS, TOLS, COLOURS, GROUP_OF, EFFECTS, REASONS, SLOTS };
   if (node) module.exports = api;
   else root.DanceSlots = api;

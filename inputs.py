@@ -235,24 +235,17 @@ async def sources_tell():
         await on_presence(word)
 
 
-def slots_ui() -> bool:
-    """#265: whether Dream Dance shows slots instead of the table (the setting dance_ui)."""
-    return hub.state.get("dance_ui") == "slots"
-
-
 def next_set(name: str) -> str:
-    """#251: the movement set after this one in the list (the MIDI button) – #265: of the sets of slots while the
-    slots are shown, starting from the one in use."""
-    names = list(dance.all_slots() if slots_ui() else dance.all_sets())
-    name = dance.slot_use if slots_ui() else name
+    """#251: the movement set after this one in the list (the MIDI button), starting from the one in use."""
+    names = list(dance.all_slots())
+    name = dance.slot_use if dance.slot_use in names else name
     return names[(names.index(name) + 1) % len(names)] if name in names else names[0]
 
 
 def _set_chosen() -> None:
-    """#251: a movement set was chosen – in the panel, by a MIDI button, by a playlist scene: its rows are the dance
-    table from now on, and every page is told. A name that is no set changes nothing. #265: while the slots are shown,
-    the name chooses a set of slots – the table stays exactly as it is (switching back to it loses nothing)."""
-    if dance.use_slots(hub.state["dance_set"]) if slots_ui() else dance.use_set(hub.state["dance_set"]):
+    """#251: a movement set was chosen – in the panel, by a MIDI button, by a playlist scene: its sentences are the
+    dance's table from now on (#265), and every page is told. A name that is no set changes nothing."""
+    if dance.use_slots(hub.state["dance_set"]):
         try:
             asyncio.get_running_loop().create_task(hub.broadcast(dance.msg()))
         except RuntimeError:                       # no loop (a script, a test): the next page that connects is told
@@ -262,17 +255,8 @@ def _set_chosen() -> None:
 hub.on_change("dance_set", _set_chosen)
 
 
-def dance_sets(msg: dict) -> dict:
-    """#251: Dream Control or this Mac keeps the dance table as a set of its own, or removes one of its own sets."""
-    if "dance_set_save" in msg:
-        dance.save_set(msg["dance_set_save"])
-    if "dance_set_delete" in msg:
-        dance.delete_set(msg["dance_set_delete"])
-    return dance.msg()
-
-
 def dance_slots(op) -> dict:
-    """#265: Dream Control or this Mac changes the slots: {"op": "draft", "name", "slots"} (a change, played at once,
+    """#265: Dream Control or this Mac changes the sets: {"op": "draft", "name", "slots"} (a change, played at once,
     not kept yet – a built-in set too), {"op": "discard", "name"}, {"op": "save", "name"} (an own set keeps its draft),
     {"op": "save_as", "name": the new name, "slots", "from": the set it came from} (a new set of one's own, in use from
     now on – also the undo of a deletion), {"op": "rename", "name", "as"}, {"op": "delete", "name"} (own sets only).
@@ -291,13 +275,14 @@ def dance_slots(op) -> dict:
             dance.rename_slots(name, op.get("as"))
         elif what == "delete":
             dance.delete_slots(name)
-        if slots_ui() and hub.state.get("dance_set") != dance.slot_use:
+        if hub.state.get("dance_set") != dance.slot_use:
             hub.state["dance_set"] = dance.slot_use
-    return {**dance.msg(), **({"set": {"dance_set": dance.slot_use}} if slots_ui() else {})}
+    return {**dance.msg(), "set": {"dance_set": dance.slot_use}}
 
 
-def dance_map(new, mode: str = "dance") -> dict:
-    """#235, #249: Dream Control or this Mac changed a mode's mapping table (or asked for the built-in one)."""
+def dance_map(new, mode: str) -> dict:
+    """#235, #249: this Mac changed the mapping table of the mood or of flowtrack (or asked for the built-in one; the
+    dance's is its set's, #265)."""
     dance.set_rows(new, mode)
     return dance.msg()
 

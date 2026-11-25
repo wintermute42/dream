@@ -41,12 +41,12 @@
 
   // ---------- #265: the rules that keep every effect visible ----------
   // Effects of one group cancel each other out or wash the picture out when they act together (three symmetries over
-  // each other, afterglow and feedback, pixel, grid and glitch). With the rules on – the slots of Dream Dance – the
+  // each other, afterglow and feedback, pixel, grid and glitch). With the rules on – the dance's table, compiled from its sentences – the
   // engine enforces, whatever the table says (an old file, a hand-made row):
   // - one effect per group: of a group only the strongest acts strongly, the others are held back to a hint (WEAK);
   // - a budget: at most BUDGET groups act strongly at once – when one more comes in (an accent), the weakest of the
   //   others steps back for as long as it lasts (in DUCK_IN seconds) and comes back softly (DUCK_OUT);
-  // - a minimum: a row that moves an effect reaches at least MIN at its peak – a slot is occupied or empty, never
+  // - a minimum: a row that moves an effect reaches at least MIN at its peak – a sentence is there or not, never
   //   "almost nothing".
   const GROUPS = { symmetry: ['kaleido', 'mandala', 'mirror'], space: ['tunnel', 'waves'], afterglow: ['trails', 'feedback'],
     disturbance: ['rgb', 'glitch', 'pixel', 'raster'], colour: ['hue'] };

@@ -14,7 +14,7 @@
   const STEPS = [
     { k: 'camera', at: ['#dancelab .dl-cam', '#dancelab'], say: () => T('This is what Dream sees: move a hand, and the skeleton follows.') },
     { k: 'clutch', at: ['.mp-clutch'], say: () => T('Only engaged does your dance act: press K – the lock opens and the traffic light turns green.') },
-    { k: 'slots', at: ['#slots .ds-lanes', '#slots', '#dancelab .dl-tune'], say: () => T('Movement → effect: throw your arms up, and its sentence lights up.') },
+    { k: 'slots', at: ['#slots .ds-lanes', '#slots'], say: () => T('Movement → effect: throw your arms up, and its sentence lights up.') },
     { k: 'beat', at: ['#beatcard'], say: () => T('Two dots blink – your beat and the music’s; when they blink together, you dance in time.') },
     { k: 'learn', at: ['#slots .ds-learn', '#dancelab .dl-bar'], say: () => T('“Record” keeps a session to look at later; “Teach a movement …” teaches Dream one of yours.') },
   ];

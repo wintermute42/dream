@@ -5,7 +5,7 @@
      each with the source it came from and paler the less sure it is –, the recognised gesture with its confidence,
      the movement's own tempo and a dot that beats with it; with the fingers switched on, their values per hand.
    - the mapping: one row per "source → target" with its switch and its strength; rows can be added, removed, and
-     the built-in table brought back. The table itself is Dream's (dance.py): the card sends what a hand changes
+     the built-in table brought back – the mood's and flowtrack's (#265: the dance's is its sentences, `table`). The table itself is Dream's (dance.py): the card sends what a hand changes
      (`send`) and shows what Dream says (`map`).
    #236: a taught move is a source like a gesture, under the name the dancer gave it (`setNames`).
    `label`, `edit` and `add` are pure (tests/js/dancemap.test.mjs). Looks: dancepanel.css – only transform and opacity
@@ -154,7 +154,9 @@
       if (held) for (const r of rows) { const dot = map.querySelector(`[data-id="${r.id}"] .dp-live`); if (dot) dot.style.opacity = Math.min(1, Math.abs(held(r.id)) * 1.5).toFixed(2); }
     }
     // Dream's word on the table – not taken while a hand's change is still on its way (its echo would undo the newer one)
-    return { map(next) { if (timer) return; rows = next || []; draw(); }, show, renamed() { drawn = ''; draw(); }, get busy() { return !!timer; }, get rows() { return rows; } };
+    // table(false) – #265: Dream Dance has its sentences on its page: the card shows only what Dream sees
+    function table(on) { map.hidden = btns.hidden = !on; }
+    return { map(next) { if (timer) return; rows = next || []; draw(); }, show, table, renamed() { drawn = ''; draw(); }, get busy() { return !!timer; }, get rows() { return rows; } };
   }
 
   const api = { mount, label, edit, add, setNames };

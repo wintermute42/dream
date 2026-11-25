@@ -89,9 +89,9 @@ test('the tolerance is the detection’s: tight takes less for the gesture, loos
 
 test('a taught move as an accent acts through the dance table like a gesture’s – and only with the clutch engaged', () => {
   const tk = taken('drum'), { g, seg } = tk.look(), c = MV.compile(MV.template(g, seg.reps, seg.hands), 'm0a1b2c3d');
-  // the row the slots make of an accent "When I dance “…” → a tunnel tears open" (dance.py compile_slots)
+  // the row an accent makes "When I dance “…” → a tunnel tears open" (dance.py compile_slots)
   const rows = [{ id: 'accent0', on: true, src: 'g.m0a1b2c3d', dst: 'fx.tunnel', curve: 'lin', in: [0, 1], out: [0, 1], smooth: 0.15, origin: 'slot' }], d = D.create(); d.setMoves([c]);
-  const run = clutch => { const mover = MOVE.create({ maps: M }); let out = {}; d.reset(); for (const f of frames('drum', { seconds: 6, seed: 2 })) out = mover.step({ mode: 'dance', tables: { dance: rows }, rec: d.step(f), clutch, rules: { dance: true }, dt: 1 / 30 }); return out; };
+  const run = clutch => { const mover = MOVE.create({ maps: M }); let out = {}; d.reset(); for (const f of frames('drum', { seconds: 6, seed: 2 })) out = mover.step({ mode: 'dance', tables: { dance: rows }, rec: d.step(f), clutch, dt: 1 / 30 }); return out; };
   assert.ok(run(true)['fx.tunnel'] > 0.8, 'engaged: the move steers its effect');
   assert.equal(run(false)['fx.tunnel'] || 0, 0, 'released: nothing');
 });

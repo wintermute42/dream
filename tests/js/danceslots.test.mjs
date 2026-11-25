@@ -1,6 +1,6 @@
-// #265: the slots of Dream Dance as sentences (static/danceslots.js) – what fits where, what a hand makes of the slots,
+// #265: the sentences of Dream Dance (static/danceslots.js) – what fits where, what a hand makes of the slots,
 // the words of a sentence, the three strengths, the names of new sets, what lights up (the sentences, the signal's way,
-// the traffic light), what Dream takes from a movement shown, and the introduction (static/danceintro.js). No browser.
+// the traffic light – static/movecard.js), what Dream takes from a movement shown, and the introduction (static/danceintro.js). No browser.
 // Run: node --test tests/js/danceslots.test.mjs
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 const require = createRequire(import.meta.url);
-const S = require('../../static/danceslots.js'), I = require('../../static/danceintro.js');
+const S = require('../../static/danceslots.js'), I = require('../../static/danceintro.js'), MC = require('../../static/movecard.js');
 const slot = (src, fx, amt = 1) => ({ src, fx, amt });
 const set = { base: [slot('energy', 'trails'), slot('open', 'kaleido')], accents: [slot('g.throw', 'tunnel'), null, null, null], hands: ['paint', 'warp'] };
 
@@ -55,14 +55,14 @@ test('a tile glows while its slot acts, as strongly as its effect is after the r
 
 test('the traffic light: green only when nothing blocks', () => {
   const live = { seen: true, markerWanted: false, markers: 0 };
-  assert.deepEqual(S.light({ mode: 'dance', clutch: true }, live), { green: true, clutch: 'ok', person: 'ok', marker: 'none' });
-  assert.equal(S.light({ mode: 'dance', clutch: false }, live).clutch, 'block');
-  assert.equal(S.light({ mode: 'dance', clutch: false }, live).green, false);
-  assert.equal(S.light({ mode: 'dance', clutch: true }, { ...live, seen: false }).person, 'block');
-  assert.deepEqual(S.light({ mode: 'dance', clutch: true }, { ...live, markerWanted: true }), { green: false, clutch: 'ok', person: 'ok', marker: 'block' });
-  assert.equal(S.light({ mode: 'dance', clutch: true }, { ...live, markerWanted: true, markers: 2 }).green, true);
-  assert.equal(S.light({ mode: 'mood', clutch: true }, live).green, false, 'another mode: the dance does nothing');
-  assert.equal(S.light({ mode: 'dance', clutch: true }, null).person, 'block', 'nothing comes from the stage: nobody');
+  assert.deepEqual(MC.light({ mode: 'dance', clutch: true }, live), { green: true, clutch: 'ok', person: 'ok', marker: 'none' });
+  assert.equal(MC.light({ mode: 'dance', clutch: false }, live).clutch, 'block');
+  assert.equal(MC.light({ mode: 'dance', clutch: false }, live).green, false);
+  assert.equal(MC.light({ mode: 'dance', clutch: true }, { ...live, seen: false }).person, 'block');
+  assert.deepEqual(MC.light({ mode: 'dance', clutch: true }, { ...live, markerWanted: true }), { green: false, clutch: 'ok', person: 'ok', marker: 'block' });
+  assert.equal(MC.light({ mode: 'dance', clutch: true }, { ...live, markerWanted: true, markers: 2 }).green, true);
+  assert.equal(MC.light({ mode: 'mood', clutch: true }, live).green, false, 'another mode: the dance does nothing');
+  assert.equal(MC.light({ mode: 'dance', clutch: true }, null).person, 'block', 'nothing comes from the stage: nobody');
 });
 
 test('a sentence says what will happen – each half in words of its own', () => {
@@ -81,10 +81,12 @@ test('a new set gets the name the dancer gives it – a suggestion, never a sile
   assert.equal(S.suggestName('a/b<c>', []), 'abc – mine');
   assert.equal(S.nameProblem('Waves – mine', ['standard']), null);
   assert.equal(S.nameProblem('standard', ['standard']), 'taken');
+  assert.equal(S.nameProblem('wild', ['fire', 'Wild']), 'taken', 'no case can make a second “Wild”');
   for (const bad of ['', ' ', 'a/b', '<b>', 'x'.repeat(33)]) assert.equal(S.nameProblem(bad, []), 'chars', bad);
-  // the same names as Dream takes (dance.py SLOT_NAME)
-  const py = readFileSync(new URL('../../dance.py', import.meta.url), 'utf8');
-  assert.ok(py.includes('SLOT_NAME = re.compile(r"[^\\W_][\\w .+\\-–]{0,31}")'));
+  // the same names as Dream takes (settings.py SET_NAME, which dance.py SLOT_NAME is)
+  const py = readFileSync(new URL('../../settings.py', import.meta.url), 'utf8');
+  assert.ok(py.includes('SET_NAME = re.compile(r"[^\\W_][\\w .+\\-–]{0,31}")'));
+  assert.ok(readFileSync(new URL('../../dance.py', import.meta.url), 'utf8').includes('SLOT_NAME = settings.SET_NAME'));
 });
 
 test('the signal’s way: each link glows while it lets the movement through', () => {
@@ -140,10 +142,10 @@ test('the introduction goes the signal’s way, one sentence a step, and stays o
   assert.ok(html.includes('id="beatcard"') && html.includes('class="mp-card mp-clutch"') && html.includes('id="help"'));
 });
 
-test('the slots live on the page of Dream Dance only – nothing of them on the stage’s output', () => {
+test('the sentences live on the page of Dream Dance only – nothing of them on the stage’s output', () => {
   for (const f of ['static/output.html', 'static/remote.html']) assert.ok(!readFileSync(new URL('../../' + f, import.meta.url), 'utf8').includes('danceslots'), f);
   const html = readFileSync(new URL('../../static/dance.html', import.meta.url), 'utf8');
-  assert.ok(html.includes('danceslots.js') && html.includes('id="ui-slots"') && html.includes('id="ui-table"'));
+  assert.ok(html.includes('danceslots.js') && !html.includes('id="ui-slots"') && !html.includes('id="ui-table"'), 'the sentences are the only controls');
   // only transform and opacity move
   const css = readFileSync(new URL('../../static/danceslots.css', import.meta.url), 'utf8');
   for (const m of css.matchAll(/transition:([^;}]+)/g)) for (const part of m[1].split(',')) assert.match(part.trim(), /^(transform|opacity|none)\b/);

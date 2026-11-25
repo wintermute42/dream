@@ -14,7 +14,7 @@
    While it teaches, the detection takes the movement loosely (every candidate counts – the dancer says which were right).
    The quick way (a new sentence by showing it, danceslots.js) takes three repetitions and keeps the move at once.
    The list shows every move of one's own with its looping skeleton, its name (change it there), the piece of prompt it
-   brings along (for the old table's target "Prompt piece of the move"), how sure Dream is of it right now, and the
+   brings along (blended in while its accent acts), how sure Dream is of it right now, and the
    button to delete it (its accents go with it).
 
    `take` (a take in the making), `spans`, `moveFile`, `why`, `bounds`, `episodes` and `pickTolerance` are pure
@@ -169,7 +169,7 @@
     wiz.append(closeBtn, stepBar, big, small, bar, pane, btns);
     // ---- the list ----
     const list = el('ul', 'mt-list'); list.setAttribute('aria-label', T('The moves you taught'));
-    const hint = el('div', 'hint', T('A move is a rhythmic movement of your hands, shown a few times in a row (one repetition in a third of a second to a good second). Dream keeps its way as numbers on this Mac – never a camera picture – and recognises it like a built-in gesture. It becomes an accent: “When I dance “…” → …”. The prompt piece is blended in when the old table lets the move steer “Prompt piece of the move”.'));
+    const hint = el('div', 'hint', T('A move is a rhythmic movement of your hands, shown a few times in a row (one repetition in a third of a second to a good second). Dream keeps its way as numbers on this Mac – never a camera picture – and recognises it like a built-in gesture. It becomes an accent: “When I dance “…” → …”. The prompt piece is blended into the prompt while its accent acts.'));
     box.append(head, state, wiz, list, hint);
 
     // ---------- the wizard's state ----------

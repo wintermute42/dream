@@ -7,7 +7,8 @@
    stream of dance.js as running curves – a gap where a value is not known, a band where the skeleton was lost – with
    what each feature is computed from, its source and how sure it is (`origin`); the output with its effects and the
    hand model's 21 points per hand (with trails of the finger tips; `fingerWhy` says why there are none). Below: one row of the mapping table to tune (target, curve,
-   ranges, smoothing – at once, undoable), and the sessions kept on this Mac.
+   ranges, smoothing – at once, undoable; on the page of Flowtrack – #265: Dream Dance has its sentences instead,
+   `tune: false`), and the sessions kept on this Mac.
    A session is numbers, never pictures (dancerec.js): the camera picture is drawn here and nowhere kept. Playing a
    session back puts its features in the place of the live ones, so settings can be tried without dancing again.
 
@@ -208,7 +209,8 @@
     const listState = el('div', 'dl-state'), list = el('ul', 'dl-list'); listState.setAttribute('role', 'status');
     listBox.append(el('h3', '', T('Sessions and feedback')), listState, list);
     const marksList = el('ul', 'dl-list'); marksBox.append(el('h3', '', T('Feedback moments of this session')), marksList);
-    cols.append(tuneBox, listBox, marksBox);
+    const tuning = opts.tune !== false;
+    cols.append(...(tuning ? [tuneBox] : []), listBox, marksBox);
     box.append(bar, main, views, time, cols);
     const toast = el('div', 'dl-toast'); toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); document.body.append(toast);
 
@@ -563,7 +565,7 @@
         drawCam(shown, !!f); drawOut(now); drawFingers(f ? shown : []); drawCurves(frames, t1, cursor, marks);
         const g = f && f.g ? T('{g} · {p} % sure', { g: label('g.' + f.g), p: Math.round(f.gc * 100) }) : T('no gesture');
         if (gestTxt.textContent !== g) gestTxt.textContent = g;
-        drawTune(rowsNow()); drawTuneCurve(f);
+        if (tuning) { drawTune(rowsNow()); drawTuneCurve(f); }
         if (now - lastVals > 200) {
           lastVals = now; mode(); camLine(shown, f); drawSources(f, liveSrc);
           const i = k => keys.indexOf(k), pc = v => Math.round(v * 100) + ' %', det = detect(), why = fingerWhy(det);
@@ -586,9 +588,7 @@
       state();
     }
 
-    return { show, record, feedback, refresh,
-      // #265: with the slots the table is compiled by Dream – no row to tune by hand then
-      tune(on) { tuneBox.hidden = !on; }, get open() { return open; }, get active() { return active(); }, get recording() { return !!rec; }, get playing() { return !!player; },
+    return { show, record, feedback, refresh, get open() { return open; }, get active() { return active(); }, get recording() { return !!rec; }, get playing() { return !!player; },
       // a wristband's one button: one press "good", two right after each other "bad"
       button() { if (!active() || player) return; const v = press.press(performance.now() / 1000); if (v) feedback(v, 'button'); },
       // what was said into the microphone while the lab is open

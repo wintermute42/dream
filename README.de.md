@@ -51,7 +51,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Flowtrack](#flowtrack)
 - [Tanz](#tanz)
   - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
-  - [Plätze statt Tabelle (Prototyp)](#plätze-statt-tabelle-prototyp)
+  - [Die Sätze – was dein Tanz bewirkt](#die-sätze--was-dein-tanz-bewirkt)
   - [Eigene Bewegungen – eine Bewegung lernen](#eigene-bewegungen--eine-bewegung-lernen)
   - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
@@ -1290,15 +1290,17 @@ Interaktion“):
     **Stimmung** bzw. **Aus**.
   - **Flowtrack:** was Dream gerade erkennt – die Art, Werte pro Sekunde, ob jemand da ist –, **Automatik: AN/AUS**
     und was die Automatik gewählt hat und warum (siehe [Flowtrack](#flowtrack)).
-  - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo, die **Kupplung** und das
-    **Bewegungs-Set** (siehe [Dream Dance](#dream-dance-die-seite-die-kupplung-die-sets)).
+  - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo, die **Ampel** (was den Tanz blockiert),
+    die **Kupplung**, das **Bewegungs-Set** und der Regler **Stärke** – alle Wirkungen des Tanzes zusammen
+    (siehe [Dream Dance](#dream-dance-die-seite-die-kupplung-die-sets)).
 - **Seite ↗** öffnet die Seite des Modus in einem eigenen Fenster, für einen zweiten Bildschirm: Flowtrack und Dream
   Dance haben eine, die Stimmung braucht keine.
 - **Quellen** – ein Chip je Art, siehe unten.
 - Darunter eingeklappt: **Kamera und Erkennung** (Art der Erkennung, Kamera, Licht- und Marker-Farben, Finger,
   ⚡ Schnell, Kalibrieren, Projektion abziehen, Diagnose, Pose) und **Was eine Bewegung bewirkt** (was Dream sieht, die
-  Tabelle des gewählten Modus, das Tanz-Labor, die Direktheit der Hände und „Spiegeln“).
-- **Dream Control** hat nur die vier Modus-Knöpfe und die Stärke der Stimmung („Stimmung – Stärke“). Die Art der
+  Tabelle der Stimmung bzw. von Flowtrack – Dream Dance sagt es in Sätzen auf seiner Seite –, die Direktheit der Hände
+  und „Spiegeln“).
+- **Dream Control** hat nur die vier Modus-Knöpfe und die Stärke der Stimmung und des Tanzes („Bewegung – Stärke“). Die Art der
   Erkennung, die Kamera für Bewegung, ⚡ Schnell, die Direktheit, „Spiegeln“ und die Pose stellst du im Bedienfeld am
   Mac ein (es ist die Hauptsteuerung), und die Seiten gehören dem Mac. Was Dream Control an Bewegung anbietet, bietet
   auch das Bedienfeld (ein Test prüft das).
@@ -1656,9 +1658,9 @@ stünde. Die Karte „Bewegung“ zeigt die Wahl des Modus, der gerade läuft.
 - **Finger (Hand-KI, 21 Punkte je Hand)** (ein zweites Modell, einmal heruntergeladen, etwa 8 MB, es kostet etwas
   Grafikchip; es läuft von selbst, solange Dream Dance mit „Hände (KI)“ erkennt, nie bei Flowtrack – das Häkchen zeigt
   es nur): je Hand **Faust ↔ offene Hand**, **Finger gespreizt**, **Greifen** (Daumen
-  an Zeigefinger, gehalten, bis sie klar auseinander sind) und **Schnippen** (die Hand schnellt auf). Sie sind Quellen
-  der Tabelle wie alle anderen, z. B. „Rechte Hand: Faust ↔ offene Hand → Kaleidoskop“. Rechne mit Grenzen bei
-  Abstand, Dunkelheit und schnellen Bewegungen – die Anzeige zeigt, wann eine Hand verloren geht.
+  an Zeigefinger, gehalten, bis sie klar auseinander sind) und **Schnippen** (die Hand schnellt auf). Sie kommen in den
+  Merkmal-Strom (das Tanz-Labor zeigt sie). Rechne mit Grenzen bei Abstand, Dunkelheit und schnellen Bewegungen – die
+  Anzeige zeigt, wann eine Hand verloren geht.
 
 Von der Kamera wird dafür nichts gespeichert oder irgendwohin geschickt: Die Merkmale sind Zahlen, die die Bühne
 selbst rechnet.
@@ -1672,8 +1674,8 @@ Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine 
 Kamera (nur die Sessions des Labors gehen direkt an Dream und zurück) – öffne sie also aus dem Bedienfeld, nicht über
 ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
 selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
-Erkennung, die Bewegungs-Sets, der Takt, darunter deine eigenen Bewegungen (siehe
-[Eigene Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)) und das Tanz-Labor.
+Erkennung, der Takt, darunter die Sätze mit den Sets (siehe [Die Sätze](#die-sätze--was-dein-tanz-bewirkt)), deine
+eigenen Bewegungen (siehe [Eigene Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)) und das Tanz-Labor.
 
 **Die Kupplung** entscheidet, ob dein Tanz wirkt. Was Regler, Bedienfeld und ein MIDI-Controller einstellen, ist die
 **Grundlage**; der Tanz wirkt **obendrauf** – ein Effekt mit 30 % von Hand und 40 % vom Tanz zeigt sich mit 70 %, und
@@ -1691,19 +1693,14 @@ gelöst**: Dein Tanz bewirkt nichts, bis du sie bewusst einlegst – eine eingel
 mit gestricheltem rotem Rand und zeigt „Kupplung: gelöst“, und die Zeile darunter sagt, dass dein Tanz noch nichts
 bewirkt – in der Karte Bewegung, auf der Seite und in Dream Control gleich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
 
-**Bewegungs-Sets** sind benannte Tabellen dessen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines
-Auftritts. Eingebaut: **Standard** (die eingebaute Tabelle), **Wellen** (Energie → Wellen, Öffnung → Tunnel, Armwelle →
-Nachleuchten, Kreisen → Mandala, Ziehharmonika → Spiegel) und **Feuer** (Energie → Feedback, Hände oben → RGB-Versatz,
-Hochwerfen → Nachleuchten, Schieben → Wellen, Kreisen → Kaleidoskop). Ein gewähltes Set macht seine Zeilen zur
-benutzten Tabelle; die Tabelle danach abzustimmen ändert das Set nie. Wählen kannst du
-- in der Karte Bewegung (Modus Dream Dance) oder auf der Seite,
+**Bewegungs-Sets** sagen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines Auftritts, jedes ein paar
+Sätze (siehe [Die Sätze](#die-sätze--was-dein-tanz-bewirkt)). Eingebaut: **Standard**, **Fließend** und **Wild**.
+Wählen kannst du
+- in der Karte Bewegung (Modus Dream Dance) oder in der Set-Leiste auf der Seite,
 - mit einem MIDI-Knopf: „**Taste: nächstes Bewegungs-Set**“ geht sie der Reihe nach durch,
 - in Dream Control,
-- in einer Playlist-Szene: `"settings": {"dance_set": "waves"}` in einer Szene einer Playlist-Datei.
-
-Auf der Seite behält **Als Set behalten** die Tabelle, wie sie jetzt ist, unter einem eigenen Namen (Buchstaben,
-Ziffern, Leerzeichen und `. + -`, höchstens 24 Zeichen, bis zu 24 Sets); **Dieses Set entfernen** entfernt ein
-eigenes. Deine Sets liegen mit den Tabellen in `~/.config/dream/dance.json`.
+- in einer Playlist-Szene: `"settings": {"dance_set": "waves"}` in einer Szene einer Playlist-Datei (die Schlüssel der
+  eingebauten Sets sind `standard`, `waves` für Fließend und `fire` für Wild; ein eigenes Set mit seinem Namen).
 
 **Erkennung.** Die Karte „Erkennung“ auf der Seite wählt, womit Dream Dance erkennt – **Tanz: Hände (KI)** oder
 **Tanz: Leucht-Marker (2 Farben)** – und, unabhängig davon, die **Kamera** (die Kameras, die die Bühne kennt; die benutzte ist gewählt), und sagt, was
@@ -1723,16 +1720,14 @@ funktionierender Bedienelemente (das Bild setzt kurz aus, die Seite kommt von se
 **Takt.** Die Seite zeigt deinen Takt (das Tempo deiner Wiederholung) und den Musik-Takt
 nebeneinander, je mit einem Punkt, der mitschlägt, und sagt, wer den Takt gibt: dein Tanz, die Musik, beide
 zusammen (auch im halben oder doppelten Tempo) oder zwei verschiedene Takte. Effekte auf dem Schlag stoßen beide
-an – die Zeile „Eigener Schlag → Schub auf den Schlag“ der Tabelle für deine Bewegung, der Schlag der Musik wie immer.
+an – „Eigener Schlag → Schub auf den Schlag“ für deine Bewegung (Dream fügt ihn jedem Set hinzu), der Schlag der Musik
+wie immer.
 
-### Plätze statt Tabelle (Prototyp)
+### Die Sätze – was dein Tanz bewirkt
 
-Die Tabelle von Dream Dance kann alles – und deshalb landet man leicht bei Wirkungen, die sich gegenseitig aufheben,
-oder bei Zeilen, die so schwach sind, dass man nichts sieht. Die **Plätze** sind ein einfacherer Weg zu sagen, was dein
-Tanz bewirkt: ein paar Sätze, die man laut lesen kann. Sie sind ein Prototyp zum Vergleichen: Der Schalter
-**Alte Tabelle | Neue Plätze** oben auf der Seite von Dream Dance (auch in der Karte Bewegung des Bedienfelds:
-„Tanz: alte Tabelle / neue Plätze“) wählt; Umschalten verliert nichts – die Tabelle bleibt genau so, wie du sie
-verlassen hast, die Plätze auch.
+Die Mitte der Seite von Dream Dance sagt in ein paar Sätzen, die man laut lesen kann, was dein Tanz bewirkt – sie sind
+seine einzige Bedienung: **„Wenn ich [die Arme hochwerfe] → [reißt ein Tunnel auf]“**. Dream macht daraus die Regeln,
+die seine Engine in jedem Bild anwendet (Kurve, Bereich und Glättung wählt Dream), und hält dabei jede Wirkung sichtbar.
 
 **Der Weg des Signals.** Ein schmales Band oben im mittleren Teil zeigt die Kette, durch die deine Bewegung läuft:
 **Erkennung → Bewegungen → Kupplung → Wirkungen → Stärke**. Jedes Glied leuchtet, solange es deine Bewegung durchlässt –
@@ -1741,7 +1736,7 @@ Stärke 0). Daneben die **Ampel**: Die Lampe ist grün, wenn nichts blockiert; d
 blockiert – 🔓 die Kupplung ist gelöst (Klick legt sie ein), 👤 niemand ist erkannt, ◉ LED-Marker sind gewählt, aber
 keiner ist zu sehen. Die Worte dazu stehen beim Darüberfahren (und für Screenreader).
 
-**Sätze in drei Spuren.** Jeder Platz ist ein Satz, z. B. **„Wenn ich [die Arme hochwerfe] → [ziehen Spuren nach]“**:
+**Sätze in drei Spuren.** Jeder Satz sagt eine Sache, z. B. **„Wenn ich [die Arme hochwerfe] → [ziehen Spuren nach]“**:
 - **Grundbewegung** (warmes Gelb, *solange du dich bewegst*) – 2 Sätze. Eine fließende Bewegung (viel bewegen, die
   Arme öffnen, drehen, die Arme heben) steuert eine Wirkung: „Wenn ich mich viel bewege → werden die Wellen stärker“.
 - **Akzente** (kaltes Blau, *ein kurzer Moment*) – 4 Sätze. Eine Geste (die Arme hochwerfen, Akkordeon spielen, nach
@@ -1755,14 +1750,14 @@ das, was im Bild passiert. **Klick auf eine Hälfte ändert sie:** Die Bewegung 
 dieser Spur, jede mit einer kleinen Figur; die Wirkung öffnet eine Auswahl der Wirkungen nach Gruppen – was nicht passt,
 ist ausgegraut, beim Darüberfahren steht, warum (steht schon in einem anderen Satz, dieselbe Gruppe wie die andere
 Grundbewegung, dieselbe Gruppe wie eine Grundbewegung). Esc schließt ohne Änderung. **✕** entfernt einen Satz (mit
-„Rückgängig“), **＋ Satz** fügt einen hinzu, solange die Spur Platz hat. Jeder Satz beginnt mit einer kleinen Figur
+„Rückgängig“), **＋ Satz** fügt einen hinzu, solange die Spur nicht voll ist. Jeder Satz beginnt mit einer kleinen Figur
 seiner Bewegung.
 
 **Stärke: drei Stufen.** Jeder Satz hat **leicht · mittel · stark** – jede Stufe deutlich anders, und auch „leicht“
-sieht man klar (ein Platz ist belegt oder leer, „fast nichts“ gibt es nicht). Kurve, Bereich und Glättung wählt Dream je
+sieht man klar (ein Satz ist da oder nicht, „fast nichts“ gibt es nicht). Kurve, Bereich und Glättung wählt Dream je
 Bewegung selbst. Zum Abstimmen von allem zusammen dient **Stärke** in der Karte Bewegung des Bedienfelds (es ist auch
-die Stärke der Stimmung und steht als letztes Glied im Band): Sie skaliert alle Wirkungen des Tanzes mit den Plätzen
-(0 = nichts, 1 = wie die Stufen sagen, bis 3).
+die Stärke der Stimmung, ein MIDI-Controller bewegt sie als „Bewegung: Stärke“, und das Band zeigt sie als letztes
+Glied): Sie skaliert alle Wirkungen des Tanzes (0 = nichts, 1 = wie die Stufen sagen, bis 3).
 
 **Toleranz eines Akzents.** Unter jedem Akzent: **erkennen genau · normal · locker** und ein Balken, wie sicher Dream
 diese Bewegung gerade erkennt, mit einem Strich, ab dem sie zählt. Genau nimmt nur eine deutliche Bewegung (weniger
@@ -1784,8 +1779,8 @@ dieser Wirkung. Eine Wirkung, die in einem anderen Satz stand, wandert in den ne
 Symmetrie (Kaleidoskop, Mandala, Spiegeln), Raum (Tunnel, Wellen), Nachleuchten (Nachleuchten, Rückkopplung), Störung
 (RGB-Versatz, Glitch, Pixel, Raster) und Farbe (Farbrotation). Aus einer Gruppe wirkt immer nur ein Effekt stark;
 höchstens drei Gruppen wirken gleichzeitig stark – kommt ein Akzent dazu, tritt die schwächste der anderen zurück,
-solange der Akzent dauert, und kehrt weich zurück. In der alten Tabelle gilt nichts davon: Alles wirkt wie bisher so,
-wie seine Zeilen sagen.
+solange der Akzent dauert, und kehrt weich zurück. (Die Tabellen der Stimmung und von Flowtrack wirken so, wie ihre
+Zeilen sagen.)
 
 **Sets als Kartenreihe.** Alle Sets stehen nebeneinander; die eingebauten (**Standard**, **Fließend**, **Wild**) tragen 🔒,
 das aktive ist umrandet. Klick auf eine Karte nimmt sie. Ein eingebautes Set kannst du direkt ändern: Es wird
@@ -1797,13 +1792,28 @@ Leerzeichen und `. + - –`, höchstens 32 Zeichen, kein Name doppelt) und **Ver
 Bestätigung. Wechselst du zu einer anderen Karte, bleiben die Änderungen des verlassenen Sets mit ● vorgemerkt – komm
 zurück, um sie zu speichern oder zu verwerfen (bis dahin hält Dream sie im Speicher, nicht in der Datei; ein Neustart
 von Dream verwirft sie). Gewählt wird das Set auch in der Karte Bewegung, mit einem MIDI-Knopf, in Dream Control und
-mit `dance_set` in einer Playlist-Szene – solange die Plätze gezeigt werden, wählen sie ein Set der Plätze. Deine Sets
-der Plätze stehen neben den Tabellen in `~/.config/dream/dance.json`.
+mit `dance_set` in einer Playlist-Szene. Deine Sets (höchstens 24) und das aktive stehen in
+`~/.config/dream/dance.json`, neben den Tabellen der Stimmung und von Flowtrack.
+
+**Tabellen früherer Versionen werden Sets – einmal.** Bisher hatte Dream Dance eine Tabelle, die man Zeile für Zeile
+änderte, und Bewegungs-Sets, die solche Tabellen waren. Beim ersten Start nach dem Update macht Dream daraus Sets aus
+Sätzen, so gut es geht: Deine eigene Tanz-Tabelle (wenn sie keines der eingebauten Sets war) wird das Set **„Meine
+Tabelle“** (in der Sprache des Systems), jedes eigene Set ein Set gleichen Namens (mit einer Zahl dahinter, wenn ein
+eingebautes schon so heißt). Eine Zeile einer fließenden Bewegung (Energie, Öffnung, Drehen, Höhe) wird eine
+Grundbewegung, eine Geste oder eigene Bewegung ein Akzent mit der Stärke, die der der Zeile am nächsten ist, und die
+Hände im Bild bleiben so eingeschaltet, wie sie waren (höchstens zwei); was ein Satz nicht sagen kann (Fingerwerte, die
+KI-Regler, Wirkungen, die sich gegenseitig aufheben würden), fällt weg, und ist eine Spur voll, gehen die stärksten
+Zeilen vor. Das Set, das in Gebrauch war, bleibt in Gebrauch. Schau sie dir einmal auf der Seite an – und ergänze, was
+verloren ging. Eine Datei, die Dream nicht lesen kann, bleibt unangetastet, und die eingebauten Sets wirken.
 
 **Hände (KI) heißt: Hände immer dabei.** Solange Dream Dance mit **„Hände (KI)“** erkennt, lädt Dream das Handmodell
 (21 Punkte pro Hand) von selbst mit dem Pose-Modell, und deine Hände gehören immer zum Tanz (die Fingerwerte kommen in
-den Merkmal-Strom). Flowtrack lädt das Handmodell nie. Das Kästchen „Finger (Hand-KI)“ im Bedienfeld und im Labor zeigt
-nur noch, ob es läuft.
+den Merkmal-Strom). Flowtrack lädt das Handmodell nie. „Finger (Hand-KI)“ im Bedienfeld (unter „Kamera und Erkennung“)
+und im Labor zeigt nur, ob es läuft – zu schalten gibt es nichts.
+
+**Im Bedienfeld** zeigt die Karte Bewegung für Dream Dance, was ein Auftritt griffbereit braucht: was Dream gerade
+erkennt, die Ampel (dieselben drei Symbole wie auf der Seite, die Worte beim Darüberfahren), die Kupplung, das Set und
+die Stärke. „Was eine Bewegung bewirkt“ darunter zeigt, was Dream sieht; die Sätze selbst stehen auf der Seite.
 
 **Einführung und Hilfe.** Beim ersten Öffnen der Seite hebt eine kurze Führung ihre Teile in der Reihenfolge des
 Signalwegs hervor – was Dream sieht, die Kupplung, die Sätze, der Takt, Aufnehmen und Lernen –, je ein Satz,
@@ -1813,11 +1823,7 @@ beides zurück und startet die Führung neu (in diesem Browser gemerkt).
 **„Gut“ und „schlecht“ haben die Seite verlassen.** Das Tanz-Labor auf der Seite behält **● Aufnehmen** für Sessions;
 👍/👎 (und das Feedback per Stimme) stehen nicht mehr auf der Seite – das Lernen fragt dort „richtig erkannt?“. Ein
 MIDI-Knopf (oder Fußtaster) und das Armband markieren eine Session weiterhin; Bedienfeld und Dream Control haben keine
-Knöpfe 👍/👎 mehr (#265).
-
-Grenzen des Prototyps: keine Vorschau-Clips der Wirkungen; „Eine Zeile einstellen“ im Tanz-Labor ist ausgeblendet,
-solange die Plätze gezeigt werden (die Zeilen sind dann Dreams); die Plätze gibt es nur für Dream Dance (nicht für
-Stimmung oder Flowtrack).
+Knöpfe 👍/👎 mehr.
 
 ### Eigene Bewegungen – eine Bewegung lernen
 
@@ -1863,9 +1869,8 @@ Akzent.
   ihre Stärke. Eine Bewegung, die einer eingebauten Geste ähnelt, geht ihr vor. Der Balken unter jeder Bewegung in der
   Liste zeigt, wie sicher Dream sie gerade erkennt; der Rahmen wird grün, solange sie die erkannte ist.
 - **Was sie bewirkt**, ist ein Akzent: „Wenn ich „Lasso“ tanze → reißt ein Tunnel auf“ – sie wirkt also **nur bei
-  eingelegter Kupplung** und gehört zum Set. Mit der alten Tabelle ist eine Bewegung wie bisher eine Quelle der Tabelle
-  („Eigene Bewegungen“ im Bedienfeld); ihr **Prompt-Stück** (z. B. `fire, glowing embers`) wird in den Prompt
-  eingemischt, wenn eine Zeile sie „Prompt-Stück der Bewegung“ steuern lässt.
+  eingelegter Kupplung** und gehört zum Set. Ihr **Prompt-Stück** (z. B. `fire, glowing embers`) wird in den Prompt
+  eingemischt, solange ihr Akzent wirkt, so stark, wie die Stärke des Akzents sagt.
 - **Umbenennen, ändern, löschen** in der Liste: Name und Prompt-Stück sind Textfelder (gespeichert, wenn du das Feld
   verlässt), **🗑** löscht nach einer Rückfrage auf dem Knopf selbst. Das Löschen einer Bewegung leert ihre Akzente (in
   deinen Sets und in noch nicht gespeicherten Änderungen) und entfernt ihre Zeilen aus den Tabellen.
@@ -1903,7 +1908,7 @@ beim Tanzen abstimmen lässt:
   berechnet wird** (z. B. Öffnung: der Abstand der beiden Hände in Schulterbreiten), seine **Quelle jetzt** (Skelett,
   Leucht-Marker, Bewegungssensor …) und **wie sicher** es ist. In einer Wiedergabe stehen die Quellen nicht da – eine
   Sitzung speichert nur Werte und Sicherheiten.
-- **Eine Zeile abstimmen:** eine Zeile der Tabelle wählen und ihr Ziel, ihre Kurve (gerade, früh, spät, S), den
+- **Eine Zeile abstimmen** (auf der Seite von Flowtrack; Dream Dance hat dafür seine Sätze): eine Zeile der Tabelle wählen und ihr Ziel, ihre Kurve (gerade, früh, spät, S), den
   Eingang von … bis (das untere Ende ist die Schwelle), den Ausgang von … bis und die Glättung ändern. Ein kleines
   Bild zeigt die Kurve mit dem Live-Wert als Punkt. Jede Änderung **wirkt sofort**, Dream speichert sie, und
   **↶ Rückgängig** nimmt sie Schritt für Schritt zurück (bis zu 30 Schritte).
@@ -2332,14 +2337,15 @@ nicht, ein dunkler Raum behauptet nichts.
 Seite findet die Bühne, die sie geöffnet hat, und merkt, wenn sie neu geladen wird; wer den Schlag gibt, wenn die Uhr
 des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keinen eigenen Socket und keine
 eigene Kamera öffnet. `tests/js/movement.test.mjs` spielt auch die Kupplung (aus und ein in einer Drittelsekunde, ohne
-Sprung) und den Tanz auf der Grundlage. `tests/test_dance.py` prüft die Bewegungs-Sets (eingebaut, eigene, in der
-Datei, wer sie ändern darf).
-Die Plätze von Dream Dance (#265, Prototyp): `node --test tests/js/dancemap.test.mjs` prüft die Regeln der Engine (ein
-Effekt je Gruppe, höchstens drei Gruppen gleichzeitig – die schwächste tritt für einen Akzent zurück und kehrt weich
-zurück – und jeder belegte Platz sichtbar; nichts davon mit der alten Tabelle), `tests/js/danceslots.test.mjs`, was auf
-welchen Platz passt, die leuchtenden Kacheln und die Ampel; `tests/test_slots.py`, wie aus Plätzen Zeilen werden, dass
-sich ein eingebautes Set nicht ändern lässt (auch nicht über `/ctl`), Anpassen und Zurücksetzen und dass Umschalten
-zwischen Tabelle und Plätzen nichts verliert.
+Sprung) und den Tanz auf der Grundlage. `tests/test_dance.py` prüft die Tabellen (in der Datei, wer sie ändern darf –
+die des Tanzes nie zeilenweise) und wie ein Set gewählt wird (MIDI, Szene).
+Die Sätze von Dream Dance (#265): `node --test tests/js/dancemap.test.mjs` prüft die Regeln der Engine (ein Effekt je
+Gruppe, höchstens drei Gruppen gleichzeitig – die schwächste tritt für einen Akzent zurück und kehrt weich zurück – und
+jeder Satz sichtbar; nur für die Tabelle des Tanzes), `tests/js/danceslots.test.mjs`, was an welche Stelle passt, die
+leuchtenden Sätze und die Einführung, `tests/js/movecard.test.mjs` die Ampel; `tests/test_slots.py`, wie aus Sätzen
+Zeilen werden, dass sich ein eingebautes Set nicht ändern lässt (auch nicht über `/ctl`), Umbenennen, Löschen und
+Rückgängig, und die einmalige Übernahme der Tabellen und Sets früherer Versionen (eine typische Datei, eine leere, eine
+kaputte und eine übervolle, Namen, die mit den eingebauten Sets zusammenstoßen).
 `node --test tests/js/movecard.test.mjs` (#250) prüft die Karte Bewegung (`static/movecard.js`): dieselben Modi in
 beiden Seiten, die Energie als Wort, die Chips der Quellen, die Zeile, die sagt, was Dream erkennt, und dass ihre
 Stile nur transform und opacity bewegen; `tests/test_movecard.py`, dass die eine Karte alles enthält, was die drei

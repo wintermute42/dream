@@ -1,4 +1,4 @@
-/* #265: the slots of Dream Dance as sentences (danceslots.js) – in the colours of the movement pages (movepage.css).
+/* #265: the sentences of Dream Dance (danceslots.js) – in the colours of the movement pages (movepage.css).
    Each lane has its colour (--lane): warm for the base movement, cold for the accents, green for the hands; the half of
    a sentence that is the movement is magenta, the effect carries its group's colour (--g). Only transform and opacity
    are animated; nothing holds up a click. */
@@ -16,19 +16,6 @@
 .ds-link:not(:last-child) { margin-right: 8px; }
 .ds-link:not(:last-child) > b::after { content: '→'; position: absolute; right: -13px; top: 40%; color: var(--muted); font-weight: 400; }
 @media (max-width: 760px) { .ds-chain { flex-wrap: wrap; } .ds-link { flex: 1 1 40%; } .ds-link:not(:last-child) > b::after { content: none; } }
-.ds-light { display: flex; align-items: center; gap: 8px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.03); }
-.ds-lamp { width: 22px; height: 22px; border-radius: 50%; background: var(--ok); position: relative; flex: none; }
-.ds-lamp::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: var(--warn); opacity: 0; transition: opacity .25s; }
-.ds-light[data-state=stop] .ds-lamp::after { opacity: 1; }
-.ds-sym { font-size: 22px; line-height: 1; width: 44px; height: 44px; display: inline-grid; place-items: center; border-radius: 50%; border: 2px solid transparent;
-  background: none; color: var(--text); padding: 0; font-family: inherit; transition: opacity .2s, transform .15s; }
-button.ds-sym { cursor: pointer; }
-button.ds-sym:active { transform: scale(.92); }
-.ds-sym[data-state=ok] { opacity: .35; }
-.ds-sym[data-state=none] { opacity: .12; }
-.ds-sym[data-state=block] { border-color: var(--warn); animation: ds-pulse 1.4s ease-in-out infinite; }
-@keyframes ds-pulse { 50% { transform: scale(1.1); } }
-.ds-sym:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* the sets: a row of cards */
 .ds-sets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ds-set { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.05); padding: 2px; }
@@ -146,9 +133,6 @@ button.ds-sym:active { transform: scale(.92); }
 .ds-toast .btn[hidden] { display: none; }
 .ds-nudge { animation: ds-nudge .5s ease-out; }
 @keyframes ds-nudge { 30% { transform: scale(1.08); } 60% { transform: scale(.97); } }
-/* the switch old table / new slots in the page's head */
-.mp-ui { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin-left: auto; }
-.mp-ui .btn { border: 0; border-radius: 0; min-height: 38px; padding: 4px 14px; }
 /* the introduction (danceintro.js): the part at hand is lit, the rest dimmed by the spot's wide shadow; one sentence */
 .di-veil { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s; z-index: 20; }
 .di-veil.on { opacity: 1; }
@@ -158,11 +142,11 @@ button.ds-sym:active { transform: scale(.92); }
 .di-tip.on { opacity: 1; pointer-events: auto; }
 .di-text { margin: 0; font-size: 1.02em; }
 .di-count { font-size: .78em; color: var(--muted); }
-.mp-help { min-width: 44px; font-weight: 700; }
+.mp-help { min-width: 44px; font-weight: 700; margin-left: auto; }
 body.mp-nohelp .hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .di-spot, .di-tip, .di-veil { transition: none; }
-  .ds-sym[data-state=block], .ds-nudge, .ds-pop, .ds-row.ds-new { animation: none; }
+  .ds-nudge, .ds-pop, .ds-row.ds-new { animation: none; }
   .ds-flash.go { animation-duration: .01s; }
   .ds-pill, .ds-opt, .ds-toast, .ds-link::after, .ds-row::after { transition: none; }
 }

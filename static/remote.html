@@ -323,7 +323,7 @@
     <button id="clutchbtn" class="big clutchbtn" aria-pressed="false" style="width:100%" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do.">Clutch: released</button>
     <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
     <input type="checkbox" id="clutch" hidden aria-hidden="true">
-    <select id="dance_set" aria-label="Movement set" style="margin-top:8px"><option value="">Set: your table</option></select>
+    <select id="dance_set" aria-label="Movement set" title="A movement set: the sentences that say what your movements do – they are changed on the page of Dream Dance on the Mac." style="margin-top:8px"><option value="standard">Set: Standard</option></select>
     <div class="hint">Record a session of your dance: Dream keeps it as numbers (what it detected, what the movement steered) – never a camera picture. The lab itself is on the Mac.</div>
     <div class="row" style="margin-top:8px"><button id="dl-rec" aria-pressed="false">● Record</button><button id="dl-open" aria-pressed="false">Page on the Mac</button></div>
     <div id="dl-state" class="hint" role="status" aria-live="polite"></div>
@@ -375,7 +375,7 @@
         </div>
       </div>
       <select id="move_mode" hidden aria-hidden="true"><option value="off">Off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
-      <label for="motion_sens" title="How strongly movement moves the dream: the energy in the room (Mood), all effects of the dance together (Dream Dance with the slots) – 0 = not at all">Movement – strength <span class="val" id="v-motion_sens"></span></label><input type="range" id="motion_sens" min="0" max="3" step="0.05">
+      <label for="motion_sens" title="How strongly movement moves the dream: the energy in the room (Mood), all effects of the dance together (Dream Dance: the fine tuning of the three strengths of its sentences) – 0 = not at all">Movement – strength <span class="val" id="v-motion_sens"></span></label><input type="range" id="motion_sens" min="0" max="3" step="0.05">
     </div>
   </section>
 
@@ -496,7 +496,7 @@
   // #250: the mode's buttons – the mode and the mood's strength are all of the movement card that is here; the pages
   // and the rest are the Mac's
   // #251: the dance's clutch (the button on the phone) and the movement sets
-  let danceSets = [];
+  let danceSets = ['standard'];
   const clutchSync = () => MoveCard.clutchShow(document.getElementById('clutchbtn'), document.getElementById('clutch').checked, document.getElementById('clutchnote'));
   const clutchFlip = () => { const c = document.getElementById('clutch'); c.checked = !c.checked; setKey('clutch', c.checked); clutchSync(); };
   document.getElementById('clutchbtn').onclick = clutchFlip;
@@ -550,7 +550,7 @@
     if ('move_mode' in st) moveCard.set({ move_mode: st.move_mode });   // #250
     if ('clutch' in st) clutchSync();                  // #251
     if ('clutch' in st || 'move_mode' in st) glowClutch();   // #237: the clutch on the glowing screen
-    if ('dance_set' in st) { $('dance_set').dataset.want = st.dance_set; MoveCard.fillSets($('dance_set'), danceSets, st.dance_set); }
+    if ('dance_set' in st) MoveCard.fillSets($('dance_set'), danceSets, st.dance_set);
     if ('backend' in st) seg('backends', 'b', st.backend);
     if ('backend' in st || 'cloud_bridge' in st) showComputing();
     if ('running' in st) $('run').textContent = st.running ? '⏸ Pause' : T('▶ Go on');
@@ -973,7 +973,7 @@
       if (m.feeds) feedsOther(m.feeds, m.feeds_mine || []);
       if (m.sensors) devSensors(m.sensors);
       if (m.dance) danceLab(m.dance);                  // #243
-      if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; MoveCard.fillSets($('dance_set'), danceSets, $('dance_set').dataset.want || $('dance_set').value); }   // #251
+      if (m.dance && m.dance.slots && Array.isArray(m.dance.slots.sets)) { danceSets = m.dance.slots.sets; MoveCard.fillSets($('dance_set'), danceSets, m.dance.slots.use); }   // #251, #265
       if (m.feed_taken) devStop(m.feed_taken, false, T('Another device took over.'));
       if ('glow' in m && dev.motion) glowShow(m.glow);   // #237: this phone's own glow, as Dream has it
       if (m.cams) fillCams(m.cams);

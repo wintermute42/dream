@@ -27,7 +27,8 @@ def store(server, monkeypatch, tmp_path):
     monkeypatch.setattr(server.dancemoves, "DIR", str(tmp_path / "state" / "dance" / "moves"))
     monkeypatch.setattr(server.dance, "MAP_FILE", str(tmp_path / "config" / "dance.json"))
     monkeypatch.setattr(server.dance, "tables", server.dance.default_tables())
-    monkeypatch.setattr(server.dance, "sets", {})
+    for name, value in (("slot_sets", {}), ("slot_use", "standard"), ("slot_drafts", {})):
+        monkeypatch.setattr(server.dance, name, value)
     return server.dancemoves
 
 
@@ -145,18 +146,23 @@ def test_a_note_changed_by_hand_into_something_else_is_not_listed(server, store)
     assert store.listing() == []
 
 
-def test_deleting_a_move_takes_its_rows_out_of_the_tables_and_the_owners_sets(server, store):
+def test_deleting_a_move_takes_its_rows_out_of_the_tables_and_its_accents_out_of_the_sets(server, store):
     c, dance = client(server, "local"), server.dance
     mid = c.post("/dance/moves", content=json.dumps(move())).json()["id"]
     other = c.post("/dance/moves", content=json.dumps(move(name="Two"))).json()["id"]
     row = lambda m, dst: {"id": m, "on": True, "src": "g." + m, "dst": dst, "curve": "lin", "in": [0, 1], "out": [0, 1], "smooth": 0.15, "origin": "taught"}  # noqa: E731
-    rows = dance.set_rows(dance.tables["dance"] + [row(mid, "fx.tunnel"), row(other, "ai.piece")], "dance")
+    rows = dance.set_rows(dance.tables["flowtrack"] + [row(mid, "fx.tunnel"), row(other, "ai.piece")], "flowtrack")
     assert [r["origin"] for r in rows[-2:]] == ["taught", "taught"] and rows[-1]["dst"] == "ai.piece"
-    assert dance.save_set("Fire")
+    # #265: the dance's moves are accents of its sets – an own set, and the draft of a built-in one
+    own = {"accents": [{"src": "g." + mid, "fx": "rgb"}, {"src": "g." + other, "fx": "glitch"}]}
+    assert dance.save_slots_as("Mine", own, "fire") and dance.draft_slots("standard", own)
     n = len(rows)
     assert c.delete(f"/dance/moves/{mid}").status_code == 200
-    for table in (dance.tables["dance"], dance.sets["Fire"], dance.load_tables()["dance"], dance.load_sets()["Fire"]):
+    for table in (dance.tables["flowtrack"], dance.load_tables()["flowtrack"]):
         assert len(table) == n - 1 and not any(r["src"] == "g." + mid for r in table) and any(r["src"] == "g." + other for r in table)
+    for slots in (dance.all_slots()["Mine"], dance.load_slots()[0]["Mine"]["slots"], dance.slot_drafts["standard"]):
+        assert [a and a["src"] for a in slots["accents"][:2]] == [None, "g." + other]
+    assert not any(r["src"] == "g." + mid for r in dance.tables["dance"]) and any(r["src"] == "g." + other for r in dance.tables["dance"])
     assert dance.drop_source("g." + mid) is False                       # nothing left of it
 
 
@@ -186,7 +192,7 @@ def test_control_and_this_mac_hear_which_moves_there_are_a_guest_and_the_eyes_do
     assert c.post(f"/dance/moves/{mid}", content=json.dumps({"name": "New"})).status_code == 200
     assert [m["dance"]["moves"][0]["name"] for _, m in told] == ["New", "New"]
     told.clear()
-    server.dance.set_rows(server.dance.tables["dance"] + [{"id": mid, "src": "g." + mid, "dst": "fx.rgb"}], "dance")
+    server.dance.set_rows(server.dance.tables["mood"] + [{"id": mid, "src": "g." + mid, "dst": "fx.rgb"}], "mood")
     assert c.delete(f"/dance/moves/{mid}").status_code == 200
     moves = [(d, m["dance"]["moves"]) for d, m in told if "moves" in m["dance"]]
     assert moves == [("mac", []), ("phone", [])]

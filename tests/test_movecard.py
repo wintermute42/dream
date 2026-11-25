@@ -29,7 +29,7 @@ def test_one_card_holds_all_of_movement():
     card = section(panel, "motion", "details")
     # what the three cards held is all in the one: the mode, the mood, the camera's settings, the table, the hands
     assert {"move_mode", "motion_sens", "move_cam", "movepage", "flow_kind", "flow_device", "flow_color", "flow_short",
-            "marker_l", "marker_r", "flow_markers", "flow_fingers", "fastbtn", "calibgo", "calibreset", "flow_unproject",
+            "marker_l", "marker_r", "flow_markers", "fingersshow", "fastbtn", "calibgo", "calibreset", "flow_unproject",
             "diagon", "pose", "pose_scale", "touch_amt", "touch_mirror", "clutchbtn", "dance_set", "flowautobtn", "flow_auto"} <= ids(card)
     # the dance's own detection sits in the dance's part of the card, in sight – not folded away with the camera's
     dance_part = card[card.index('data-for="dance"'):card.index('class="movesrc"')]
@@ -103,11 +103,12 @@ def test_the_pages_of_the_modes_are_this_macs_and_extra_views():
 def test_the_hand_model_comes_with_the_dances_hands_and_never_with_flowtrack():
     """#265: with Dream Dance detecting "Hands (AI)" the hand model (21 points per hand) is always loaded and its hands
     always belong to the dance; in Flowtrack (or Dream Dance with LED markers) it is never asked for. Nobody switches
-    it: the old switch "Fingers" only shows it."""
+    it: the row "Fingers" only shows it, and no setting says so."""
     panel, motion = read("index.html"), read("motion.js")
     assert "const fingersOn = () => moveMode() === 'dance' && camKind() === 'hand';" in panel
     assert "fingers: fingersOn() });" in panel and "fingers: $('flow_fingers').checked" not in panel   # the detection asks the rule, not the switch
-    assert "$('flow_fingers').disabled = true; $('flow_fingers').checked = fingersOn();" in panel
+    assert "$('fingersshow').checked = fingersOn();" in panel and re.search(r'<input type="checkbox" id="fingersshow" disabled>', panel)
+    assert "flow_fingers" not in panel and "flow_fingers" not in settings.SETTINGS
     assert "$('fingersrow').hidden = !dancing;" in panel and 'id="fingersrow"' in panel   # not shown in Flowtrack at all
     # it changes the moment the mode or a detection kind changes
     assert "['flow_kind', 'dance_kind', 'move_mode'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));" in panel
@@ -118,3 +119,17 @@ def test_the_hand_model_comes_with_the_dances_hands_and_never_with_flowtrack():
     # the lab shows it, it does not switch it
     lab = read("dancelab.js")
     assert "finOn.disabled = true;" in lab and "setFingers" not in lab and "setFingers" not in panel
+
+
+def test_dream_dance_has_its_traffic_light_clutch_set_and_strength_in_the_panel_and_no_table():
+    """#265: the panel's Movement card in Dream Dance: the traffic light, the clutch, the set and the strength – the
+    table of the card is the mood's or flowtrack's, never the dance's (its sentences are on its page)."""
+    panel = read("index.html")
+    card = section(panel, "motion", "details")
+    dance_part = card[card.index('data-for="dance"'):card.index('class="movesrc"')]
+    for element in ('id="movelight"', 'id="clutchbtn"', 'id="dance_set"'):
+        assert element in dance_part, element
+    assert 'data-for="mood dance"' in card and "dance_ui" not in panel and "Set: your table" not in panel
+    assert "MoveCard.lamp($('movelight'))" in panel
+    assert "const tableMode = () => (moveMode() === 'mood' || moveMode() === 'flowtrack' ? moveMode() : null);" in panel
+    assert "dancePanel.table(!!tableMode())" in panel

@@ -78,9 +78,8 @@ test('the clutch and the sets say the same in the panel, on the page and in Drea
   assert.match(note.textContent, /^Engaged: /);
   assert.equal(C.setLabel('waves'), 'Flowing'); assert.equal(C.setLabel('fire'), 'Wild'); assert.equal(C.setLabel('My set 1'), 'My set 1'); assert.equal(C.setLabel('constructor'), 'constructor');
   for (const page of ['static/index.html', 'static/remote.html', 'static/dance.html']) {
-    const html = read(page);
-    assert.ok(/id="clutchbtn"[^>]*aria-pressed=/.test(html) && html.includes('id="dance_set"'), page);
-    assert.ok(html.includes('MoveCard.clutchShow(') && html.includes('MoveCard.fillSets'), page);
+    const html = read(page), sets = page.endsWith('dance.html') ? html.includes('DanceSlots.mount(') : html.includes('id="dance_set"') && html.includes('MoveCard.fillSets');
+    assert.ok(/id="clutchbtn"[^>]*aria-pressed=/.test(html) && html.includes('MoveCard.clutchShow(') && sets, page);   // #265: the page's sets are its bar of sets
   }
 });
 
@@ -88,7 +87,8 @@ test('the page of Dream Dance reads the stage and never talks to Dream itself', 
   const html = read('static/dance.html');
   assert.ok(html.includes("MovePage.link('dance'"));
   assert.ok(!/new WebSocket|fetch\(|XMLHttpRequest|getUserMedia/.test(html), 'no connection and no camera of its own');
-  for (const part of ['id="clutchbtn"', 'id="dance_set"', 'id="setsave"', 'id="dot-move"', 'id="dot-music"', 'id="dancelab"']) assert.ok(html.includes(part), part);
+  for (const part of ['id="clutchbtn"', 'id="slots"', 'id="dot-move"', 'id="dot-music"', 'id="dancelab"']) assert.ok(html.includes(part), part);
+  assert.ok(!html.includes('id="setsave"') && !html.includes('id="dance_set"'), '#265: the sets are the bar of the sentences');
   // the detection is chosen on the page itself: the dance's own (hands or markers – never light), and the camera
   const kind = html.match(/<select id="dance_kind"[^]*?<\/select>/)[0];
   assert.ok(kind.includes('value="hand"') && kind.includes('value="marker"') && !kind.includes('value="on"'));

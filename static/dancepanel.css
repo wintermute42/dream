@@ -31,7 +31,4 @@
 .dp-maprow.dp-off > select, .dp-maprow.dp-off > input[type=range] { opacity: .55; }
 .dp-btns { margin-top: 8px; }
 .dp :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
-/* #265: with the slots of Dream Dance the table is Dream's – shown, not changed (the slots are set on the page) */
-.dp-readonly .dp-map { opacity: .6; }
-.dp-readonly .dp-btns { display: none; }
-.dp-readonly .dp-x { visibility: hidden; }
+.dp-map[hidden], .dp-btns[hidden] { display: none; }
