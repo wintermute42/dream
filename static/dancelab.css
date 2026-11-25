@@ -1,0 +1,67 @@
+/* The dance lab (dancelab.js) – a part of the page of Dream Dance, in the colours of the page (--bg, --text, --muted, --line,
+   --accent, --ok, --warn). Only transform and opacity are animated; nothing holds up a click. */
+.dl, .dl * { box-sizing: border-box; }
+.dl { color: var(--text); display: grid; gap: 12px; align-content: start; }
+.dl[hidden] { display: none; }
+body.hide .dl, body.stage-only .dl { left: 0; }
+.dl h2 { margin: 0; font-size: 1.15em; } .dl h3 { margin: 0 0 6px; font-size: .95em; }
+.dl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.dl-mode { color: var(--muted); font-size: .85em; font-variant-numeric: tabular-nums; }
+.dl-tools { margin-left: auto; align-items: center; }
+.dl .btn { min-height: 40px; padding: 5px 12px; }
+.dl-secs { display: inline-flex; align-items: center; gap: 6px; font-size: .8em; color: var(--muted); margin: 0; white-space: nowrap; }
+.dl-secs input { width: 7em; } .dl-secs .val { min-width: 2.6em; color: var(--text); font-variant-numeric: tabular-nums; }
+.dl-main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 900px) { .dl-main { grid-template-columns: minmax(0, 1fr); } }
+.dl-camstate { margin-top: 6px; font-size: .82em; color: var(--muted); min-height: 2.7em; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.dl-camstate.warn { color: var(--warn); font-weight: 600; }
+.dl-lostkey { font-weight: 400; color: var(--warn); margin-left: 8px; } .dl-lostkey[hidden] { display: none; }
+.dl-srcs { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .76em; font-variant-numeric: tabular-nums; }
+.dl-srcs caption { text-align: left; font-size: 1.05em; font-weight: 700; padding-bottom: 4px; }
+.dl-srcs th, .dl-srcs td { text-align: left; padding: 3px 8px 3px 0; border-top: 1px solid var(--line); vertical-align: top; font-weight: 400; }
+.dl-srcs thead th { color: var(--muted); border-top: 0; } .dl-srcs tbody th { font-weight: 700; white-space: nowrap; }
+.dl-srcwhat { color: var(--muted); } .dl-srcs .unknown .dl-srcfrom { color: var(--warn); }
+.dl-srcsure { white-space: nowrap; width: 6.5em; }
+.dl-srcsure i { display: inline-block; width: 3em; height: 6px; border-radius: 3px; margin-right: 6px; background: var(--ok); transform: scaleX(0); transform-origin: left center; transition: transform .2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .dl-srcsure i { transition: none; } }
+.dl-views { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.dl-view, .dl-curves { margin: 0; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: rgba(255,255,255,.03); min-width: 0; }
+.dl figcaption { font-size: .8em; font-weight: 700; margin-bottom: 6px; }
+.dl-view canvas { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; }
+.dl-curves canvas { display: block; width: 100%; height: 300px; }
+.dl-gesture { font-weight: 400; color: var(--ok); margin-left: 8px; }
+.dl-opts { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: .8em; }
+.dl-check { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+.dl-fvals { margin-top: 6px; font-size: .78em; color: var(--muted); white-space: pre-line; min-height: 2.6em; font-variant-numeric: tabular-nums; }
+.dl-time { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; display: grid; gap: 6px; }
+.dl-time[hidden] { display: none; }
+.dl-timerow { display: flex; align-items: center; gap: 10px; }
+.dl-timerow input[type=range] { flex: 1 1 auto; min-width: 0; margin: 0; }
+.dl-clock { font-size: .85em; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.dl-band { display: block; width: 100%; height: 26px; border-radius: 6px; cursor: pointer; }
+.dl-speeds { display: inline-flex; gap: 4px; }
+/* a pressed button keeps its colour under the pointer too (the page's hover rule would grey it behind dark text) */
+.dl .btn[aria-pressed="true"], .dl .btn[aria-pressed="true"]:hover:not(:disabled):not(.on):not(.rec) { background-color: var(--accent); color: #140b1f; border-color: transparent; }
+.dl .btn.rec[aria-pressed="true"] { background-color: #e0475b; color: #fff; }
+.dl-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; align-items: start; }
+.dl-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,.03); min-width: 0; }
+.dl-card[hidden] { display: none; }
+.dl-field { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); align-items: center; gap: 8px; margin: 0 0 4px; font-size: .82em; }
+.dl-field select, .dl-field input { width: 100%; min-width: 0; margin: 0; }
+.dl-tuneval { font-size: .76em; color: var(--muted); margin: 4px 0; font-variant-numeric: tabular-nums; min-height: 1.4em; }
+.dl-tunecv { display: block; width: 100%; height: 120px; }
+.dl-state { font-size: .78em; color: var(--muted); overflow-wrap: anywhere; }
+.dl-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; max-height: 300px; overflow: auto; }
+.dl-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .82em; }
+.dl-what { min-width: 0; overflow-wrap: anywhere; }
+.dl-rowbtns { display: inline-flex; gap: 4px; flex: none; }
+.dl-rowbtns .btn { min-height: 34px; min-width: 38px; padding: 2px 8px; }
+.dl .btn.dl-jump { width: 100%; text-align: left; white-space: normal; }
+.dl :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+/* the visible "kept": a short note at the top of the stage, also while the lab is closed and a recording runs */
+.dl-toast { position: fixed; top: 18px; left: 50%; z-index: 7; transform: translate(-50%, -14px) scale(.96); opacity: 0; pointer-events: none;
+  padding: 10px 18px; border-radius: 14px; background: rgba(20, 18, 30, .94); color: var(--text); border: 1px solid var(--line); font-size: 1.05em; font-weight: 700;
+  transition: opacity .18s ease-out, transform .18s ease-out; max-width: min(90vw, 40em); text-align: center; }
+.dl-toast.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+body.hide .dl-toast, body.stage-only .dl-toast { left: 50%; }
+@media (prefers-reduced-motion: reduce) { .dl-toast { transition: opacity .18s; transform: translate(-50%, 0); } }

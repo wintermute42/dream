@@ -44,13 +44,13 @@ test('every world Dream can name is a file that registers itself, and the pages 
   for (const page of ['static/eyes.html', 'static/window.html']) {
     const src = read(page), at = name => src.indexOf(`<script src="/static/${name}.js"></script>`);
     for (const w of worlds) assert.ok(at(`world-${w}`) > at('dreamstyle') && at('dreamstyle') > at('dreambrush') && at('dreambrush') >= 0, `${page} loads the brushes, the layer, then world-${w}.js`);
-    assert.ok(/typeof m\.world === 'string'\) \{? ?DreamStyle\.use\(m\.world\)/.test(src), `${page} takes the world Dream names`);
+    assert.ok(/typeof m\.world === 'string'\) \{ DreamStyle\.blend\(m\.world, /.test(src), `${page} takes the world Dream names (#224: and the one it fades to)`);
     assert.ok(!/DreamEye\.(draw|irisWorld|pupilShape)\(|DreamLife\.draw\(/.test(src), `${page} draws through the style layer only`);
   }
-  for (const page of ['static/index.html', 'static/remote.html']) {
-    const sel = /<select id="world"[^>]*>(.*?)<\/select>/.exec(read(page))[1];
-    assert.deepEqual([...sel.matchAll(/<option value="([^"]+)"/g)].map(m => m[1]), worlds, `${page} offers every world, in Dream's order`);
-  }
+  // the panel and Dream Control offer every world Dream names (#224: the band of worlds, with a name for each)
+  const names = /const NAMES = \{(.*?)\n {2}\};/s.exec(read('static/worldband.js'))[1];
+  assert.deepEqual([...names.matchAll(/^\s+([a-z][a-z0-9-]*): \(\) => T\(/gm)].map(m => m[1]), worlds, 'static/worldband.js names every world, in Dream\'s order');
+  for (const page of ['static/index.html', 'static/remote.html']) assert.ok(read(page).includes('worldBand.worlds(m.worlds)'), `${page} offers the worlds Dream names`);
 });
 
 function compare(a, b) {                               // two small pictures (RGB bytes): how far apart, on average and at worst
@@ -67,10 +67,10 @@ test('today\'s look through the style layer, drawn in a browser', { skip: chrome
   const ref = JSON.parse(readFileSync(REF, 'utf8'));
 
   await t.test('the worlds and the motifs a world can draw', () => {
-    assert.deepEqual(r.worlds, ['classic']);
+    assert.equal(r.worlds[0], 'classic');
     assert.deepEqual(r.motifs.sort(), ['cube', 'fork', 'mandala', 'penrose', 'stairs', 'third']);
   });
-  await t.test('the pictures are the ones kept: eyes, pupils, living things, faces of light, window motifs', () => {
+  await t.test('the pictures are the ones kept: eyes, pupils, living things, faces of light, window motifs, the night behind the eyes, a window\'s sky, fire, trance, around "you in the dream"', () => {
     assert.deepEqual(Object.keys(r.scenes).sort(), Object.keys(ref).sort());
     for (const name of Object.keys(ref)) {
       const a = Buffer.from(r.scenes[name], 'base64'), b = Buffer.from(ref[name], 'base64');

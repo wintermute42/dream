@@ -1,0 +1,65 @@
+/* The band of worlds (worldband.js) – in the colours of the page it stands on (--accent, --text, --muted, --line,
+   --idle, --idle2). Only transform and opacity are animated; nothing holds up a tap. */
+.wb, .wb * { box-sizing: border-box; }
+.wb { position: relative; display: block; width: 100%; min-width: 0; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(255,255,255,.03); }
+.wb-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.wb-title { font-weight: 700; font-size: .9em; }
+.wb-sub { color: var(--muted); font-size: .78em; }
+/* one small picture per world; more worlds than fit wrap into another row */
+.wb-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, max(46px, calc((100% - 5px * (var(--n, 5) - 1)) / var(--n, 5)))), 1fr)); gap: 5px; }
+.wb .wb-chip { position: relative; display: block; min-width: 0; min-height: 0; width: auto; margin: 0; padding: 4px; border: 0; border-radius: 10px;
+  background: none; color: var(--text); font: inherit; text-align: center; cursor: pointer; touch-action: manipulation; }
+/* the ring around the world that shows (solid) and the one it is blended with (dashed): two layers, faded */
+.wb-chip::before, .wb-chip::after { content: ''; position: absolute; inset: 0; border-radius: 10px; pointer-events: none; opacity: 0;
+  transition: opacity .25s ease-out; }
+.wb-chip::before { border: 2px solid var(--accent); background: rgba(255,255,255,.06); }
+.wb-chip::after { border: 2px dashed var(--accent); }
+.wb-chip[aria-checked="true"]::before { opacity: 1; }
+.wb-chip.wb-next::after { opacity: .6; }
+.wb-chip:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.wb-chip:active .wb-pic { transform: scale(.94); }
+.wb-pic { display: block; width: 100%; aspect-ratio: 3 / 2; border-radius: 7px; background: radial-gradient(circle at 50% 56%, var(--idle) 0 18%, var(--idle2) 60%, #000 100%);
+  transition: transform .12s ease-out; }
+.wb-pic.wb-drawn { background: #000; }
+.wb-name { display: block; margin-top: 3px; font-size: .68em; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; }
+/* where the crossfade stands: from the world on the left to the one on the right */
+.wb-labs { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; color: var(--muted); font-size: .74em; line-height: 1.25; }
+.wb-from, .wb-to { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; } .wb-to { text-align: right; }
+.wb-arrow { flex: none; opacity: .7; }
+.wb-labs.wb-one .wb-arrow, .wb-labs.wb-one .wb-to { opacity: 0; }
+/* … a slider: the whole row takes the finger (a page scrolling up or down passes), the knob stands where the mix is */
+.wb-flow { margin-top: 10px; cursor: ew-resize; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; border-radius: 8px; }
+.wb-flow[aria-disabled="true"] { cursor: default; }
+.wb-flow:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; }
+/* (the track clips what the knob's moving layer reaches past the bar's end – with room for the knob itself) */
+.wb-track { position: relative; margin: 0 -9px; padding: 9px 9px 11px; overflow: hidden; }
+.wb-bar { position: relative; height: 5px; border-radius: 99px; background: var(--idle); overflow: hidden; }
+.wb-knob { position: absolute; left: 9px; right: 9px; top: 9px; height: 5px; pointer-events: none; transform: translateX(0); transition: transform .3s linear, opacity .18s ease-out; }
+.wb-knob::before { content: ''; position: absolute; left: -9px; top: -7px; width: 18px; height: 18px; border-radius: 50%; background: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,.5); transition: transform .12s ease-out; }
+.wb-flow.wb-drag .wb-knob::before { transform: scale(1.25); }
+.wb-flow.wb-drag .wb-fill, .wb-flow.wb-drag .wb-knob { transition: none; }
+.wb-flow[aria-disabled="true"] .wb-knob { opacity: 0; }
+.wb-fill { position: absolute; inset: 0; border-radius: 99px; background: var(--accent); transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform .3s linear; }
+/* the drift: a switch, and its pace */
+.wb-auto { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: .86em; line-height: 1.25; }
+.wb .wb-switch { position: relative; flex: none; width: 44px; height: 26px; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 1px solid var(--line);
+  border-radius: 13px; background: var(--idle); cursor: pointer; touch-action: manipulation; }
+.wb-switch::before { content: ''; position: absolute; inset: -1px; border-radius: 13px; background: var(--accent); opacity: 0; transition: opacity .18s ease-out; }
+.wb-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,.5); transition: transform .18s ease-out; }
+.wb-switch[aria-checked="true"]::before { opacity: 1; }
+.wb-switch[aria-checked="true"]::after { transform: translateX(18px); }
+.wb-switch:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.wb-pace { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin-top: 8px; transition: opacity .18s ease-out; }
+.wb .wb-pace button { min-width: 0; min-height: 0; width: auto; margin: 0; padding: 6px 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--idle2);
+  color: var(--text); font: inherit; font-size: .8em; cursor: pointer; overflow-wrap: anywhere; touch-action: manipulation; }
+.wb .wb-pace button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: #1a1026; font-weight: 600; }
+.wb-pace button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.wb-pace.wb-off { opacity: .4; }
+.wb-pace.wb-off button { cursor: default; }
+.wb-status { margin-top: 8px; min-height: 1.35em; color: var(--muted); font-size: .8em; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.wb-live { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .wb-chip::before, .wb-chip::after, .wb-pic, .wb-fill, .wb-knob, .wb-knob::before, .wb-switch::before, .wb-switch::after, .wb-pace { transition: none; } }

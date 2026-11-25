@@ -1,5 +1,5 @@
-"""What steers the dream besides the pages: MIDI controllers, motion sensors over OSC, and the movement the stage
-detects (presence, rules)."""
+"""What steers the dream besides the pages: MIDI controllers, motion sensors over OSC, the rules of the movement the
+stage detects, and whether someone is there in front of Dreamy Eyes."""
 import asyncio
 import ipaddress
 import json
@@ -8,9 +8,11 @@ import secrets
 import time
 
 import config
+import dance
 import hub
 import i18n
 import midi
+import movement
 import paths
 import playlists
 import scenes
@@ -18,9 +20,10 @@ import sensors
 import settings
 
 
-async def on_presence(present: bool):
-    """Movement (#85): nobody there – the dream calms down; someone comes – a light impulse."""
-    await hub.broadcast({"cmd": "wake" if present else "calm"})
+async def on_presence(word: str):
+    """Nobody in front of Dreamy Eyes – the dream calms down ("calm"); someone comes – a light impulse ("wake"); no
+    eyes report any more – the calm ends quietly ("rest"). Never from the Mac's camera (movement.Presence)."""
+    await hub.broadcast({"cmd": word})
 
 
 # ---------- MIDI controller: faders, knobs and buttons (mappings in ~/.config/dream/midi.json) ----------
@@ -62,8 +65,7 @@ async def midi_loop():
             elif a == "next":
                 await scenes.next_scene(force=True)
             elif a == "blackout":
-                hub.live["master_before"] = hub.state["master"] if hub.state["master"] > 0.05 else hub.live.get("master_before", 1.0)
-                await hub.apply({"master": 0.0 if hub.state["master"] > 0.05 else hub.live["master_before"]})
+                await hub.blackout()
             elif a == "reseed":
                 await hub.apply({"seed": secrets.randbelow(99999) + 1})
             elif a == "restart":
@@ -75,9 +77,15 @@ async def midi_loop():
                 cur = hub.state.get("music_pattern", "auto")
                 await hub.apply({"music_pattern": order[(order.index(cur) + 1) % len(order)] if cur in order else "auto"}, by="midi")
             elif a == "world":                         # #221: the next style world of Dreamy Eyes and the dream windows
-                order = settings.WORLDS
-                cur = hub.state.get("world")
-                await hub.apply({"world": order[(order.index(cur) + 1) % len(order)] if cur in order else order[0]}, by="midi")
+                s = hub.state                          # #224: … after the one that shows most, and all of it
+                cur = s["world_to"] if s["world_mix"] > 0.5 else s["world"]
+                await hub.apply({"world": settings.world_next(cur), "world_mix": 0.0}, by="midi")
+            elif a == "clutch":                        # #251: the dance's clutch, in or out
+                await hub.apply({"clutch": not hub.state["clutch"]}, by="midi")
+            elif a == "dance_set":                     # #251: the next movement set, round and round
+                await hub.apply({"dance_set": next_set(hub.state["dance_set"])}, by="midi")
+            elif a.startswith("dance_"):               # #243: "good"/"bad" for the dance lab – the stage keeps the moment
+                await hub.broadcast({"cmd": "dance_fb", "arg": a[6:], "by": "midi"}, only="stage")
             elif a.startswith("fx_"):                  # effects: the stage knows which ones go together
                 await hub.broadcast({"cmd": "fx", "arg": a[3:]}, only="stage")
         if learned:
@@ -141,12 +149,15 @@ async def sensor_loop():
     try:
         await AsyncIOOSCUDPServer((host, SENSOR_PORT), disp, asyncio.get_running_loop()).create_serve_endpoint()
         print(f"Sensors over OSC on {host}:{SENSOR_PORT}", flush=True)
-    except OSError as e:
+    except OSError as e:                           # the port is taken: Dream Control's own sensors still come over /ctl
         print(f"Sensor port {SENSOR_PORT} not available: {e}", flush=True)
-        return
-    shown_at, sent = 0.0, {}
+    shown_at, told_at, sent = 0.0, 0.0, {}
     while True:
         await asyncio.sleep(1 / 30)
+        await sensor_dance()
+        if time.monotonic() - told_at > 0.25:      # #249: the register of sources, four times a second
+            told_at = time.monotonic()
+            await sources_tell()
         for target, value in sens.values(midi.TARGETS).items():
             lo, hi = midi.TARGETS[target]
             if abs(value - sent.get(target, 1e9)) > 0.003 * (hi - lo):   # only real changes
@@ -160,7 +171,10 @@ async def sensor_loop():
                     await hub.broadcast({"cmd": action, "arg": ev[1]})
                 elif action:
                     midi_thr.act(action)
-                await hub.broadcast({"sensors": {"impulse": ev[1]}}, only="stage")
+                # the stage shows it, and the phone that was swung gives a little jolt (#240: it never heard of it)
+                await hub.broadcast({"sensors": {"impulse": ev[1]}})
+            elif ev[0] == "button":                # #235: a wristband's button – the stage decides what it means
+                await hub.broadcast({"sensors": {"button": ev[1]}}, only="stage")
             elif ev[0] == "learned":
                 await hub.broadcast({"sensors": {"map": sens.mapping, "learned": {"key": ev[1], "target": ev[2]}}})
         if time.time() - shown_at > 0.5 and sens.ch:
@@ -168,7 +182,94 @@ async def sensor_loop():
             await hub.broadcast({"sensors": sens.live()})
 
 
-# ---------- movement (#85): the stage detects it and reports presence changes and rules ----------
+# what ctl.feed_motion names the phones that lend their motion: Dream Control, and (#237) a second phone that stands by
+SENDER_PHONES = ("Dream Control", "Dream Control 2")
+
+
+def sensor_kind(sender: str) -> str:
+    """#249: the kind of source a sender of sensor values is – a phone that lends its motion, or a wristband or
+    glove (anything that sends OSC)."""
+    return "phone" if sender in SENDER_PHONES else "band"
+
+
+def glow_arms(now: float | None = None) -> dict:
+    """#237: the motion of every phone that glows as a light marker, by the hand whose marker has its colour –
+    {"l": {"g": gyroscope, "age": seconds}, "r": …}: the stage's detection holds each against the spot of light it
+    sees for that hand."""
+    arms = {}
+    for sender in movement.glows.by:
+        hand, arm = movement.glows.hand(hub.state, sender), sens.arm(sender, now)
+        if hand and arm:
+            arms[hand] = arm
+    return arms
+
+
+async def sensor_dance():
+    """#235: the stage's detection gets the sensor's movement as it comes (~30 times a second, only while a movement
+    mode listens to that kind of source and something was sent): the camera and the sensor on the arm confirm each
+    other there."""
+    m = sens.motion() if movement.uses(hub.state, sensor_kind(sens.source)) else None
+    if m:
+        arms = glow_arms() if movement.uses(hub.state, "phone") else {}
+        await hub.broadcast({"sensors": {"dance": {**m, **({"arms": arms} if arms else {})}}}, only="stage")
+
+
+sources_told: dict = {"msg": None}
+
+
+async def sources_tell():
+    """#249: every sender of sensor values is a source of the register; the list goes to the pages when it changed."""
+    now, wall = time.monotonic(), time.time()
+    for sender, (at, energy) in list(sens.by.items()):
+        if wall - at < 0.5:
+            kind = sensor_kind(sender)
+            movement.sources.report(f"{kind}:{sender}", kind, sender or "OSC", energy, 0.9, now)
+        elif wall - at > movement.GONE:
+            sens.forget(sender)
+    msg = movement.msg(hub.state, now)
+    if msg != sources_told["msg"]:
+        sources_told["msg"] = msg
+        await hub.broadcast(msg)
+    word = movement.presence.step(msg["move"]["sources"], now)
+    if word:
+        await on_presence(word)
+
+
+def next_set(name: str) -> str:
+    """#251: the movement set after this one in the list (the MIDI button)."""
+    names = list(dance.all_sets())
+    return names[(names.index(name) + 1) % len(names)] if name in names else names[0]
+
+
+def _set_chosen() -> None:
+    """#251: a movement set was chosen – in the panel, by a MIDI button, by a playlist scene: its rows are the dance
+    table from now on, and every page is told. A name that is no set changes nothing."""
+    if dance.use_set(hub.state["dance_set"]):
+        try:
+            asyncio.get_running_loop().create_task(hub.broadcast(dance.msg()))
+        except RuntimeError:                       # no loop (a script, a test): the next page that connects is told
+            pass
+
+
+hub.on_change("dance_set", _set_chosen)
+
+
+def dance_sets(msg: dict) -> dict:
+    """#251: Dream Control or this Mac keeps the dance table as a set of its own, or removes one of its own sets."""
+    if "dance_set_save" in msg:
+        dance.save_set(msg["dance_set_save"])
+    if "dance_set_delete" in msg:
+        dance.delete_set(msg["dance_set_delete"])
+    return dance.msg()
+
+
+def dance_map(new, mode: str = "dance") -> dict:
+    """#235, #249: Dream Control or this Mac changed a mode's mapping table (or asked for the built-in one)."""
+    dance.set_rows(new, mode)
+    return dance.msg()
+
+
+# ---------- movement (#85): the stage detects it and reports rules ----------
 def load_rule_actions() -> dict:
     """Optional ~/.config/dream/motion.json: {"rules": {"<flowtrack rule name>": "next" | {"playlist": "Feuer"} | {"prompt": "…"}}}"""
     try:

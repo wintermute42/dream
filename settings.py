@@ -26,6 +26,7 @@ class Setting:
     weight: float = 0.0               # #216: how strongly a number shapes the picture (0 = not at all … 1); "Reset"
                                       # brings every number with a weight home, the pages colour its slider by it
     needs: str | None = None          # #216: the setting it only acts with (a switch that is on, a choice not "off")
+    steps: tuple | None = None        # #247: a number with fixed values: anything else becomes the nearest of them
 
     @property
     def bipolar(self) -> bool:
@@ -46,12 +47,23 @@ def num(default, lo, hi, *, guest=False, target=False, weight=0.0, needs=None) -
     return Setting(default, lo=lo, hi=hi, guest=guest, target=target, weight=weight, needs=needs)
 
 
+def stepped(default, steps) -> Setting:
+    """#247: a number that only has these values (the pages offer them as a list)."""
+    return Setting(default, lo=min(steps), hi=max(steps), steps=tuple(sorted(steps)))
+
+
 def flag(default: bool, *, guest=False) -> Setting:
     return Setting(default, guest=guest)
 
 
 def text(default: str = "", *, choices=None, guest=False, clean=None) -> Setting:
     return Setting(default, choices=tuple(choices) if choices else None, guest=guest, clean=clean)
+
+
+# #247: the picture sizes (the height in pixels; 16:9 widens it). The pages offer exactly these (the stage's and Dream
+# Control's list, DreamCommon.SIZES) and the stage builds its pictures from the list's value – a size that is not in it
+# left the stage without a picture to send. So any other number becomes the nearest of these, here, for every way in.
+SIZES = (384, 512, 768, 1024)
 
 
 def _style(v: str) -> str:
@@ -72,7 +84,35 @@ def _fx(v: str) -> str:
 
 # #221: the style worlds Dreamy Eyes and the dream windows can be drawn in. Each is one file `static/world-<name>.js`
 # that registers itself with the style layer (static/dreamstyle.js); the first is today's look. A test compares.
-WORLDS = ("classic",)
+WORLDS = ("classic", "deepsea", "ink", "etching", "aurora")
+
+
+# #249: movement is one engine with one mode at a time – a mode is a preset of the mapping table (dance.py: which
+# sources it listens to, which targets it moves, at which thresholds). The kinds of sources a mode can listen to:
+# the Mac's camera, Dreamy Eyes (their front camera – the energy is worked out on the phone), a phone that lends its
+# motion (Dream Control), and a wristband or glove over OSC. Dream windows are no source.
+MOVE_MODES = ("off", "mood", "flowtrack", "dance")
+MOVE_SOURCES = ("camera", "eyes", "phone", "band")
+
+
+def _set_name(v: str) -> str:
+    """#251: the name of a movement set – a short plain name, or none."""
+    return v if re.fullmatch(r"[\w][\w .+-]{0,23}", v) else ""
+
+
+def _sources(v: str) -> str:
+    """Only known kinds of movement sources, each once."""
+    return "+".join(dict.fromkeys(k for k in v.split("+") if k in MOVE_SOURCES))
+
+
+# #235: the colours an LED marker on a hand can have – never red, orange or yellow: those are fire
+MARKERS = ("cyan", "magenta", "green", "blue")
+
+
+def world_next(name: str) -> str:
+    """#224: the world after this one in the list, round and round (the MIDI button, the drift)."""
+    return WORLDS[(WORLDS.index(name) + 1) % len(WORLDS)] if name in WORLDS else WORLDS[0]
+
 
 # #148, owner's decision (2026-11-18) on what a guest may change: painting, touching, directness, impulses, movement
 # reaction, the pose and the music automatic/drop are the performer's – not a guest's; nor are "New" (the dream starts
@@ -85,6 +125,7 @@ SETTINGS: dict[str, Setting] = {
     # the Mac's camera (cam, flow) only on Control's or the stage's word
     "mode": text("dream", choices=("dream", "cam", "img", "vid", "flow"), guest=frozenset({"dream", "img", "vid"})),
     "backend": text("local", choices=("local", "cloud")),
+    "cloud_bridge": flag(True),                                 # #238: while the cloud GPU sends no pictures, the Mac paints
     "model": text("sd-turbo", choices=models.MODELS),
     "running": flag(True),
     "strength": num(0.45, 0.0, 0.95, guest=True, target=True, weight=1.0),
@@ -94,20 +135,38 @@ SETTINGS: dict[str, Setting] = {
     "hue": num(2.0, 0.0, 20.0, guest=True, target=True, weight=0.8),
     "sens": num(1.0, 0.0, 2.0, guest=True, target=True, weight=0.5, needs="music"),
     "quality": num(2, 1, 4),
-    "size": num(512, 256, 1024),
+    "size": stepped(512, SIZES),
     "seed": num(1, 0, 2**31 - 1, guest=True),
     "music": text("off", choices=("off", "mic", "file")),
     "rewrite": flag(True),
     "playlist": text("", clean=playlists.new_name),             # installation: prompt playlist (#133: old names too)
     "interval": num(45, 5, 3600),
     "shuffle": flag(False),
-    "motion": flag(True),                                       # flowtrack movement (OSC) steers the dream
-    "motion_sens": num(1.0, 0.0, 3.0, target=True, weight=0.4, needs="flowtrack"),
+    # #249: the movement mode (one at a time), the kinds of sources switched off ("eyes+band"), and whether the mood
+    # also takes the Mac's camera (flowtrack and dance always need it; the mood runs without)
+    "move_mode": text("off", choices=MOVE_MODES),
+    "move_off": text("", clean=_sources),
+    "move_cam": flag(False),
+    "motion_sens": num(1.0, 0.0, 3.0, target=True, weight=0.4, needs="move_mode"),   # how strongly movement steers
     "syphon": flag(False),                                      # publish the stage picture as Syphon source "Dream"
     "pose": flag(False),                                        # the dancer's skeleton (flowtrack) shapes the figure
     "pose_scale": num(0.8, 0.2, 1.5, target=True, weight=0.5, needs="pose"),
-    "flowtrack": text("off", choices=("off", "on", "hand")),    # movement detection on the stage: off | on (light) | hand (pose)
-    "flow_kind": text("hand", choices=("on", "hand")),          # what the flowtrack switch turns on: on | hand
+    # what the Mac's camera detects: on (light: fire, LED) | hand (pose) | marker (#235: two LED markers, one per hand)
+    "flow_kind": text("hand", choices=("on", "hand", "marker")),
+    # #251: Dream Dance – the clutch (the dance acts only while it is engaged; released: only what the hands and the
+    # controllers set; released after every start – hub.py – and engaged only on purpose) and the movement set last
+    # chosen (a named table of what a movement does, dance.py)
+    "clutch": flag(False),
+    "dance_set": text("", clean=_set_name),
+    "flow_auto": flag(True),                                    # #252: flowtrack's automatic chooses kind and exposure, holds the one person
+    # … and what it detects for Dream Dance: a mode is a preset, so the dance keeps its own choice – light chosen for
+    # flowtrack never becomes the dance's detection (a bright window would stand in for the hands)
+    "dance_kind": text("hand", choices=("hand", "marker")),
+    "flow_markers": flag(False),                                # … LED markers beside the hand AI (they lead in the dark)
+    "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand
+    "marker_r": text("magenta", choices=MARKERS),
+    "dance_fb_secs": num(4.0, 1.0, 15.0),                       # #243: the seconds a "good"/"bad" of the dance lab keeps
+    "flow_fingers": flag(False),                                # … the hand model's 21 points per hand (finger values)
     "drift": num(0.5, 0.0, 1.0, guest=True, target=True, weight=0.6),       # keeps the dream alive without new input (0 = off)
     "drift_prompt": flag(True, guest=True),
     "music_patterns": flag(True),                               # music: changing patterns, drop → next scene
@@ -120,13 +179,9 @@ SETTINGS: dict[str, Setting] = {
     "music_pattern": text("auto", choices=("auto", *playlists.PATTERNS), guest=True,
                           clean=lambda v: playlists.OLD_PATTERNS.get(v, v)),
     "aspect": text("square", choices=("square", "wide")),       # picture format: square | wide (16:9)
-    "touch_amt": num(0.6, 0.0, 1.0, weight=0.5, needs="flowtrack"),                            # direct touch: hands paint and stir the dream
-    "touch_paint": flag(True),
-    "touch_warp": flag(True),
+    # direct touch – how direct; what the hands do (paint, stir, impulses, light) are targets of the mapping (#249)
+    "touch_amt": num(0.6, 0.0, 1.0, weight=0.5, needs="move_mode"),
     "touch_mirror": flag(False),
-    "touch_content": flag(True),
-    "touch_impulse": flag(True),
-    "touch_light": flag(False),
     "master": num(1.0, 0.0, 1.0, target=True),                  # master brightness (MIDI fader, blackout): 0 = black
     "auto": flag(False),                                        # autopilot steers Dream by itself, led by the music
     "auto_level": num(0.5, 0.0, 1.0),
@@ -152,6 +207,11 @@ SETTINGS: dict[str, Setting] = {
     "fx_amt": num(0.7, 0.0, 1.0, guest=True, target=True, weight=0.8, needs="fx"),
     "fx_beat": flag(True, guest=True),
     "world": text("classic", choices=WORLDS),                   # #221: the style world of Dreamy Eyes and the dream windows
+    # #224: the crossfade – the world it fades to, how far on the way (0 = all "world", 1 = all "world_to"; a MIDI knob
+    # can turn it), and the drift: Dream wanders from world to world by itself, one every so many seconds (0 = off)
+    "world_to": text("classic", choices=WORLDS),
+    "world_mix": num(0.0, 0.0, 1.0, target=True),
+    "world_auto": num(120, 0, 900),
 }
 
 # ---------- what the rest of Dream reads: views of the table ----------
@@ -164,9 +224,10 @@ TARGETS = {k: (s.lo, s.hi) for k, s in SETTINGS.items() if s.target}   # what a 
 # #216: where "Reset" brings the dream: every number that shapes the picture glides to its default (the ones with a
 # weight); the effects, the autopilot, the music pattern (back to "auto") and the style (model, reference picture and
 # both strengths: no style) are set in one step – a glide of a style strength would make the AI rebuild its model about
-# once a second. Everything else stays – prompt, model, quality, size, format, cameras, playlist, output, cloud, master,
-# and every other switch.
-RESET_AT_ONCE = ("fx", "auto", "music_pattern", "style", "style_amt", "style_ref", "style_ref_amt")
+# once a second. #240: the master brightness comes back to full in one step too – a dimmed or blacked-out stage is lit
+# again at once. Everything else stays – prompt, model, quality, size, format, cameras, playlist, output, cloud, and every
+# other switch.
+RESET_AT_ONCE = ("fx", "auto", "music_pattern", "style", "style_amt", "style_ref", "style_ref_amt", "master")
 RESET = {k: s.default for k, s in SETTINGS.items() if s.weight or k in RESET_AT_ONCE}
 assert not any(SETTINGS[k].weight for k in RESET_AT_ONCE)
 assert all(s.number and 0 < s.weight <= 1 for s in SETTINGS.values() if s.weight)
@@ -177,7 +238,8 @@ def page_schema() -> dict:
     """#216: what a page needs to draw a number's slider (static/sliders.js): default, range, whether zero lies inside
     the range, the weight and the setting it only acts with."""
     return {k: {"d": s.default, "lo": s.lo, "hi": s.hi, **({"zero": True} if s.bipolar else {}),
-                **({"w": s.weight} if s.weight else {}), **({"needs": s.needs} if s.needs else {})}
+                **({"w": s.weight} if s.weight else {}), **({"needs": s.needs} if s.needs else {}),
+                **({"steps": list(s.steps)} if s.steps else {})}
             for k, s in SETTINGS.items() if s.number}
 
 
@@ -196,6 +258,8 @@ def coerce_number(k, v):
     if not math.isfinite(f):
         raise ValueError(k)
     f = min(max(f, s.lo), s.hi)
+    if s.steps:                                    # #247: the nearest of its values (halfway: the smaller one)
+        return min(s.steps, key=lambda step: (abs(step - f), step))
     return int(round(f)) if isinstance(s.default, int) else f
 
 
@@ -214,9 +278,23 @@ def coerce(k, v):
     return v
 
 
+def moved(saved: dict) -> dict:
+    """#249: the saved state of a version with the cards "Movement", "Dance" and "Direct interaction" in today's
+    terms: the movement switch ("flowtrack": off | on | hand | marker) becomes the mode – light is flowtrack, hands
+    and markers are the dance unless "Dance steers the effects" was off – and what it detected the camera's kind. The
+    switches of the old cards become rows of the mapping tables (dance.adopt). A state that has a mode is left alone."""
+    if "move_mode" in saved or saved.get("flowtrack") not in ("on", "hand", "marker"):
+        return saved
+    kind = saved["flowtrack"]
+    mode = "flowtrack" if kind == "on" or saved.get("dance") is False else "dance"
+    return {**saved, "flow_kind": kind, "move_mode": mode, **({"dance_kind": kind} if mode == "dance" else {})}
+
+
 def loaded(saved) -> dict:
-    """The saved state on top of the defaults (#175: a broken number heals to its default; unknown keys are dropped)."""
+    """The saved state on top of the defaults (#175: a broken number heals to its default; unknown keys are dropped;
+    #249: settings of earlier versions are carried over first)."""
     state = dict(DEFAULT_STATE)
+    saved = moved(saved) if isinstance(saved, dict) else saved
     for k, v in saved.items() if isinstance(saved, dict) else ():
         if k in SETTINGS:
             try:

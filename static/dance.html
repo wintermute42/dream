@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dream · Dream Dance</title>
+<link rel="icon" type="image/svg+xml" href="/static/icons/logo.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="stylesheet" href="/static/movepage.css">
+<link rel="stylesheet" href="/static/movecard.css">
+<link rel="stylesheet" href="/static/dancelab.css">
+</head>
+<body class="mp-body">
+<!-- #251: the page of the mode Dream Dance – on this Mac only, in a window of its own beside the stage. Everything
+     that steers the show is in the panel too (the clutch, the set); here is the room to watch, tune and teach. -->
+<header class="mp-head">
+  <h1>Dream Dance</h1>
+  <div class="mp-status" id="pagestate" role="status"></div>
+</header>
+<div class="mp-note" id="nostage">
+  <span>This page shows the dance of the stage that opened it. Open it from the panel: card “Movement” → Dream Dance → “Page ↗” (or key L on the stage).</span>
+</div>
+<div class="mp-note mp-old" id="oldstage" role="alert" hidden>
+  <span>The stage window is from before an update of Dream – this page needs the new one. Reload the stage (the picture pauses for a moment); this page comes back by itself.</span>
+  <button type="button" class="btn" id="stagereload">Reload the stage</button>
+</div>
+<main id="page" hidden>
+  <div class="mp-note" id="nomode" hidden>
+    <span id="nomode-text"></span>
+    <button type="button" class="btn" id="tomode">Switch to Dream Dance</button>
+  </div>
+  <section class="mp-top" aria-label="Clutch, detection, movement set and beat">
+    <div class="mp-card mp-clutch">
+      <h2>Clutch</h2>
+      <button type="button" class="btn clutchbtn" id="clutchbtn" aria-pressed="false" title="Engage or release the clutch (key K)">Clutch: released</button>
+      <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
+      <div class="mp-hold" aria-hidden="true"><i id="hold"></i></div>
+      <div class="hint">Engaged: your dance acts on top of what the sliders and the controllers set. Released: only they do – the dance fades out in a third of a second. Key K, a MIDI button (“Button: clutch in/out”) or the button in Dream Control.</div>
+    </div>
+    <div class="mp-card">
+      <h2>Detection</h2>
+      <label for="dance_kind">Detects</label>
+      <select id="dance_kind" title="What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice."><option value="hand">Dance: Hands (AI)</option><option value="marker">Dance: LED markers (2 colours)</option></select>
+      <label for="flow_device">Camera</label>
+      <select id="flow_device" title="Camera for movement, e.g. an infrared camera" aria-describedby="camnote"><option value="">Camera: as picture</option></select>
+      <div class="hint mp-camnote" id="camnote" hidden>The browser has not named a camera yet: allow the camera for Dream (it asks when the camera starts), then they are listed here.</div>
+      <div class="mp-detect" id="detectstate" role="status"></div>
+      <div class="hint">Dream Dance has its own detection – what Flowtrack detects with (fire/LED too) stays Flowtrack’s. Only you change it: here or in the Movement card. The fingers’ switch is at the finger view below.</div>
+    </div>
+    <div class="mp-card">
+      <h2>Movement set</h2>
+      <select id="dance_set" aria-label="Movement set"><option value="">Set: your table</option></select>
+      <div class="mp-setrow">
+        <input type="text" id="setname" maxlength="24" aria-label="Name for a set of your own" placeholder="Name for a set of your own">
+        <button type="button" class="btn" id="setsave" title="Keep the table as it is now as a set of this name">Keep as set</button>
+      </div>
+      <button type="button" class="btn" id="setdelete" disabled title="Remove this set of your own (the built-in ones stay)">Remove this set</button>
+      <div class="hint" id="setstate" role="status">A set is a named table of what your movements do. Choose one here, in the panel, with a MIDI button (“Button: next movement set”) or in a playlist scene.</div>
+    </div>
+    <div class="mp-card">
+      <h2>Beat</h2>
+      <div class="mp-clocks">
+        <i class="mp-dot" id="dot-move" aria-hidden="true"></i><span>Your beat</span><span class="mp-bpm" id="bpm-move">–</span>
+        <i class="mp-dot music" id="dot-music" aria-hidden="true"></i><span>Music beat</span><span class="mp-bpm" id="bpm-music">–</span>
+      </div>
+      <div class="hint" id="clockstate" role="status"></div>
+    </div>
+  </section>
+  <section id="dancelab" hidden></section>
+</main>
+<script src="/static/i18n.js"></script>
+<script src="/static/dancemap.js"></script>
+<script src="/static/dancepanel.js"></script>
+<script src="/static/dancerec.js"></script>
+<script src="/static/dancelab.js"></script>
+<script src="/static/movecard.js"></script>
+<script src="/static/movepage.js"></script>
+<script>
+(() => {
+  const T = I18N.t, $ = id => document.getElementById(id);
+  I18N.apply();
+  let bridge = null, lab = null, shown = {};
+  const say = (id, text) => { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } };
+
+  // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
+  // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
+  const NEEDS = { calls: ['attach', 'detach', 'state', 'setClutch', 'setSet', 'setMode', 'setKind', 'setCam', 'saveSet', 'deleteSet', 'lab.detect'],
+    state: ['mode', 'clutch', 'hold', 'set', 'sets', 'own', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams'] };
+  MovePage.link('dance', {
+    needs: NEEDS,
+    old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },
+    on(b) {                                            // the stage is there: the lab reads it from now on
+      bridge = b; $('nostage').hidden = true; $('oldstage').hidden = true; $('page').hidden = false;
+      lab = DanceLab.mount($('dancelab'), b.lab); lab.show(true); b.attach(lab);
+    },
+    lost() { bridge = null; $('nostage').hidden = false; $('oldstage').hidden = true; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
+  });
+  addEventListener('pagehide', () => { try { if (bridge) bridge.detach(); } catch (e) { /* the stage is gone already */ } });
+
+  $('clutchbtn').onclick = () => bridge && bridge.setClutch($('clutchbtn').getAttribute('aria-pressed') !== 'true');
+  $('dance_set').onchange = () => bridge && bridge.setSet($('dance_set').value);
+  $('stagereload').onclick = () => { if (MovePage.reloadStage()) say('pagestate', T('The stage is loading anew …')); };
+  $('tomode').onclick = () => bridge && bridge.setMode('dance');
+  $('dance_kind').onchange = () => bridge && bridge.setKind($('dance_kind').value);
+  $('flow_device').onchange = () => bridge && bridge.setCam($('flow_device').value);
+  const nameOk = () => /^[\p{L}\p{N}_][\p{L}\p{N}_ .+-]{0,23}$/u.test($('setname').value.trim());
+  $('setsave').onclick = () => {
+    const name = $('setname').value.trim();
+    if (!bridge) return;
+    if (!nameOk()) { say('setstate', T('A name: letters, digits, spaces and . + - , at most 24 characters.')); $('setname').focus(); return; }
+    if (bridge.state().sets.includes(name) && !bridge.state().own.includes(name)) { say('setstate', T('“{n}” is a built-in set – choose another name.', { n: name })); $('setname').focus(); return; }
+    bridge.saveSet(name); $('setname').value = ''; say('setstate', T('Kept as “{n}”.', { n: name }));
+  };
+  $('setname').addEventListener('keydown', e => { if (e.key === 'Enter') $('setsave').click(); });
+  $('setdelete').onclick = () => { const name = $('dance_set').value; if (bridge && name) { bridge.deleteSet(name); say('setstate', T('“{n}” removed.', { n: name })); } };
+  addEventListener('keydown', e => {
+    if (!bridge || MovePage.typing(e)) return;
+    const k = e.key.toLowerCase();
+    if (k === 'k') $('clutchbtn').click();
+    else if (lab && k === 'g') lab.feedback('good', 'key');
+    else if (lab && k === 'b') lab.feedback('bad', 'key');
+    else if (lab && k === 'r') lab.record();
+  });
+
+  // what the stage is at, with every frame: the clutch, how far the dance is in, the detection, the set, the two beats
+  (function tick() {
+    requestAnimationFrame(tick);
+    if (!bridge) return;
+    let st; try { st = bridge.state(); } catch (e) { return; }   // the stage is reloading: `link` notices
+    const b = $('clutchbtn');
+    if (b.getAttribute('aria-pressed') !== String(st.clutch)) MoveCard.clutchShow(b, st.clutch, $('clutchnote'));
+    $('hold').style.transform = `scaleX(${(st.mode === 'dance' ? st.hold : 0).toFixed(3)})`;
+    MoveCard.fillSets($('dance_set'), st.sets, st.set);
+    $('setdelete').disabled = !st.own.includes(st.set);
+    MovePage.beat($('dot-move'), st.move); MovePage.beat($('dot-music'), st.music);
+    say('bpm-move', MovePage.clockText(st.move)); say('bpm-music', MovePage.clockText(st.music));
+    say('clockstate', MovePage.agreeText(st.move, st.music));
+    const dancing = st.mode === 'dance';
+    // the detection: the dance's own choice and the camera – two choices that know nothing of each other, each shown
+    // as the stage has it – and why it runs or does not
+    MovePage.pick($('dance_kind'), st.kind);
+    $('camnote').hidden = MovePage.fillCams($('flow_device'), st.cams, st.cam) > 0;
+    let status = ''; try { status = bridge.lab.detect().status; } catch (e) { /* the stage is reloading */ }
+    const det = MovePage.detectText(st, status, MoveCard.name(st.mode));
+    say('detectstate', det.text); $('detectstate').classList.toggle('off', !det.on);
+    $('nomode').hidden = dancing;
+    if (!dancing) say('nomode-text', T('The movement mode is “{m}” – the dance acts only in the mode Dream Dance.', { m: MoveCard.name(st.mode) }));
+    say('pagestate', !dancing ? '' : det.on ? (st.clutch ? T('The dance steers the dream.') : T('Clutch released – your dance does nothing, only sliders and controllers steer.')) : T('The detection is not running – see “Detection”.'));
+  })();
+})();
+</script>
+</body>
+</html>

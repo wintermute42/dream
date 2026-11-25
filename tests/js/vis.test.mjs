@@ -201,7 +201,8 @@ test('the eyes show their faces one at a time', () => {
   assert.ok(/DreamVis\.step\(vis\.face, [^;]+, dt, [^;]+\);\s*vis\.shown = DreamVis\.damp\(vis\.cur, vis\.face\.al\)/.test(eyes), 'the face shown is the one whose turn it is, as far as it is there');
   const draws = eyes.match(/DreamStyle\.face\(\)\.draw\(bk, vis\.mode[^;]*;/g) || [];
   assert.ok(draws.length >= 2 && draws.every(d => /vis\.shown/.test(d) && !/vis\.cur/.test(d)), 'every face of light is drawn by its turn');
-  assert.ok(!/vis\.mode = /.test(eyes), 'nothing sets the face shown past its turn');
+  assert.ok(!/vis\.mode = (?!null;|M\[pick % M\.length\];)/.test(eyes) && /const \[world, pick\] = vis\.face\.key\.split/.test(eyes), 'nothing sets the face shown past its turn');
+  assert.ok(/const facing = vis\.shown\.level > 0 && vis\.mode && DreamStyle\.name === vis\.world;/.test(eyes), 'of two worlds drawn at once only one draws the face of light');
   assert.ok(/'silhouette' \? DreamVis\.handover\(bs\.mix\)/.test(eyes), "the person's outline never lies over another mask");
   assert.equal((eyes.match(/portal\.phase = 'out'; portal\.t0 = t; \}/g) || []).length, 2, 'a painted face leaves from as far as it had come (only its own time and the person leaving set it going otherwise)');
 });

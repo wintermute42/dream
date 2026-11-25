@@ -33,7 +33,7 @@ def test_coerce_number_huge_int_overflows(server):
     ("seed", 7.6, 8),
     ("quality", 2.4, 2),
     ("quality", 99, 4),
-    ("size", 5, 256),
+    ("size", 5, 384),
     ("interval", 1, 5),
     ("master", 2, 1.0),
     ("pose_scale", 0, 0.2),
@@ -75,7 +75,7 @@ def test_coerce(server, key, value, want):
 
 
 @pytest.mark.parametrize("key,value", [("mode", "evil"), ("backend", "elsewhere"), ("model", "big-model"),
-                                       ("music", "radio"), ("flowtrack", "maybe"), ("aspect", "round"),
+                                       ("music", "radio"), ("move_mode", "maybe"), ("move_mode", "flow"), ("aspect", "round"),
                                        ("music_pattern", "Waltz"), ("beat_snap", "sometimes"), ("strength", "nan")])
 def test_coerce_refuses(server, key, value):
     with pytest.raises(ValueError):
@@ -114,8 +114,8 @@ def test_guest_keys_are_pinned(server):
 
 
 @pytest.mark.parametrize("key", ["backend", "model", "running", "playlist", "syphon", "cam_device", "flow_device",
-                                 "auto", "auto_cam", "quality", "size", "master", "touch_paint", "pose", "music_drop",
-                                 "style_ref", "flowtrack", "motion", "calib", "music", "beat_snap"])
+                                 "auto", "auto_cam", "quality", "size", "master", "touch_mirror", "pose", "music_drop",
+                                 "style_ref", "move_mode", "move_off", "move_cam", "flow_kind", "calib", "music", "beat_snap"])
 def test_guest_may_not_change(server, key):
     """Money (cloud, bigger pictures), the owner's files, the Mac's camera, the performer's tools: not for guests."""
     assert server.settings.guest_changes({key: server.settings.DEFAULT_STATE[key]}) == {}
@@ -159,7 +159,7 @@ def test_one_table_feeds_every_view():
     assert set(settings.RANGES) == {k for k, s in table.items() if s.number}
     assert midi.TARGETS is settings.TARGETS
     assert set(midi.TARGETS) == {"strength", "mix", "zoom", "rot", "hue", "drift", "smooth", "sens", "motion_sens",
-                                 "pose_scale", "master", "fx_amt"}
+                                 "pose_scale", "master", "fx_amt", "world_mix"}
     for k, s in table.items():
         assert s.kind in ("bool", "int", "float", "text"), k
         if s.number:
@@ -196,12 +196,13 @@ def test_reset_brings_home_what_shapes_the_picture_and_nothing_else():
     # in one step, never gliding: effects, autopilot and the style (a style strength costs the AI a rebuild per change)
     assert settings.RESET == {**{k: settings.DEFAULT_STATE[k] for k in weighted}, "fx": "", "auto": False,
                               "music_pattern": "auto",
-                              "style": "", "style_amt": 1.0, "style_ref": "", "style_ref_amt": 0.8}
+                              "style": "", "style_amt": 1.0, "style_ref": "", "style_ref_amt": 0.8,
+                              "master": 1.0}                                    # #240: lit again at once
     assert not weighted & set(settings.RESET_AT_ONCE)
     # what stays, whatever else changes: the dream's content, the model and its cost, inputs, outputs, the cloud
     for kept in ("prompt", "model", "quality", "size", "aspect", "mode", "cam_device", "flow_device", "playlist", "interval",
-                 "shuffle", "syphon", "backend", "master", "seed", "running", "music", "calib", "music_patterns", "music_drop",
-                 "beat_snap", "fx_beat", "drift_prompt", "touch_paint", "edges", "pose", "flowtrack", "motion"):
+                 "shuffle", "syphon", "backend", "seed", "running", "music", "calib", "music_patterns", "music_drop",
+                 "beat_snap", "fx_beat", "drift_prompt", "touch_mirror", "edges", "pose", "move_mode", "move_off", "move_cam"):
         assert kept not in settings.RESET, kept
     for k, s in settings.SETTINGS.items():
         assert 0 <= s.weight <= 1 and (not s.weight or s.number), k
@@ -420,5 +421,8 @@ def test_the_style_world_is_one_entry_in_the_table():
         with open(os.path.join(here, "static", page), encoding="utf-8") as f:
             src = f.read()
         assert '<option value="world">Button: next style world</option>' in src
-        offered = re.findall(r'<option value="([^"]+)"', re.search(r'<select id="world"[^>]*>(.*?)</select>', src).group(1))
-        assert tuple(offered) == settings.WORLDS, page
+        # #224: the worlds are offered by the band of worlds, from Dream's own list (told over /ctl) – no list in a page
+        assert '<div id="worldband"></div>' in src and "worldBand.worlds(m.worlds)" in src and '<select id="world"' not in src, page
+    with open(os.path.join(here, "static", "worldband.js"), encoding="utf-8") as f:
+        names = re.search(r"const NAMES = \{(.*?)\n  \};", f.read(), re.S).group(1)
+    assert tuple(re.findall(r"^\s+([a-z][a-z0-9-]*): \(\) => T\(", names, re.M)) == settings.WORLDS   # each with its name

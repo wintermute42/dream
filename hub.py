@@ -6,6 +6,8 @@ import json
 import os
 import time
 
+import dance
+import movement
 import outbox
 import playlists
 import rights
@@ -16,15 +18,18 @@ STATE_FILE = os.path.join(STATE_DIR, "state.json")
 
 try:
     with open(STATE_FILE) as f:
-        state = settings.loaded(json.load(f))
+        saved = json.load(f)
+    state = settings.loaded(saved)
+    dance.adopt(saved)                             # #249: the switches of the old movement cards → rows, once
 except (FileNotFoundError, ValueError):
     state = dict(settings.DEFAULT_STATE)
 # #133: values saved by earlier, German versions in today's English
 state["playlist"] = playlists.new_name(str(state["playlist"]))
 state["music_pattern"] = playlists.OLD_PATTERNS.get(state["music_pattern"], state["music_pattern"])
 state["style"] = playlists.OLD_STYLES.get(state["style"], state["style"])
-# the movement switch ("flowtrack": off | on | hand) is remembered like every other setting (#90)
+# the movement mode is remembered like every other setting (#90, #249)
 state["backend"] = "local"        # #102: every start computes on this Mac; the cloud (it costs) only when chosen
+state["clutch"] = False           # #251: every start has the dance's clutch released – it is engaged only on purpose
 if state.get("cam_device") == "device":          # #146: a device's live camera never outlives the run it was sent in
     state["cam_device"] = ""
     if state.get("mode") == "cam":
@@ -101,7 +106,7 @@ async def broadcast(msg: dict, exclude=None, only=None):
 def status_msg() -> dict:
     live["stages"] = sum(1 for k in clients.values() if k == "stage")
     live["remotes"] = sum(1 for k in clients.values() if k == "remote")
-    flow = round(live.get("flow_rate", 0)) if state["flowtrack"] != "off" else 0
+    flow = round(live.get("flow_rate", 0)) if movement.camera_on(state) else 0
     return {"live": {**{k: live[k] for k in ("fps", "stages", "remotes")}, "flowtrack": flow,
                      "viewers": len(viewers), "previews": len(previews), "windows": len(windows), "beats": len(beats),
                      "midi": midi_ports}}
@@ -126,14 +131,27 @@ async def apply(changes: dict, exclude=None, persist=True, by=None):
     state.update(clean)
     if persist:
         save_soon()
-    for k in clean:
-        for react in watchers.get(k, ()):
-            react()
+    for react in dict.fromkeys(r for k in clean for r in watchers.get(k, ())):   # each once, whatever changed together
+        react()
     if "master" in clean:                          # output windows dim with the stage
         for v in list(viewers):
             if not outbox.post(v, json.dumps({"master": state["master"]})):
                 viewers.discard(v)
     await broadcast({"set": clean, **({"by": by} if by else {})}, exclude=exclude)
+    # #247: whoever asked for a value a stepped setting does not have hears what it became (the others hear it anyway)
+    snapped = {k: v for k, v in clean.items() if settings.SETTINGS[k].steps and v != changes[k]}
+    if snapped and exclude in clients and not rights.can(roles.get(exclude), "eyes_only"):
+        outbox.post(exclude, json.dumps({"set": snapped}))
+
+
+async def blackout(by=None) -> None:
+    """#241: the master to black and back – the panel's and Dream Control's "Blackout", a MIDI button, a strike. Back is
+    the brightness it had before (or full, if it was already dark)."""
+    if state["master"] > 0.05:
+        live["master_before"] = state["master"]
+        await apply({"master": 0.0}, by=by)
+    else:
+        await apply({"master": live.get("master_before", 1.0)}, by=by)
 
 
 # ---------- #216: reset – the picture's settings glide home, and back again for a few seconds ----------

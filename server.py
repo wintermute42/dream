@@ -20,6 +20,7 @@ This file only puts the parts together (#189):
                ctl.py          the control line /ctl and the feeds a device lends (camera, motion)
                scenes.py       playlists and scenes
                inputs.py       MIDI controllers, motion sensors (OSC), movement rules
+               movement.py     the movement modes and the register of movement sources (dance.py: their tables)
                output.py       Syphon, the output windows and previews (/out, /view)
                eyes.py         Dreamy Eyes: painted faces, portraits, trance
                windows.py      dream windows
@@ -59,11 +60,14 @@ if config.ROLE == "app":
     # `server.<part>` is where a test or a script finds it
     import cloud
     import ctl
+    import dance
+    import dancelab
     import eyes
     import hub
     import inputs
     import measure
     import media
+    import movement
     import mpfiles
     import net
     import output

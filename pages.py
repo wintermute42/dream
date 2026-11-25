@@ -17,6 +17,18 @@ def index():
     return FileResponse(os.path.join(config.HERE, "static", "index.html"))
 
 
+@app.get("/dance")
+def dance_page():
+    """#251: the page of the mode Dream Dance – on this Mac only (rights.LOCAL_ONLY), opened from the panel."""
+    return FileResponse(os.path.join(config.HERE, "static", "dance.html"))
+
+
+@app.get("/flowtrack")
+def flowtrack_page():
+    """#252: the page of the mode Flowtrack – on this Mac only (rights.LOCAL_ONLY), opened from the panel."""
+    return FileResponse(os.path.join(config.HERE, "static", "flowtrack.html"))
+
+
 @app.get("/remote")
 def remote_page():
     return FileResponse(os.path.join(config.HERE, "static", "remote.html"))

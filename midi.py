@@ -21,7 +21,9 @@ MAP_FILE = os.path.join(paths.config_dir(), "midi.json")
 TARGETS = settings.TARGETS
 # a button can switch one of the 60 fps effects (playlists.FX) on or off ("fx_<name>"), all off or pick a fitting set
 # what a button (note, or a controller jumping to 127) does
-ACTIONS = ("pause", "next", "restart", "reseed", "blackout", "tap", "pattern", "world", "fx_off", "fx_new") + tuple("fx_" + e for e in FX)
+ACTIONS = (("pause", "next", "restart", "reseed", "blackout", "tap", "pattern", "world", "fx_off", "fx_new")
+           + tuple("fx_" + e for e in FX) + ("dance_good", "dance_bad")   # #243: feedback for the dance lab (a foot pedal)
+           + ("clutch", "dance_set"))                     # #251: the dance's clutch in or out, the next movement set
 
 
 def key_of(msg) -> str | None:

@@ -2,16 +2,20 @@
 for everybody, and pushed to Dream Control and this Mac (#176)."""
 import asyncio
 import json
+import math
 import os
 import re
 import subprocess
+import sys
 import tempfile
+import time
 
 from fastapi import Form
 
 import config
 import hub
 import i18n
+import models
 import outbox
 import rights
 from web import app
@@ -34,6 +38,107 @@ def cloud_failure(log: str) -> dict | None:
     return {"kind": "error", "text": last[:200]}
 
 
+# #238: where the cloud GPU stands, as one word the pages show as a step – found out from what dream-cloud reports of the
+# machine and what the renderer on it says about itself (its /health: loading, downloading, compiling, ready):
+#   machine      the GPU starts and is set up (no renderer answers yet)
+#   download     the renderer downloads the model (a fresh machine does that on every start)
+#   loading      the model is read and brought onto the GPU
+#   compiling    the model is compiled for the GPU before its first picture: it does not paint yet
+#   ready        the next picture comes at once – "unoptimized": painted uncompiled, because the model was not compiled
+#                for this kind of picture (a new size or format, pose, outlines, a model switched on stage): slower, no pause
+#   unreachable  a machine is there (and costs), but its renderer does not answer or has no model
+#   stopping     the machine is being deleted
+PREPARING = ("machine", "download", "loading", "compiling")
+# from the start of a step until pictures come, roughly (RunPod RTX 4090, SDXL-Turbo, 2026-11-24: the machine about
+# 1 minute until its renderer answers, the model's download well under a minute, loading a few seconds)
+ROUGH_MIN = {"machine": 2, "download": 1, "loading": 1}
+# with the compile cache of an earlier start, and without – square and 16:9 at 512 and 384 px (measured on an RTX 4090
+# with SDXL-Turbo, 2026-11-24: 26 s with the cache, 309 s without; a little more is allowed for)
+COMPILE_MIN = {True: 1, False: 5.5}
+DOWNLOAD_GB_MIN = 20.0                                        # what a data centre's line brings, roughly (measured: more)
+UNREADABLE_S = 60                                             # a status that cannot be read: the step stays that long
+_work = {"phase": None, "since": 0.0, "misses": 0, "unread": None}
+
+
+def work_phase(st: dict) -> str | None:
+    state, busy = st.get("state"), st.get("busy")
+    if state in ("setup", "error"):
+        return None
+    if busy and _job["action"] == "stop":
+        return "stopping"
+    if state == "off":
+        return "machine" if busy else None
+    w = st.get("worker")
+    if not isinstance(w, dict):
+        return "ready" if st.get("ready") else "machine" if busy else "unreachable"
+    if w.get("failed"):
+        return "unreachable"
+    if w.get("compiling") and not w.get("painting"):   # a renderer that paints on while something compiles is ready
+        return "compiling"
+    if w.get("ready", st.get("ready")):                # a renderer of an earlier version: it answers once it is ready
+        return "ready"
+    return "download" if w.get("first_download") else "loading"
+
+
+def cloud_work(st: dict, now: float | None = None) -> dict | None:
+    """The step the cloud GPU is at, with a rough time until pictures come ("eta_min") and, while it downloads, how far
+    ("percent"); None while there is no machine. One question without an answer does not make it unreachable."""
+    now = time.time() if now is None else now
+    if st.get("state") == "error":                     # dream-cloud could not ask the provider: for a while, as it was
+        _work["unread"] = _work["unread"] or now
+        phase = _work["phase"] if now - _work["unread"] < UNREADABLE_S else None
+    else:
+        _work["unread"], phase = None, work_phase(st)
+    if phase == "unreachable" and _work["phase"] in (*PREPARING, "ready") and not _work["misses"]:
+        _work["misses"], phase = 1, _work["phase"]
+    elif phase != "unreachable":
+        _work["misses"] = 0
+    if phase != _work["phase"]:
+        _work.update(phase=phase, since=now)
+    if phase is None:
+        return None
+    out: dict = {"phase": phase}
+    w = st.get("worker") if isinstance(st.get("worker"), dict) else {}
+    left = None
+    if phase == "compiling":
+        left = COMPILE_MIN[bool(w.get("compile_cached"))] - float(w.get("compiling_s") or 0) / 60
+    elif phase == "download" and w.get("download_gb") is not None and w.get("loading") in models.DOWNLOAD_GB:
+        total = models.DOWNLOAD_GB[w["loading"]]
+        done = min(1.0, float(w["download_gb"]) / total)
+        out["percent"] = min(99, int(done * 100))
+        left = (1 - done) * total / DOWNLOAD_GB_MIN + ROUGH_MIN["loading"]
+    elif phase in ROUGH_MIN:
+        left = ROUGH_MIN[phase] - (now - _work["since"]) / 60
+    if left is not None:
+        out["eta_min"] = max(1, math.ceil(left))
+    if w.get("loading") in models.MODELS:
+        out["model"] = w["loading"]
+    if phase == "ready" and (w.get("unoptimized") or w.get("compiling")):
+        out["unoptimized"] = True
+    return out
+
+
+def mac_notify(text: str) -> None:
+    """A notification of macOS titled "Dream", so the owner hears of it with the panel out of sight (DREAM_NOTIFY=0:
+    none). The text goes in as an argument, never as script."""
+    if not config.NOTIFY or sys.platform != "darwin":
+        return
+    try:
+        subprocess.run(["osascript", "-e", "on run argv", "-e", 'display notification (item 1 of argv) with title "Dream"',
+                        "-e", "end run", text], capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError) as e:
+        print("no notification:", repr(e)[:200], flush=True)
+
+
+def ready_note(before: str | None, phase: str | None) -> str | None:
+    """What to tell the owner when the cloud GPU has just become ready (None: nothing new)."""
+    if phase != "ready" or before not in (*PREPARING, "unreachable"):
+        return None
+    if hub.state.get("backend") == "cloud":
+        return i18n.t("The cloud GPU is ready – Dream computes on it now.")
+    return i18n.t("The cloud GPU is ready – switch to it under “Computing”.")
+
+
 # #176: the cloud's status is found out here, once for everybody, and pushed to Dream Control and this Mac –
 # instead of every remote asking every few seconds (each question starts `dream-cloud status`). Often while a GPU
 # starts, stops or runs, rarely while it is off, hardly at all while no provider is set up.
@@ -44,7 +149,11 @@ async def cloud_watch():
     loop = asyncio.get_running_loop()
     while True:
         cloud_cache["kick"] = False
+        before = _work["phase"]
         st = await loop.run_in_executor(None, cloud_read)
+        note = ready_note(before, (st.get("work") or {}).get("phase"))
+        if note:                                       # #238: also outside the pages
+            loop.run_in_executor(None, mac_notify, note)
         if st != cloud_cache["st"]:
             cloud_cache["st"] = st
             for c, r in list(hub.roles.items()):
@@ -82,6 +191,9 @@ def cloud_read() -> dict:
     fail = cloud_failure(st["log"])
     if fail and st.get("state") == "off":
         st["fail"] = fail
+    work = cloud_work(st)                              # #238
+    if work:
+        st["work"] = work
     return st
 
 

@@ -1,0 +1,132 @@
+<!doctype html>
+<!-- #224: the band of worlds (static/worldband.js, static/worldband.css) in a real browser – wide as in the panel and
+     narrow as on a phone; tests/js/worldband.test.mjs reads the report -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The band of worlds</title>
+<link rel="stylesheet" href="/static/worldband.css">
+<style>
+  :root { --idle: #35353e; --idle2: #24242a; --accent: #c78bff; --text: #f2eefb; --muted: #b9b1cf; --line: rgba(255,255,255,.16); }
+  body { margin: 0; padding: 8px; background: #141220; color: var(--text); font: 16px system-ui, sans-serif; }
+  #wide { width: 420px; } #narrow { width: 190px; margin-top: 12px; }
+  button { min-width: 44px; min-height: 44px; width: 100%; }   /* what a page says about its buttons in general */
+</style>
+</head>
+<body>
+<div id="wide"><div id="band"></div></div>
+<div id="narrow"><div id="small"></div></div>
+<script>window.I18N = { t: (text, vars) => (vars ? text.replace(/\{(\w+)\}/g, (m, k) => vars[k]) : text) };   // as i18n.js, in English</script>
+<script src="/static/worldband.js"></script>
+<script>
+(async () => {
+  const report = { error: '' };
+  try {
+    const $ = id => document.getElementById(id), wait = ms => new Promise(r => setTimeout(r, ms));
+    const WORLDS = ['classic', 'deepsea', 'ink', 'etching', 'aurora'];
+    const sent = [], stamps = [];
+    const band = WorldBand.mount($('band'), { send: set => { sent.push(set); stamps.push(performance.now()); } });
+    const el = $('band'), chips = () => [...el.querySelectorAll('.wb-chip')], paces = () => [...el.querySelectorAll('.wb-pace button')];
+    const sw = el.querySelector('.wb-switch'), flow = el.querySelector('.wb-flow'), line = () => el.querySelector('.wb-status').textContent;
+    const key = (target, k) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    report.empty = { chips: chips().length, status: line() };
+    band.worlds(WORLDS);
+    band.set({ world: 'classic', world_to: 'deepsea', world_mix: 0.32, world_auto: 120 });
+    band.drift({ wait: 0, next: null, idle: false });
+    report.chips = chips().map(b => ({ world: b.dataset.world, role: b.getAttribute('role'), name: b.querySelector('.wb-name').textContent, label: b.getAttribute('aria-label'), title: b.title,
+      checked: b.getAttribute('aria-checked'), next: b.classList.contains('wb-next'), tab: b.tabIndex, canvas: !!b.querySelector('canvas.wb-pic') }));
+    report.group = { role: el.querySelector('.wb-strip').getAttribute('role'), label: $(el.querySelector('.wb-strip').getAttribute('aria-labelledby')).textContent };
+    report.mixing = { status: line(), now: flow.getAttribute('aria-valuenow'), text: flow.getAttribute('aria-valuetext'), role: flow.getAttribute('role'), label: flow.getAttribute('aria-label'),
+      from: el.querySelector('.wb-from').textContent, to: el.querySelector('.wb-to').textContent, fill: el.querySelector('.wb-fill').style.transform, live: el.querySelector('.wb-live').textContent,
+      slider: !!el.querySelector('input'), tab: flow.tabIndex, min: flow.getAttribute('aria-valuemin'), max: flow.getAttribute('aria-valuemax'), knob: el.querySelector('.wb-knob').style.transform };
+    band.set({ world_mix: 0.7 });
+    report.past = chips().map(b => [b.getAttribute('aria-checked'), b.classList.contains('wb-next')]);
+    // a hand drags the crossfade: 40 moves in about 400 ms from a quarter to three quarters of the bar
+    const bar = el.querySelector('.wb-bar').getBoundingClientRect();
+    const ptr = (type, k, dy = 0) => flow.dispatchEvent(new PointerEvent(type, { pointerId: 7, pointerType: 'touch', isPrimary: true, button: 0, bubbles: true, cancelable: true, clientX: bar.left + bar.width * k, clientY: bar.top + 2 + dy }));
+    const fresh = () => { sent.length = 0; stamps.length = 0; };
+    band.set({ world: 'classic', world_to: 'deepsea', world_mix: 0.3 }); fresh();
+    const t0 = performance.now();
+    ptr('pointerdown', 0.25);
+    for (let i = 1; i <= 40; i++) {
+      ptr('pointermove', 0.25 + 0.5 * i / 40);
+      if (i === 20) report.drag = { mid: { dragging: flow.classList.contains('wb-drag'), now: flow.getAttribute('aria-valuenow'), fill: el.querySelector('.wb-fill').style.transform, text: flow.getAttribute('aria-valuetext') } };
+      await wait(10);
+    }
+    ptr('pointerup', 0.75);
+    band.set({ world_mix: 0.4 });                      // Dream's echo of an earlier word arrives late
+    report.drag.echo = flow.getAttribute('aria-valuenow');
+    await wait(150);
+    report.drag.ms = Math.round(performance.now() - t0);
+    report.drag.sent = sent.slice(); report.drag.gaps = stamps.slice(1).map((t, i) => Math.round(t - stamps[i]));
+    report.drag.end = { dragging: flow.classList.contains('wb-drag'), now: flow.getAttribute('aria-valuenow'), checked: chips().slice(0, 2).map(b => b.getAttribute('aria-checked')) };
+    await wait(700);
+    report.drag.settled = flow.getAttribute('aria-valuenow');
+    fresh(); ptr('pointerdown', 0.25); ptr('pointerup', 0.25); await wait(120);
+    report.barTap = sent.slice();
+    await wait(700); fresh(); ptr('pointerdown', 0.6); ptr('pointermove', 0.605, 30); ptr('pointercancel', 0.605, 60); await wait(120);
+    report.scrolled = sent.slice();
+    band.set({ world_mix: 0.25 }); band.drift({ wait: 180, next: null, idle: false }); report.held = line();
+    band.drift({ wait: 0, next: null, idle: false });
+    // the keyboard on the slider: arrows, Page Up, Home, End
+    band.set({ world_mix: 0.4 }); await wait(700); fresh(); flow.focus();
+    report.sliderRing = getComputedStyle(flow).outlineStyle;
+    const now = () => flow.getAttribute('aria-valuenow');
+    report.sliderKeys = {};
+    key(flow, 'ArrowRight'); report.sliderKeys.right = now(); key(flow, 'ArrowLeft'); report.sliderKeys.left = now();
+    await wait(120); report.sliderKeys.sent = sent.at(-1).world_mix;
+    key(flow, 'PageUp'); report.sliderKeys.pageUp = now(); key(flow, 'Home'); report.sliderKeys.home = now(); key(flow, 'End'); report.sliderKeys.end = now();
+    await wait(120); report.sliderKeys.last = sent.at(-1); fresh();
+    key(flow, 'a'); key(flow, 'Tab'); await wait(100); report.sliderKeys.other = sent.length;
+    await wait(700);
+    band.set({ world: 'classic', world_to: 'classic', world_mix: 0.5 }); fresh();
+    ptr('pointerdown', 0.2); ptr('pointermove', 0.8); ptr('pointerup', 0.8); key(flow, 'ArrowRight'); await wait(120);
+    report.one = { disabled: flow.getAttribute('aria-disabled'), text: flow.getAttribute('aria-valuetext'), sent: sent.length };
+    chips()[0].focus();
+    // a tap fades over to that world
+    band.set({ world: 'classic', world_to: 'deepsea', world_mix: 0 });
+    chips()[3].click(); chips()[4].click(); chips()[0].click();
+    report.taps = sent.splice(0);
+    // the keyboard: the arrows only move, Space or Enter chooses (a button's click)
+    chips()[0].focus(); key(chips()[0], 'ArrowRight'); key(document.activeElement, 'ArrowRight');
+    report.keys = { focus: document.activeElement.dataset.world, sent: sent.length, tabs: chips().map(b => b.tabIndex) };
+    key(document.activeElement, 'End'); report.keys.end = document.activeElement.dataset.world;
+    key(document.activeElement, 'ArrowRight'); report.keys.round = document.activeElement.dataset.world;
+    document.activeElement.click(); report.keys.chosen = sent.splice(0);
+    // the drift: its switch, its pace
+    report.auto = { role: sw.getAttribute('role'), on: sw.getAttribute('aria-checked'), label: $(sw.getAttribute('aria-labelledby')).textContent,
+      paces: paces().map(b => [b.textContent, b.dataset.v, b.getAttribute('aria-checked'), b.disabled]), group: el.querySelector('.wb-pace').getAttribute('role') };
+    paces()[2].click(); report.own = paces().map(b => b.getAttribute('aria-checked')); band.set({ world_auto: 45 });   // no echo yet: Dream answers every page but this one
+    sw.click(); band.set({ world_auto: 0 });
+    report.off = { sent: sent.splice(0), on: sw.getAttribute('aria-checked'), paces: paces().map(b => [b.getAttribute('aria-checked'), b.disabled]), status: line() };
+    paces()[0].click(); report.off.dead = sent.length;
+    sw.click(); report.back = sent.splice(0);
+    band.set({ world_auto: 45 });
+    band.set({ world_auto: 77 }); report.odd = { paces: paces().map(b => b.getAttribute('aria-checked')), on: sw.getAttribute('aria-checked') };
+    // what the line says
+    band.set({ world: 'classic', world_to: 'deepsea', world_mix: 0, world_auto: 120 });
+    band.drift({ wait: 0, next: 40, idle: false }); report.next = line();
+    band.drift({ wait: 160, next: null, idle: false }); band.set({ world: 'deepsea', world_to: 'ink' }); report.wait = line();
+    band.drift({ wait: 0, next: null, idle: true }); report.idle = line();
+    report.live = el.querySelector('.wb-live').textContent;
+    // the small pictures: each world draws its own
+    const lit = c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0, sum = [0, 0, 0]; for (let i = 0; i < d.length; i += 4) { if (d[i + 3] > 40 && d[i] + d[i + 1] + d[i + 2] > 90) n++; for (let k = 0; k < 3; k++) sum[k] += d[i + k] * d[i + 3] / 255; } return { lit: n / (d.length / 4), sum: sum.map(v => Math.round(v / (d.length / 4))) }; };
+    for (let i = 0; i < 100 && chips().some(b => !b.querySelector('.wb-drawn')); i++) await wait(50);
+    report.pictures = chips().map(b => ({ world: b.dataset.world, drawn: !!b.querySelector('.wb-drawn'), ...lit(b.querySelector('canvas')) }));
+    report.world = DreamStyle.name;
+    // room: the wide column, and a narrow one
+    const fits = box => ({ over: box.scrollWidth - box.clientWidth, chips: [...box.querySelectorAll('.wb-chip')].map(b => { const r = b.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; }),
+      names: [...box.querySelectorAll('.wb-name')].every(n => n.scrollWidth <= n.clientWidth + 1), status: box.querySelector('.wb-status').getBoundingClientRect().height });
+    const small = WorldBand.mount($('small'), { send: () => {}, pictures: false });
+    small.worlds([...WORLDS, 'two-more', 'and-another']); small.set({ world: 'ink', world_to: 'etching', world_mix: 0.5, world_auto: 300 });
+    report.fit = { wide: fits($('band')), narrow: fits($('small')), plain: $('small').querySelector('[data-world=two-more] .wb-name').textContent };
+    // only transform and opacity move
+    report.moving = [...el.querySelectorAll('*'), el].flatMap(n => [n, [n, '::before'], [n, '::after']]).map(x => (Array.isArray(x) ? getComputedStyle(x[0], x[1]) : getComputedStyle(x)))
+      .filter(s => parseFloat(s.transitionDuration) > 0 || s.animationName !== 'none').map(s => s.transitionProperty + '/' + s.animationName).filter((v, i, a) => a.indexOf(v) === i);
+    report.focusRing = (() => { chips()[1].focus(); return getComputedStyle(chips()[1]).outlineStyle; })();
+  } catch (err) { report.error += ' ' + (err && err.stack || err); }
+  await fetch('/result', { method: 'POST', body: JSON.stringify(report) });
+})();
+</script>
+</body>
+</html>

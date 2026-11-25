@@ -48,7 +48,8 @@ CAPABILITIES = {
     "beat": "as a Dreamy Eyes page, hears the music's beat beside its small preview of the dream (/view): one number "
             "between 0 and 1, now and then – nothing else of what the stage tells its output windows (#218)",
     "pair_eyes": "gets the links and QR codes that pair Dreamy Eyes and dream windows",
-    "take_over": "may take Dream Control over from another device (one at a time)",
+    "take_over": "may take Dream Control over from another device (one at a time); while it stands by as the second "
+                 "phone it may lend its motion sensors and glow as a light marker, nothing else (#237, ctl.slot_for)",
 }
 
 # #175: everything a guest (Dream Remote, the output window on a second device) may ask over HTTP; the rest is for
@@ -144,8 +145,11 @@ def allowed(host, query_k, cookie_k) -> bool:
 # middleware before a handler reads anything; a new route that costs money or changes the owner's files goes here.
 CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r"/measure"), ("GET", r"/measure"), ("POST", r"/playlists"), ("DELETE", r"/playlists/.+"),
                 ("POST", r"/upload"), ("POST", r"/voice"), ("POST", r"/gallery/[^/]+/(delete|save)"),
-                ("POST", r"/gallery/clear"), ("POST", r"/gallery/undo/[^/]+"), ("POST", r"/style-ref")]
-LOCAL_ONLY = [("POST", r"/gallery")]
+                ("POST", r"/gallery/clear"), ("POST", r"/gallery/undo/[^/]+"), ("POST", r"/style-ref"),
+                # #243: the dance lab's sessions (trajectories of the owner's dance, kept on this Mac)
+                ("GET", r"/dance/sessions(/[^/]+)?"), ("POST", r"/dance/sessions(/[^/]+/export)?"), ("DELETE", r"/dance/sessions/[^/]+")]
+# #251, #252: the pages of Dream Dance and Flowtrack are this Mac's (they steer the stage in the window that opened them)
+LOCAL_ONLY = [("POST", r"/gallery"), ("GET", r"/dance"), ("GET", r"/flowtrack")]
 
 
 def needs(method: str, path: str) -> set | None:
