@@ -724,6 +724,27 @@ Panel → card **Output** → **“Room light (WLED) dreams along”**:
   but WLED does not answer its address), “not found in the network”, “not in the home network”.
 - Guests (Dream Remote) cannot change any of it; the setting stays as it was after a restart.
 
+### The LEDs dance along (Dream Dance)
+
+While the room light is on and a device is entered, Dream Dance offers a group of effects of its own, **Room light**,
+beside the picture's effects (see [the sentences](#the-sentences--what-your-dance-does)):
+
+- **Flash up** (an accent): the gesture flashes the whole chain in the dream's colour at its fullest, fading softly –
+  once per gesture, never a stroboscope (a new flash only after the gesture has ended, and at most four a second
+  whatever arrives).
+- **Running light** (an accent): the gesture sends a pulse of light along the chain. It runs the way your hands went
+  just before – as the camera sees it: towards the chain's last LED when they went to the right of the picture,
+  towards the first when they went left. If it runs the wrong way for your room, mount the chain the other way round.
+- **Brightness** (a base movement, e.g. “When I move a lot”): calm dims the chain, wild lights it as bright as its base
+  colour. Nobody seen: full base colour.
+
+Strength **mild · medium · strong** as with every sentence: how high the flash and the pulse go, how far calm dims the
+chain. The three lie over the room light's colour (with the beat's pulse); they light the room, not the picture, so
+they count to none of the picture's groups and not to its budget of three. **Light strength**, the **master** and
+**Blackout** act on them too; with the **clutch released** the chain shows only its colour. Hue lamps (below) do not
+take part – they stay a calm mood. With the room light off (or no device entered) the three are greyed out, hovering
+says why; sentences that use them stay and wait (their effect half is drawn dashed).
+
 ### If something does not work
 
 - **No light at all:** is WLED switched on (power button in the WLED app) and in the same Wi-Fi as the Mac? Does the
@@ -1822,6 +1843,10 @@ are on hover (and for screen readers).
 - **Hands in the picture** (green, *where your hands are*) – one sentence of switches: “My hands [paint trails of
   light] [stir the picture] [send impulses] [light up the dark]”, at most two at once.
 
+With the room light on, the effect choice also has the group **Room light** (#270): **Flash up** and **Running light**
+for an accent, **Brightness** for a base movement – the LED chain dances along, see
+[Room light (WLED)](#the-leds-dance-along-dream-dance).
+
 The magenta half of a sentence is your movement, the other half (edged in the colour of its effect group) is what
 happens in the picture. **Click a half to change it:** the movement opens a choice of movements of that lane, each with
 a small figure; the effect opens a choice of effects by group – effects that would not fit are greyed out, hovering
@@ -2318,7 +2343,7 @@ not have becomes the nearest one for the stage, Dream Control and whoever sent i
 that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. `node --test tests/js/soft.test.mjs` (#211) tests the shares of the soft switches
-(old input picture, old and new prompt, a change during a running fade). `tests/test_wled.py` and `node --test tests/js/roomlight.test.mjs` (#212) test the room light against a fake WLED receiver (a UDP socket on 127.0.0.1): the DDP packets (header, push flag, LED count, several packets for a long chain), the smoothed colour, strength, master and blackout, the beat pulse and the flash, that a device that does not answer slows nothing, that light goes only to the home network, that guests change none of it, and the mDNS answers (`tests/test_mdns.py`). `tests/test_hue.py` and `node --test tests/js/huecard.test.mjs` (#272) test the Hue lamps against a fake Hue Bridge (an https server on 127.0.0.1 with a certificate of its own): pairing with and without the link button, the key (only in the config folder, mode 0600, never in a log or a message to a page, never to a device whose certificate is not the bridge's), the rooms, zones and lamps, the colour in each lamp's gamut, at most one change a second per lamp and ten a second in all, master and blackout, the previous state back after every kind of end, that a slow or gone bridge slows nothing, and that guests change none of it. `node --test tests/js/gl-stage.test.mjs` (#204) opens
+(old input picture, old and new prompt, a change during a running fade). `tests/test_wled.py` and `node --test tests/js/roomlight.test.mjs` (#212) test the room light against a fake WLED receiver (a UDP socket on 127.0.0.1): the DDP packets (header, push flag, LED count, several packets for a long chain), the smoothed colour, strength, master and blackout, the beat pulse and the flash, #270 the dance's dimming, flash and running pulse (one per gesture, its direction, under master and blackout, packets at the fake receiver), that a device that does not answer slows nothing, that light goes only to the home network, that guests change none of it, and the mDNS answers (`tests/test_mdns.py`). `tests/test_hue.py` and `node --test tests/js/huecard.test.mjs` (#272) test the Hue lamps against a fake Hue Bridge (an https server on 127.0.0.1 with a certificate of its own): pairing with and without the link button, the key (only in the config folder, mode 0600, never in a log or a message to a page, never to a device whose certificate is not the bridge's), the rooms, zones and lamps, the colour in each lamp's gamut, at most one change a second per lamp and ten a second in all, master and blackout, the previous state back after every kind of end, that a slow or gone bridge slows nothing, and that guests change none of it. `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master; #215: that the smoothed

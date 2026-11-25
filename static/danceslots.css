@@ -88,7 +88,9 @@
 .ds-fxp { color: var(--text); border-color: var(--g, var(--line)); box-shadow: inset 3px 0 0 var(--g, transparent); }
 .ds-hand { color: var(--muted); font-weight: 500; }
 .ds-hand.on { color: var(--text); border-color: var(--hand); background: rgba(138,240,176,.12); font-weight: 600; }
-.ds-hand[aria-disabled=true] { opacity: .45; cursor: not-allowed; }
+.ds-hand[aria-disabled=true], .ds-pill[aria-disabled=true] { opacity: .45; cursor: not-allowed; }
+/* #270: a sentence of the room light while the light is not there: kept, waiting – the reason on hover */
+.ds-fxp.ds-waits { opacity: .5; border-style: dashed; }
 .ds-hic { margin-right: 4px; }
 /* three steps, side by side, the chosen one filled */
 .ds-steps { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }

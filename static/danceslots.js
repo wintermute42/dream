@@ -22,6 +22,10 @@
    bar offers to save it – a built-in set always as a new set under a name the dancer gives – or to throw it away. An
    own set is renamed and deleted on its card; a deletion can be undone.
 
+   #270: the room light's LED chain is a group of effects of its own – the flash and the running light for an accent,
+   the brightness for a base movement. They light the room, not the picture: no group rule, no budget; they are offered
+   while the room light (WLED) is on with a device entered, otherwise greyed with the reason.
+
    `fits`, `handFits`, `place`, `level`, `glow`, `phrase`, `stepOf`, `suggestName`, `nameProblem`, `chain`,
    `strongest`, `assign` are pure (tests/js/danceslots.test.mjs). Looks: danceslots.css – only transform and opacity
    move. A global `DanceSlots`. */
@@ -38,10 +42,16 @@
   const MAX_HANDS = 2, SLOTS = { base: 2, accents: 4 };
   const STEPS = [0, 0.5, 1];                           // light, medium, strong (dance.py STEPS)
   const TOLS = ['tight', 'normal', 'loose'];           // dance.py TOLERANCES, dance.js TOL
-  const GROUP_OF = Object.fromEntries(Object.entries(M.GROUPS).flatMap(([g, list]) => list.map(e => [e, g])));
-  const EFFECTS = Object.values(M.GROUPS).flat();
-  const COLOURS = { symmetry: '#c78bff', space: '#5bb8ff', afterglow: '#ffc857', disturbance: '#ff7a8a', colour: '#7fe3a0' };
-  const GROUP_NAMES = { symmetry: () => T('Symmetry'), space: () => T('Space'), afterglow: () => T('Afterglow'), disturbance: () => T('Disturbance'), colour: () => T('Colour') };
+  // #270: the room light's effects (dance.py LED_LANE): which lane each belongs to
+  const LIGHT = { 'led.flash': 'accents', 'led.chase': 'accents', 'led.level': 'base' };
+  const GROUP_OF = { ...Object.fromEntries(Object.entries(M.GROUPS).flatMap(([g, list]) => list.map(e => [e, g]))), ...Object.fromEntries(Object.keys(LIGHT).map(e => [e, 'light'])) };
+  const EFFECTS = Object.values(M.GROUPS).flat();     // the picture's effects
+  const COLOURS = { symmetry: '#c78bff', space: '#5bb8ff', afterglow: '#ffc857', disturbance: '#ff7a8a', colour: '#7fe3a0', light: '#fff3b0' };
+  const GROUP_NAMES = { symmetry: () => T('Symmetry'), space: () => T('Space'), afterglow: () => T('Afterglow'), disturbance: () => T('Disturbance'), colour: () => T('Colour'), light: () => T('Room light') };
+  const LIGHT_NAMES = { 'led.flash': () => T('Flash up'), 'led.chase': () => T('Running light'), 'led.level': () => T('Brightness') };
+  const LIGHT_ICONS = { 'led.flash': '🌟', 'led.chase': '💫', 'led.level': '🔆' };
+  const dstOf = fx => (fx in LIGHT ? fx : 'fx.' + fx);   // the target a sentence's effect is (dance.py dst_of)
+  const peakOf = amt => M.RULES.MIN + (1 - M.RULES.MIN) * clamp(+amt || 0, 0, 1);   // dance.py peak
   const STEP_NAMES = [() => T('mild'), () => T('medium'), () => T('strong')];   // “mild”: “light” is the light in the dark
   const TOL_NAMES = { tight: () => T('tight'), normal: () => T('normal'), loose: () => T('loose') };
   const TOL_WHAT = { tight: () => T('Tight: only a clear movement counts – fewer false alarms'), normal: () => T('Normal: as Dream detects it out of the box'),
@@ -52,10 +62,12 @@
   // what happens in the picture: while you move (base) and for a moment (accent)
   const FX_GROW = { kaleido: () => T('the kaleidoscope unfolds'), mandala: () => T('the mandala grows'), mirror: () => T('the picture mirrors itself'), tunnel: () => T('the tunnel opens'),
     waves: () => T('the waves grow stronger'), feedback: () => T('the feedback grows'), trails: () => T('the afterglow lasts longer'), pixel: () => T('the picture falls into pixels'),
-    raster: () => T('the grid comes through'), rgb: () => T('the colours drift apart'), glitch: () => T('the picture stutters'), hue: () => T('the colours turn') };
+    raster: () => T('the grid comes through'), rgb: () => T('the colours drift apart'), glitch: () => T('the picture stutters'), hue: () => T('the colours turn'),
+    'led.level': () => T('the room light grows brighter'), 'led.flash': () => T('the room light flashes up'), 'led.chase': () => T('a light runs along the LEDs') };
   const FX_FLASH = { kaleido: () => T('a kaleidoscope flashes up'), mandala: () => T('a mandala blooms'), mirror: () => T('the picture jumps into a mirror'), tunnel: () => T('a tunnel tears open'),
     waves: () => T('a wave rolls through the picture'), feedback: () => T('the picture echoes'), trails: () => T('trails follow'), pixel: () => T('the picture bursts into pixels'),
-    raster: () => T('a grid flashes up'), rgb: () => T('the colours jump apart'), glitch: () => T('a glitch strikes'), hue: () => T('the colours flip') };
+    raster: () => T('a grid flashes up'), rgb: () => T('the colours jump apart'), glitch: () => T('a glitch strikes'), hue: () => T('the colours flip'),
+    'led.flash': () => T('the room light flashes up'), 'led.chase': () => T('a light runs along the LEDs'), 'led.level': () => T('the room light grows brighter') };
   const HAND_PHRASE = { paint: () => T('paint trails of light'), warp: () => T('stir the picture'), impulse: () => T('send impulses'), light: () => T('light up the dark') };
   const HAND_ICONS = { paint: '🖌️', warp: '🫧', impulse: '💥', light: '💡' };
   const REASONS = {
@@ -63,15 +75,22 @@
     group: () => T('Same group as the other base movement – the two would cancel each other out'),
     base: () => T('Same group as a base movement – it would only replace it for a moment'),
     hands: () => T('At most 2 at once – switch another one off first'),
+    lane: () => T('Belongs to the other lane: the flash and the running light to a gesture, the brightness to a base movement'),
+    off: () => T('The room light is off – switch on “Room light (WLED) dreams along” in the panel'),
+    nohost: () => T('No LED device for the room light yet – enter it in the panel under “Room light (WLED) dreams along”'),
   };
   const NAME_OK = /^[\p{L}\p{N}][\p{L}\p{N}_ .+\-–]{0,31}$/u;   // dance.py SLOT_NAME
 
   // Why an effect does not fit into a slot beside the others, or null (the same rule as dance.py `slot_conflict`).
-  function fits(slots, where, i, fx) {
+  // #270: light – the room light's state ('on' | 'off' | 'nohost', the stage's bridge): its effects only while it is
+  // 'on' (not known: not checked, as Dream does not check it either)
+  function fits(slots, where, i, fx, light) {
+    if (fx in LIGHT && LIGHT[fx] !== where) return 'lane';
+    if (fx in LIGHT && (light === 'off' || light === 'nohost')) return light;
     const others = [];
     for (const w of ['base', 'accents']) (slots[w] || []).forEach((s, j) => { if (s && !(w === where && j === i)) others.push([w, s]); });
     if (others.some(([, s]) => s.fx === fx)) return 'taken';
-    const baseGroups = new Set(others.filter(([w]) => w === 'base').map(([, s]) => GROUP_OF[s.fx]));
+    const baseGroups = new Set(others.filter(([w, s]) => w === 'base' && !(s.fx in LIGHT)).map(([, s]) => GROUP_OF[s.fx]));
     if (baseGroups.has(GROUP_OF[fx])) return where === 'base' ? 'group' : 'base';
     return null;
   }
@@ -93,8 +112,11 @@
     return next;
   }
   // How strongly a slot acts right now, 0 … 1: what its target is at (after the groups and the budget), while its row asks.
-  function level(live, rowId, dst) {
+  // #270: the room light's brightness is a dimming (negative, dance.py): it shows how bright the movement makes the
+  // chain – peak: the sentence's (peakOf), hold: how far the clutch is in (the bridge's state) – while someone is seen.
+  function level(live, rowId, dst, peak = 1, hold = 1) {
     if (!live) return 0;
+    if (dst === 'led.level') return live.seen ? clamp((1 - Math.abs(live.held(rowId) || 0) / peak) * hold, 0, 1) : 0;
     const asks = Math.abs(live.held(rowId) || 0);
     return asks > 0.01 ? clamp(Math.abs(live.out[dst] || 0), 0, 1) : 0;
   }
@@ -102,8 +124,8 @@
   function glow(slots, live) {
     let best = null;
     for (const [w, id] of [['base', 'base'], ['accents', 'accent']]) (slots[w] || []).forEach((s, i) => {
-      if (!s) return;
-      const k = level(live, id + i, 'fx.' + s.fx);
+      if (!s || s.fx === 'led.level') return;          // the chain's brightness is no moment of the hands
+      const k = level(live, id + i, dstOf(s.fx));
       if (k > 0.05 && (!best || k > best.k)) best = { col: COLOURS[GROUP_OF[s.fx]], k };
     });
     return best ? { l: best, r: best } : null;
@@ -189,7 +211,9 @@
   // opts: {bridge, fxNames, fxIcons, label(src) → short name, setLabel(name) → shown name, frame, figure,
   //        names() → {move id: name} (#236), learn({src?, fx?, quick?}) – start teaching a movement (moveteach.js)}
   function mount(box, opts) {
-    const { bridge } = opts, fxName = e => (opts.fxNames && opts.fxNames[e]) || e, icon = e => (opts.fxIcons && opts.fxIcons[e]) || '✦';
+    const { bridge } = opts, fxName = e => (LIGHT_NAMES[e] ? LIGHT_NAMES[e]() : (opts.fxNames && opts.fxNames[e]) || e), icon = e => LIGHT_ICONS[e] || (opts.fxIcons && opts.fxIcons[e]) || '✦';
+    // #270: the room light's state as the stage tells it ('on' | 'off' | 'nohost')
+    const light = () => { try { return bridge.state().light; } catch (e) { return undefined; } };
     const names = () => (opts.names ? opts.names() : {});
     const shortName = src => (OWN.test(src) ? names()[src.slice(2)] || src : opts.label(src));
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -355,7 +379,7 @@
 
     // ---- the sentences ----
     const rows = [];                                   // {where, i, row, meter, conf, mark, flash, id, dst, src}
-    let handRow = null, drawnKey = '', focusAfter = null;   // focusAfter: [where, i, pill class] – where focus goes after a choice
+    let handRow = null, drawnKey = '', focusAfter = null, lit;   // lit: the room light's state the lanes were drawn with   // focusAfter: [where, i, pill class] – where focus goes after a choice
     // a pill is named by the words it shows (they are half of the sentence); what a click does is its description
     function pill(cls, text, title, onclick) { const b = el('button', 'ds-pill ' + cls, text); b.type = 'button'; b.title = title; b.onclick = onclick; return b; }
     function steps(group, names, current, label, onpick) {
@@ -373,14 +397,15 @@
       const flash = el('i', 'ds-flash'); flash.setAttribute('aria-hidden', 'true');
       const what = el('span', 'ds-what');
       const mv = pill('ds-mv', ph.move, T('Movement: {m} – choose another', { m: shortName(s.src) }), () => chooseMove(where, i));
-      const fx = pill('ds-fxp', ph.fx, T('Effect: {e} ({g}) – choose another', { e: fxName(s.fx), g: GROUP_NAMES[GROUP_OF[s.fx]]() }), () => chooseFx(where, i));
+      const waits = s.fx in LIGHT && (lit === 'off' || lit === 'nohost');   // #270: kept, but the room light is not there
+      const fx = pill('ds-fxp' + (waits ? ' ds-waits' : ''), ph.fx, T('Effect: {e} ({g}) – choose another', { e: fxName(s.fx), g: GROUP_NAMES[GROUP_OF[s.fx]]() }) + (waits ? ' – ' + REASONS[lit]() : ''), () => chooseFx(where, i));
       fx.style.setProperty('--g', COLOURS[GROUP_OF[s.fx]]);
       what.append(el('span', 'ds-w', ph.lead), mv, el('span', 'ds-w', '→'), fx);
       const st = steps('ds-amt', STEP_NAMES.map(f => ({ text: f() })), stepOf(s.amt), T('Strength'), k => change(place(cur(), { where, i, slot: { ...cur()[where][i], amt: STEPS[k] } })));
       const x = btn('✕', '', 'ds-x'); tip(x, T('Remove this sentence'));
       x.onclick = () => { change(place(cur(), { where, i, slot: null })); hint(T('Sentence removed.'), () => change(place(cur(), { where, i, slot: s }))); };
       row.append(flash, pict, what, st, meter, x);
-      const r = { where, i, row, bar, flash, id: (where === 'base' ? 'base' : 'accent') + i, dst: 'fx.' + s.fx, src: s.src, lvl: -1 };
+      const r = { where, i, row, bar, flash, id: (where === 'base' ? 'base' : 'accent') + i, dst: dstOf(s.fx), peak: peakOf(s.amt), src: s.src, lvl: -1 };
       if (where === 'accents') {
         const tolBox = el('span', 'ds-tol'), conf = el('span', 'ds-conf'), cf = el('i'), mark = el('b');
         conf.setAttribute('aria-hidden', 'true'); conf.append(cf, mark);
@@ -392,7 +417,9 @@
       rows.push(r); return row;
     }
     function drawLanes() {
-      const s = cur(), key = JSON.stringify([s, names()]);
+      const s = cur();
+      lit = light();
+      const key = JSON.stringify([s, names(), lit]);
       if (key === drawnKey) return;
       const had = lanes.contains(document.activeElement) ? [document.activeElement.closest('.ds-row, .ds-more, .ds-handrow'), [...(document.activeElement.closest('.ds-row, .ds-more, .ds-handrow') || box).querySelectorAll('button')].indexOf(document.activeElement)] : null;
       const hadIdx = had && had[0] ? [had[0].dataset.where, had[0].dataset.i, had[1]] : null;
@@ -479,10 +506,10 @@
       focusAfter = [where, i, 'ds-fxp'];
       dlgHead.textContent = T('When I {m} → what happens?', { m: phrase(where, slot, names()).move });
       dlgList.textContent = ''; dlgList.className = 'ds-choices ds-fxs';
-      for (const [g, list] of Object.entries(M.GROUPS)) {
-        const col = el('div', 'ds-group'); col.style.setProperty('--g', COLOURS[g]); col.append(el('h4', '', GROUP_NAMES[g]()));
+      for (const [g, list] of [...Object.entries(M.GROUPS), ['light', Object.keys(LIGHT)]]) {
+        const col = el('div', 'ds-group' + (g === 'light' ? ' ds-light' : '')); col.style.setProperty('--g', COLOURS[g]); col.append(el('h4', '', GROUP_NAMES[g]()));
         for (const fx of list) {
-          const why = fits(s, where, i, fx), b = el('button', 'ds-opt ds-fx' + (slot.fx === fx ? ' on' : ''));
+          const why = fits(s, where, i, fx, lit), b = el('button', 'ds-opt ds-fx' + (slot.fx === fx ? ' on' : ''));
           b.type = 'button'; const ic = el('span', 'ds-icon', icon(fx)); ic.setAttribute('aria-hidden', 'true');
           b.append(ic, el('span', 'ds-optname', fxName(fx)), el('span', 'ds-optsub', ((where === 'base' ? FX_GROW : FX_FLASH)[fx])()));
           if (why) { b.setAttribute('aria-disabled', 'true'); tip(b, fxName(fx) + ' – ' + REASONS[why]()); }
@@ -511,12 +538,14 @@
       const [b1] = wizShow(0), list = el('div', 'ds-fxchips');
       b1.append(el('b', 'ds-big', T('Tap an effect')));
       const s = cur();
-      for (const fx of EFFECTS) {
+      for (const fx of [...EFFECTS, ...Object.keys(LIGHT)]) {
         const b = el('button', 'ds-pill ds-fxp'); b.type = 'button'; b.style.setProperty('--g', COLOURS[GROUP_OF[fx]]);
+        const away = fx in LIGHT && (lit === 'off' || lit === 'nohost') ? lit : null;   // #270: the room light is not there
         const ic = el('span', 'ds-hic', icon(fx)); ic.setAttribute('aria-hidden', 'true'); b.append(ic, el('span', '', fxName(fx)));
         const inUse = ['base', 'accents'].some(w => s[w].some(x => x && x.fx === fx));
         if (inUse) b.title = T('{e} is in a sentence already – the movement you show takes it over', { e: fxName(fx) });
-        b.onclick = () => { flow.fx = fx; listen(); };
+        if (away) { b.setAttribute('aria-disabled', 'true'); tip(b, fxName(fx) + ' – ' + REASONS[away]()); }
+        b.onclick = () => { if (away) { hint(REASONS[away](), null, b); return; } flow.fx = fx; listen(); };
         list.append(b);
       }
       b1.append(list); list.firstChild.focus();
@@ -587,7 +616,7 @@
       const s = cur(), st = bridge.state();
       let acting = 0;
       for (const r of rows) {
-        const k = level(live, r.id, r.dst), q = Math.round(k * 50) / 50;
+        const k = level(live, r.id, r.dst, r.peak, st.hold ?? 1), q = Math.round(k * 50) / 50;
         acting = Math.max(acting, k);
         if (q !== r.lvl) { r.lvl = q; r.bar.style.transform = `scaleX(${q})`; r.row.classList.toggle('live', q > 0.12); }
         if (r.cf && live) {
@@ -633,8 +662,8 @@
     return { tick, draw: () => draw(true), slots: cur, change, hint, set hidden(v) { box.hidden = v; }, get hidden() { return box.hidden; } };
   }
 
-  const api = { mount, fits, handFits, place, level, glow, phrase, stepOf, suggestName, nameProblem, chain, strongest, assign, pictogram,
-    BASE, ACCENTS, HANDS, MAX_HANDS, STEPS, TOLS, COLOURS, GROUP_OF, EFFECTS, REASONS, SLOTS };
+  const api = { mount, fits, handFits, place, level, glow, phrase, stepOf, suggestName, nameProblem, chain, strongest, assign, pictogram, dstOf, peakOf,
+    BASE, ACCENTS, HANDS, MAX_HANDS, STEPS, TOLS, COLOURS, GROUP_OF, EFFECTS, LIGHT, REASONS, SLOTS };
   if (node) module.exports = api;
   else root.DanceSlots = api;
 })(typeof window !== 'undefined' ? window : globalThis);
