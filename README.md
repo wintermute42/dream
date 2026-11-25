@@ -186,6 +186,21 @@ instead of rearranging.
   by the browser's language. Switching reloads the page (briefly, the settings stay). Terminal messages
   (`dream.sh`, `dream-cloud`, autostart) follow the system language or `DREAM_LANG=de`.
 
+**The panel is the main control (#241):** everything Dream Control can set or trigger, the panel on the Mac can too –
+labelled and in the card where it belongs. Dream Control never does more; only what the phone itself contributes
+(lending its own camera, its motion and its glowing screen in the card “This device”) and how that page looks on the
+phone (type size, night colours, its live preview) are Dream Control's alone. A test (`tests/test_panel_parity.py`)
+keeps it that way. Since #241 the panel also has:
+- **Master brightness and ■ Blackout** together at the top of the card **“Output”**, like a master fader on a desk:
+  they act only on what the audience, the projector and Syphon see. Blackout takes the master to black and, pressed
+  again, back to the brightness it had before (pressed while black, the button is lit; the chip says “■ Blackout”).
+  The same button is in Dream Control's card “Output” and in its show bar, and a MIDI button can do it too; “↺ Reset”
+  brings the master back to 100 %.
+- **■ End** below the camera choice (card “Input & prompt”) while another device lends its live camera (Dream Control,
+  Dreamy Eyes): it says who it is and ends it.
+- **👍 Good · 👎 Bad · ● Record** for the dance lab in the Movement card's part “Dream Dance”, while the lab is open on
+  its page.
+
 **Below the preview** there are always **Pause, New, Fullscreen, Save**, the coloured **status chips** (pause, cloud
 GPU running, movement without camera, playlist, music, Syphon) and the **load**, updated every second: AI pictures per
 second, GPU time per picture, how much of the time the AI is busy, display fps, picture size and model, CPU of Dream
@@ -711,7 +726,8 @@ The remote is made for a tablet as well, upright and lying, best in **Chrome** (
   cloud mandala) and the name “Dream”. Installing it is optional – the remote stays a normal web page.
 - **The screen stays on** while the remote is open (Wake Lock where the browser offers it, otherwise a tiny silent
   video loop).
-- **Blackout** in the bar sets the master to 0 and back, like the MIDI button.
+- **Blackout** in the bar (and in the card “Output”, beside the master brightness) sets the master to 0 and back to the
+  brightness before – the same as the panel's button and the MIDI button.
 
 ### Live camera and motion of the Control device
 
@@ -726,7 +742,7 @@ Dream Control (over https, see above) has a card **“This device”**:
   choose what it steers, tap **📡 Learn** and move the device for 2 seconds; **a strike** (swinging the device
   sharply) becomes an impulse (flash, spin jolt, new motif, next scene, blackout); the 🧭 button gives a little jolt
   when the Mac took a strike. The flash is a light pulse on the stage, with or without music. The stage shows
-  “📱 Motion: Dream Control”; the learned assignments appear in the panel under “Control (MIDI, sensors, master)” like
+  “📱 Motion: Dream Control”; the learned assignments appear in the panel under “Control (MIDI, sensors)” like
   those of OSC.
 - **💡 Glow as a light marker** (appears while 🧭 Motion is on): the phone that lends its motion is also the LED marker
   of the hand that holds it. Choose the colour – **cyan, green, blue or magenta** (no red, orange or yellow: those are
@@ -1091,7 +1107,8 @@ eyes** that invite people to step up and play:
   eyes, brows, mouth and outline – nothing else. Its key is its own (`~/.local/state/dream/eyes-token`) and a cookie of its own, so
   trying the eyes on your own phone never replaces Dream Control.
 - **One camera at a time:** the stage shows “👀 Live camera: Dreamy Eyes”. In Dream Control the card “This device” says
-  who lends the camera, **■ End** stops it (the eyes say so and wait for a tap), and starting your own live camera
+  who lends the camera, **■ End** stops it (the eyes say so and wait for a tap; the panel has the same **■ End** below
+  the camera choice), and starting your own live camera
   takes over. The stage then goes back to the dream, never to the Mac's camera by itself.
 
 <sub>[↑ Contents](#contents)</sub>
@@ -1619,8 +1636,8 @@ dancing:
   saves it, and **↶ Undo** takes it back step by step (up to 30 steps).
 - **Feedback without hands – “good” / “bad”:** each keeps the **last seconds** (slider, 1–15 s, 4 by default) as a
   feedback moment: the features, the recognised gesture, what each target was at, and the table in use. A note at the
-  top of the stage confirms it. Ways to say it: the buttons **👍 Good / 👎 Bad** or keys **G / B**; **by voice** – hold
-  **🎙** (or key V on the stage while the page is open) and say “good” or “bad”; the card **“Dream Dance”** in Dream Control;
+  top of the stage confirms it. Ways to say it: the buttons **👍 Good / 👎 Bad** (on the page, and in the panel's
+  Movement card while the lab is open) or keys **G / B**; **by voice** – hold **🎙** (or key V on the stage while the page is open) and say “good” or “bad”; the card **“Dream Dance”** in Dream Control;
   a **MIDI** button or foot pedal (targets “Button: dance lab – good / bad”); a **wristband's button** over OSC (an
   address with `btn` or `button` in it, value 1 while pressed): one press is “good”, two presses within half a second
   are “bad”. Feedback counts while the lab is open on the live dance or a recording runs.
@@ -1657,7 +1674,7 @@ the projector. USB controllers macOS recognises without a driver (“class compl
 MIDI Setup → Window → Show MIDI Studio. Devices with round 5-pin sockets need a USB MIDI interface. Plugging in and out
 during operation works; Dream looks for devices every 3 s.
 
-**Mapping (MIDI learn):** in the panel under “MIDI controller” (or on the phone under “MIDI · master”) choose a target,
+**Mapping (MIDI learn):** in the panel under “MIDI controller” (or on the phone under “MIDI”) choose a target,
 click **🎛 Learn**, then turn the knob or press the button on the controller – done. The list below shows all mappings,
 ✕ deletes one. Saved in `~/.config/dream/midi.json` (not in the repository), so they also hold after a restart. Which
 numbers the controller sends depends on its preset – just choose a preset and stay with it.
