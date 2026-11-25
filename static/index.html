@@ -588,6 +588,8 @@
           <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
           <input type="checkbox" id="clutch" hidden aria-hidden="true">
           <select id="dance_set" aria-label="Movement set" title="A movement set: a named table of what your movements do. Choosing one makes it the table in use; tune and keep your own on the page."><option value="">Set: your table</option></select>
+          <!-- #265 (a prototype): the page shows the old table or the new slots – the owner compares the two -->
+          <select id="dance_ui" aria-label="Dream Dance shows" title="Old table: every row as before. New slots: a few places, one effect each – Dream keeps every effect visible (groups, budget, minimum). Switching loses nothing."><option value="table">Dance: old table</option><option value="slots">Dance: new slots</option></select>
           <!-- #241: while the lab is open on its page, "good"/"bad" and recording are at hand here too -->
           <div class="btns compact labbtns" id="labbtns" role="group" aria-label="Dance lab" hidden>
             <button type="button" class="btn" id="labgood" title="Keeps the last seconds as good (key G)">👍 Good</button>
@@ -1765,7 +1767,12 @@
   const moveOpts = () => ({ off: moveOff, cam: $('move_cam').checked });
   let moveOff = '';                                    // the kinds of sources switched off ("eyes+band")
   const tableMode = () => (moveMode() === 'off' ? 'dance' : moveMode());   // the table the dance card shows
-  const tableRows = () => moveTables[tableMode()] || [];
+  // #265: with the slots, the dance table in use is compiled from the slots of the set in use (dance.py); the table
+  // the owner made stays as it is and comes back when the old table is chosen again
+  let danceSlots = null;
+  const slotsOn = () => $('dance_ui').value === 'slots' && !!danceSlots;
+  const tablesNow = () => (slotsOn() ? { ...moveTables, dance: danceSlots.rows } : moveTables);
+  const tableRows = () => tablesNow()[tableMode()] || [];
   const danceOn = () => moveMode() !== 'off';          // the stream runs in every mode
   const moveGain = k => danceOut[k] || 0;              // what a target of the one interface is at
   const danceAi = k => danceOut['ai.' + k] || 0;
@@ -1790,7 +1797,8 @@
   // the camera's own energy where the stream has none of it yet (someone is there, the hands not found)
   const camEnergy = () => (flowOn() && mo && mo.present && performance.now() - moAt < 500 ? { energy: mspeed(), conf: 0.5 } : null);
   function danceTargets(dt) {
-    danceOut = mover.step({ mode: moveMode(), tables: moveTables, rec: danceNow(), cam: camEnergy(), remote: moveRemote, strength: +$('motion_sens').value, clutch: clutchOn(), dt });
+    danceOut = mover.step({ mode: moveMode(), tables: tablesNow(), rec: danceNow(), cam: camEnergy(), remote: moveRemote, strength: +$('motion_sens').value, clutch: clutchOn(),
+      rules: { dance: slotsOn() }, dt });
     return danceOut;
   }
   const poseOn = () => flowOn() && $('pose').checked && typeof poseBlob !== 'undefined' && poseBlob && performance.now() - poseAt < 2000;
@@ -2031,7 +2039,7 @@
     motion_sens: 'motion_sens', move_mode: 'move_mode', move_cam: 'move_cam', flow_kind: 'flow_kind', dance_kind: 'dance_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_mirror: 'touch_mirror', ap_words: 'ap_words', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
-    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', flow_auto: 'flow_auto', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', flow_fingers: 'flow_fingers', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
+    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', dance_ui: 'dance_ui', flow_auto: 'flow_auto', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', flow_fingers: 'flow_fingers', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
@@ -2085,6 +2093,7 @@
         if (k === 'clutch') clutchSync();
         if (k === 'flow_auto') flowAutoSync();
         if (k === 'dance_set') { $('dance_set').dataset.want = v; setsSync(); }
+        if (k === 'dance_ui') { setsSync(); moveSync(); }
         if (k === 'dance_fb_secs') { danceFbSecs = +v; danceLab.secs(+v); }
         if (k === 'style_ref' || k === 'model') lookSync();
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
@@ -2411,7 +2420,10 @@
   function moveSync() {
     const on = flowOn(), want = on ? camKind() + '|' + flowCam() : '';
     moveCard.set({ move_mode: moveMode(), move_off: moveOff });
-    $('movetable').textContent = moveMode() === 'off' ? T('Movement is off – shown: the table of Dream Dance.') : T('What a movement does in the mode “{m}”.', { m: MoveCard.name(moveMode()) });
+    $('movetable').textContent = slotsOn() && tableMode() === 'dance' ? T('Dream Dance uses the new slots: choose the effects on its page (“Page ↗”). The table below shows what they make of it.')
+      : moveMode() === 'off' ? T('Movement is off – shown: the table of Dream Dance.') : T('What a movement does in the mode “{m}”.', { m: MoveCard.name(moveMode()) });
+    const ro = slotsOn() && tableMode() === 'dance', map = $('dancepanel').querySelector('.dp-map');
+    $('dancepanel').classList.toggle('dp-readonly', ro); if (map) map.inert = ro;
     tableShow(); moveLive();
     if (want === camWant) return;
     camWant = want;
@@ -3278,8 +3290,10 @@
   const FX_LIST = Object.keys(FX_NAMES);
   // #235: the dance card – what Dream sees, and the mapping table (a hand's change goes to Dream, which keeps the table)
   // #249: the table shown and changed is the one of the mode in use (off: the dance table)
-  const tableSay = rows => { if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); if (Array.isArray(rows)) dancePanel.map(rows); };
-  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); }, fxNames: FX_NAMES,
+  const tableSay = rows => {
+    if (slotsOn() && tableMode() === 'dance') return;   // #265: the slots' rows are Dream's, compiled from the slots
+    if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); if (Array.isArray(rows)) dancePanel.map(rows); };
+  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (slotsOn() && tableMode() === 'dance') return; if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); }, fxNames: FX_NAMES,
     sources: [...DreamDance.SOURCES, 'present'], targets: DreamDanceMap.targets(DreamFx.ALL) });
   tableShow = () => dancePanel.map(tableRows());
   setInterval(() => {                                  // the display, a dozen times a second while its part of the card is open and in view
@@ -3307,15 +3321,23 @@
   const clutchSync = () => MoveCard.clutchShow($('clutchbtn'), clutchOn(), $('clutchnote'));
   function setClutch(on) { $('clutch').checked = !!on; sendCtl({ set: { clutch: !!on } }); clutchSync(); }
   $('clutchbtn').onclick = () => setClutch(!clutchOn());
-  function setsSync() { MoveCard.fillSets($('dance_set'), danceSets, $('dance_set').dataset.want || $('dance_set').value); }
+  $('dance_ui').addEventListener('change', () => { setsSync(); moveSync(); });   // #265: the view of Dream Dance
+  // #265: with the slots, the select lists the sets of slots and shows the one in use (there is no "your table" then)
+  function setsSync() {
+    if (slotsOn()) MoveCard.fillSets($('dance_set'), danceSlots.sets, danceSlots.use, { table: false });
+    else {                                             // a set of slots of your own is no table set: "your table" then
+      const want = $('dance_set').dataset.want || $('dance_set').value;
+      MoveCard.fillSets($('dance_set'), danceSets, !want || danceSets.includes(want) || !danceSlots || !danceSlots.own.includes(want) ? want : '');
+    }
+  }
   const musicClock = () => { const on = apBeating(); return { on, bpm: on && mu.period > 0 ? 60000 / mu.period : 0, pulse: on ? mu.beatEnv : 0 }; };
   const moveClock = () => { const r = danceNow(), on = !!r && r.bpm > 0; return { on, bpm: on ? r.bpm : 0, pulse: on ? r.v.pulse : 0, sure: r ? r.c.tempo || 0 : 0 }; };
   // what a mode's page asks of the lab (the camera with the tracks, the curves, the sessions)
-  const labOpts = { keys: DreamDance.SOURCES, fxNames: FX_NAMES, targets: DreamDanceMap.targets(DreamFx.ALL),
+  const labOpts = { keys: DreamDance.SOURCES, fxNames: FX_NAMES, fxIcons: FX_ICON, targets: DreamDanceMap.targets(DreamFx.ALL),
       video: tracker.video, snapshot: (c, w, h) => view.snapshot(c, w, h),
       live: () => (danceOn() && danceFrame && performance.now() - danceAt < 300 ? { rec: danceFrame, input: danceInput, landmarks: tracker.frame.landmarks, out: danceOut } : null),
       rows: tableRows,
-      setRows: rows => { const m = tableMode(); moveTables[m] = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: moveTables[m], mode: m }); }, 200); },
+      setRows: rows => { const m = tableMode(); if (slotsOn() && m === 'dance') return; moveTables[m] = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: moveTables[m], mode: m }); }, 200); },
       play: rec => { dancePlay = rec; },
       secs: () => danceFbSecs, setSecs: v => { danceFbSecs = v; sendCtl({ set: { dance_fb_secs: v } }); },
       colours: () => ({ l: $('marker_l').value, r: $('marker_r').value }),
@@ -3325,6 +3347,15 @@
       setFingers: on => { $('flow_fingers').checked = !!on; $('flow_fingers').dispatchEvent(new Event('change', { bubbles: true })); },
       state: st => { sendCtl({ dance_lab: st }); labBtnsSync(); },
       voice: on => (on ? startVoice(null, 'feedback') : stopVoice()) };
+  // #265: what the slots page shows live, every frame: what each target is at (after the groups and the budget), what
+  // each row asks for, the gesture, whether someone is seen and whether the markers are
+  function slotLive() {
+    const r = danceNow(), inp = danceInput, fresh = !!r && performance.now() - danceAt < 500;
+    const hands = fresh && inp ? ['l', 'r'].filter(h => inp.hands && inp.hands[h]) : [];
+    return { out: danceOut, held: id => mover.of('dance', id), gesture: fresh ? r.gesture : null, seen: fresh && (hands.length > 0 || !!(inp && inp.body)),
+      markers: fresh && inp ? hands.filter(h => [].concat(inp.hands[h]).some(c => c && String(c.src || '').includes('marker'))).length : 0,
+      markerWanted: $('dance_kind').value === 'marker' || $('flow_markers').checked, kind: $('dance_kind').value, running: flowOn() && tracker.status.code === 'running' };
+  }
   const labLink = { attach(api) { labApi = api; sendCtl({ dance_lab: labState() }); labBtnsSync(); }, detach() { labApi = null; dancePlay = null; sendCtl({ dance_lab: labState() }); labBtnsSync(); } };
   // #241: "good", "bad" and recording in the dance's part of the card – shown while the lab is open on its page
   function labBtnsSync() {
@@ -3347,6 +3378,11 @@
     setCam: v => { $('flow_device').value = v; $('flow_device').dispatchEvent(new Event('change', { bubbles: true })); },
     setMode: m => { $('move_mode').value = m; $('move_mode').dispatchEvent(new Event('change', { bubbles: true })); },
     setClutch, setSet: name => { $('dance_set').value = name; $('dance_set').dispatchEvent(new Event('change', { bubbles: true })); },
+    // #265: the slots – which view, the sets of slots, what acts right now; changes go to Dream (dance.py keeps them)
+    ui: () => $('dance_ui').value, setUi: v => { if (v === 'table' || v === 'slots') { $('dance_ui').value = v; $('dance_ui').dispatchEvent(new Event('change', { bubbles: true })); moveSync(); setsSync(); } },
+    slots: () => danceSlots, slotsDo: op => sendCtl({ dance_slots: op }),
+    adaptSlots: (from, name) => { sendCtl({ dance_slots: { op: 'adapt', name: from, as: name } }); sendCtl({ set: { dance_set: name } }); },
+    live: () => slotLive(),
     // kept first, chosen second: choosing a set loads its rows, and they must be the ones just kept
     saveSet: name => { $('dance_set').dataset.want = name; sendCtl({ dance_set_save: name }); sendCtl({ set: { dance_set: name } }); },
     deleteSet: name => { const mine = $('dance_set').value === name; if (mine) { $('dance_set').dataset.want = ''; $('dance_set').value = ''; }   // the table stays as it is: it is "your table" again
@@ -3841,7 +3877,9 @@
       if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
       if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
       if (m.dance && m.dance.tables && !dancePanel.busy && !danceMapTimer) { moveTables = m.dance.tables; dancePanel.map(tableRows()); }
-      if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; danceOwnSets = m.dance.own_sets || []; setsSync(); }   // #251
+      if (m.dance && m.dance.slots && Array.isArray(m.dance.slots.rows)) { danceSlots = m.dance.slots; moveSync(); }   // #265
+      if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; danceOwnSets = m.dance.own_sets || []; }   // #251
+      if (m.dance && (m.dance.sets || m.dance.slots)) setsSync();
       if (m.move && Array.isArray(m.move.sources)) moveRemote = m.move.sources;   // #249: the sources outside the stage
       if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad
       if (m.scene) {

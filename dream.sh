@@ -4,6 +4,8 @@
 #   dream.sh --lan      also reachable in the home network for the phone remote (secret link, QR code on the stage)
 #   dream.sh --stage    opens the stage without the panel (fullscreen on the projector: press F)
 #   dream.sh --no-open  starts only the server (used by the autostart)
+#   dream.sh --test-copy[=DIR]  a copy to try things in: its own folders (default ~/dream-test-copy) and ports
+#                       7870/7470/7170, so the settings, keys and pictures of the real Dream stay untouched
 #   dream.sh --beamer   also opens the output window (picture only, no controls, renders nothing itself) as a
 #                       Chrome kiosk window on the second display; --beamer=X for its left edge in macOS (default 1920)
 # Local settings (paths, ports) go into ~/.config/dream/dream.env as VAR=value lines; it is read on every start.
@@ -26,6 +28,8 @@ Options:
   --beamer       also opens the output window (picture only, does not compute) fullscreen on the second
                  display (Chrome kiosk); --beamer=X = left edge of the projector in pixels (default 1920)
   --no-open      opens no browser (the default; stays valid for the autostart)
+  --test-copy    a copy to try things in: own folders (~/dream-test-copy, or --test-copy=DIR) and
+                 port 7870 (https 7470, sensors 7170) – the real Dream and its settings stay untouched
   -h, --help     shows this help
 
 Own settings (in ~/.config/dream/dream.env, one line per setting, not in the repository):
@@ -41,11 +45,29 @@ Stop with Ctrl+C. More in the README (section "At a glance"); cloud GPU: ./dream
 HELP
 )"
 }
+COPY=""
 for a in "$@"; do
-  case "$a" in -h|--help) usage; exit 0 ;; esac
+  case "$a" in
+    -h|--help) usage; exit 0 ;;
+    --test-copy) COPY="$HOME/dream-test-copy" ;;
+    --test-copy=*) COPY="${a#--test-copy=}" ;;
+  esac
 done
-ENV_FILE="${DREAM_ENV:-${DREAM_CONFIG_DIR:-$HOME/.config/dream}/dream.env}"   # #186: DREAM_CONFIG_DIR
+# #265: a test copy keeps everything in its own folders – its dream.env too (copy the real one there to take its
+# settings) – and its own ports, whatever that dream.env says
+if [ -n "$COPY" ]; then
+  export DREAM_STATE_DIR="$COPY/state" DREAM_CONFIG_DIR="$COPY/config" DREAM_SAVE_DIR="$COPY/pictures"
+  mkdir -p "$DREAM_STATE_DIR" "$DREAM_CONFIG_DIR" "$DREAM_SAVE_DIR"
+  ENV_FILE="$DREAM_CONFIG_DIR/dream.env"
+else
+  ENV_FILE="${DREAM_ENV:-${DREAM_CONFIG_DIR:-$HOME/.config/dream}/dream.env}"   # #186: DREAM_CONFIG_DIR
+fi
 if [ -f "$ENV_FILE" ]; then set -a; . "$ENV_FILE"; set +a; fi
+if [ -n "$COPY" ]; then
+  export DREAM_STATE_DIR="$COPY/state" DREAM_CONFIG_DIR="$COPY/config" DREAM_SAVE_DIR="$COPY/pictures" \
+    DREAM_PORT=7870 DREAM_HTTPS_PORT=7470 DREAM_SENSOR_PORT=7170
+  tx "Test copy: folders in {0}, panel http://127.0.0.1:7870/ – the real Dream stays untouched." "$COPY"
+fi
 PORT="${DREAM_PORT:-7860}"
 HOST=127.0.0.1; PAGE="http://127.0.0.1:$PORT/"; OPEN=0; BEAMER=""
 for a in "$@"; do
@@ -54,6 +76,7 @@ for a in "$@"; do
     --open) OPEN=1 ;;
     --stage) PAGE="http://127.0.0.1:$PORT/?stage=1"; OPEN=1 ;;
     --no-open) OPEN=0 ;;                      # the default; kept for the autostart
+    --test-copy|--test-copy=*) ;;             # #265: read above
     --flow|--flow=*) tx "Note: --flow is gone – switch the movement detection on in Dream (switch “Movement”), Dream remembers it." >&2 ;;
     --beamer) BEAMER=1920 ;;
     --beamer=*) BEAMER="${a#--beamer=}"; [[ "$BEAMER" =~ ^-?[0-9]+$ ]] || { tx "--beamer=X: X is a number (pixels)." >&2; exit 2; } ;;

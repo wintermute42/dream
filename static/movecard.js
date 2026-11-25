@@ -31,8 +31,9 @@
   const setLabel = n => say(SETS, n, n);
   // the choices of a set's select: "your table" (no set), then every set by its name; a name not in the list yet (Dream
   // has not said so) stands as it is. Rebuilt only when something changed, so an open list is not torn away.
-  function fillSets(select, names, current) {
-    const want = [''].concat(names || []), cur = current == null ? '' : String(current);
+  // opts.table: false – #265: the sets of slots, there is no "your table" among them
+  function fillSets(select, names, current, opts = {}) {
+    const want = (opts.table === false ? [] : ['']).concat(names || []), cur = current == null ? '' : String(current);
     if (cur && !want.includes(cur)) want.push(cur);
     const key = want.join('\n');
     if (select.dataset.filled !== key) {

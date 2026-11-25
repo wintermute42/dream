@@ -23,8 +23,8 @@ import playlists
 
 MAP_FILE = os.path.join(paths.config_dir(), "dance.json")
 MAX_ROWS = 64
-CURVES = ("lin", "soft", "hard", "s")
-ORIGINS = ("fixed", "own", "taught", "learned")
+CURVES = ("lin", "soft", "hard", "s", "v")            # #265: "v" – a source that goes both ways acts by how far it goes
+ORIGINS = ("fixed", "own", "taught", "learned", "slot")   # #265: "slot" – compiled from the slots of Dream Dance
 MODES = ("mood", "flowtrack", "dance")              # the movement modes that have a table ("off" has none)
 # the one target interface: the instant layer (an effect's amount, all effects, the beat's push, turning, the tempo of
 # the picture's own motion, how calm the dream is), the direct interaction (#249: what the hands do to the picture –
@@ -209,8 +209,10 @@ def is_current() -> bool:
 def save_tables() -> None:
     os.makedirs(os.path.dirname(MAP_FILE), exist_ok=True)
     tmp = MAP_FILE + ".tmp"
+    own_slots = {"use": slot_use, "sets": slot_sets} if slot_sets or slot_use != "standard" else None
     with open(tmp, "w") as f:
-        json.dump({"version": 2, "tables": tables, **({"sets": sets} if sets else {})}, f, ensure_ascii=False, indent=1)
+        json.dump({"version": 2, "tables": tables, **({"sets": sets} if sets else {}), **({"slots": own_slots} if own_slots else {})},
+                  f, ensure_ascii=False, indent=1)
     os.replace(tmp, MAP_FILE)
 
 
@@ -263,14 +265,19 @@ def set_rows(new, mode: str = "dance") -> list:
         tables[mode] = clean_rows(new)
     else:
         return tables[mode]
-    if tables == default_tables() and not sets:
+    keep()
+    return tables[mode]
+
+
+def keep() -> None:
+    """The file with what is the owner's – or no file, when every table is the built-in one and nothing else is kept."""
+    if tables == default_tables() and not sets and not slot_sets and slot_use == "standard":
         try:
             os.remove(MAP_FILE)
         except OSError:
             pass
     else:
         save_tables()
-    return tables[mode]
 
 
 # #249: the switches of the cards "Direct interaction" and "Movement" of earlier versions → the row each one is now
@@ -302,7 +309,207 @@ def row_on(mode: str, dst: str) -> bool:
     return any(r["on"] and r["dst"] == dst for r in tables.get(mode, ()))
 
 
+# ---------- #265: slots instead of the table (a prototype for Dream Dance) ----------
+# The table stays the engine's format; with the setting dance_ui = "slots" the page of Dream Dance shows a few fixed
+# places instead, and they are compiled into the rows of the dance table. A set of slots:
+#
+#   {"base": [{"src": "energy", "fx": "waves", "amt": 0.6}, …2], "accents": [{"src": "g.wave", "fx": "mandala", "amt": 1}, …4],
+#    "hands": ["paint", "warp"]}
+#
+# – a slot is a movement and one effect with one strength (or null: empty); Dream picks curve, ranges and smoothing.
+# The groups below are the engine's (static/dancemap.js GROUPS: one effect per group acts strongly, at most three
+# groups at once, every occupied slot at least visibly – tests/js/dancemap.test.mjs). The built-in slot sets can't be
+# changed: "adapt" makes an own copy, "reset" brings an own copy back to the set it was made from; a set without any
+# occupation does not exist (it is Standard's then).
+SLOT_FX = playlists.FX
+GROUPS = {"symmetry": ("kaleido", "mandala", "mirror"), "space": ("tunnel", "waves"), "afterglow": ("trails", "feedback"),
+          "disturbance": ("rgb", "glitch", "pixel", "raster"), "colour": ("hue",)}
+GROUP_OF = {e: g for g, effects in GROUPS.items() for e in effects}
+BASE_SOURCES = ("energy", "open", "turn", "height")
+# the built-in gestures; a taught movement (#236: "own.<name>") gets its place among the accents later
+ACCENT_SOURCES = ("g.throw", "g.accordion", "g.push", "g.circle", "g.wave")
+HANDS = ("paint", "warp", "impulse", "light")
+BASE_SLOTS, ACCENT_SLOTS, MAX_HANDS = 2, 4, 2
+SLOT_MIN = 0.35                                      # the engine's minimum (dancemap.js RULES.MIN): strength 0 is still seen
+# what Dream picks for a continuous movement: from where to where it counts, its curve, its smoothing
+BASE_SHAPE = {"energy": (0.1, 0.8, "soft", 0.25), "open": (0.45, 0.95, "s", 0.3), "turn": (-1.0, 1.0, "v", 0.3),
+              "height": (0.55, 1.0, "hard", 0.2)}
+
+
+def _slot(src, fx, amt=1.0):
+    return {"src": src, "fx": fx, "amt": amt}
+
+
+SLOT_SETS = {
+    "standard": {"base": [_slot("energy", "trails", 0.5), _slot("open", "kaleido", 0.6)],
+                 "accents": [_slot("g.throw", "tunnel"), _slot("g.push", "rgb"), _slot("g.wave", "waves"), _slot("g.circle", "hue")],
+                 "hands": ["paint", "warp"]},
+    "waves": {"base": [_slot("energy", "waves", 0.6), _slot("open", "trails", 0.4)],
+              "accents": [_slot("g.wave", "mandala"), _slot("g.circle", "kaleido"), _slot("g.accordion", "mirror"), _slot("g.push", "hue")],
+              "hands": ["paint", "impulse"]},
+    "fire": {"base": [_slot("energy", "feedback", 0.6), _slot("height", "rgb", 0.4)],
+             "accents": [_slot("g.throw", "tunnel"), _slot("g.push", "waves"), _slot("g.circle", "kaleido"), _slot("g.wave", "hue")],
+             "hands": ["warp", "impulse"]},
+}
+
+
+def slot_conflict(slots: dict, where: str, i: int, fx: str) -> str | None:
+    """Why this effect does not fit into this slot beside the others (the page greys it out with the reason), or None.
+    "taken": it is in another slot already; "group": the other base slot is of its group (the two would cancel out);
+    "base": an accent of a base slot's group (it would only replace the base for a moment)."""
+    others = [(w, j, s) for w in ("base", "accents") for j, s in enumerate(slots.get(w) or []) if s and (w, j) != (where, i)]
+    if any(s["fx"] == fx for _, _, s in others):
+        return "taken"
+    base_groups = {GROUP_OF[s["fx"]] for w, _, s in others if w == "base"}
+    if GROUP_OF.get(fx) in base_groups:
+        return "group" if where == "base" else "base"
+    return None
+
+
+def clean_slots(data) -> dict | None:
+    """A set of slots as Dream keeps it, or None when it is no set of slots. What does not fit is left empty (fail
+    closed: a slot that breaks a rule is dropped, never forced); nothing occupied at all is Standard's occupation."""
+    if not isinstance(data, dict):
+        return None
+    out = {"base": [None] * BASE_SLOTS, "accents": [None] * ACCENT_SLOTS, "hands": []}
+    for where, n, sources in (("base", BASE_SLOTS, BASE_SOURCES), ("accents", ACCENT_SLOTS, ACCENT_SOURCES)):
+        got = data.get(where)
+        for i, s in enumerate(got[:n] if isinstance(got, list) else ()):
+            if not isinstance(s, dict) or s.get("src") not in sources or s.get("fx") not in SLOT_FX:
+                continue
+            try:
+                amt = _num(s.get("amt", 1.0), 0.0, 1.0)
+            except (ValueError, TypeError, OverflowError):
+                continue
+            if slot_conflict(out, where, i, s["fx"]) is None:
+                out[where][i] = _slot(s["src"], s["fx"], amt)
+    hands = data.get("hands")
+    out["hands"] = [h for h in HANDS if isinstance(hands, list) and h in hands][:MAX_HANDS]
+    if not any(out["base"]) and not any(out["accents"]) and not out["hands"]:
+        return json.loads(json.dumps(SLOT_SETS["standard"]))
+    return out
+
+
+def compile_slots(slots: dict) -> list:
+    """The rows of the dance table a set of slots stands for: one row per occupied slot (its strength above the
+    engine's minimum), the beat's push and turning as Dream picks them, and the hands in the picture as switches."""
+    rows = []
+
+    def peak(amt):
+        return round(SLOT_MIN + (1 - SLOT_MIN) * amt, 4)
+    for i, s in enumerate(slots["base"]):
+        if s:
+            lo, hi, curve, smooth = BASE_SHAPE[s["src"]]
+            rows.append({**_row(f"base{i}", s["src"], "fx." + s["fx"], lo=lo, hi=hi, out=peak(s["amt"]), curve=curve, smooth=smooth), "origin": "slot"})
+    for i, s in enumerate(slots["accents"]):
+        if s:
+            rows.append({**_row(f"accent{i}", s["src"], "fx." + s["fx"], out=peak(s["amt"])), "origin": "slot"})
+    rows.append({**_row("pulse", "pulse", "fx.pulse", out=0.7, smooth=0.0), "origin": "slot"})
+    if not any(s and s["src"] == "turn" for s in slots["base"]):
+        rows.append({**_row("turn", "turn", "fx.spin", lo=-1.0, hi=1.0, smooth=0.3), "out": [-0.8, 0.8], "origin": "slot"})
+    for r in TOUCH_ROWS:
+        rows.append({**r, "on": r["id"] in slots["hands"] if r["id"] in HANDS else r["on"], "origin": "slot"})
+    return rows
+
+
+SLOT_NAME = SET_NAME
+
+
+def builtin_slots() -> dict:
+    return json.loads(json.dumps(SLOT_SETS))
+
+
+def load_slots() -> tuple:
+    """The owner's own slot sets ({name: {"from": a built-in set, "slots": …}}) and the set in use, from the file."""
+    own, use = {}, "standard"
+    try:
+        with open(MAP_FILE) as f:
+            data = json.load(f)
+        got = data.get("slots") if isinstance(data, dict) else None
+        if isinstance(got, dict):
+            for name, v in list((got.get("sets") or {}).items())[:MAX_SETS] if isinstance(got.get("sets"), dict) else ():
+                if isinstance(name, str) and SLOT_NAME.fullmatch(name) and name not in SLOT_SETS and isinstance(v, dict):
+                    slots = clean_slots(v.get("slots"))
+                    if slots:
+                        own[name] = {"from": v["from"] if v.get("from") in SLOT_SETS else "standard", "slots": slots}
+            if got.get("use") in SLOT_SETS or got.get("use") in own:
+                use = got["use"]
+    except (FileNotFoundError, ValueError, OSError, RecursionError, AttributeError):
+        pass
+    return own, use
+
+
+slot_sets, slot_use = load_slots()
+
+
+def all_slots() -> dict:
+    """Every set of slots by name: the built-in ones first, then the owner's."""
+    return {**builtin_slots(), **{k: v["slots"] for k, v in slot_sets.items()}}
+
+
+def use_slots(name) -> bool:
+    """The set of slots in use from now on (the setting dance_set while dance_ui is "slots")."""
+    global slot_use
+    if not isinstance(name, str) or name not in all_slots():
+        return False
+    if name != slot_use:
+        slot_use = name
+        keep()
+    return True
+
+
+def save_slots(name, data) -> bool:
+    """An own set of slots changed by hand. A built-in set is never changed (it is adapted: `adapt_slots`)."""
+    slots = clean_slots(data)
+    if not isinstance(name, str) or name not in slot_sets or slots is None:
+        return False
+    slot_sets[name]["slots"] = slots
+    keep()
+    return True
+
+
+def adapt_slots(source, name) -> bool:
+    """An own copy of a set of slots under a new name – the way to change a built-in set."""
+    if not isinstance(name, str) or not SLOT_NAME.fullmatch(name) or name in all_slots() or source not in all_slots():
+        return False
+    if len(slot_sets) >= MAX_SETS:
+        return False
+    origin = source if source in SLOT_SETS else slot_sets[source]["from"]
+    slot_sets[name] = {"from": origin, "slots": json.loads(json.dumps(all_slots()[source]))}
+    keep()
+    return True
+
+
+def reset_slots(name) -> bool:
+    """An own set of slots back to the occupation of the built-in set it was made from (a built-in one is as it was)."""
+    if name in SLOT_SETS:
+        return True
+    if name not in slot_sets:
+        return False
+    slot_sets[name]["slots"] = builtin_slots()[slot_sets[name]["from"]]
+    keep()
+    return True
+
+
+def delete_slots(name) -> bool:
+    global slot_use
+    if not isinstance(name, str) or name not in slot_sets:
+        return False
+    gone = slot_sets.pop(name)
+    if slot_use == name:
+        slot_use = gone["from"]
+    keep()
+    return True
+
+
+def slots_msg() -> dict:
+    sets_ = all_slots()
+    return {"use": slot_use, "sets": list(sets_), "own": list(slot_sets), "data": sets_,
+            "from": {k: v["from"] for k, v in slot_sets.items()}, "rows": compile_slots(sets_[slot_use])}
+
+
 def msg() -> dict:
-    """The tables for the pages: every mode's (the stage, the panel), the dance table by its own name (#235), and the
-    names of the movement sets (#251)."""
-    return {"dance": {"map": tables["dance"], "tables": tables, "sets": list(all_sets()), "own_sets": list(sets)}}
+    """The tables for the pages: every mode's (the stage, the panel), the dance table by its own name (#235), the
+    names of the movement sets (#251) and the slots (#265)."""
+    return {"dance": {"map": tables["dance"], "tables": tables, "sets": list(all_sets()), "own_sets": list(sets),
+                      "slots": slots_msg()}}

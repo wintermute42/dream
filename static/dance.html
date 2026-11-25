@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/static/movepage.css">
 <link rel="stylesheet" href="/static/movecard.css">
 <link rel="stylesheet" href="/static/dancelab.css">
+<link rel="stylesheet" href="/static/danceslots.css">
 </head>
 <body class="mp-body">
 <!-- #251: the page of the mode Dream Dance – on this Mac only, in a window of its own beside the stage. Everything
@@ -16,6 +17,11 @@
 <header class="mp-head">
   <h1>Dream Dance</h1>
   <div class="mp-status" id="pagestate" role="status"></div>
+  <!-- #265 (a prototype): the old table or the new slots – a setting (dance_ui), switching loses nothing -->
+  <div class="mp-ui" role="group" aria-label="What this page shows">
+    <button type="button" class="btn" id="ui-table" aria-pressed="false" title="The old table: every row as before">Old table</button>
+    <button type="button" class="btn" id="ui-slots" aria-pressed="false" title="The new slots: a few places, one effect each – Dream keeps every effect visible">New slots</button>
+  </div>
 </header>
 <div class="mp-note" id="nostage">
   <span>This page shows the dance of the stage that opened it. Open it from the panel: card “Movement” → Dream Dance → “Page ↗” (or key L on the stage).</span>
@@ -47,7 +53,7 @@
       <div class="mp-detect" id="detectstate" role="status"></div>
       <div class="hint">Dream Dance has its own detection – what Flowtrack detects with (fire/LED too) stays Flowtrack’s. Only you change it: here or in the Movement card. The fingers’ switch is at the finger view below.</div>
     </div>
-    <div class="mp-card">
+    <div class="mp-card" id="setcard">
       <h2>Movement set</h2>
       <select id="dance_set" aria-label="Movement set"><option value="">Set: your table</option></select>
       <div class="mp-setrow">
@@ -66,6 +72,7 @@
       <div class="hint" id="clockstate" role="status"></div>
     </div>
   </section>
+  <section id="slots" aria-label="Slots: what your movements do" hidden></section>
   <section id="dancelab" hidden></section>
 </main>
 <script src="/static/i18n.js"></script>
@@ -73,18 +80,20 @@
 <script src="/static/dancepanel.js"></script>
 <script src="/static/dancerec.js"></script>
 <script src="/static/dancelab.js"></script>
+<script src="/static/danceslots.js"></script>
 <script src="/static/movecard.js"></script>
 <script src="/static/movepage.js"></script>
 <script>
 (() => {
   const T = I18N.t, $ = id => document.getElementById(id);
   I18N.apply();
-  let bridge = null, lab = null, shown = {};
+  let bridge = null, lab = null, slots = null, shown = {}, uiWas = '';
   const say = (id, text) => { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } };
 
   // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
   // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
-  const NEEDS = { calls: ['attach', 'detach', 'state', 'setClutch', 'setSet', 'setMode', 'setKind', 'setCam', 'saveSet', 'deleteSet', 'lab.detect'],
+  const NEEDS = { calls: ['attach', 'detach', 'state', 'setClutch', 'setSet', 'setMode', 'setKind', 'setCam', 'saveSet', 'deleteSet', 'lab.detect',
+    'ui', 'setUi', 'slots', 'slotsDo', 'adaptSlots', 'live'],
     state: ['mode', 'clutch', 'hold', 'set', 'sets', 'own', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams'] };
   MovePage.link('dance', {
     needs: NEEDS,
@@ -92,11 +101,30 @@
     on(b) {                                            // the stage is there: the lab reads it from now on
       bridge = b; $('nostage').hidden = true; $('oldstage').hidden = true; $('page').hidden = false;
       lab = DanceLab.mount($('dancelab'), b.lab); lab.show(true); b.attach(lab);
+      // #265: the slots, with the live figure – the hands in their marker colours, glowing in the colour of their effect
+      const HAND_COL = { cyan: '#35e6f0', magenta: '#f040dc', green: '#59e06a', blue: '#5b8cff' };
+      slots = DanceSlots.mount($('slots'), { bridge: b, fxNames: b.lab.fxNames, fxIcons: b.lab.fxIcons, label: n => DancePanel.label(n, b.lab.fxNames), setLabel: MoveCard.setLabel,
+        frame: () => { const l = b.lab.live(); return l ? DreamDanceRec.pack(performance.now() / 1000, b.lab.keys, l.rec, l.input, l.landmarks, l.out) : null; },
+        figure: (c, w, h, f, glow) => DanceLab.drawFigure(c, w, h, f, { text: '#f2eefb', glow, handCol: hd => HAND_COL[(b.lab.colours() || {})[hd]] || (hd === 'l' ? HAND_COL.cyan : HAND_COL.magenta) }) });
+      uiShow();
     },
     lost() { bridge = null; $('nostage').hidden = false; $('oldstage').hidden = true; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
   });
   addEventListener('pagehide', () => { try { if (bridge) bridge.detach(); } catch (e) { /* the stage is gone already */ } });
 
+  // #265: old table or new slots – the setting is the stage's (and the panel's); the page shows what it says
+  function uiShow() {
+    if (!bridge || !slots) return;
+    const ui = bridge.ui();
+    if (ui === uiWas) return;
+    uiWas = ui;
+    $('ui-table').setAttribute('aria-pressed', String(ui !== 'slots')); $('ui-table').classList.toggle('on', ui !== 'slots');
+    $('ui-slots').setAttribute('aria-pressed', String(ui === 'slots')); $('ui-slots').classList.toggle('on', ui === 'slots');
+    slots.hidden = ui !== 'slots'; $('setcard').hidden = ui === 'slots'; lab.tune(ui !== 'slots');
+    if (ui === 'slots') slots.draw();
+  }
+  $('ui-table').onclick = () => { if (bridge) { bridge.setUi('table'); uiShow(); } };
+  $('ui-slots').onclick = () => { if (bridge) { bridge.setUi('slots'); uiShow(); } };
   $('clutchbtn').onclick = () => bridge && bridge.setClutch($('clutchbtn').getAttribute('aria-pressed') !== 'true');
   $('dance_set').onchange = () => bridge && bridge.setSet($('dance_set').value);
   $('stagereload').onclick = () => { if (MovePage.reloadStage()) say('pagestate', T('The stage is loading anew …')); };
@@ -127,6 +155,7 @@
     requestAnimationFrame(tick);
     if (!bridge) return;
     let st; try { st = bridge.state(); } catch (e) { return; }   // the stage is reloading: `link` notices
+    uiShow(); if (slots) slots.tick();
     const b = $('clutchbtn');
     if (b.getAttribute('aria-pressed') !== String(st.clutch)) MoveCard.clutchShow(b, st.clutch, $('clutchnote'));
     $('hold').style.transform = `scaleX(${(st.mode === 'dance' ? st.hold : 0).toFixed(3)})`;

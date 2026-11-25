@@ -235,16 +235,24 @@ async def sources_tell():
         await on_presence(word)
 
 
+def slots_ui() -> bool:
+    """#265: whether Dream Dance shows slots instead of the table (the setting dance_ui)."""
+    return hub.state.get("dance_ui") == "slots"
+
+
 def next_set(name: str) -> str:
-    """#251: the movement set after this one in the list (the MIDI button)."""
-    names = list(dance.all_sets())
+    """#251: the movement set after this one in the list (the MIDI button) – #265: of the sets of slots while the
+    slots are shown, starting from the one in use."""
+    names = list(dance.all_slots() if slots_ui() else dance.all_sets())
+    name = dance.slot_use if slots_ui() else name
     return names[(names.index(name) + 1) % len(names)] if name in names else names[0]
 
 
 def _set_chosen() -> None:
     """#251: a movement set was chosen – in the panel, by a MIDI button, by a playlist scene: its rows are the dance
-    table from now on, and every page is told. A name that is no set changes nothing."""
-    if dance.use_set(hub.state["dance_set"]):
+    table from now on, and every page is told. A name that is no set changes nothing. #265: while the slots are shown,
+    the name chooses a set of slots – the table stays exactly as it is (switching back to it loses nothing)."""
+    if dance.use_slots(hub.state["dance_set"]) if slots_ui() else dance.use_set(hub.state["dance_set"]):
         try:
             asyncio.get_running_loop().create_task(hub.broadcast(dance.msg()))
         except RuntimeError:                       # no loop (a script, a test): the next page that connects is told
@@ -260,6 +268,23 @@ def dance_sets(msg: dict) -> dict:
         dance.save_set(msg["dance_set_save"])
     if "dance_set_delete" in msg:
         dance.delete_set(msg["dance_set_delete"])
+    return dance.msg()
+
+
+def dance_slots(op) -> dict:
+    """#265: Dream Control or this Mac changes the slots: {"op": "save", "name", "slots"} (an own set only),
+    {"op": "adapt", "name": the set to copy, "as": the copy's name}, {"op": "reset", "name"}, {"op": "delete", "name"}.
+    A built-in set is never changed – whatever a page sends."""
+    if isinstance(op, dict):
+        name = op.get("name")
+        if op.get("op") == "save":
+            dance.save_slots(name, op.get("slots"))
+        elif op.get("op") == "adapt":
+            dance.adapt_slots(name, op.get("as"))
+        elif op.get("op") == "reset":
+            dance.reset_slots(name)
+        elif op.get("op") == "delete":
+            dance.delete_slots(name)
     return dance.msg()
 
 

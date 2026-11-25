@@ -176,6 +176,8 @@ async def ctl(sock: WebSocket):
                 await hub.broadcast(inputs.dance_map(msg["dance_map"], mode))
             if ("dance_set_save" in msg or "dance_set_delete" in msg) and rights.can(hub.roles.get(sock), "control"):   # #251
                 await hub.broadcast(inputs.dance_sets(msg))
+            if "dance_slots" in msg and rights.can(hub.roles.get(sock), "control"):   # #265: the slots of Dream Dance
+                await hub.broadcast(inputs.dance_slots(msg["dance_slots"]))
             if "midi_forget" in msg:
                 inputs.midi_map.pop(str(msg["midi_forget"]), None)
                 midi.save_map(inputs.midi_map)

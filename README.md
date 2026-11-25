@@ -55,6 +55,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 - [Flowtrack](#flowtrack)
 - [Dance](#dance)
   - [Dream Dance: the page, the clutch, the sets](#dream-dance-the-page-the-clutch-the-sets)
+  - [Slots instead of the table (prototype)](#slots-instead-of-the-table-prototype)
   - [Dance lab](#dance-lab)
 - [MIDI controller](#midi-controller)
 - [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
@@ -155,6 +156,19 @@ DREAM_PORT=7860
 
 `dream.sh`, `dream-cloud` and `install-autostart.sh` use the same folders; the autostart also takes `DREAM_PORT` from
 `dream.env`.
+
+**A test copy** (to try something new without touching your real Dream): `./dream.sh --test-copy` starts Dream with
+its own folders under `~/dream-test-copy` (`state`, `config`, `pictures`; another place: `--test-copy=<folder>`) on
+port **7870** (https 7470, sensors 7170) – whatever a `dream.env` says. The real settings, keys, tables and pictures
+stay as they are. To start it with your own settings, copy your `dream.env` into it once:
+
+```bash
+mkdir -p ~/dream-test-copy/config && cp ~/.config/dream/dream.env ~/dream-test-copy/config/
+./dream.sh --test-copy --open        # panel: http://127.0.0.1:7870/
+```
+
+Don't run the real Dream and the copy on the cloud GPU at the same time: both would use the cloud tunnel's port 7861.
+Remove the copy with `rm -rf ~/dream-test-copy`.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -1603,6 +1617,49 @@ side, each with a dot that beats, and says who gives the beat: your dance, the m
 or double time) or two different beats. Effects on the beat are pushed by both – the row “Own beat → Push on the
 beat” of the table for your movement, the music's beat as always.
 
+### Slots instead of the table (prototype)
+
+The table of Dream Dance can do everything – and so it is easy to end up with effects that cancel each other out, or
+with rows so weak that nothing is seen. The **slots** are a simpler way to say what your dance does. They are a
+prototype for comparing: the switch **Old table | New slots** at the top of the page of Dream Dance (also in the
+Movement card of the panel: “Dance: old table / new slots”) chooses; switching loses nothing – the table stays exactly
+as you left it, and so do the slots.
+
+- **Base movement – 2 slots.** A continuous movement (energy, opening, turning, height of the hands) sets one effect.
+- **Accents – 4 slots.** A gesture (throwing up, accordion, pushing, circling, arm wave) sets off one effect. The
+  dashed place beside them is kept for your own taught movements (they come with teaching).
+- **Hands in the picture.** Paint, stir, impulses and light in the dark as switches – at most two at once.
+- **One strength per slot.** Dream picks the curve, the range and the smoothing for each movement itself. Even the
+  lowest strength is clearly seen: a slot is occupied or empty, never “almost nothing”.
+
+**Choosing an effect:** click a slot's tile – a chooser shows all effects as tiles, by group. Effects that would not
+fit are greyed out; hovering says why (already in another slot, the same group as the other base slot, the same group
+as a base movement). Esc closes it without a change.
+
+**Dream keeps every effect visible – in the engine, not only on the page.** The effects are in five groups:
+symmetry (kaleidoscope, mandala, mirror), space (tunnel, waves), afterglow (afterglow, feedback), disturbance (RGB
+shift, glitch, pixel, grid) and colour (colour rotation). Of a group only one effect acts strongly at a time; at most
+three groups act strongly at once – when an accent comes in, the weakest of the others steps back for as long as the
+accent lasts and comes back softly. In the old table none of this applies: everything acts as its rows say, as before.
+
+**Sets of slots.** Built in: **Standard**, **Waves** and **Fire** (🔒) – they can't be changed. **✎ Adapt** makes your
+own copy (“Waves 2”) that you can change; **↺ Reset** brings your copy back to the slots of the set it was made from;
+**✕ Remove** deletes it. A set with nothing in it does not exist: it becomes Standard's slots. The set is chosen in
+the same places as before (the page, the Movement card, a MIDI button, Dream Control, a playlist scene's
+`dance_set`) – while the slots are shown these choose a set of slots. Your sets of slots are kept in
+`~/.config/dream/dance.json` beside the tables.
+
+**See what happens – without reading.** On the left the live figure: the skeleton or the markers, each hand glowing in
+the colour of the effect that acts most. Every tile glows while its effect acts, with a level bar below (a tile held
+back by its group or the budget glows less); an accent's tile flashes when its gesture is recognised. Below the
+figure a **traffic light**: the lamp is green when nothing blocks; three symbols light up red for what does –
+🔓 the clutch is released (click it to engage), 👤 nobody is detected, ◉ LED markers are chosen but none is seen.
+The words are on hover (and for screen readers). Nothing of this appears on the stage or the output.
+
+Limits of the prototype: no preview clips on the tiles, no taught movements yet, the dance lab's “Tune a row” is
+hidden while the slots are shown (the rows are Dream's then); the slots are only for Dream Dance (not for the mood or
+Flowtrack).
+
 ### Dance lab
 
 The **🧪 Dance lab** is the lower part of the page of Dream Dance. It shows live what Dream makes of your dance, so
@@ -2015,6 +2072,11 @@ the music's are compared, and that the page of Dream Dance opens no socket and n
 `tests/js/movement.test.mjs` also plays the clutch (out and in within a third of a second, without a step) and the
 dance on top of the base. `tests/test_dance.py` checks the movement sets (built in, own, kept in the file, who may
 change them).
+The slots of Dream Dance (#265, prototype): `node --test tests/js/dancemap.test.mjs` checks the engine's rules (one
+effect per group, at most three groups at once – the weakest steps back for an accent and returns softly – and every
+occupied slot visible; none of it with the old table), `tests/js/danceslots.test.mjs` what fits into which slot, the
+glowing tiles and the traffic light; `tests/test_slots.py` how slots become rows, that a built-in set can't be changed
+(not through `/ctl` either), adapt and reset, and that switching between the table and the slots loses nothing.
 `node --test tests/js/movecard.test.mjs` (#250) tests the movement card (`static/movecard.js`): the same modes in
 both pages, the energy in a word, the chips of the sources, the line that says what Dream detects, and that its
 styles move only transform and opacity; `tests/test_movecard.py` that the one card holds everything the three cards

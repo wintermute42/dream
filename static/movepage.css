@@ -61,3 +61,4 @@ input[type=checkbox] { width: 1.25em; height: 1.25em; accent-color: var(--accent
 .mp-effect label { margin: 0; color: var(--text); font-size: .88em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mp-effect.off label { color: var(--muted); }
 .mp-effect i { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); opacity: 0; will-change: opacity; }
+.mp-card[hidden] { display: none; }

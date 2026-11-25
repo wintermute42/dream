@@ -23,7 +23,7 @@
   const STRIPS = ['energy', 'tempo', 'phase', 'open', 'turn', 'height', 'still'];
   const FINGER_STRIPS = ['palm', 'spread', 'pinch'];
   const WINDOW = 12;                                   // seconds of curves in view
-  const CURVE_NAMES = { lin: () => T('straight'), soft: () => T('early (soft start)'), hard: () => T('late (needs more)'), s: () => T('S (soft both ends)') };
+  const CURVE_NAMES = { lin: () => T('straight'), soft: () => T('early (soft start)'), hard: () => T('late (needs more)'), s: () => T('S (soft both ends)'), v: () => T('both ways alike') };
   const spoken = mark => (mark === 'good' ? T('👍 Good') : mark === 'bad' ? T('👎 Bad') : '');
   // the words a spoken feedback is made of: English, and the page's language beside it (each a list in the translations)
   const words = () => ({ good: [...R.WORDS.good, ...T('good great yes nice super top right').split(' ')], bad: [...R.WORDS.bad, ...T('bad no nope wrong').split(' ')],
@@ -91,6 +91,35 @@
     }
     if (from != null && frames.length) out.push([from, frames[frames.length - 1].t]);
     return out;
+  }
+
+  // The figure of one packed frame (dancerec.js): skeleton, the hands' points, wrists and the LED markers seen.
+  // o: {alpha, thin, text: the skeleton's colour, handCol(hand) → colour, glow: {l, r: {col, k 0 … 1}} – #265: a hand
+  // glows in the colour of the effect it sets off, as strongly as that acts}
+  function drawFigure(c, w, h, f, o = {}) {
+    const P = ([x, y]) => [x * w, y * h], b = R.body(f), thin = !!o.thin, col = o.handCol || (() => '#fff');
+    c.lineCap = 'round'; c.globalAlpha = o.alpha == null ? 1 : o.alpha;
+    if (b) {
+      c.strokeStyle = o.text || '#fff'; c.lineWidth = thin ? 1.5 : 3; c.beginPath();
+      for (const [a, e] of R.BONES) { c.moveTo(...P(b[a])); c.lineTo(...P(b[e])); }
+      const neck = [(b[1][0] + b[2][0]) / 2, (b[1][1] + b[2][1]) / 2]; c.moveTo(...P(neck)); c.lineTo(...P(b[0])); c.stroke();
+      c.beginPath(); c.arc(...P(b[0]), Math.max(4, Math.hypot(b[1][0] - b[2][0], (b[1][1] - b[2][1]) * h / w) * w * 0.3), 0, 7); c.stroke();
+    }
+    for (const hnd of ['l', 'r']) {
+      const pts = R.hand21(f, hnd), wr = R.wrist(f, hnd), g = o.glow && o.glow[hnd];
+      if (wr && g && g.k > 0.02) {                     // the glow: a soft light around the wrist, as big as the effect is strong
+        const r = Math.min(w, h) * (0.05 + 0.09 * clamp(g.k, 0, 1)), [x, y] = P(wr), grad = c.createRadialGradient(x, y, 0, x, y, r);
+        grad.addColorStop(0, g.col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+        const was = c.globalAlpha; c.globalAlpha = was * clamp(0.35 + 0.65 * g.k, 0, 1); c.fillStyle = grad; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.globalAlpha = was;
+      }
+      c.strokeStyle = c.fillStyle = col(hnd);         // the hand keeps its own (marker) colour: which is which stays plain
+      if (pts) { c.lineWidth = thin ? 1 : 1.5; c.beginPath(); for (const [a, e] of R.HAND_BONES) { c.moveTo(...P(pts[a])); c.lineTo(...P(pts[e])); } c.stroke(); }
+      if (wr) { c.beginPath(); c.arc(...P(wr), thin ? 3 : 6, 0, 7); c.fill(); }
+      for (const cand of (f.i && f.i.h && f.i.h[hnd]) || []) if (cand[3] === 1) {    // an LED marker: a ring where it was seen
+        c.lineWidth = 2; c.beginPath(); c.arc(cand[0] * w, cand[1] * h, thin ? 5 : 10, 0, 7); c.stroke();
+      }
+    }
+    c.globalAlpha = 1;
   }
 
   function mount(box, opts) {
@@ -207,26 +236,7 @@
     }
 
     // ---------- drawing: the figure ----------
-    function figure(c, w, h, f, alpha, thin) {
-      const P = ([x, y]) => [x * w, y * h], b = R.body(f);
-      c.lineCap = 'round'; c.globalAlpha = alpha;
-      if (b) {
-        c.strokeStyle = C.text; c.lineWidth = thin ? 1.5 : 3; c.beginPath();
-        for (const [a, e] of R.BONES) { c.moveTo(...P(b[a])); c.lineTo(...P(b[e])); }
-        const neck = [(b[1][0] + b[2][0]) / 2, (b[1][1] + b[2][1]) / 2]; c.moveTo(...P(neck)); c.lineTo(...P(b[0])); c.stroke();
-        c.beginPath(); c.arc(...P(b[0]), Math.max(4, Math.hypot(b[1][0] - b[2][0], (b[1][1] - b[2][1]) * h / w) * w * 0.3), 0, 7); c.stroke();
-      }
-      for (const hnd of ['l', 'r']) {
-        const pts = R.hand21(f, hnd), wr = R.wrist(f, hnd);
-        c.strokeStyle = c.fillStyle = handCol(hnd);
-        if (pts) { c.lineWidth = thin ? 1 : 1.5; c.beginPath(); for (const [a, e] of R.HAND_BONES) { c.moveTo(...P(pts[a])); c.lineTo(...P(pts[e])); } c.stroke(); }
-        if (wr) { c.beginPath(); c.arc(...P(wr), thin ? 3 : 6, 0, 7); c.fill(); }
-        for (const cand of f.i.h[hnd]) if (cand[3] === 1) {    // an LED marker: a ring where it was seen
-          c.lineWidth = 2; c.beginPath(); c.arc(cand[0] * w, cand[1] * h, thin ? 5 : 10, 0, 7); c.stroke();
-        }
-      }
-      c.globalAlpha = 1;
-    }
+    const figure = (c, w, h, f, alpha, thin) => drawFigure(c, w, h, f, { alpha, thin, text: C.text, handCol });
     // frames: the ones in view, the newest last
     function drawCam(frames, fresh) {
       const g = ctxOf(camCv); if (!g) return; const [c, w, h] = g, f = fresh ? frames[frames.length - 1] : null;
@@ -574,7 +584,9 @@
       state();
     }
 
-    return { show, record, feedback, refresh, get open() { return open; }, get active() { return active(); }, get recording() { return !!rec; }, get playing() { return !!player; },
+    return { show, record, feedback, refresh,
+      // #265: with the slots the table is compiled by Dream – no row to tune by hand then
+      tune(on) { tuneBox.hidden = !on; }, get open() { return open; }, get active() { return active(); }, get recording() { return !!rec; }, get playing() { return !!player; },
       // a wristband's one button: one press "good", two right after each other "bad"
       button() { if (!active() || player) return; const v = press.press(performance.now() / 1000); if (v) feedback(v, 'button'); },
       // what was said into the microphone while the lab is open
@@ -582,7 +594,7 @@
       secs(v) { if (document.activeElement !== secsIn) { secsIn.value = v; secsVal.textContent = T('{n} s', { n: Math.round(v) }); } } };
   }
 
-  const api = { mount, tune, clock, origin, fingerWhy, lostSpans };
+  const api = { mount, drawFigure, tune, clock, origin, fingerWhy, lostSpans };
   if (node) module.exports = api;
   else root.DanceLab = api;
 })(typeof window !== 'undefined' ? window : globalThis);

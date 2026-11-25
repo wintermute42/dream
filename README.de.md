@@ -51,6 +51,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Flowtrack](#flowtrack)
 - [Tanz](#tanz)
   - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
+  - [Plätze statt Tabelle (Prototyp)](#plätze-statt-tabelle-prototyp)
   - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
@@ -154,6 +155,20 @@ Ordner – in `dream.env` oder in der Umgebung; ohne sie bleibt alles, wo es ist
 
 `dream.sh`, `dream-cloud` und `install-autostart.sh` nehmen dieselben Ordner; der Autostart liest auch `DREAM_PORT` aus
 `dream.env`.
+
+**Eine Testkopie** (Neues ausprobieren, ohne dein echtes Dream anzufassen): `./dream.sh --test-copy` startet Dream mit
+eigenen Ordnern unter `~/dream-test-copy` (`state`, `config`, `pictures`; ein anderer Ort: `--test-copy=<Ordner>`) auf
+Port **7870** (https 7470, Sensoren 7170) – egal, was in einer `dream.env` steht. Die echten Einstellungen, Schlüssel,
+Tabellen und Bilder bleiben, wie sie sind. Damit sie mit deinen Einstellungen startet, kopiere einmal deine
+`dream.env` hinein:
+
+```bash
+mkdir -p ~/dream-test-copy/config && cp ~/.config/dream/dream.env ~/dream-test-copy/config/
+./dream.sh --test-copy --open        # Bedienfeld: http://127.0.0.1:7870/
+```
+
+Das echte Dream und die Kopie nicht gleichzeitig auf der Cloud-GPU rechnen lassen: beide bräuchten den Port 7861 des
+Cloud-Tunnels. Entfernen: `rm -rf ~/dream-test-copy`.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -1698,6 +1713,52 @@ nebeneinander, je mit einem Punkt, der mitschlägt, und sagt, wer den Takt gibt:
 zusammen (auch im halben oder doppelten Tempo) oder zwei verschiedene Takte. Effekte auf dem Schlag stoßen beide
 an – die Zeile „Eigener Schlag → Schub auf den Schlag“ der Tabelle für deine Bewegung, der Schlag der Musik wie immer.
 
+### Plätze statt Tabelle (Prototyp)
+
+Die Tabelle von Dream Dance kann alles – und deshalb landet man leicht bei Wirkungen, die sich gegenseitig aufheben,
+oder bei Zeilen, die so schwach sind, dass man nichts sieht. Die **Plätze** sind ein einfacherer Weg zu sagen, was dein
+Tanz bewirkt. Sie sind ein Prototyp zum Vergleichen: Der Schalter **Alte Tabelle | Neue Plätze** oben auf der Seite von
+Dream Dance (auch in der Karte Bewegung des Bedienfelds: „Tanz: alte Tabelle / neue Plätze“) wählt; Umschalten
+verliert nichts – die Tabelle bleibt genau so, wie du sie verlassen hast, die Plätze auch.
+
+- **Grundbewegung – 2 Plätze.** Eine fließende Bewegung (Energie, Öffnung, Drehung, Höhe der Hände) steuert eine
+  Wirkung.
+- **Akzente – 4 Plätze.** Eine Geste (Hochwerfen, Ziehharmonika, Schieben, Kreisen, Schlängeln) löst eine Wirkung aus.
+  Der gestrichelte Platz daneben ist für deine eigenen angelernten Bewegungen reserviert (sie kommen mit dem Anlernen).
+- **Hände im Bild.** Malen, Rühren, Impulse und Licht in der Dunkelheit als Schalter – höchstens zwei gleichzeitig.
+- **Eine Stärke pro Platz.** Kurve, Bereich und Glättung wählt Dream je Bewegung selbst. Auch die kleinste Stärke sieht
+  man deutlich: Ein Platz ist belegt oder leer, „fast nichts“ gibt es nicht.
+
+**Eine Wirkung wählen:** Klick auf die Kachel eines Platzes – eine Auswahl zeigt alle Wirkungen als Kacheln, nach
+Gruppen. Was nicht passt, ist ausgegraut; beim Darüberfahren steht, warum (schon auf einem anderen Platz, dieselbe
+Gruppe wie der andere Grundplatz, dieselbe Gruppe wie eine Grundbewegung). Esc schließt ohne Änderung.
+
+**Dream hält jede Wirkung sichtbar – in der Engine, nicht nur auf der Seite.** Die Effekte bilden fünf Gruppen:
+Symmetrie (Kaleidoskop, Mandala, Spiegeln), Raum (Tunnel, Wellen), Nachleuchten (Nachleuchten, Rückkopplung), Störung
+(RGB-Versatz, Glitch, Pixel, Raster) und Farbe (Farbrotation). Aus einer Gruppe wirkt immer nur ein Effekt stark;
+höchstens drei Gruppen wirken gleichzeitig stark – kommt ein Akzent dazu, tritt die schwächste der anderen zurück,
+solange der Akzent dauert, und kehrt weich zurück. In der alten Tabelle gilt nichts davon: Alles wirkt wie bisher so,
+wie seine Zeilen sagen.
+
+**Sets der Plätze.** Eingebaut: **Standard**, **Wellen** und **Feuer** (🔒) – sie lassen sich nicht ändern. **✎ Anpassen**
+legt deine eigene Kopie an („Wellen 2“), die du ändern kannst; **↺ Zurücksetzen** bringt deine Kopie auf die Plätze des
+Sets zurück, aus dem sie entstand; **✕ Entfernen** löscht sie. Ein Set ohne Belegung gibt es nicht: Es bekommt die
+Plätze von Standard. Gewählt wird das Set an denselben Stellen wie bisher (die Seite, die Karte Bewegung, ein MIDI-Knopf,
+Dream Control, `dance_set` in einer Playlist-Szene) – solange die Plätze gezeigt werden, wählen sie ein Set der Plätze.
+Deine Sets der Plätze stehen neben den Tabellen in `~/.config/dream/dance.json`.
+
+**Sehen, was passiert – ohne zu lesen.** Links die Live-Figur: Skelett bzw. Marker, jede Hand leuchtet in der Farbe der
+Wirkung, die gerade am stärksten wirkt. Jede Kachel leuchtet, solange ihre Wirkung wirkt, mit einem Pegel darunter
+(eine Kachel, die ihre Gruppe oder das Budget zurückhält, leuchtet schwächer); die Kachel eines Akzents blitzt, wenn
+seine Geste erkannt wird. Unter der Figur eine **Ampel**: Die Lampe ist grün, wenn nichts blockiert; drei Symbole
+leuchten rot für das, was blockiert – 🔓 die Kupplung ist gelöst (Klick legt sie ein), 👤 niemand ist erkannt,
+◉ LED-Marker sind gewählt, aber keiner ist zu sehen. Die Worte dazu stehen beim Darüberfahren (und für Screenreader).
+Nichts davon erscheint auf der Bühne oder der Ausgabe.
+
+Grenzen des Prototyps: keine Vorschau-Clips auf den Kacheln, noch keine angelernten Bewegungen, „Eine Zeile
+einstellen“ im Tanz-Labor ist ausgeblendet, solange die Plätze gezeigt werden (die Zeilen sind dann Dreams); die Plätze
+gibt es nur für Dream Dance (nicht für Stimmung oder Flowtrack).
+
 ### Tanz-Labor
 
 Das **🧪 Tanz-Labor** ist der untere Teil der Seite von Dream Dance. Es zeigt live, was Dream aus deinem Tanz macht,
@@ -2158,6 +2219,12 @@ des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dan
 eigene Kamera öffnet. `tests/js/movement.test.mjs` spielt auch die Kupplung (aus und ein in einer Drittelsekunde, ohne
 Sprung) und den Tanz auf der Grundlage. `tests/test_dance.py` prüft die Bewegungs-Sets (eingebaut, eigene, in der
 Datei, wer sie ändern darf).
+Die Plätze von Dream Dance (#265, Prototyp): `node --test tests/js/dancemap.test.mjs` prüft die Regeln der Engine (ein
+Effekt je Gruppe, höchstens drei Gruppen gleichzeitig – die schwächste tritt für einen Akzent zurück und kehrt weich
+zurück – und jeder belegte Platz sichtbar; nichts davon mit der alten Tabelle), `tests/js/danceslots.test.mjs`, was auf
+welchen Platz passt, die leuchtenden Kacheln und die Ampel; `tests/test_slots.py`, wie aus Plätzen Zeilen werden, dass
+sich ein eingebautes Set nicht ändern lässt (auch nicht über `/ctl`), Anpassen und Zurücksetzen und dass Umschalten
+zwischen Tabelle und Plätzen nichts verliert.
 `node --test tests/js/movecard.test.mjs` (#250) prüft die Karte Bewegung (`static/movecard.js`): dieselben Modi in
 beiden Seiten, die Energie als Wort, die Chips der Quellen, die Zeile, die sagt, was Dream erkennt, und dass ihre
 Stile nur transform und opacity bewegen; `tests/test_movecard.py`, dass die eine Karte alles enthält, was die drei

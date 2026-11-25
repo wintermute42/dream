@@ -103,3 +103,62 @@ test('every source and target has a name a person reads', () => {
   assert.equal(P.label('fx.waves', fxNames), 'Waves'); assert.equal(P.label('l.palm'), 'Left hand: fist ↔ open hand');
   assert.equal(P.label('own.my_move'), 'own.my_move');     // one nobody named yet shows as it is
 });
+
+// ---------- #265: the rules that keep every effect visible (the slots of Dream Dance) ----------
+const fxRow = (id, src, fx, peak = 1, smooth = 0) => row({ id, src, dst: 'fx.' + fx, out: [0, peak], smooth });
+const run = (m, rows, v, secs, opts = { rules: true }) => { let out = {}; for (let i = 0; i < secs * 60; i++) out = m.apply(rows, frame(v), 1 / 60, opts); return out; };
+
+test('rules: of one group only the strongest acts strongly – the others are held to a hint', () => {
+  const m = M.create(), rows = [fxRow('a', 'energy', 'kaleido', 0.9), fxRow('b', 'open', 'mandala', 0.7), fxRow('c', 'height', 'mirror', 0.6)];
+  const out = run(m, rows, { energy: 1, open: 1, height: 1 }, 2);
+  near(out['fx.kaleido'], 0.9, 1e-3);
+  assert.ok(out['fx.mandala'] <= M.RULES.WEAK + 1e-3 && out['fx.mirror'] <= M.RULES.WEAK + 1e-3, JSON.stringify(out));
+  // without the rules (the old table) everything acts as the table says, as before
+  const old = run(M.create(), rows, { energy: 1, open: 1, height: 1 }, 2, {});
+  assert.deepEqual(old, { 'fx.kaleido': 0.9, 'fx.mandala': 0.7, 'fx.mirror': 0.6 });
+});
+
+test('rules: at most three groups at once – an accent comes in, the weakest steps back briefly and returns softly', () => {
+  const m = M.create(), R = M.RULES;
+  const rows = [fxRow('b0', 'energy', 'trails', 0.8), fxRow('b1', 'open', 'kaleido', 0.6), fxRow('b2', 'height', 'tunnel', 0.5), fxRow('a0', 'g.throw', 'rgb', 1, 0.15)];
+  let out = run(m, rows, { energy: 1, open: 1, height: 1, 'g.throw': 0 }, 2);
+  assert.deepEqual(Object.keys(out).sort(), ['fx.kaleido', 'fx.trails', 'fx.tunnel']);   // three groups: all of them act
+  near(out['fx.tunnel'], 0.5, 1e-3);
+  out = run(m, rows, { energy: 1, open: 1, height: 1, 'g.throw': 1 }, 0.5);   // the accent: a fourth group
+  assert.ok(out['fx.rgb'] > 0.9, 'the accent acts fully');
+  assert.ok(out['fx.tunnel'] <= R.WEAK + 0.01, `the weakest stepped back: ${out['fx.tunnel']}`);
+  near(out['fx.trails'], 0.8, 1e-3); near(out['fx.kaleido'], 0.6, 1e-3);   // the others stay
+  // the accent ends: the weakest comes back – softly, not in one frame
+  const soon = run(m, rows, { energy: 1, open: 1, height: 1, 'g.throw': 0 }, 0.3)['fx.tunnel'];
+  assert.ok(soon > R.WEAK && soon < 0.45, `on its way back: ${soon}`);
+  near(run(m, rows, { energy: 1, open: 1, height: 1, 'g.throw': 0 }, 4)['fx.tunnel'], 0.5, 0.01);
+  assert.ok(Object.values(out).filter(v => v > R.STRONG).length <= R.BUDGET);
+});
+
+test('rules: an occupied slot acts at least visibly – never "almost nothing"', () => {
+  const rows = [fxRow('a', 'energy', 'waves', 0.03)];
+  near(run(M.create(), rows, { energy: 1 }, 1)['fx.waves'], M.RULES.MIN, 1e-3);
+  near(run(M.create(), rows, { energy: 1 }, 1, {})['fx.waves'], 0.03, 1e-3);          // the old table: as it says
+  assert.equal(M.floored(row({ dst: 'fx.spin', out: [-0.1, 0.1] })).out[1], 0.1, 'turning is no effect of a group');
+  assert.equal(run(M.create(), rows, { energy: 0 }, 1)['fx.waves'], undefined, 'no movement: nothing (the minimum is the peak, not a floor)');
+});
+
+test('rules: the groups are every effect of the instant layer, each once', () => {
+  const all = Object.values(M.GROUPS).flat();
+  assert.equal(new Set(all).size, all.length);
+  const fxjs = readFileSync(new URL('../../static/fx.js', import.meta.url), 'utf8');
+  const order = /const ORDER = \[([^\]]+)\]/.exec(fxjs)[1].match(/\w+/g);
+  assert.deepEqual([...all].sort(), [...order, 'hue'].sort());
+  assert.equal(M.groupOf('fx.hue'), 'colour'); assert.equal(M.groupOf('fx.pulse'), null);
+});
+
+test('rules: the engine applies them to the dance table only when asked (the slots), never to another mode', () => {
+  const Mv = require('../../static/movement.js'), mv = Mv.create({ maps: M });
+  const rows = [fxRow('a', 'energy', 'kaleido', 0.9), fxRow('b', 'energy', 'mirror', 0.9)];
+  const rec = { t: 0, v: { energy: 1 }, c: { energy: 1 }, src: { energy: 'pose' }, bpm: 0, gesture: null, gc: 0, size: 0, g: {}, hands: { l: null, r: null }, events: [] };
+  let out; for (let i = 0; i < 120; i++) out = mv.step({ mode: 'dance', tables: { dance: rows }, rec, clutch: true, rules: { dance: true } });
+  assert.ok(out['fx.kaleido'] > 0.8 && out['fx.mirror'] <= M.RULES.WEAK + 0.01, JSON.stringify(out));
+  const mv2 = Mv.create({ maps: M });
+  for (let i = 0; i < 120; i++) out = mv2.step({ mode: 'dance', tables: { dance: rows }, rec, clutch: true });
+  assert.ok(out['fx.kaleido'] > 0.8 && out['fx.mirror'] > 0.8, 'the old table: no rules');
+});
