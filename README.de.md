@@ -338,6 +338,10 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   **„wirkt …“ unter Verwandlung (#115):** zeigt, woraus die Verwandlung gerade besteht, z. B. „wirkt 0,52 = Regler 0,03 ·
   Musik +0,21 · Bewegung +0,13 · Mindestwert 0,15“ – so sieht man sofort, wer sie hochdreht (die KI braucht mindestens
   0,15, darunter macht sie keinen ganzen Schritt). Leer, solange der Regler allein wirkt.
+  **Auflösung:** 384, 512, 768 oder 1024 px – die Höhe des Bildes; 16:9 macht es breiter (704×384, 896×512, 1344×768,
+  1792×1024). Dream kennt genau diese Größen: Eine Zahl dazwischen, die auf anderem Weg ankommt (ein Skript an `/ctl`,
+  eine Szene, eine von Hand geänderte Einstellungsdatei), wird zur nächstgelegenen – aus 640 wird 512 –, und jede Seite
+  zeigt diese Größe.
   **Echte Stile (#123, Karte Traum, nur mit SDXL-Turbo):** Beides verändert den Look der KI, **nie den Prompt**.
   - **Stil-Modell:** Aquarell, Wachsmalstift, Pixel-Art, Scherenschnitt, Sticker oder Illustration, mit Stärke bis 200 %
     (über 100 % wird der Stil stärker gedrückt, als er gelernt wurde – Pixel-Art braucht etwa 200 %). Es sind kleine
@@ -2043,7 +2047,9 @@ Lizenzen: SD-Turbo und SDXL-Turbo stehen unter der Stability AI Community Licens
 `uv run pytest` startet die automatischen Tests (wenige Sekunden; kein Modell, keine GPU, kein Netz – sie nehmen einen
 Ersatz für torch und einen temporären Home-Ordner, deine Einstellungen, Schlüssel und Bilder bleiben unberührt). Sie
 prüfen, wer was darf (jede Route des Servers für diesen Mac, Dream Control, Gäste, Dreamy Eyes und Geräte ohne
-Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung, die Ordner, die Zertifikate fürs Heimnetz, die
+Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung (eine Bildgröße, die Dream nicht kennt, wird für Bühne,
+Dream Control und den Absender zur nächstgelegenen: `tests/test_size.py`; `node --test tests/js/size.test.mjs`: das Bild
+der Bühne hat immer eine Größe, was auch in ihrer Liste steht), die Ordner, die Zertifikate fürs Heimnetz, die
 MIDI-, Sensor- und Playlist-Helfer, die Traum-Fenster (jedes Fenster sein eigenes Motiv, das Wandern, die Punkte eines
 gemalten Gesichts nur einmal erfragt), die Übersetzungen und was Dream flüssig hält (der Prompt wird einmal je Prompt
 kodiert, niemand wartet auf ein ladendes Modell oder ein langsames Gerät, der Zustand wird erst geschrieben, wenn die

@@ -326,6 +326,9 @@ together with the GPU, which makes the run itself a little slower than usual. On
   seed. **“acts …” below transformation:** shows what the transformation is made of right now, e.g. “acts 0.52 =
   slider 0.03 · music +0.21 · movement +0.13 · minimum 0.15” – so you see at once who turns it up (the AI needs at
   least 0.15, below that it does not make a whole step). Empty while the slider acts alone.
+  **Resolution:** 384, 512, 768 or 1024 px – the picture's height; 16:9 widens it (704×384, 896×512, 1344×768,
+  1792×1024). Dream has exactly these sizes: a number in between that reaches it another way (a script on `/ctl`, a
+  scene, a settings file edited by hand) becomes the nearest of them – 640 is 512 –, and every page shows that size.
 
   **Real styles (Dream card, SDXL-Turbo only):** both change the AI's look, **never the prompt**.
   - **Style model:** Watercolour, Crayon, Pixel art, Paper cut, Sticker or Illustration, with strength up to 200 %
@@ -1917,7 +1920,9 @@ a temporary home folder, so your own settings, keys and pictures are never touch
 route of the server for this Mac, Dream Control, guests, Dreamy Eyes and devices without a key), the origin check, the
 ranges of every setting, the folders, the home-network certificates, the MIDI, sensor and playlist helpers, the
 translations and what keeps Dream running smoothly (the prompt encoded once per prompt, no waiting for a loading model
-or a slow device, the state file written once the hands rest, the small preview). `node --test tests/js/morph.test.mjs` (#215) plays the motion between the pictures as plain numbers
+or a slow device, the state file written once the hands rest, the small preview), and that a picture size Dream does
+not have becomes the nearest one for the stage, Dream Control and whoever sent it (`tests/test_size.py`;
+`node --test tests/js/size.test.mjs`: the stage's picture always has a size, whatever its list says). `node --test tests/js/morph.test.mjs` (#215) plays the motion between the pictures as plain numbers
 (`static/morph.js`) – 1 to 8 pictures a second, uneven and late ones, several requests at once, a pause – and checks
 that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music

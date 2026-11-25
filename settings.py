@@ -26,6 +26,7 @@ class Setting:
     weight: float = 0.0               # #216: how strongly a number shapes the picture (0 = not at all … 1); "Reset"
                                       # brings every number with a weight home, the pages colour its slider by it
     needs: str | None = None          # #216: the setting it only acts with (a switch that is on, a choice not "off")
+    steps: tuple | None = None        # #247: a number with fixed values: anything else becomes the nearest of them
 
     @property
     def bipolar(self) -> bool:
@@ -46,12 +47,23 @@ def num(default, lo, hi, *, guest=False, target=False, weight=0.0, needs=None) -
     return Setting(default, lo=lo, hi=hi, guest=guest, target=target, weight=weight, needs=needs)
 
 
+def stepped(default, steps) -> Setting:
+    """#247: a number that only has these values (the pages offer them as a list)."""
+    return Setting(default, lo=min(steps), hi=max(steps), steps=tuple(sorted(steps)))
+
+
 def flag(default: bool, *, guest=False) -> Setting:
     return Setting(default, guest=guest)
 
 
 def text(default: str = "", *, choices=None, guest=False, clean=None) -> Setting:
     return Setting(default, choices=tuple(choices) if choices else None, guest=guest, clean=clean)
+
+
+# #247: the picture sizes (the height in pixels; 16:9 widens it). The pages offer exactly these (the stage's and Dream
+# Control's list, DreamCommon.SIZES) and the stage builds its pictures from the list's value – a size that is not in it
+# left the stage without a picture to send. So any other number becomes the nearest of these, here, for every way in.
+SIZES = (384, 512, 768, 1024)
 
 
 def _style(v: str) -> str:
@@ -123,7 +135,7 @@ SETTINGS: dict[str, Setting] = {
     "hue": num(2.0, 0.0, 20.0, guest=True, target=True, weight=0.8),
     "sens": num(1.0, 0.0, 2.0, guest=True, target=True, weight=0.5, needs="music"),
     "quality": num(2, 1, 4),
-    "size": num(512, 256, 1024),
+    "size": stepped(512, SIZES),
     "seed": num(1, 0, 2**31 - 1, guest=True),
     "music": text("off", choices=("off", "mic", "file")),
     "rewrite": flag(True),
@@ -226,7 +238,8 @@ def page_schema() -> dict:
     """#216: what a page needs to draw a number's slider (static/sliders.js): default, range, whether zero lies inside
     the range, the weight and the setting it only acts with."""
     return {k: {"d": s.default, "lo": s.lo, "hi": s.hi, **({"zero": True} if s.bipolar else {}),
-                **({"w": s.weight} if s.weight else {}), **({"needs": s.needs} if s.needs else {})}
+                **({"w": s.weight} if s.weight else {}), **({"needs": s.needs} if s.needs else {}),
+                **({"steps": list(s.steps)} if s.steps else {})}
             for k, s in SETTINGS.items() if s.number}
 
 
@@ -245,6 +258,8 @@ def coerce_number(k, v):
     if not math.isfinite(f):
         raise ValueError(k)
     f = min(max(f, s.lo), s.hi)
+    if s.steps:                                    # #247: the nearest of its values (halfway: the smaller one)
+        return min(s.steps, key=lambda step: (abs(step - f), step))
     return int(round(f)) if isinstance(s.default, int) else f
 
 
