@@ -623,7 +623,7 @@
         <select id="marker_r" aria-label="Marker colour of the right hand" title="LED marker on the right hand: another colour than the left one" style="flex:1 1 45%;min-width:0">
           <option value="cyan">Right: cyan</option><option value="magenta">Right: magenta</option><option value="green">Right: green</option><option value="blue">Right: blue</option></select>
         <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: the LED markers are followed as well – in the dark and on fast moves they lead, otherwise both confirm each other"><input type="checkbox" id="flow_markers"> LED markers beside the hand AI</label>
-        <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="Shows whether the hand model runs (21 points per hand – fist, spread fingers, pinch, snap): by itself while Dream Dance detects with “Hands (AI)”, so your hands always belong to the dance; never in Flowtrack. Downloaded once (about 8 MB)."><input type="checkbox" id="flow_fingers"> Fingers (hand AI, 21 points per hand)</label>
+        <label id="fingersrow" style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="Shows whether the hand model runs (21 points per hand – fist, spread fingers, pinch, snap): by itself while Dream Dance detects with “Hands (AI)”, so your hands always belong to the dance; never in Flowtrack. Downloaded once (about 8 MB)."><input type="checkbox" id="flow_fingers"> Fingers (hand AI, 21 points per hand)</label>
       </div>
     </div>
   <div class="row">
@@ -2560,6 +2560,7 @@
     $('marker_l').disabled = $('marker_r').disabled = k === 'on' || (k === 'hand' && !$('flow_markers').checked);
     $('flow_markers').disabled = k !== 'hand';
     $('flow_fingers').disabled = true; $('flow_fingers').checked = fingersOn();   // #265: shown, never chosen
+    $('fingersrow').hidden = !dancing;                 // Flowtrack has no hand detection: no fingers to show there
   }
   // #265: the hand model (21 points per hand) runs exactly while Dream Dance detects with "Hands (AI)" – the hands always
   // belong to the dance then; Flowtrack never loads it. The setting flow_fingers is no longer asked.

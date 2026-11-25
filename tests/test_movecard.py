@@ -108,6 +108,7 @@ def test_the_hand_model_comes_with_the_dances_hands_and_never_with_flowtrack():
     assert "const fingersOn = () => moveMode() === 'dance' && camKind() === 'hand';" in panel
     assert "fingers: fingersOn() });" in panel and "fingers: $('flow_fingers').checked" not in panel   # the detection asks the rule, not the switch
     assert "$('flow_fingers').disabled = true; $('flow_fingers').checked = fingersOn();" in panel
+    assert "$('fingersrow').hidden = !dancing;" in panel and 'id="fingersrow"' in panel   # not shown in Flowtrack at all
     # it changes the moment the mode or a detection kind changes
     assert "['flow_kind', 'dance_kind', 'move_mode'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));" in panel
     # the detection loads the hand model only when asked and only for "Hands (AI)"
