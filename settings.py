@@ -6,6 +6,7 @@ from this table (`DEFAULT_STATE`, `RANGES`, `GUEST_KEYS`, `TARGETS`, `RESET`, `p
 
 The type of a setting is the type of its default: a switch (bool), a number (int or float, always with a range) or a
 text. Nothing here loads PyTorch or reads the environment."""
+import ipaddress
 import math
 import re
 from dataclasses import dataclass
@@ -108,6 +109,21 @@ def _sources(v: str) -> str:
     return "+".join(dict.fromkeys(k for k in v.split("+") if k in MOVE_SOURCES))
 
 
+# #212: the address of the room light's WLED device – an IPv4 address or a host name (wled-room.local), nothing else:
+# no port, no scheme, never half an address (a half-typed "192.168.1" would be read as another device)
+HOST_NAME = re.compile(r"(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,62})(?:\.[a-z0-9](?:[a-z0-9-]{0,62}))*")
+
+
+def _host(v: str) -> str:
+    v = v.strip().rstrip(".").lower()
+    if re.fullmatch(r"[\d.]+", v):
+        try:
+            return str(ipaddress.IPv4Address(v))
+        except ValueError:
+            return ""
+    return v if HOST_NAME.fullmatch(v) else ""
+
+
 # #235: the colours an LED marker on a hand can have – never red, orange or yellow: those are fire
 MARKERS = ("cyan", "magenta", "green", "blue")
 
@@ -152,6 +168,12 @@ SETTINGS: dict[str, Setting] = {
     "move_cam": flag(False),
     "motion_sens": num(1.0, 0.0, 3.0, target=True, weight=0.4, needs="move_mode"),   # how strongly movement steers
     "syphon": flag(False),                                      # publish the stage picture as Syphon source "Dream"
+    # #212: the room light – a WLED device lights its chain in the colour of the dream (wled.py): on/off, the device,
+    # how bright (a MIDI fader can move it; the master and its blackout act on top) and whether it pulses on the beat
+    "wled": flag(False),
+    "wled_host": text("", clean=_host),
+    "wled_amt": num(1.0, 0.0, 1.0, target=True),
+    "wled_beat": flag(True),
     "pose": flag(False),                                        # the dancer's skeleton (flowtrack) shapes the figure
     "pose_scale": num(0.8, 0.2, 1.5, target=True, weight=0.5, needs="pose"),
     # what the Mac's camera detects: on (light: fire, LED) | hand (pose) | marker (#235: two LED markers, one per hand)

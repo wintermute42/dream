@@ -62,6 +62,14 @@ test('WebGL 2 chain against the Canvas 2D drawing', { skip: !chrome && !process.
     assert.ok(m.camera.flow.mean <= MEAN && m.camera.fade.mean > 3 * m.camera.flow.mean,
       `within the camera's motion (#215) the field leads to the half-way picture too (${m.camera.flow.mean}, cross-fade ${m.camera.fade.mean})`);
   });
+  await t.test('the room light reads the picture without the master (#212)', st => {
+    st.diagnostic(JSON.stringify(report.light));
+    const l = report.light;
+    assert.ok(l && l.light != null, 'no copy of the picture for the room light');
+    assert.ok(Math.abs(l.seen - l.full * 0.25) < 6, `what the audience sees is dimmed by the master (${l.seen} against ${l.full})`);
+    assert.ok(Math.abs(l.light - l.full) < 12, `the room light's copy is not (${l.light} against ${l.full})`);
+    assert.ok(Math.abs(l.canvas - l.full) < 12 && l.canvasLen === 16 * 16 * 4, `Canvas 2D: the same (${l.canvas})`);
+  });
   await t.test('smoothing arrives at the new picture', st => {
     st.diagnostic(JSON.stringify(report.arrive));
     const a = report.arrive;
