@@ -48,7 +48,8 @@ CAPABILITIES = {
     "beat": "as a Dreamy Eyes page, hears the music's beat beside its small preview of the dream (/view): one number "
             "between 0 and 1, now and then – nothing else of what the stage tells its output windows (#218)",
     "pair_eyes": "gets the links and QR codes that pair Dreamy Eyes and dream windows",
-    "take_over": "may take Dream Control over from another device (one at a time)",
+    "take_over": "may take Dream Control over from another device (one at a time); while it stands by as the second "
+                 "phone it may lend its motion sensors and glow as a light marker, nothing else (#237, ctl.slot_for)",
 }
 
 # #175: everything a guest (Dream Remote, the output window on a second device) may ask over HTTP; the rest is for

@@ -1751,7 +1751,10 @@
   // one step of the stream: from a camera frame's sources, or – with no camera – from the sensor alone
   function danceStep(cam) {
     const now = performance.now(), fresh = danceSens && now - danceSensAt < 330;
-    danceInput = { t: now / 1000, hands: { l: null, r: null }, ...(cam || {}), sensor: fresh ? { g: danceSens.g, a: danceSens.a, age: danceSens.age + (now - danceSensAt) / 1000 } : null };
+    const late = (now - danceSensAt) / 1000, arm = a => (a ? { g: a.g, age: a.age + late } : null);
+    // #237: with the sensor, the motion of each phone that glows as a hand's marker (inputs.glow_arms)
+    danceInput = { t: now / 1000, hands: { l: null, r: null }, ...(cam || {}), sensor: fresh ? { g: danceSens.g, a: danceSens.a, age: danceSens.age + late } : null,
+      arms: fresh && danceSens.arms ? { l: arm(danceSens.arms.l), r: arm(danceSens.arms.r) } : null };
     danceFrame = danceDet.step(danceInput);
     danceAt = now;
   }
@@ -2899,6 +2902,14 @@
     });
   }
   let midiPorts = 0;                                  // #179: MIDI devices connected (from the server)
+  // #237: a phone that lends its motion and glows as a light marker – its colour, and the hand Dream follows it for
+  function glowChip(feed, text) {
+    if (!feed.glow) return ['ok', text];
+    const name = v => ({ cyan: T('cyan'), magenta: T('magenta'), green: T('green'), blue: T('blue') })[v] || v;
+    const hand = feed.glow === $('marker_l').value ? T('left hand') : feed.glow === $('marker_r').value ? T('right hand') : '';
+    return hand ? ['ok', T('{t} · glows {c} ({h})', { t: text, c: name(feed.glow), h: hand })]
+      : ['warn', T('{t} · glows {c} – no hand has this marker colour', { t: text, c: name(feed.glow) })];
+  }
   function chips() {
     markIdle(); markAp();
     const c = [];
@@ -2928,7 +2939,8 @@
     if (sensLive) c.push(['ok', '📡 Sensor']);
     if (typeof rel !== 'undefined' && rel.undo.length && !rel.busy) c.push(['', T('🐢 relieved: {s}', { s: rel.done.map(n => REL_NAMES()[n]).join(', ') })]);
     if (feedsNow.cam) c.push([performance.now() - devAt < 2000 ? 'ok' : 'warn', feedsNow.cam.by === 'Dreamy Eyes' ? T('👀 Live camera: Dreamy Eyes') : T('📱 Live camera: Dream Control')]);   // #146/#156: who sends
-    if (feedsNow.motion) c.push(['ok', T('📱 Motion: Dream Control')]);
+    if (feedsNow.motion) c.push(glowChip(feedsNow.motion, T('📱 Motion: Dream Control')));
+    if (feedsNow.motion2) c.push(glowChip(feedsNow.motion2, T('📱 Motion: second phone')));   // #237
     const box = $('chips');                            // updated in place, so a badge under the pointer stays hovered
     c.forEach(([cls, t], i) => {
       const sp = box.children[i] || box.appendChild(document.createElement('span'));

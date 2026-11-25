@@ -10,7 +10,9 @@ mode that needs it); here is what the stage cannot know by itself: who else send
 The kinds of sources (settings.MOVE_SOURCES): "camera" (the Mac's camera in the stage: hands, pose and fingers, fire
 and LEDs, LED markers), "eyes" (Dreamy Eyes: the energy of what their front camera sees, worked out on the phone –
 only that number comes here, never a picture), "phone" (a phone that lends its motion sensors: Dream Control) and
-"band" (a wristband or glove over OSC). Dream windows are no source. Each kind can be switched off (the setting
+"band" (a wristband or glove over OSC). Dream windows are no source. A phone that lends its motion can glow as a
+light marker as well (#237, `glows`): Dream keeps which colour belongs to which phone, so the hand whose marker has that
+colour is the hand that phone's motion belongs to. Each kind can be switched off (the setting
 "move_off"). Nothing here keeps or sees a picture, and nothing here loads PyTorch."""
 import math
 import time
@@ -107,6 +109,55 @@ class Sources:
 
 
 sources = Sources()
+
+HANDS = ("r", "l")
+
+
+def markers_followed(state: dict) -> bool:
+    """#237: whether the Mac's camera looks for LED markers right now – it runs for the mode in use, and what that
+    detects is the markers (or the hand model with the markers beside it)."""
+    mode = mode_of(state)
+    if not camera_on(state):
+        return False
+    kind = state.get("dance_kind") if mode == "dance" else state.get("flow_kind")
+    return kind == "marker" or (kind == "hand" and bool(state.get("flow_markers")))
+
+
+class Glows:
+    """#237: the phones that glow as a light marker while they lend their motion – sender (as the sensors name it) →
+    colour. The colours are the markers' (settings.MARKERS: never red, orange or yellow – that is fire), and no two
+    phones glow in the same one: two phones are two colours are two hands."""
+
+    def __init__(self):
+        self.by: dict = {}
+
+    def wish(self, state: dict, sender: str, colour) -> str | None:
+        """The colour this phone glows in from now on: the one it asked for, or – another phone glows in that one –
+        the marker colour of a hand nobody holds, else any colour that is free. None: no such colour."""
+        if not isinstance(colour, str) or colour not in settings.MARKERS:
+            return None
+        taken = {c for s, c in self.by.items() if s != sender}
+        if colour in taken:
+            colour = next(c for c in (*(state.get("marker_" + h) for h in HANDS), *settings.MARKERS)
+                          if c in settings.MARKERS and c not in taken)
+        self.by[sender] = colour
+        return colour
+
+    def drop(self, sender: str) -> bool:
+        return self.by.pop(sender, None) is not None
+
+    def hand(self, state: dict, sender: str) -> str | None:
+        """The hand whose marker has this phone's colour ("l", "r"), or None: Dream follows that colour for no hand."""
+        colour = self.by.get(sender)
+        return next((h for h in HANDS if colour and state.get("marker_" + h) == colour), None)
+
+    def free_hand(self, state: dict, sender: str) -> str | None:
+        """A hand no other glowing phone is the marker of (the right one first)."""
+        held = {self.hand(state, s) for s in self.by if s != sender}
+        return next((h for h in HANDS if h not in held), None)
+
+
+glows = Glows()
 
 
 def room_energy(listing: list) -> tuple:

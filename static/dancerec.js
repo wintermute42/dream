@@ -39,10 +39,13 @@
     const hand = h => { const c = input && input.hands && input.hands[h]; return (Array.isArray(c) ? c : c ? [c] : []).map(cand); };
     const asp = (input && input.aspect) || 16 / 9, fing = h => input && input.fingers && input.fingers[h];
     const b = input && input.body, s = input && input.sensor;
+    // #237: the gyroscope of a phone that glows as a hand's marker (only in a frame that had one)
+    const arm = h => { const a = input && input.arms && input.arms[h]; return a && Array.isArray(a.g) ? a.g.map(r3) : null; };
+    const arms = arm('l') || arm('r') ? { m: { l: arm('l'), r: arm('r') } } : {};
     const o = {}; for (const k of Object.keys(out || {})) if (Math.abs(out[k]) >= 0.005) o[k] = r3(out[k]);
     return { t: r5(t), v: keys.map(k => r4(rec.v[k] || 0)), c: keys.map(k => r3(rec.c[k] || 0)), g: rec.gesture || null, gc: r3(rec.gc || 0), s: r3(rec.size || 0), b: rec.bpm || 0, o,
       i: { h: { l: hand('l'), r: hand('r') }, b: b ? [r4(b.x), r4(b.y), r4(b.s), r3(b.c)] : null, s: s && s.g ? s.g.map(r3) : null,
-        f: { l: fing('l') ? r3(fing('l').c) : 0, r: fing('r') ? r3(fing('r').c) : 0 }, d: input && input.dark ? 1 : 0, a: r4(asp) },
+        f: { l: fing('l') ? r3(fing('l').c) : 0, r: fing('r') ? r3(fing('r').c) : 0 }, d: input && input.dark ? 1 : 0, a: r4(asp), ...arms },
       // the points to draw: all in the picture's 0…1 (the hands' x back from picture heights)
       p: { b: landmarks && landmarks.length >= 29 ? BODY.flatMap(i => [r4(landmarks[i].x), r4(landmarks[i].y)]) : null,
         l: fing('l') ? flat(fing('l').pts, 1 / asp) : null, r: fing('r') ? flat(fing('r').pts, 1 / asp) : null } };
@@ -59,7 +62,8 @@
     const hand = h => i.h[h].map(([x, y, c, s, len, age]) => ({ x, y, c, src: SRC[s] || 'pose', len, ...(Number.isFinite(age) ? { at: frame.t - age } : {}) }));
     const fing = h => (frame.p[h] && i.f[h] ? { pts: pairs(frame.p[h], asp), c: i.f[h] } : null);
     return { t: frame.t, hands: { l: hand('l'), r: hand('r') }, body: i.b ? { x: i.b[0], y: i.b[1], s: i.b[2], c: i.b[3] } : null,
-      fingers: { l: fing('l'), r: fing('r') }, sensor: i.s ? { g: i.s, age: 0 } : null, dark: !!i.d, aspect: asp };
+      fingers: { l: fing('l'), r: fing('r') }, sensor: i.s ? { g: i.s, age: 0 } : null, dark: !!i.d, aspect: asp,
+      arms: i.m ? { l: i.m.l ? { g: i.m.l, age: 0 } : null, r: i.m.r ? { g: i.m.r, age: 0 } : null } : null };
   }
   const body = frame => (frame.p.b ? pairs(frame.p.b) : null);
   const hand21 = (frame, h) => (frame.p[h] ? pairs(frame.p[h]) : null);

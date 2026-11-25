@@ -114,8 +114,12 @@ async def ctl(sock: WebSocket):
                 await feed_end_other(sock, msg["feed_end"])
             if "feed" in msg and isinstance(msg["feed"], dict):
                 await feed_set(sock, msg["feed"])
-            if "motion_in" in msg and feeds["motion"] is sock and isinstance(msg["motion_in"], dict):
-                feed_motion(msg["motion_in"])
+            if "motion_in" in msg and isinstance(msg["motion_in"], dict) and motion_of(sock):
+                feed_motion(msg["motion_in"], motion_of(sock))
+                if len(msg) == 1:                      # motion alone, ~30 times a second: nothing else to read in it,
+                    continue                           # and none of a guest's allowance spent (#237: the second phone)
+            if "glow" in msg:                          # #237: the phone that lends its motion glows as a light marker
+                await glow_set(sock, msg["glow"])
             if rights.can(hub.roles.get(sock), "control"):    # #172: Dream Control sends the eyes into trance / sets how often
                 if msg.get("eyes_trance") is True:
                     await eyes.eyes_send({"trance": True})
@@ -244,6 +248,8 @@ def role_msg(sock) -> dict:
 
 async def take_control(sock):
     """#148: this Dream Control takes over; the one before goes on as a guest (and may take it back)."""
+    if hub.roles.get(sock) != "control":
+        await feeds_end(sock)                      # #237: what it lent as the second phone ends with standing by
     for c, r in list(hub.roles.items()):
         if r == "control" and c is not sock:
             hub.roles[c] = "guest"
@@ -254,15 +260,46 @@ async def take_control(sock):
 
 
 # ---------- #146: live camera and motion of the Dream Control device ----------
-feeds: dict = {"cam": None, "motion": None}   # the one device that sends its live camera / its motion
+# The one device that sends its live camera, and the phones that lend their motion: Dream Control ("motion") and –
+# #237 – a second phone that holds Dream Control's key and stands by ("motion2": its motion and its glow, nothing else).
+feeds: dict = {"cam": None, "motion": None, "motion2": None}
 feed_info: dict = {}        # kind -> what the stage shows about it ({"facing": "user" | "environment"})
+MOTION = dict(zip(("motion", "motion2"), inputs.SENDER_PHONES))   # the slot → the name its values come under
+
+
+def motion_of(sock) -> str | None:
+    """The slot this device lends its motion in, or None."""
+    return next((k for k in MOTION if feeds[k] is sock), None)
+
+
+def second_phone(sock) -> bool:
+    """#237: a device that came with Dream Control's key while another one is Dream Control (the one that "may take
+    over"): it steers as a guest, and may lend its motion and glow as a light marker – the second hand."""
+    return hub.roles.get(sock) != "control" and rights.can(hub.key_roles.get(sock), "take_over")
+
+
+def slot_for(sock, kind: str) -> str | None:
+    """Where this device may lend that kind of feed: Dream Control, this Mac and Dreamy Eyes (its camera only – the
+    /ctl filter) as ever; the second phone its motion only. None: it may not."""
+    if rights.can(hub.roles.get(sock), "feed"):
+        return kind
+    return "motion2" if kind == "motion" and second_phone(sock) else None
+
+
+def mine(sock) -> list:
+    """Which feeds are this device's own, as it names them itself (it need not know which phone it is)."""
+    return [("motion" if k in MOTION else k) for k, c in feeds.items() if c is sock]
 
 
 def feeds_msg(sock=None) -> dict:
-    """What the stage shows (who sends what) and, for one device, which feeds are its own."""
-    msg = {"feeds": {k: ({"by": "Dream Control", **feed_info.get(k, {})} if c else None) for k, c in feeds.items()}}
+    """What the stage shows (who sends what) and, for one device, which feeds are its own. #237: the colour a phone
+    glows in is told only to this Mac (the stage and its panel) – a phone hears of its own glow alone (`glow_of`)."""
+    knows = sock is not None and rights.can(hub.roles.get(sock), "stage")
+    msg = {"feeds": {k: ({"by": "Dream Control", **feed_info.get(k, {}),
+                          **({"glow": movement.glows.by[MOTION[k]]} if knows and movement.glows.by.get(MOTION.get(k)) else {})}
+                         if c else None) for k, c in feeds.items()}}
     if sock is not None:
-        msg["feeds_mine"] = [k for k, c in feeds.items() if c is sock]
+        msg["feeds_mine"] = mine(sock)
     return msg
 
 
@@ -270,32 +307,32 @@ async def feeds_changed():
     for c in list(hub.clients):
         msg = feeds_msg(c)
         if rights.can(hub.roles.get(c), "eyes_only"):
-            msg = {"feeds_mine": [k for k, o in feeds.items() if o is c]}
+            msg = {"feeds_mine": mine(c)}
         outbox.post(c, json.dumps(msg))
 
 
 async def feed_set(sock, want: dict):
     """{"cam": true, "facing": "environment"} / {"cam": false} / {"motion": true|false}: only Dream Control or this
-    Mac may send a live feed; a newer one takes over (the device before is told)."""
-    if not rights.can(hub.roles.get(sock), "feed"):
-        return
+    Mac may send a live feed (#237: the second phone its motion); a newer one takes over (the device before is told)."""
     changed = False
     for kind in ("cam", "motion"):
-        if kind not in want:
+        slot = slot_for(sock, kind)
+        if kind not in want or not slot:
             continue
         if want[kind]:
-            old = feeds[kind]
-            feeds[kind] = sock
-            by = "Dreamy Eyes" if rights.can(hub.roles.get(sock), "eyes_only") else "Dream Control"
-            feed_info[kind] = ({"by": by, "facing": "user" if want.get("facing") == "user" else "environment"}
+            old = feeds[slot]
+            feeds[slot] = sock
+            by = "Dreamy Eyes" if rights.can(hub.roles.get(sock), "eyes_only") else MOTION.get(slot, "Dream Control")
+            feed_info[slot] = ({"by": by, "facing": "user" if want.get("facing") == "user" else "environment"}
                                if kind == "cam" else {"by": by})
             if old is not None and old is not sock:
+                glow_end(slot)                         # #237: the glow of the device before goes with its motion
                 outbox.post(old, json.dumps({"feed_taken": kind}))
             if kind == "cam" and (hub.state["mode"] != "cam" or hub.state["cam_device"] != "device"):
                 await hub.apply({"mode": "cam", "cam_device": "device"}, by="remote")
             changed = True
-        elif feeds[kind] is sock:
-            await feed_stop(kind)
+        elif feeds[slot] is sock:
+            await feed_stop(slot)
             changed = True
     if changed:
         await feeds_changed()
@@ -304,6 +341,7 @@ async def feed_set(sock, want: dict):
 async def feed_stop(kind: str):
     feeds[kind] = None
     feed_info.pop(kind, None)
+    glow_end(kind)                                 # #237: no glow without the motion it belongs to
     if kind == "cam" and hub.state["cam_device"] == "device":   # never falls back to the Mac's camera by itself
         await hub.apply({"cam_device": "", **({"mode": "dream"} if hub.state["mode"] == "cam" else {})}, by="remote")
 
@@ -339,16 +377,74 @@ async def feed_frame(sock, data: bytes):
             hub.clients.pop(c, None)
 
 
-MOTION_ADDR = {"acc": "/device/accelerometer", "lin": "/device/linear_acceleration",
-               "gyro": "/device/gyroscope", "ori": "/device/orientation"}
+MOTION_ADDR = {"acc": "accelerometer", "lin": "linear_acceleration", "gyro": "gyroscope", "ori": "orientation"}
+MOTION_ROOT = {"motion": "/device/", "motion2": "/device2/"}   # #237: the second phone has channels of its own
 
 
-def feed_motion(m: dict):
+def feed_motion(m: dict, slot: str = "motion"):
     """The device's motion sensors become sensor channels like OSC (#105): learning and strikes work the same."""
     for k, addr in MOTION_ADDR.items():
         v = m.get(k)
         if isinstance(v, list) and 0 < len(v) <= 4:
-            inputs.sens.on_osc(addr, v, "Dream Control")
+            # a browser's rotation rate is in degrees a second
+            inputs.sens.on_osc(MOTION_ROOT[slot] + addr, v, MOTION[slot], gyro_unit=math.radians(1) if k == "gyro" else 1.0)
+
+
+# ---------- #237: a phone glows as a light marker while it lends its motion ----------
+glow_told: dict = {}        # device → what it was last told about its glow
+
+
+def glow_of(sock) -> dict | None:
+    """What a phone learns about its glow, and nothing else: its colour, the hand Dream follows that colour for, and
+    whether the Mac's camera looks for markers at all right now."""
+    sender = MOTION.get(motion_of(sock))
+    if sender not in movement.glows.by:
+        return None
+    return {"colour": movement.glows.by[sender], "hand": movement.glows.hand(hub.state, sender),
+            "tracked": movement.markers_followed(hub.state)}
+
+
+def glow_tell() -> None:
+    """Each phone that lends its motion hears of its own glow when something about it changed – never of another's."""
+    for sock in [feeds[k] for k in MOTION if feeds[k] is not None]:
+        now = glow_of(sock)
+        if glow_told.get(sock) != now:
+            outbox.post(sock, json.dumps({"glow": now}))
+        glow_told[sock] = now
+    for sock in [c for c in glow_told if motion_of(c) is None]:
+        glow_told.pop(sock)
+
+
+def glow_end(slot: str) -> None:
+    if slot in MOTION and movement.glows.drop(MOTION[slot]):
+        glow_tell()
+
+
+for _key in ("marker_l", "marker_r", "move_mode", "move_off", "move_cam", "flow_kind", "dance_kind", "flow_markers"):
+    hub.on_change(_key, glow_tell)
+
+
+async def glow_set(sock, colour):
+    """{"glow": "cyan"} / {"glow": ""}: the phone glows in this colour, or stops. Only a phone that lends its motion
+    is heard. Dream answers with the colour it glows in (another one when a second phone has that one already). A
+    colour that is no hand's marker yet becomes the marker colour of the hand this phone was, else of a free hand:
+    the colour is the user's choice on the phone – the kind of detection and the camera stay as they are."""
+    slot = motion_of(sock)
+    if not slot:
+        return
+    sender = MOTION[slot]
+    if colour == "" or colour is False:
+        if not movement.glows.drop(sender):
+            return
+    else:
+        was = movement.glows.hand(hub.state, sender)
+        if movement.glows.wish(hub.state, sender, colour) is None:
+            return
+        hand = movement.glows.hand(hub.state, sender) or was or movement.glows.free_hand(hub.state, sender)
+        if hand and hub.state["marker_" + hand] != movement.glows.by[sender]:
+            await hub.apply({"marker_" + hand: movement.glows.by[sender]}, by="remote")
+    glow_tell()
+    await feeds_changed()
 
 
 async def renew_guest():

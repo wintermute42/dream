@@ -756,8 +756,37 @@ Dream Control (über https, siehe oben) hat eine Karte **„Dieses Gerät“**:
   ruckt kurz, wenn der Mac einen Schlag erkannt hat. Der Blitz ist ein Lichtpuls auf der Bühne, mit und ohne Musik. Die
   Bühne zeigt „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI,
   Sensoren, Master)“ wie die von OSC.
-- **Immer nur ein Gerät:** Live-Kamera und Bewegung kommen nur von einem Gerät – dem, das Dream Control ist. Wer Dream
-  Control auf einem anderen Gerät übernimmt, beendet beides auf dem ersten. Gäste können beides nicht senden.
+- **💡 Als Leucht-Marker leuchten** (erscheint, solange 🧭 Bewegung an ist): Das Handy, das seine Bewegung leiht, ist
+  zugleich der Leucht-Marker der Hand, die es hält. Farbe wählen – **Cyan, Grün, Blau oder Magenta** (kein Rot, Orange
+  oder Gelb: das ist Feuer) – und den Schalter tippen: Der ganze Bildschirm leuchtet in dieser Farbe, die Bewegung
+  läuft weiter, und die Kamera am Mac verfolgt das Leuchten als diese Hand, auch im Dunkeln (siehe „Leucht-Marker“
+  unter „Tanz“). Dream weiß, welche Farbe zu welchem Handy gehört: Eine Farbe, die die Marker-Farbe
+  der linken oder der rechten Hand ist, macht das Handy zu dieser Hand; jede andere Farbe wird zur Marker-Farbe der
+  Hand des Handys. Die Art der Erkennung und die Kamera bleiben, wie du sie eingestellt hast – das Handy sagt „sobald
+  Flowtrack oder Dream Dance nach Leucht-Markern suchen“, solange sie es nicht tun („Leucht-Marker“ oder
+  „Leucht-Marker neben der Hand-KI“ in der Karte Bewegung wählen). Die Bewegung des Handys und der Lichtfleck prüfen
+  einander: Beide bewegen sich oder beide ruhen – der Marker gilt als sicherer; ein Licht dieser Farbe, das wandert,
+  während das Handy still liegt, wird nicht für die Hand gehalten; ein Handy, das schnell schwingt, lässt seinen
+  Marker sofort führen. In Dream Dance hat der leuchtende Bildschirm die **Kupplung** als einen großen Knopf; zum
+  Beenden „Halten, um das Leuchten zu beenden“ **halten** (eine kurze Berührung in der schwingenden Hand bewirkt
+  nichts; Esc geht auch). Die Bühne zeigt „📱 Bewegung: Dream Control · leuchtet Cyan (linke Hand)“.
+  - **Helligkeit und Akku:** Die Bildschirmhelligkeit selbst auf Maximum stellen (eine Webseite kann das nicht) und
+    die automatische Helligkeit ausschalten – die Kamera verfolgt den hellsten Fleck der Farbe. Der Bildschirm bleibt
+    an, solange die Seite offen ist (Wake Lock; ohne ihn die automatische Sperre des Handys auf „nie“ stellen). Ein
+    Bildschirm auf voller Helligkeit plus Sensoren leert einen Akku in wenigen Stunden: geladen starten oder für eine
+    lange Nacht eine Powerbank nehmen.
+  - **iPhone:** Safari fragt beim ersten Tipp auf 🧭 Bewegung nach dem Zugriff auf „Bewegung & Ausrichtung“ – und nach
+    jedem Neuladen der Seite wieder: dann 🧭 Bewegung noch einmal tippen. Eine Ablehnung bleibt, bis die Website-Daten
+    der Seite gelöscht sind (Einstellungen → Safari → Erweitert → Website-Daten) oder der Tab geschlossen und neu
+    geöffnet wird.
+- **Zwei Handys, zwei Hände:** Kamera und Bewegung kommen von dem Gerät, das Dream Control ist. Ein **zweites Handy**,
+  mit dem QR-Code von Dream Control geöffnet, steht als Gast bereit („Dream Control ist auf einem anderen Gerät in
+  Benutzung“) und bekommt die Karte „Dieses Gerät“ nur mit 🧭 Bewegung und 💡 Leuchten: Es leiht seine Bewegung und
+  leuchtet in einer anderen Farbe – zwei Handys sind zwei Farben sind zwei Hände (eine Farbe, die das erste Handy
+  hat, wird gegen eine freie getauscht). Seine Kanäle heißen `/device2/…`, die Bühne zeigt „📱 Bewegung: zweites
+  Handy“. Sonst kann es nichts ändern, was ein Gast nicht kann. Wer Dream Control übernimmt, beendet, was beide Handys
+  leihen (danach wieder einschalten). Gäste mit dem Gäste-Code können weder Kamera noch Bewegung senden und nicht
+  leuchten, und kein Handy erfährt die Farbe eines anderen.
 - Über einfaches http erklärt die Karte, dass der Browser Kamera und Bewegung nur über https freigibt.
 - Die Kamera-Quelle der Bühne heißt „📱 Live-Kamera eines Handys“ – die des Control-Geräts oder die der Dreamy Eyes.
 
@@ -1567,7 +1596,8 @@ stünde. Die Karte „Bewegung“ zeigt die Wahl des Modus, der gerade läuft.
 - **Hände (KI):** die Handgelenke des Körpermodells; der Körper gibt das Maß. Eine sichtbare Hand genügt für
   Hochwerfen und Kreisen.
 - **Leucht-Marker (2 Farben)** – eine eigene Art der Bewegungserkennung, ganz ohne KI-Modell: ein leuchtender Marker
-  an jeder Hand (LED-Armband, Handy-Display) in zwei festen Farben – **Cyan, Magenta, Grün oder Blau**, voreingestellt
+  an jeder Hand (LED-Armband oder das Handy selbst: Dream Control → „Dieses Gerät“ → „💡 Als Leucht-Marker leuchten“,
+  siehe „Live-Kamera und Bewegung des Control-Geräts“) in zwei festen Farben – **Cyan, Magenta, Grün oder Blau**, voreingestellt
   links Cyan und rechts Magenta; nie Rot, Orange oder Gelb, das ist Feuer. Dream verfolgt den hellsten Fleck jeder
   Farbe in jedem Kamerabild, auch im Dunkeln; Lampen, Fenster und Feuer werden übergangen. Eine schnelle Hand
   verschmiert ihren Marker zu einem Streifen: Seine Länge zählt als Tempo. Kamera-Tipps: 60 Bilder pro Sekunde und
@@ -1751,8 +1781,13 @@ ein Preset wählen und dabei bleiben.
 
 Bewegungssensoren am Körper funktionieren auch im Dunkeln und bei sehr schnellen Bewegungen. Dream nimmt alles, was
 per OSC Zahlen schickt (UDP, Port **7020**, anderer Port: `DREAM_SENSOR_PORT=…` in `~/.config/dream/dream.env`) –
-nur von Geräten im Heimnetz. Ohne Extra-App: Das Dream-Control-Gerät selbst schickt seine Bewegung („🧭 Bewegung“, siehe
-„Live-Kamera und Bewegung des Control-Geräts“); seine Kanäle heißen `/device/…`.
+nur von Geräten im Heimnetz. **Der bevorzugte Weg braucht keine Extra-App:** Das Dream-Control-Gerät selbst schickt
+seine Bewegung („🧭 Bewegung“, siehe „Live-Kamera und Bewegung des Control-Geräts“); seine Kanäle heißen `/device/…`,
+und es kann dabei zugleich als Leucht-Marker leuchten. Die Sensor-Apps unten sind die Alternative – sie **können nicht
+leuchten** (eine App wie Sensors2OSC oder ZIG SIM zeigt ihren eigenen Bildschirm, und Dream wüsste ihre Farbe nicht):
+Für ein Handy, das Sensor und Marker in einem ist, Dream Control nehmen. Ein Browser meldet die Drehrate in Grad pro
+Sekunde, die Apps in rad/s; Dream rechnet die des Handys um, damit Energie und Drehung eines Handys und eines
+OSC-Sensors dasselbe bedeuten.
 
 **Mit dem Handy am Unterarm** (Android, z. B. App *Sensors2OSC*; iPhone z. B. *ZIG SIM*):
 1. Dream mit `./dream.sh --lan` starten (sonst nimmt es nur Daten vom Mac selbst an).

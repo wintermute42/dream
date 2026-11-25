@@ -163,7 +163,7 @@ def test_every_sender_of_sensor_values_is_a_source(server, register, monkeypatch
         sent.append(msg)
     monkeypatch.setattr(server.hub, "broadcast", broadcast)
     for _ in range(20):
-        sens.on_osc("/device/gyroscope", [4.0, 0.0, 0.0], server.inputs.SENDER_PHONE)
+        sens.on_osc("/device/gyroscope", [4.0, 0.0, 0.0], server.inputs.SENDER_PHONES[0])
         sens.on_osc("/band/gyro", [0.0, 8.0, 0.0], "192.0.2.7")
         sens.on_osc("/band/accelerometer", [0.0, 9.8, 0.0], "192.0.2.7")       # no swing: it changes nothing of the energy
     asyncio.run(server.inputs.sources_tell())
@@ -369,3 +369,88 @@ def test_relieving_and_the_autopilot_never_change_what_the_movement_detects():
     for key in movement:
         assert key not in steps, key
     assert "relSet('flow_kind'" not in page and "relSet('dance_kind'" not in page
+
+
+# ---------- #237: a phone glows as a light marker while it lends its motion ----------
+def test_a_phone_glows_in_a_marker_colour_never_in_a_fire_colour():
+    g = movement.Glows()
+    for odd in ("red", "orange", "yellow", "white", "", None, 3, ["cyan"]):
+        assert g.wish(state(), "Dream Control", odd) is None
+    assert not g.by
+    assert set(settings.MARKERS) == {"cyan", "green", "blue", "magenta"}
+    page = open(os.path.join(os.path.dirname(__file__), "..", "static", "remote.html")).read()
+    offered = page.split('id="glowcols"')[1].split("</div>")[0]
+    assert sorted(v.split('"')[0] for v in offered.split('data-c="')[1:]) == sorted(settings.MARKERS)   # the page offers exactly these
+
+
+def test_two_phones_are_two_colours_are_two_hands():
+    g, st = movement.Glows(), state(marker_l="cyan", marker_r="magenta")
+    assert g.wish(st, "Dream Control", "cyan") == "cyan" and g.hand(st, "Dream Control") == "l"
+    assert g.wish(st, "Dream Control 2", "cyan") == "magenta"                    # taken: the free hand's marker colour
+    assert g.hand(st, "Dream Control 2") == "r" and g.free_hand(st, "Dream Control 2") == "r"
+    assert g.wish(st, "Dream Control 2", "green") == "green" and g.hand(st, "Dream Control 2") is None   # no hand's colour yet
+    assert g.free_hand(st, "Dream Control 2") == "r"                             # … the hand the other phone does not hold
+    assert g.wish(st, "Dream Control", "green") == "magenta"                     # never two phones in one colour
+    assert len(set(g.by.values())) == 2
+    assert g.drop("Dream Control 2") and not g.drop("Dream Control 2") and g.by == {"Dream Control": "magenta"}
+
+
+def test_markers_are_followed_only_while_the_camera_looks_for_them():
+    assert movement.markers_followed(state(move_mode="dance", dance_kind="marker"))
+    assert movement.markers_followed(state(move_mode="flowtrack", flow_kind="marker"))
+    assert movement.markers_followed(state(move_mode="flowtrack", flow_kind="hand", flow_markers=True))
+    assert not movement.markers_followed(state(move_mode="flowtrack", flow_kind="hand", flow_markers=False))
+    assert not movement.markers_followed(state(move_mode="flowtrack", flow_kind="on", flow_markers=True))
+    assert not movement.markers_followed(state(move_mode="dance", dance_kind="hand", flow_kind="marker"))   # the mode's own kind
+    assert not movement.markers_followed(state(move_mode="off", flow_kind="marker"))
+    assert not movement.markers_followed(state(move_mode="mood", flow_kind="marker"))                       # no camera asked for
+    assert not movement.markers_followed(state(move_mode="dance", dance_kind="marker", move_off="camera"))
+
+
+def test_two_senders_are_never_mixed_into_one_arm():
+    s = sensors.Sensors()
+    for i in range(10):                                                          # both send, turn about
+        s.on_osc("/device/gyroscope", [2.0, 0.0, 0.0], "Dream Control", now=100 + i * 0.03)
+        s.on_osc("/device2/gyroscope", [0.0, 0.0, -6.0], "Dream Control 2", now=100.01 + i * 0.03)
+    assert s.motion(now=100.3)["g"] == [2.0, 0.0, 0.0]                           # the one that led keeps leading
+    assert s.arm("Dream Control", now=100.3)["g"] == [2.0, 0.0, 0.0] and s.arm("Dream Control 2", now=100.3)["g"] == [0.0, 0.0, -6.0]
+    assert s.arm("192.0.2.7", now=100.3) is None
+    for i in range(20):                                                          # the first falls silent: the second leads
+        s.on_osc("/device2/gyroscope", [0.0, 0.0, -6.0], "Dream Control 2", now=100.7 + i * 0.03)
+    assert s.motion(now=101.3)["g"] == [0.0, 0.0, -6.0] and s.arm("Dream Control", now=101.3) is None
+    # a browser's degrees a second become rad/s for the movement; the channel stays as it came
+    s.on_osc("/device2/gyroscope", [0.0, 0.0, 180.0], "Dream Control 2", now=101.31, gyro_unit=3.14159 / 180)
+    assert s.arm("Dream Control 2", now=101.32)["g"] == pytest.approx([0.0, 0.0, 3.142], abs=1e-3)
+    assert s.ch["/device2/gyroscope:2"].v > 10
+    s.forget("Dream Control 2")
+    assert "Dream Control 2" not in s.by and s.arm("Dream Control 2", now=101.32) is None
+
+
+def test_the_stage_gets_each_glowing_phones_motion_by_its_hand(server, monkeypatch, saved_state):
+    sens, glows, sent = sensors.Sensors(), movement.Glows(), []
+    monkeypatch.setattr(server.inputs, "sens", sens)
+    monkeypatch.setattr(server.movement, "glows", glows)
+
+    async def broadcast(msg, exclude=None, only=None):
+        sent.append((msg, only))
+    monkeypatch.setattr(server.hub, "broadcast", broadcast)
+    monkeypatch.setattr(server.inputs.time, "time", lambda: 50.0)
+    monkeypatch.setattr(sensors.time, "time", lambda: 50.0)
+    server.hub.state.update(move_mode="dance", move_off="", marker_l="cyan", marker_r="magenta")
+    sens.on_osc("/device/gyroscope", [1.0, 0.0, 0.0], "Dream Control", now=49.98)
+    sens.on_osc("/device2/gyroscope", [0.0, 2.0, 0.0], "Dream Control 2", now=49.99)
+    asyncio.run(server.inputs.sensor_dance())
+    assert "arms" not in sent[-1][0]["sensors"]["dance"]                         # nobody glows: the sensor as ever
+    glows.wish(server.hub.state, "Dream Control 2", "cyan")
+    asyncio.run(server.inputs.sensor_dance())
+    assert sent[-1] == ({"sensors": {"dance": {"g": [1.0, 0.0, 0.0], "age": 0.02, "arms": {"l": {"g": [0.0, 2.0, 0.0], "age": 0.01}}}}}, "stage")
+    glows.wish(server.hub.state, "Dream Control", "magenta")
+    asyncio.run(server.inputs.sensor_dance())
+    assert set(sent[-1][0]["sensors"]["dance"]["arms"]) == {"l", "r"}
+    server.hub.state["marker_l"] = "blue"                                        # the hand's colour changed: that phone is no hand now
+    asyncio.run(server.inputs.sensor_dance())
+    assert set(sent[-1][0]["sensors"]["dance"]["arms"]) == {"r"}
+    server.hub.state["move_off"] = "phone"                                       # phones switched off as a source: nothing of them
+    sens.source = "192.0.2.7"
+    asyncio.run(server.inputs.sensor_dance())
+    assert "arms" not in sent[-1][0]["sensors"]["dance"]

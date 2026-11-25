@@ -466,7 +466,7 @@ def test_ctl_reset_glides_home_and_undo_brings_everything_back(server, saved_sta
 
 # #208: what a broken or hostile page may send instead of a plain value – not hashable, the wrong type, too big
 ODD = [[], {}, [[]], {"a": [1]}, None, True, 0, -1, 1.5, 10 ** 400, float("nan"), float("inf"), "", "no-such", "x" * 3000]
-ODD_FIELDS = ["set", "cmd", "arg", "auto", "feed", "feed_end", "motion_in", "eyes_trance", "eyes_cfg", "eyes_mood",
+ODD_FIELDS = ["set", "cmd", "arg", "auto", "feed", "feed_end", "motion_in", "glow", "eyes_trance", "eyes_cfg", "eyes_mood",
               "seen", "arrived", "fire", "take_control", "renew_guest", "midi_learn", "midi_forget", "sensor_learn",
               "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "rule", "live", "dance_map", "dance_lab", "move", "mode", "dance_set_save", "dance_set_delete",
               "measure_report"]
@@ -852,3 +852,147 @@ def test_eyes_are_told_the_style_world_and_cannot_set_it(server, monkeypatch, sa
         assert told == {"world": "other", "world_to": "classic", "world_mix": 0.0}
         ctl_session(server, "control", [{"set": {"world_to": "other", "world_mix": 0.5}}], done=lambda: server.hub.state["world_mix"] == 0.5)
         assert eyes.receive_json() == {"world": "other", "world_to": "other", "world_mix": 0.5}   # one word for both
+
+
+# ---------- #237: a phone glows as a light marker while it lends its motion ----------
+def next_that(ws, test) -> dict:
+    """The next message the test holds for."""
+    for _ in range(80):
+        msg = ws.receive_json()
+        if test(msg):
+            return msg
+    raise AssertionError("no such message")
+
+
+def say(ws, **msg) -> None:
+    ws.send_text(json.dumps(msg))
+
+
+def until_prompt(ws, text: str) -> list:
+    """Everything this device was told up to the change of the prompt (sent after all the rest)."""
+    told = []
+    while not told or told[-1].get("set", {}).get("prompt") != text:
+        told.append(ws.receive_json())
+    return told
+
+
+@pytest.fixture
+def marker_dance(server, monkeypatch, saved_state):
+    """Dream Dance looks for two LED markers – cyan on the left, magenta on the right; the sensors start empty."""
+    import sensors
+    monkeypatch.setattr(server.inputs, "sens", sensors.Sensors())
+    server.hub.state.update(move_mode="dance", move_off="", dance_kind="marker", marker_l="cyan", marker_r="magenta", prompt="")
+    yield server.hub.state
+    assert not server.movement.glows.by and not any(server.ctl.feeds.values())   # every glow went with its phone
+
+
+def test_a_phone_glows_only_while_it_lends_its_motion_and_only_it_and_the_mac_hear_of_it(server, marker_dance):
+    url = lambda role: ws_url(server, "/ctl", role)                             # noqa: E731
+    with client(server, "local").websocket_connect(url("local") + "?role=stage") as stage, \
+            client(server, "guest").websocket_connect(url("guest")) as guest, \
+            client(server, "control").websocket_connect(url("control")) as phone:
+        say(phone, glow="cyan")                                                 # it lends nothing yet: not heard
+        say(phone, feed={"motion": True})
+        assert next_that(phone, lambda m: m.get("feeds_mine"))["feeds_mine"] == ["motion"]
+        assert not server.movement.glows.by
+        for odd in ("red", "orange", "yellow", "white", 7, ["cyan"], None):     # fire colours and nonsense: no glow
+            say(phone, glow=odd)
+        say(phone, glow="magenta")
+        assert next_that(phone, lambda m: "glow" in m) == {"glow": {"colour": "magenta", "hand": "r", "tracked": True}}
+        assert next_that(stage, lambda m: (m.get("feeds") or {}).get("motion", {}) and m["feeds"]["motion"].get("glow"))["feeds"]["motion"] \
+            == {"by": "Dream Control", "glow": "magenta"}
+        say(phone, set={"dance_kind": "hand", "marker_r": "blue"})              # no markers looked for, the hand's colour changed
+        assert next_that(phone, lambda m: "glow" in m) == {"glow": {"colour": "magenta", "hand": None, "tracked": False}}
+        say(phone, glow="")
+        assert next_that(phone, lambda m: "glow" in m) == {"glow": None}
+        say(phone, glow="green")
+        next_that(phone, lambda m: m.get("glow"))
+        say(phone, feed={"motion": False})                                      # the motion ends: the glow ends with it
+        assert next_that(phone, lambda m: m.get("feeds_mine") == [])
+        assert not server.movement.glows.by
+        say(phone, set={"prompt": "the end"})
+        told = until_prompt(guest, "the end")                                  # a guest saw the feeds, never a glow
+        assert any((m.get("feeds") or {}).get("motion") for m in told)
+        assert not any("glow" in m for m in told)
+        assert not any("glow" in (f or {}) for m in told for f in (m.get("feeds") or {}).values())
+    wait_until(lambda: not any(server.ctl.feeds.values()))
+
+
+def test_dreamy_eyes_never_hear_of_a_glow(server, monkeypatch, marker_dance):
+    told = []
+    import outbox
+    post = outbox.post
+    monkeypatch.setattr(outbox, "post", lambda sock, text: (told.append((server.hub.roles.get(sock), json.loads(text))), post(sock, text))[1])
+    url = lambda role: ws_url(server, "/ctl", role)                             # noqa: E731
+    with client(server, "eyes").websocket_connect(url("eyes")), client(server, "control").websocket_connect(url("control")) as phone:
+        say(phone, feed={"motion": True})
+        say(phone, glow="cyan")
+        assert next_that(phone, lambda m: m.get("glow"))["glow"]["hand"] == "l"
+        say(phone, feed={"motion": False})
+        next_that(phone, lambda m: m.get("feeds_mine") == [])
+    eyes_heard = [m for role, m in told if role == "eyes"]
+    assert eyes_heard and not any("glow" in json.dumps(m) for m in eyes_heard)
+    assert any("glow" in m for role, m in told if role == "control")
+
+
+@pytest.mark.parametrize("role", ["guest", "eyes"])
+def test_guests_and_eyes_lend_no_motion_and_cannot_glow(server, monkeypatch, marker_dance, role):
+    noted = []
+    note = server.eyes.eyes_note
+    monkeypatch.setattr(server.eyes, "eyes_note", lambda msg: (note(msg), noted.append(msg))[0])
+    msgs = [{"feed": {"motion": True}}, {"glow": "cyan"}, {"motion_in": {"gyro": [90, 0, 0]}}, {"set": {"prompt": "done"}, "seen": "last"}]
+    ctl_session(server, role, msgs, done=lambda: marker_dance["prompt"] == "done" or any(m.get("seen") == "last" for m in noted))
+    assert not server.ctl.feeds["motion"] and not server.ctl.feeds["motion2"]
+    assert not server.movement.glows.by and not server.inputs.sens.arms and marker_dance["marker_l"] == "cyan"
+
+
+def test_a_second_phone_with_dream_controls_key_is_the_second_hand_and_nothing_more(server, monkeypatch, marker_dance):
+    import outbox
+    told, post = [], outbox.post
+    monkeypatch.setattr(outbox, "post", lambda sock, text: (told.append(json.loads(text)), post(sock, text))[1])
+    c, url = client(server, "control"), ws_url(server, "/ctl", "control")
+    with c.websocket_connect(url) as one, c.websocket_connect(url) as two:
+        assert one.receive_json()["role"] == "control" and two.receive_json()["role"] == "guest"
+        say(one, feed={"motion": True})
+        say(one, glow="cyan")
+        assert next_that(one, lambda m: m.get("glow"))["glow"] == {"colour": "cyan", "hand": "l", "tracked": True}
+        say(two, feed={"motion": True, "cam": True})                             # its motion – never its camera
+        assert next_that(two, lambda m: m.get("feeds_mine"))["feeds_mine"] == ["motion"]
+        assert server.ctl.feeds["cam"] is None and server.ctl.feeds["motion2"] is not None
+        assert server.ctl.feeds["motion"] is not server.ctl.feeds["motion2"]    # it took nothing from the first
+        say(two, glow="cyan")                                                   # taken: the free hand's colour instead
+        assert next_that(two, lambda m: m.get("glow"))["glow"] == {"colour": "magenta", "hand": "r", "tracked": True}
+        say(two, glow="green")                                                  # its own choice: its hand's marker colour now
+        assert next_that(two, lambda m: (m.get("glow") or {}).get("colour") == "green")["glow"]["hand"] == "r"
+        assert (marker_dance["marker_l"], marker_dance["marker_r"]) == ("cyan", "green")
+        assert server.movement.glows.by == {"Dream Control": "cyan", "Dream Control 2": "green"}
+        # each phone's motion stays its own: its channels, and its arm by the hand of its colour (degrees → rad/s)
+        say(one, motion_in={"gyro": [90, 0, 0]})
+        for _ in range(60):                                                     # two seconds of motion at once: none of it
+            say(two, motion_in={"gyro": [0, 0, 180]})                           # counts against what it may say as a guest
+        say(two, set={"marker_l": "blue", "dance_kind": "hand", "quality": 4}, sensor_learn="zoom", feed_end="motion")   # still a guest
+        say(two, set={"prompt": "second"})
+        wait_until(lambda: marker_dance["prompt"] == "second")
+        arms = server.inputs.glow_arms()
+        assert arms["l"]["g"] == pytest.approx([1.571, 0, 0]) and arms["r"]["g"] == pytest.approx([0, 0, 3.142])
+        assert {"/device/gyroscope:0", "/device2/gyroscope:2"} <= set(server.inputs.sens.ch)
+        assert (marker_dance["marker_l"], marker_dance["dance_kind"]) == ("cyan", "marker") and not server.inputs.sens.learn
+        assert server.ctl.feeds["motion"] is not None
+        say(two, take_control=True)                                             # the roles change: what both lent ends
+        assert next_that(one, lambda m: m.get("feeds_mine") == [])
+        wait_until(lambda: not any(server.ctl.feeds.values()) and not server.movement.glows.by)
+    # no phone was told the other's colour: the feeds they hear of carry none, a glow message is the phone's own
+    assert not any("glow" in (f or {}) for m in told for f in (m.get("feeds") or {}).values())
+    assert {m["glow"]["colour"] for m in told if m.get("glow")} == {"cyan", "magenta", "green"}
+
+
+def test_a_phone_that_takes_the_motion_over_does_not_inherit_the_glow(server, marker_dance):
+    url = ws_url(server, "/ctl", "control")
+    with client(server, "control").websocket_connect(url) as phone, \
+            client(server, "local").websocket_connect(ws_url(server, "/ctl", "local")) as mac:
+        say(phone, feed={"motion": True})
+        say(phone, glow="blue")
+        assert next_that(phone, lambda m: m.get("glow"))["glow"]["colour"] == "blue"
+        say(mac, feed={"motion": True})
+        assert next_that(phone, lambda m: "feed_taken" in m) == {"feed_taken": "motion"}   # its page ends the glow with it
+        assert not server.movement.glows.by
