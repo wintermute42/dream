@@ -132,6 +132,14 @@ Python-Pakete installiert `dream.sh` beim Start von selbst.
 Zum Ausprobieren eines Tickets vor der Abnahme: `git switch <branch>` (steht im Ticket), danach zurück mit
 `git switch main`.
 
+Paket-Updates kommen von Dependabot (`.github/dependabot.yml`): eine Lösung für eine bekannte Sicherheitslücke sofort,
+sobald sie veröffentlicht ist, alles andere einmal im Monat als ein Pull Request für die Python-Pakete und einer für
+die GitHub Actions. Die Pakete, von denen die Bild- und Sprachmodelle abhängen (torch, diffusers, transformers,
+accelerate, peft, mlx-whisper, huggingface-hub, safetensors, tokenizers), bekommen so nur Sicherheits-Updates: Eine neue
+Version kann den Look oder das Tempo des Traums ändern, deshalb werden sie von Hand hochgezogen und mit dem echten
+Modell gemessen (siehe [Tests](#tests)). Jeder dieser Pull Requests läuft wie jeder andere durch die Tests und wird von
+Hand gemergt.
+
 ## Ordner und eigene Einstellungen
 
 Alle Befehle hier laufen im **Dream-Ordner** (dort, wo dieses Repository liegt): `cd <Dream-Ordner>`, dann `./dream.sh`.
