@@ -24,6 +24,16 @@ window.DreamCommon = (() => {
     select.innerHTML = select.options[0].outerHTML + names.map(n => `<option value="${esc(n)}">${esc(I18N.name(n))}</option>`).join('');
   }
 
+  // #247: the picture sizes Dream has (settings.SIZES: the server turns any other number into the nearest of these) and
+  // the picture built for one: the size is the height, 16:9 widens it to a multiple of 64, as the model likes it.
+  // Whatever a page's list says – nothing chosen, a value it does not offer – this is always a picture with a size.
+  const SIZES = [384, 512, 768, 1024], SIZE_DEFAULT = 512;
+  function picSize(size, wide) {
+    const want = Number.isFinite(+size) && +size > 0 ? +size : SIZE_DEFAULT;
+    const h = SIZES.reduce((best, s) => Math.abs(s - want) < Math.abs(best - want) ? s : best);
+    return { w: wide ? Math.round(h * 16 / 9 / 64) * 64 : h, h };
+  }
+
   // what a device remembers about its own view (text size, open cards …): prefs('dream-ui-')('fs') reads, …('fs', 18) writes
   const prefs = prefix => (k, v) => { try { if (v === undefined) return localStorage.getItem(prefix + k); localStorage.setItem(prefix + k, v); } catch (e) { return null; } };
 
@@ -144,5 +154,5 @@ window.DreamCommon = (() => {
     };
   }
 
-  return { hideKey, esc, fillPlaylists, prefs, CLOUD_FALLBACK, fillGpus, askCloudStart, playlists, gallery, cameraSender, wakeLock };
+  return { hideKey, esc, fillPlaylists, SIZES, picSize, prefs, CLOUD_FALLBACK, fillGpus, askCloudStart, playlists, gallery, cameraSender, wakeLock };
 })();
