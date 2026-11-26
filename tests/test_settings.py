@@ -159,7 +159,7 @@ def test_one_table_feeds_every_view():
     assert set(settings.RANGES) == {k for k, s in table.items() if s.number}
     assert midi.TARGETS is settings.TARGETS
     assert set(midi.TARGETS) == {"strength", "mix", "zoom", "rot", "hue", "drift", "smooth", "sens", "motion_sens",
-                                 "pose_scale", "master", "fx_amt", "world_mix"}
+                                 "pose_scale", "master", "fx_amt", "world_mix", "wled_amt", "hue_lamps_amt"}
     for k, s in table.items():
         assert s.kind in ("bool", "int", "float", "text"), k
         if s.number:

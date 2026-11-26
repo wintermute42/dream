@@ -244,7 +244,7 @@ test('the lab says what a feature is made of, why there are no fingers and where
   assert.equal(L.fingerWhy(det), ''); assert.equal(L.fingerWhy(null), '');
   assert.match(L.fingerWhy({ ...det, camera: 'camera' }), /camera is not running/);
   assert.match(L.fingerWhy({ ...det, kind: 'marker' }), /need the detection “Hands \(AI\)”/);
-  assert.match(L.fingerWhy({ ...det, fingers: false }), /switch on “Fingers \(hand AI\)”/);
+  assert.match(L.fingerWhy({ ...det, fingers: false }), /only in Dream Dance with “Hands \(AI\)”/);   // #265: nobody switches it
   assert.match(L.fingerWhy({ ...det, ready: false }), /loading/);
   // the stretches without a skeleton
   const fr = (t, b) => ({ t, p: { b: b ? [0] : null } });

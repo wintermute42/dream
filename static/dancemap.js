@@ -9,16 +9,19 @@
 // "ai.mix", "ai.zoom", "ai.rot", "ai.hue": added on top of the slider). #249: also the tempo of the picture's own motion
 // ("fx.speed"), how calm the dream is ("stage.calm"), the direct interaction ("touch.paint", "touch.warp",
 // "touch.impulse", "touch.light", "touch.shape": movement shapes the effects) and, slow, the prompt between its calm
-// and its wild words ("ai.prompt") and the push of the movement's speed on the AI sliders ("ai.react"). Whether a
-// target is fast or slow the mapping knows (`kind`); the stage only asks what each target is at.
+// and its wild words ("ai.prompt") and the push of the movement's speed on the AI sliders ("ai.react").
+// #236: … and the piece of prompt a taught move brings along ("ai.piece": blended in by as much as the row says).
+// Whether a target is fast or slow the mapping knows (`kind`); the stage only asks what each target is at.
 (function (root) {
   'use strict';
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
-  const CURVES = { lin: x => x, soft: x => Math.sqrt(x), hard: x => x * x, s: x => x * x * (3 - 2 * x) };
+  // #265: "v" – both ways alike: a source that goes both ways (turning, its input range -1 … 1) acts by how far it is
+  // from its rest in the middle, whichever way
+  const CURVES = { lin: x => x, soft: x => Math.sqrt(x), hard: x => x * x, s: x => x * x * (3 - 2 * x), v: x => Math.abs(2 * x - 1) };
   // a value bent by the curve of that name – one of the table above, whatever a row says
-  const bend = (name, x) => (name === 'soft' ? CURVES.soft(x) : name === 'hard' ? CURVES.hard(x) : name === 's' ? CURVES.s(x) : CURVES.lin(x));
+  const bend = (name, x) => (name === 'soft' ? CURVES.soft(x) : name === 'hard' ? CURVES.hard(x) : name === 's' ? CURVES.s(x) : name === 'v' ? CURVES.v(x) : CURVES.lin(x));
   const AI = ['strength', 'mix', 'zoom', 'rot', 'hue'];
-  const MORE = { instant: ['stage.calm', 'touch.paint', 'touch.warp', 'touch.impulse', 'touch.light', 'touch.shape'], slow: ['ai.prompt', 'ai.react'] };
+  const MORE = { instant: ['stage.calm', 'touch.paint', 'touch.warp', 'touch.impulse', 'touch.light', 'touch.shape'], slow: ['ai.prompt', 'ai.react', 'ai.piece'] };
   const BIPOLAR = new Set(['fx.spin', 'ai.rot', 'ai.zoom']);     // targets that go both ways around their rest at 0
   const SLOW_MIN = 0.5;                                // seconds: an AI slider is never moved faster than the AI paints
   // every target there is, given the effects of the instant layer (DreamFx.ALL): name → 'instant' | 'slow'
@@ -36,13 +39,73 @@
     return a + (b - a) * bend(row.curve, n);
   }
 
+  // ---------- #265: the rules that keep every effect visible ----------
+  // Effects of one group cancel each other out or wash the picture out when they act together (three symmetries over
+  // each other, afterglow and feedback, pixel, grid and glitch). With the rules on – the dance's table, compiled from its sentences – the
+  // engine enforces, whatever the table says (an old file, a hand-made row):
+  // - one effect per group: of a group only the strongest acts strongly, the others are held back to a hint (WEAK);
+  // - a budget: at most BUDGET groups act strongly at once – when one more comes in (an accent), the weakest of the
+  //   others steps back for as long as it lasts (in DUCK_IN seconds) and comes back softly (DUCK_OUT);
+  // - a minimum: a row that moves an effect reaches at least MIN at its peak – a sentence is there or not, never
+  //   "almost nothing".
+  const GROUPS = { symmetry: ['kaleido', 'mandala', 'mirror'], space: ['tunnel', 'waves'], afterglow: ['trails', 'feedback'],
+    disturbance: ['rgb', 'glitch', 'pixel', 'raster'], colour: ['hue'] };
+  const GROUP_OF = Object.fromEntries(Object.entries(GROUPS).flatMap(([g, list]) => list.map(e => ['fx.' + e, g])));
+  const RULES = { BUDGET: 3, STRONG: 0.2, WEAK: 0.12, MIN: 0.35, DUCK_IN: 0.12, DUCK_OUT: 0.8, FRESH: 1.5, SWAP: 0.05 };
+  const groupOf = dst => GROUP_OF[dst] || null;
+  // a row as the rules let it act: an effect's peak at least MIN (the same row when it already is)
+  function floored(row) {
+    if (!groupOf(row.dst) || !Array.isArray(row.out)) return row;
+    const peak = row.out[1];
+    return Math.abs(peak) >= RULES.MIN ? row : { ...row, out: [row.out[0], peak < 0 ? -RULES.MIN : RULES.MIN] };
+  }
+  // the group and budget rules over one frame's targets – with a memory: who leads a group, since when a group acts
+  // strongly, how far each effect stepped back
+  function governor() {
+    const lead = new Map(), since = new Map(), duck = new Map();
+    let t = 0;
+    function step(out, dt) {
+      t += dt;
+      const cap = {}, strong = [];
+      for (const [g, list] of Object.entries(GROUPS)) {
+        const here = list.map(e => 'fx.' + e).filter(d => out[d] > 0);
+        if (!here.length) { lead.delete(g); since.delete(g); continue; }
+        // the one that leads stays leading until another is clearly stronger (no flicker between two equal ones)
+        let first = lead.get(g);
+        const best = here.reduce((a, d) => (out[d] > out[a] ? d : a));
+        if (!here.includes(first) || out[best] > out[first] + RULES.SWAP) first = best;
+        lead.set(g, first);
+        for (const d of here) if (d !== first && out[d] > RULES.WEAK) cap[d] = RULES.WEAK;
+        if (out[first] > RULES.STRONG) { if (!since.has(g)) since.set(g, t); strong.push({ g, d: first, v: out[first], at: since.get(g) }); }
+        else since.delete(g);
+      }
+      if (strong.length > RULES.BUDGET) {
+        // what has just come in keeps its place (the accent is the point), then the strongest; the rest steps back
+        const fresh = s => t - s.at < RULES.FRESH;
+        strong.sort((a, b) => (fresh(a) !== fresh(b) ? (fresh(a) ? -1 : 1) : fresh(a) ? b.at - a.at : b.v - a.v));
+        for (const s of strong.slice(RULES.BUDGET)) cap[s.d] = RULES.WEAK;
+      }
+      for (const d of new Set([...Object.keys(out).filter(groupOf), ...duck.keys()])) {
+        const v = out[d] || 0, want = cap[d] != null && v > 0 ? cap[d] / v : 1, was = duck.has(d) ? duck.get(d) : 1;
+        const k = was + (want - was) * (1 - Math.exp(-dt / (want < was ? RULES.DUCK_IN : RULES.DUCK_OUT)));
+        if (k > 0.999 && want === 1) duck.delete(d); else duck.set(d, k);
+        if (v) out[d] = v * k;
+      }
+      return out;
+    }
+    return { step, of: d => (duck.has(d) ? duck.get(d) : 1), reset() { lead.clear(); since.clear(); duck.clear(); t = 0; } };
+  }
+
   function create() {
     const held = new Map();                            // row id → its smoothed value
-    // rows: the table; frame: a record of the feature stream (or null: nothing known); dt: seconds since the last call.
-    // Returns {target: value}: per target the row that asks for most; a target nobody asks for is absent.
-    function apply(rows, frame, dt) {
+    const rules = governor();
+    // rows: the table; frame: a record of the feature stream (or null: nothing known); dt: seconds since the last call;
+    // opts.rules (#265): the groups, the budget and the minimum apply. Returns {target: value}: per target the row that
+    // asks for most; a target nobody asks for is absent.
+    function apply(rows, frame, dt, opts = {}) {
       const out = {}, live = new Set();
-      for (const row of rows) {
+      for (const r of rows) {
+        const row = opts.rules ? floored(r) : r;
         live.add(row.id);
         const want = row.on && frame ? shape(row, frame.v[row.src], frame.c[row.src]) : 0;
         const tau = Math.max(row.smooth || 0, kind(row.dst) === 'slow' ? SLOW_MIN : 0), was = held.get(row.id) || 0;
@@ -52,12 +115,13 @@
         if (v !== 0 && (out[row.dst] === undefined || Math.abs(v) > Math.abs(out[row.dst]))) out[row.dst] = v;
       }
       for (const id of held.keys()) if (!live.has(id)) held.delete(id);
+      if (opts.rules) rules.step(out, dt); else rules.reset();
       return out;
     }
-    return { apply, of: id => held.get(id) || 0, reset: () => held.clear() };
+    return { apply, of: id => held.get(id) || 0, duck: d => rules.of(d), reset: () => { held.clear(); rules.reset(); } };
   }
 
-  const api = { create, shape, targets, kind, CURVES, BIPOLAR, AI, SLOW_MIN };
+  const api = { create, shape, targets, kind, floored, governor, groupOf, CURVES, BIPOLAR, AI, SLOW_MIN, GROUPS, RULES };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamDanceMap = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -138,14 +138,16 @@ test('a change of mode fades: the old effect goes out while the new one comes in
   near(fresh.step({ mode: 'dance', tables: TABLES, rec: rec(0.8), dt })['fx.kaleido'], 0.8, 1e-3);
 });
 
-test('the mood has a strength; the other modes are not scaled by it', () => {
+test('the mood and the dance have a strength; flowtrack is not scaled by it', () => {
   const eng = M.create({ maps: Map_ });
   near(run(eng, { mode: 'mood', rec: rec(0.4), strength: 0.5 }, 0.1)['fx.pulse'], 0.2, 1e-3);
   near(run(eng, { mode: 'mood', rec: rec(0.4), strength: 2 }, 0.1)['fx.pulse'], 0.8, 1e-3);
   near(run(eng, { mode: 'mood', rec: rec(0.9), strength: 3 }, 0.1)['fx.pulse'], 1, 1e-3);   // never more than all of it
   assert.deepEqual(run(eng, { mode: 'mood', rec: rec(0.9), strength: 0 }, 0.1), { 'fx.pulse': 0 });
-  const dance = M.create({ maps: Map_ });
-  near(run(dance, { mode: 'dance', rec: rec(0.4), strength: 0 }, 0.1)['fx.kaleido'], 0.4, 1e-3);
+  // #265: the dance's "Movement – strength" tunes all its sentences together
+  near(run(M.create({ maps: Map_ }), { mode: 'dance', rec: rec(0.6), strength: 0.5 }, 0.1)['fx.kaleido'], 0.3, 1e-3);
+  assert.deepEqual(run(M.create({ maps: Map_ }), { mode: 'dance', rec: rec(0.6), strength: 0 }, 0.1), { 'fx.kaleido': 0 });
+  near(run(M.create({ maps: Map_ }), { mode: 'flowtrack', rec: rec(0.4), strength: 0 }, 0.1)['touch.paint'], 1, 1e-3);
 });
 
 test('the register lists the Mac camera first, with its state, then the others', () => {

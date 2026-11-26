@@ -41,7 +41,6 @@ input[type=checkbox] { width: 1.25em; height: 1.25em; accent-color: var(--accent
 .mp-detect { color: var(--ok); } .mp-detect.off { color: var(--text); }   /* nothing runs: the reason, and what to do */
 .mp-camnote[hidden] { display: none; }
 .mp-old { border-color: var(--warn); }
-.mp-setrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } .btn:active:not(:disabled) { transform: none; } }
 /* #252: the automatic's choices – what it chose, why, and the hand's own choice beside it */
 .mp-choices { display: grid; gap: 8px; }

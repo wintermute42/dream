@@ -1,0 +1,75 @@
+/* Teaching a movement and the moves of one's own (#236, #265) on the page of Dream Dance – in the page's look
+   (movepage.css: its colours, buttons, cards). Only transform and opacity are animated; nothing holds up a click. */
+.mt { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: rgba(255,255,255,.03); margin-bottom: 12px; display: grid; gap: 8px; }
+.mt-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; }
+.mt-head h2 { margin: 0; font-size: 1.05em; }
+.mt-state { color: var(--text); font-size: .9em; min-height: 1.45em; }
+.mt-wiz { position: relative; border: 1px solid #6fd3ff; border-radius: 12px; padding: 10px 12px; display: grid; gap: 10px; background: rgba(111,211,255,.05); }
+.mt-wiz[hidden], .mt-bar[hidden], .mt-ask[hidden], .mt .btn[hidden] { display: none; }
+.mt-taking .mt-wiz { border-color: #e0475b; }
+.mt .btn.mt-close { position: absolute; right: 8px; top: 8px; min-height: 40px; min-width: 40px; background: none; border-color: transparent; }
+/* the five steps, the one at hand lit */
+.mt-steps { list-style: none; margin: 0; padding: 0 48px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.mt-steps li { font-size: .8em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; opacity: .6; }
+.mt-steps li.cur { opacity: 1; color: var(--text); border-color: #6fd3ff; }
+.mt-steps li.done { opacity: .9; }
+.mt-say { color: var(--muted); font-size: .92em; min-height: 1.3em; }
+.mt-pane { display: grid; gap: 8px; }
+.mt-pane:empty { display: none; }
+.mt-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.mt-opt { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.05);
+  color: var(--text); font: inherit; font-weight: 600; cursor: pointer; text-align: left; transition: transform .08s ease-out; }
+.mt-opt:hover { background-color: rgba(255,255,255,.12); }
+.mt-opt:active { transform: scale(.97); }
+.mt-opt:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.mt-optnew { border-style: dashed; color: var(--muted); }
+.mt-pict { width: 30px; height: 36px; flex: none; color: #f070dc; display: inline-grid; }
+.mt-pict svg { width: 100%; height: 100%; }
+.mt-pict path, .mt-pict circle { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+/* the hits: one dot each – asked (pulsing ring), right (green), wrong (red); in the result also the missed ones (ring) */
+.mt-dots { display: flex; flex-wrap: wrap; gap: 6px; min-height: 16px; }
+.mt-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--line); }
+.mt-dots i.y { background: var(--ok); }
+.mt-dots i.n { background: var(--warn); }
+.mt-dots i.m { background: none; box-shadow: inset 0 0 0 2px var(--ok); }
+.mt-dots i.q { background: none; box-shadow: inset 0 0 0 2px #6fd3ff; }
+.mt-legend { display: flex; align-items: center; gap: 6px; }
+.mt-legend i { width: 10px; height: 10px; border-radius: 50%; margin-left: 6px; }
+.mt-legend i.y { background: var(--ok); } .mt-legend i.n { background: var(--warn); } .mt-legend i.m { box-shadow: inset 0 0 0 2px var(--ok); }
+.mt-dots i.go { animation: mt-hit .5s ease-out; }
+@keyframes mt-hit { 0% { transform: scale(1.8); opacity: .3; } 100% { transform: none; opacity: 1; } }
+.mt-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid #6fd3ff; animation: mt-in .2s ease-out both; }
+.mt-asktext { flex: 1 1 14em; font-weight: 600; }
+/* the countdown and "show it now": large, to be read from where the dancer stands */
+.mt-big { font-size: 1.7em; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; padding-right: 40px; }
+.mt-big.mt-huge { font-size: 3.2em; text-align: center; padding: 0; }
+.mt-bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.mt-bar i { display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left center; will-change: transform; }
+.mt-taking .mt-bar i { background: #e0475b; }
+.mt-reps, .mt-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mt-reps { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.mt-rep { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 6px; align-items: center; font-size: .82em; color: var(--muted);
+  animation: mt-in .25s ease-out both; }
+.mt-rep canvas { grid-column: 1 / -1; }
+.mt-cv { display: block; width: 100%; aspect-ratio: 1; background: #000; border-radius: 8px; }
+.mt .btn.mt-x, .mt .btn.mt-del { min-height: 44px; min-width: 44px; padding: 2px 8px; }
+.mt-field { margin: 0; display: grid; gap: 4px; max-width: 24em; }
+.mt-list { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+.mt-move { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto auto; grid-template-rows: 1fr auto; gap: 6px 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 8px;
+  animation: mt-in .25s ease-out both; }
+.mt-move .mt-cv { grid-row: 1 / 3; }
+.mt-body { display: grid; gap: 4px; min-width: 0; }
+.mt-body input, .mt-body select { min-height: 36px; padding: 4px 8px; font-size: .88em; }
+.mt-move .mt-tune { grid-row: 1; grid-column: 3; align-self: start; }
+.mt-move .mt-del { grid-row: 1; grid-column: 4; align-self: start; }
+/* how sure Dream is of the move right now; lit while it is the recognised one */
+.mt-meter { grid-column: 2 / 5; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.mt-meter i { display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left center; will-change: transform; }
+.mt-on { border-color: var(--ok); }
+.mt-on .mt-meter i { background: var(--ok); }
+.mt-none { color: var(--muted); font-size: .9em; grid-column: 1 / -1; }
+@keyframes mt-in { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mt-rep, .mt-move, .mt-ask, .mt-legend { display: flex; align-items: center; gap: 6px; }
+.mt-legend i { width: 10px; height: 10px; border-radius: 50%; margin-left: 6px; }
+.mt-legend i.y { background: var(--ok); } .mt-legend i.n { background: var(--warn); } .mt-legend i.m { box-shadow: inset 0 0 0 2px var(--ok); }
+.mt-dots i.go { animation: none; } }

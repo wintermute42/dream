@@ -234,6 +234,22 @@
       return max;
     };
     report.arrive = { webgl: await arrive(gl), precise: gl.view.precise, canvas: await arrive(cv2d) };
+    // #212: the room light reads the picture tiny and without the master fader (it dims itself), from a copy of its
+    // own – the movement detection's copy keeps its size and the master
+    const avg = px => { let s = 0; for (let i = 0; i < px.length; i += 4) s += px[i] + px[i + 1] + px[i + 2]; return s / (px.length / 4 * 3); };
+    const dim = { front: gl.a, now: 1300, dt: 1, tau: 0, fx: null, k: 0, sc: 1, br: 1, sat: 1, master: 0.25 };
+    await play(gl, [{}]);
+    gl.view.draw({ ...dim, master: 1 });
+    const full = avg(pixels(await shot(gl.view)));
+    gl.view.draw(dim);
+    const seen = avg(pixels(await shot(gl.view)));
+    let light = null;
+    for (let i = 0; i < 4000 && !light; i++) {   // the first copy it asked for, after the dimmed frame
+      light = gl.view.pixels(16, 16);
+      if (!light) await new Promise(done => setTimeout(done, 10));
+    }
+    await play(cv2d, [{}]);
+    report.light = { full, seen, light: light && light.length === 16 * 16 * 4 ? avg(light) : null, canvas: avg(cv2d.view.pixels(16, 16)), canvasLen: cv2d.view.pixels(16, 16).length };
     // the context goes away: the same view draws with Canvas 2D; it comes back: WebGL 2 again
     const ctx = gl.gl.getContext('webgl2'), lose = ctx && ctx.getExtension('WEBGL_lose_context'), said = [];
     if (lose) {

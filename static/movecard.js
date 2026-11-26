@@ -3,10 +3,10 @@
    The mode – off, mood, flowtrack, dance; one at a time – as four buttons, the part of the card the mode in use needs
    at hand (the mood: its strength and the energy of the room; flowtrack and the dance: what Dream detects right now),
    "Page ↗" for a mode that has a page of its own, and the sources: one chip per kind with a light while values come;
-   a tap switches the kind off or on. The same card stands in the panel and – only the mode and the mood's strength –
+   a tap switches the kind off or on; in Dream Dance the traffic light of what blocks the dance (`lamp`, #265). The same card stands in the panel and – only the mode and the mood's strength –
    in Dream Control: the markup is the page's (so it is translated and drawn like everything else there), this file
    gives it its behaviour.
-   `words`, `chips` and `info` are pure (tests/js/movecard.test.mjs). Looks: movecard.css – only transform and opacity
+   `words`, `chips`, `info` and `light` are pure (tests/js/movecard.test.mjs). Looks: movecard.css – only transform and opacity
    move. A global `MoveCard`. */
 (function (root) {
   'use strict';
@@ -27,19 +27,56 @@
     btn.setAttribute('aria-pressed', String(!!on)); btn.classList.toggle('on', !!on); btn.textContent = clutchText(on);
     if (note) note.textContent = clutchNote(on);
   }
-  const SETS = new Map([['standard', () => T('Standard')], ['waves', () => T('Waves')], ['fire', () => T('Fire')]]);
+  const SETS = new Map([['standard', () => T('Standard')], ['waves', () => T('Flowing')], ['fire', () => T('Wild')]]);
   const setLabel = n => say(SETS, n, n);
-  // the choices of a set's select: "your table" (no set), then every set by its name; a name not in the list yet (Dream
-  // has not said so) stands as it is. Rebuilt only when something changed, so an open list is not torn away.
+  // the choices of a set's select: every set by its name; a name not in the list yet (Dream has not said so) stands as
+  // it is. Rebuilt only when something changed, so an open list is not torn away.
   function fillSets(select, names, current) {
-    const want = [''].concat(names || []), cur = current == null ? '' : String(current);
-    if (cur && !want.includes(cur)) want.push(cur);
+    const cur = current == null ? '' : String(current), want = (names || []).concat(cur && !(names || []).includes(cur) ? [cur] : []);
     const key = want.join('\n');
     if (select.dataset.filled !== key) {
       select.dataset.filled = key; select.textContent = '';
-      for (const n of want) { const o = document.createElement('option'); o.value = n; o.textContent = n ? T('Set: {s}', { s: setLabel(n) }) : T('Set: your table'); select.append(o); }
+      for (const n of want) { const o = document.createElement('option'); o.value = n; o.textContent = T('Set: {s}', { s: setLabel(n) }); select.append(o); }
     }
     if (select.value !== cur && document.activeElement !== select) select.value = cur;
+  }
+
+  // #265: the traffic light of Dream Dance – what blocks the dance. st: {mode, clutch}; live: what the stage sees right
+  // now ({seen, markers, markerWanted}). → {green, clutch, person, marker}: each 'ok' | 'block' | 'none' (does not apply)
+  function light(st, live) {
+    const clutch = st && st.clutch ? 'ok' : 'block';
+    const person = live && live.seen ? 'ok' : 'block';
+    const marker = !live || !live.markerWanted ? 'none' : live.markers > 0 ? 'ok' : 'block';
+    return { green: !!st && st.mode === 'dance' && clutch === 'ok' && person === 'ok' && marker !== 'block', clutch, person, marker };
+  }
+  // … drawn as a lamp and three symbols – the words only on hover (and for a screen reader). opts.clutch(): a tap on the
+  // clutch's symbol (the page of Dream Dance); without it the symbol only shows (the panel has the clutch's button).
+  function lamp(box, opts = {}) {
+    const el = (tag, cls, text) => { const e = document.createElement(tag); e.className = cls; if (text) e.textContent = text; return e; };
+    const dot = el('i', 'mc-lamp'), sym = {
+      clutch: el(opts.clutch ? 'button' : 'span', 'mc-sym', '🔓'), person: el('span', 'mc-sym', '👤'), marker: el('span', 'mc-sym', '◉') };
+    box.classList.add('mc-light'); box.setAttribute('role', 'group'); box.setAttribute('aria-label', T('What blocks the dance'));
+    dot.setAttribute('aria-hidden', 'true');
+    if (opts.clutch) { sym.clutch.type = 'button'; sym.clutch.onclick = opts.clutch; } else sym.clutch.setAttribute('role', 'img');
+    sym.person.setAttribute('role', 'img'); sym.marker.setAttribute('role', 'img');
+    box.textContent = ''; box.append(dot, sym.clutch, sym.person, sym.marker);
+    const tip = (e, text) => { if (e.title !== text) { e.title = text; e.setAttribute('aria-label', text); } };
+    const say = {
+      clutch: { ok: () => (opts.clutch ? T('Clutch engaged – your dance steers (click or key K to release)') : T('Clutch engaged – your dance steers')),
+        block: () => (opts.clutch ? T('Clutch released – your dance does nothing yet (click or key K)') : T('Clutch released – your dance does nothing yet')) },
+      person: { ok: () => T('Someone is detected'), block: () => T('Nobody detected – step into the camera’s view') },
+      marker: { ok: () => T('LED markers are seen'), block: () => T('LED markers chosen, but none is seen'), none: () => T('No LED markers chosen') },
+    };
+    return {
+      show(st, live) {
+        const lt = light(st, live);
+        for (const k of ['clutch', 'person', 'marker']) { if (sym[k].dataset.state !== lt[k]) sym[k].dataset.state = lt[k]; tip(sym[k], say[k][lt[k]]()); }
+        const go = lt.green ? 'go' : 'stop';
+        if (box.dataset.state !== go) box.dataset.state = go;
+        tip(box, lt.green ? T('Green: nothing blocks – your dance steers the dream') : T('Something blocks the dance – see the symbols'));
+        return lt;
+      },
+    };
   }
 
   // the energy of the room in a word: {energy, conf} → text (nothing known: no source reports)
@@ -168,7 +205,7 @@
     };
   }
 
-  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets };
+  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets, light, lamp };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MoveCard = api;
 })(typeof window !== 'undefined' ? window : globalThis);

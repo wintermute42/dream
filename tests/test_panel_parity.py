@@ -77,13 +77,13 @@ SAME_AS = {
     "next": "nextscene", "bar-next": "nextscene", "bar-run": "run", "bar-auto": "autobtn", "bar-strength": "strength",
     "bar-master": "master", "bar-black": "blackout", "black": "blackout", "qr": "qrbtn", "send": "prompt",
     "file": "imgpick", "flowmode": "modes", "trance": "trancego", "eyesqr": "eyesshow", "winqr": "winshow",
-    "devend": "feedend", "dl-good": "labgood", "dl-bad": "labbad", "dl-rec": "labrec", "dl-open": "movepage",
+    "devend": "feedend", "dl-rec": "labrec", "dl-open": "movepage",
 }
 # the commands Dream Control sends → the panel's control that does it (on the Mac it runs at once, no message)
 CMD_IN_PANEL = {
     "next": "nextscene", "restart": "restart", "qr": "qrbtn", "imgclear": "srcclear", "vidclear": "srcclear",
     "make": "makeimg", "tap": "tapbtn", "tapoff": "tapoff", "relieve": "relieve", "relieve_undo": "relieveundo",
-    "dance_fb": "labgood", "dance_rec": "labrec", "dance_lab": "movepage", "blackout": "blackout",
+    "dance_rec": "labrec", "dance_lab": "movepage", "blackout": "blackout",
 }
 PHONE_ONLY_CMDS = {"relieve_ask": "the phone asks the stage how it is doing, to show it"}
 PHONE_ONLY_MSGS = {"feed": "lends this phone's camera or motion", "motion_in": "this phone's motion",
@@ -129,7 +129,7 @@ def test_every_setting_dream_control_changes_the_panel_changes_too():
 
 def test_every_command_and_message_dream_control_sends_the_panel_has():
     cmds = set(re.findall(r"cmd: '(\w+)'", REMOTE))
-    assert {"next", "make", "blackout", "dance_fb"} <= cmds
+    assert {"next", "make", "blackout", "dance_rec"} <= cmds and "dance_fb" not in cmds   # #265: no 👍/👎 on the phone
     assert set(PHONE_ONLY_CMDS) <= cmds
     for c in sorted(cmds - set(PHONE_ONLY_CMDS)):
         assert c in CMD_IN_PANEL, f"the command {c!r} of Dream Control has no control in the panel"
