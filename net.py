@@ -2,6 +2,7 @@
 TLS (#145) that Dream Control and Dreamy Eyes use."""
 import asyncio
 import contextlib
+import ipaddress
 import os
 import socket
 import subprocess
@@ -25,6 +26,32 @@ def lan_ip() -> str:
         return "127.0.0.1"
     finally:
         s.close()
+
+
+def home_address(ip: str) -> bool:
+    """A device of the home network (or this Mac) – the room light's devices (#212, #272) are reached only there; fail
+    closed for anything else."""
+    try:
+        a = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return a.version == 4 and (a.is_private or a.is_link_local or a.is_loopback) and not a.is_multicast
+
+
+async def resolve(host: str, secs: float = 3.0) -> str | None:
+    """The IPv4 address of a host (an address stays itself, a name such as wled-room.local is looked up within secs),
+    or None."""
+    try:
+        ipaddress.IPv4Address(host)
+        return host
+    except ValueError:
+        pass
+    try:
+        got = await asyncio.wait_for(asyncio.get_running_loop().getaddrinfo(host, None, family=socket.AF_INET,
+                                                                            type=socket.SOCK_DGRAM), secs)
+        return got[0][4][0] if got else None
+    except (OSError, asyncio.TimeoutError, IndexError):
+        return None
 
 
 def remote_url() -> str:

@@ -69,6 +69,12 @@ HTTP = {
     ("GET", "/dance/sessions/{sid}"): ("/dance/sessions/20261124-120000-ab12", LC),
     ("DELETE", "/dance/sessions/{sid}"): ("/dance/sessions/20261124-120000-ab12", LC),
     ("POST", "/dance/sessions/{sid}/export"): ("/dance/sessions/20261124-120000-ab12/export", LC),
+    # #236: the dance moves the dancer taught – trajectories too: this Mac and Dream Control only
+    ("GET", "/dance/moves"): ("/dance/moves", LC),
+    ("POST", "/dance/moves"): ("/dance/moves", LC),
+    ("GET", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
+    ("POST", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
+    ("DELETE", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [
@@ -468,11 +474,11 @@ def test_ctl_reset_glides_home_and_undo_brings_everything_back(server, saved_sta
 ODD = [[], {}, [[]], {"a": [1]}, None, True, 0, -1, 1.5, 10 ** 400, float("nan"), float("inf"), "", "no-such", "x" * 3000]
 ODD_FIELDS = ["set", "cmd", "arg", "auto", "feed", "feed_end", "motion_in", "glow", "eyes_trance", "eyes_cfg", "eyes_mood",
               "seen", "arrived", "fire", "take_control", "renew_guest", "midi_learn", "midi_forget", "sensor_learn",
-              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "rule", "live", "dance_map", "dance_lab", "move", "mode", "dance_set_save", "dance_set_delete",
+              "sensor_forget", "sensor_invert", "sensor_impulse", "sensor_sens", "cams", "rule", "live", "dance_map", "dance_lab", "move", "mode", "dance_slots",
               "measure_report"]
 ODD_INSIDE = {"feed": ("cam", "motion", "facing"), "motion_in": ("acc", "gyro"), "eyes_cfg": ("trance_every",),
               "live": ("fps", "flow_rate"), "measure_report": ("kind", "fps", "ms_avg", "render"),
-              "dance_lab": ("open", "rec", "play"), "move": ("e", "c")}
+              "dance_lab": ("open", "rec", "play"), "move": ("e", "c"), "dance_slots": ("op", "name", "as", "slots")}
 ODD_FRAMES = ["", "{not json", "[1]", '"text"', "null", "[" * 100000]
 
 
@@ -495,7 +501,8 @@ def test_ctl_ignores_invalid_values_and_stays_open(server, monkeypatch, saved_st
         monkeypatch.setattr(part, name, dict(getattr(part, name)))
     monkeypatch.setattr(server.inputs.sens, "sensitivity", server.inputs.sens.sensitivity)
     monkeypatch.setattr(server.dance, "tables", server.dance.default_tables())
-    monkeypatch.setattr(server.dance, "sets", {})
+    for name, value in (("slot_sets", {}), ("slot_use", "standard"), ("slot_drafts", {})):
+        monkeypatch.setattr(server.dance, name, value)
     monkeypatch.setitem(server.measure.measure, "run", True)       # reports are only read during a measurement run
     monkeypatch.setitem(server.measure.measure, "reports", {})
     monkeypatch.setattr(server.ctl, "renew_guest", lambda: asyncio.sleep(0))

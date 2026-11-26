@@ -10,6 +10,7 @@ body.hide .dl, body.stage-only .dl { left: 0; }
 .dl-tools { margin-left: auto; align-items: center; }
 .dl .btn { min-height: 40px; padding: 5px 12px; }
 .dl-secs { display: inline-flex; align-items: center; gap: 6px; font-size: .8em; color: var(--muted); margin: 0; white-space: nowrap; }
+.dl-secs[hidden] { display: none; }
 .dl-secs input { width: 7em; } .dl-secs .val { min-width: 2.6em; color: var(--text); font-variant-numeric: tabular-nums; }
 .dl-main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 12px; align-items: start; }
 @media (max-width: 900px) { .dl-main { grid-template-columns: minmax(0, 1fr); } }

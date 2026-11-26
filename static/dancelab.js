@@ -7,7 +7,8 @@
    stream of dance.js as running curves – a gap where a value is not known, a band where the skeleton was lost – with
    what each feature is computed from, its source and how sure it is (`origin`); the output with its effects and the
    hand model's 21 points per hand (with trails of the finger tips; `fingerWhy` says why there are none). Below: one row of the mapping table to tune (target, curve,
-   ranges, smoothing – at once, undoable), and the sessions kept on this Mac.
+   ranges, smoothing – at once, undoable; on the page of Flowtrack – #265: Dream Dance has its sentences instead,
+   `tune: false`), and the sessions kept on this Mac.
    A session is numbers, never pictures (dancerec.js): the camera picture is drawn here and nowhere kept. Playing a
    session back puts its features in the place of the live ones, so settings can be tried without dancing again.
 
@@ -23,7 +24,7 @@
   const STRIPS = ['energy', 'tempo', 'phase', 'open', 'turn', 'height', 'still'];
   const FINGER_STRIPS = ['palm', 'spread', 'pinch'];
   const WINDOW = 12;                                   // seconds of curves in view
-  const CURVE_NAMES = { lin: () => T('straight'), soft: () => T('early (soft start)'), hard: () => T('late (needs more)'), s: () => T('S (soft both ends)') };
+  const CURVE_NAMES = { lin: () => T('straight'), soft: () => T('early (soft start)'), hard: () => T('late (needs more)'), s: () => T('S (soft both ends)'), v: () => T('both ways alike') };
   const spoken = mark => (mark === 'good' ? T('👍 Good') : mark === 'bad' ? T('👎 Bad') : '');
   // the words a spoken feedback is made of: English, and the page's language beside it (each a list in the translations)
   const words = () => ({ good: [...R.WORDS.good, ...T('good great yes nice super top right').split(' ')], bad: [...R.WORDS.bad, ...T('bad no nope wrong').split(' ')],
@@ -77,7 +78,7 @@
     if (!det) return '';
     if (det.camera !== 'running') return T('The camera is not running.');
     if (det.kind !== 'hand') return T('Fingers need the detection “Hands (AI)” – LED markers have no fingers.');
-    if (!det.fingers) return T('Fingers are off: switch on “Fingers (hand AI)” below – the hand model is loaded once (about 8 MB).');
+    if (!det.fingers) return T('The hand model runs only in Dream Dance with “Hands (AI)” – Flowtrack has no hand detection.');
     if (!det.ready) return T('The hand model is loading (once, about 8 MB) …');
     return '';
   }
@@ -91,6 +92,35 @@
     }
     if (from != null && frames.length) out.push([from, frames[frames.length - 1].t]);
     return out;
+  }
+
+  // The figure of one packed frame (dancerec.js): skeleton, the hands' points, wrists and the LED markers seen.
+  // o: {alpha, thin, text: the skeleton's colour, handCol(hand) → colour, glow: {l, r: {col, k 0 … 1}} – #265: a hand
+  // glows in the colour of the effect it sets off, as strongly as that acts}
+  function drawFigure(c, w, h, f, o = {}) {
+    const P = ([x, y]) => [x * w, y * h], b = R.body(f), thin = !!o.thin, col = o.handCol || (() => '#fff');
+    c.lineCap = 'round'; c.globalAlpha = o.alpha == null ? 1 : o.alpha;
+    if (b) {
+      c.strokeStyle = o.text || '#fff'; c.lineWidth = thin ? 1.5 : 3; c.beginPath();
+      for (const [a, e] of R.BONES) { c.moveTo(...P(b[a])); c.lineTo(...P(b[e])); }
+      const neck = [(b[1][0] + b[2][0]) / 2, (b[1][1] + b[2][1]) / 2]; c.moveTo(...P(neck)); c.lineTo(...P(b[0])); c.stroke();
+      c.beginPath(); c.arc(...P(b[0]), Math.max(4, Math.hypot(b[1][0] - b[2][0], (b[1][1] - b[2][1]) * h / w) * w * 0.3), 0, 7); c.stroke();
+    }
+    for (const hnd of ['l', 'r']) {
+      const pts = R.hand21(f, hnd), wr = R.wrist(f, hnd), g = o.glow && o.glow[hnd];
+      if (wr && g && g.k > 0.02) {                     // the glow: a soft light around the wrist, as big as the effect is strong
+        const r = Math.min(w, h) * (0.05 + 0.09 * clamp(g.k, 0, 1)), [x, y] = P(wr), grad = c.createRadialGradient(x, y, 0, x, y, r);
+        grad.addColorStop(0, g.col); grad.addColorStop(1, 'rgba(0,0,0,0)');
+        const was = c.globalAlpha; c.globalAlpha = was * clamp(0.35 + 0.65 * g.k, 0, 1); c.fillStyle = grad; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.globalAlpha = was;
+      }
+      c.strokeStyle = c.fillStyle = col(hnd);         // the hand keeps its own (marker) colour: which is which stays plain
+      if (pts) { c.lineWidth = thin ? 1 : 1.5; c.beginPath(); for (const [a, e] of R.HAND_BONES) { c.moveTo(...P(pts[a])); c.lineTo(...P(pts[e])); } c.stroke(); }
+      if (wr) { c.beginPath(); c.arc(...P(wr), thin ? 3 : 6, 0, 7); c.fill(); }
+      for (const cand of (f.i && f.i.h && f.i.h[hnd]) || []) if (cand[3] === 1) {    // an LED marker: a ring where it was seen
+        c.lineWidth = 2; c.beginPath(); c.arc(cand[0] * w, cand[1] * h, thin ? 5 : 10, 0, 7); c.stroke();
+      }
+    }
+    c.globalAlpha = 1;
   }
 
   function mount(box, opts) {
@@ -114,6 +144,9 @@
     const secsLab = el('label', 'dl-secs'), secsIn = el('input'), secsVal = el('span', 'val');
     secsIn.type = 'range'; secsIn.min = 1; secsIn.max = 15; secsIn.step = 1; secsLab.append(T('a feedback keeps the last'), secsIn, secsVal);
     tools.append(recBtn, goodBtn, badBtn, voiceBtn, secsLab); bar.append(title, modeTxt, tools);
+    // #265: on the page of Dream Dance "good" and "bad" have left (the teaching asks "recognised right?" instead) –
+    // the panel, a MIDI button and the wristband still mark a session; recording stays
+    if (opts.feedback === false) goodBtn.hidden = badBtn.hidden = voiceBtn.hidden = secsLab.hidden = true;
     // ---------- the three views ----------
     const views = el('div', 'dl-views');
     const [camFig, camCv] = view(T('Camera, skeleton and markers'), T('The camera picture with the detected skeleton, the hands and the LED markers'));
@@ -125,9 +158,9 @@
     const camState = el('div', 'dl-camstate'); camState.setAttribute('role', 'status');
     camOpts.append(camL, multiL, trailL); camFig.append(camState, camOpts); camFig.classList.add('dl-cam');
     const finVals = el('div', 'dl-fvals'), finOpts = el('div', 'dl-opts'),
-      [finL, finOn] = check(T('Fingers (hand AI)'), false, T('A second model finds 21 points per hand – fist, spread fingers, pinch. Needs the detection “Hands (AI)”; loaded once, about 8 MB.'));
+      [finL, finOn] = check(T('Fingers (hand AI)'), false, T('A second model finds 21 points per hand – fist, spread fingers, pinch. It runs by itself while Dream Dance detects with “Hands (AI)”, never in Flowtrack; loaded once, about 8 MB.'));
     finOpts.append(finL); finFig.append(finVals, finOpts);
-    finOn.onchange = () => { if (opts.setFingers) opts.setFingers(finOn.checked); };
+    finOn.disabled = true;                             // #265: shows whether the hand model runs – nobody switches it
     views.append(outFig, finFig);
     // ---------- the curves ----------
     const curves = el('figure', 'dl-curves'), cvCap = el('figcaption', '', T('Feature stream')), gestTxt = el('span', 'dl-gesture'), cvCv = el('canvas');
@@ -176,7 +209,8 @@
     const listState = el('div', 'dl-state'), list = el('ul', 'dl-list'); listState.setAttribute('role', 'status');
     listBox.append(el('h3', '', T('Sessions and feedback')), listState, list);
     const marksList = el('ul', 'dl-list'); marksBox.append(el('h3', '', T('Feedback moments of this session')), marksList);
-    cols.append(tuneBox, listBox, marksBox);
+    const tuning = opts.tune !== false;
+    cols.append(...(tuning ? [tuneBox] : []), listBox, marksBox);
     box.append(bar, main, views, time, cols);
     const toast = el('div', 'dl-toast'); toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite'); document.body.append(toast);
 
@@ -207,26 +241,7 @@
     }
 
     // ---------- drawing: the figure ----------
-    function figure(c, w, h, f, alpha, thin) {
-      const P = ([x, y]) => [x * w, y * h], b = R.body(f);
-      c.lineCap = 'round'; c.globalAlpha = alpha;
-      if (b) {
-        c.strokeStyle = C.text; c.lineWidth = thin ? 1.5 : 3; c.beginPath();
-        for (const [a, e] of R.BONES) { c.moveTo(...P(b[a])); c.lineTo(...P(b[e])); }
-        const neck = [(b[1][0] + b[2][0]) / 2, (b[1][1] + b[2][1]) / 2]; c.moveTo(...P(neck)); c.lineTo(...P(b[0])); c.stroke();
-        c.beginPath(); c.arc(...P(b[0]), Math.max(4, Math.hypot(b[1][0] - b[2][0], (b[1][1] - b[2][1]) * h / w) * w * 0.3), 0, 7); c.stroke();
-      }
-      for (const hnd of ['l', 'r']) {
-        const pts = R.hand21(f, hnd), wr = R.wrist(f, hnd);
-        c.strokeStyle = c.fillStyle = handCol(hnd);
-        if (pts) { c.lineWidth = thin ? 1 : 1.5; c.beginPath(); for (const [a, e] of R.HAND_BONES) { c.moveTo(...P(pts[a])); c.lineTo(...P(pts[e])); } c.stroke(); }
-        if (wr) { c.beginPath(); c.arc(...P(wr), thin ? 3 : 6, 0, 7); c.fill(); }
-        for (const cand of f.i.h[hnd]) if (cand[3] === 1) {    // an LED marker: a ring where it was seen
-          c.lineWidth = 2; c.beginPath(); c.arc(cand[0] * w, cand[1] * h, thin ? 5 : 10, 0, 7); c.stroke();
-        }
-      }
-      c.globalAlpha = 1;
-    }
+    const figure = (c, w, h, f, alpha, thin) => drawFigure(c, w, h, f, { alpha, thin, text: C.text, handCol });
     // frames: the ones in view, the newest last
     function drawCam(frames, fresh) {
       const g = ctxOf(camCv); if (!g) return; const [c, w, h] = g, f = fresh ? frames[frames.length - 1] : null;
@@ -376,7 +391,7 @@
     // ---------- tune a row ----------
     const rowsNow = () => opts.rows();
     function drawTune(rows) {
-      const shape = JSON.stringify(rows.map(r => [r.id, r.src, r.dst]));
+      const shape = JSON.stringify(rows.map(r => [r.id, label(r.src), r.dst]));   // the name too: a taught move can be renamed (#236)
       if (shape !== drawnRows) {
         drawnRows = shape; rowSel.textContent = '';
         for (const r of rows) { const o = el('option', '', `${label(r.src)} → ${label(r.dst)}`); o.value = r.id; rowSel.append(o); }
@@ -550,12 +565,11 @@
         drawCam(shown, !!f); drawOut(now); drawFingers(f ? shown : []); drawCurves(frames, t1, cursor, marks);
         const g = f && f.g ? T('{g} · {p} % sure', { g: label('g.' + f.g), p: Math.round(f.gc * 100) }) : T('no gesture');
         if (gestTxt.textContent !== g) gestTxt.textContent = g;
-        drawTune(rowsNow()); drawTuneCurve(f);
+        if (tuning) { drawTune(rowsNow()); drawTuneCurve(f); }
         if (now - lastVals > 200) {
           lastVals = now; mode(); camLine(shown, f); drawSources(f, liveSrc);
           const i = k => keys.indexOf(k), pc = v => Math.round(v * 100) + ' %', det = detect(), why = fingerWhy(det);
           if (det && document.activeElement !== finOn) finOn.checked = !!det.fingers;
-          finOn.disabled = !!player || !opts.setFingers || (!!det && det.kind !== 'hand');
           finVals.textContent = why || !f ? why : ['l', 'r'].map(hd => (f.c[i(hd + '.palm')] > 0
             ? `${hd === 'l' ? T('Left hand') : T('Right hand')}: ${label('palm')} ${pc(f.v[i(hd + '.palm')])} · ${label('spread')} ${pc(f.v[i(hd + '.spread')])}${f.v[i(hd + '.pinch')] > 0.5 ? ' · ' + label('pinch') : ''}${f.v[i(hd + '.snap')] > 0.3 ? ' · ' + label('snap') : ''} (${pc(f.c[i(hd + '.palm')])})`
             : `${hd === 'l' ? T('Left hand') : T('Right hand')}: ${player ? T('lost') : T('no hand in the picture')}`)).join('\n');
@@ -582,7 +596,7 @@
       secs(v) { if (document.activeElement !== secsIn) { secsIn.value = v; secsVal.textContent = T('{n} s', { n: Math.round(v) }); } } };
   }
 
-  const api = { mount, tune, clock, origin, fingerWhy, lostSpans };
+  const api = { mount, drawFigure, tune, clock, origin, fingerWhy, lostSpans };
   if (node) module.exports = api;
   else root.DanceLab = api;
 })(typeof window !== 'undefined' ? window : globalThis);
