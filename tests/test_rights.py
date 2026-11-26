@@ -75,6 +75,11 @@ HTTP = {
     ("GET", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("POST", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("DELETE", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
+    # #276: recording the output – only the stage on this Mac hands its video in and shows the file in the Finder
+    ("POST", "/rec/start"): ("/rec/start", {"local"}),
+    ("POST", "/rec/chunk/{rid}"): ("/rec/chunk/0123456789abcdef", {"local"}),
+    ("POST", "/rec/end/{rid}"): ("/rec/end/0123456789abcdef", {"local"}),
+    ("POST", "/rec/reveal"): ("/rec/reveal", {"local"}),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [

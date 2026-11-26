@@ -79,6 +79,7 @@ if config.ROLE == "app":
     import net
     import output
     import pages
+    import recording
     import rights
     import roomlight
     import scenes
@@ -104,3 +105,4 @@ if config.ROLE == "app":
     app.router.on_shutdown.append(wled.stop)           # #212: WLED back to its own program at once
     _background("hue", hue.keep)                       # #272
     app.router.on_shutdown.append(hue.stop)            # #272: the Hue lamps get their previous state back
+    _background("recording", recording.keep)           # #276: the time left, the room left, a stage that went away

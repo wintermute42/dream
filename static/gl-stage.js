@@ -600,6 +600,7 @@ void main() {
         return small.getImageData(0, 0, w, h).data;
       },
       get renderer() { return chain ? 'webgl2' : 'canvas'; },
+      get rect() { return rect; },                     // #276: the picture's place on the WebGL canvas, as shares
       get drawn() { return chain ? chain.drawn : 0; },
       get precise() { return !!chain && chain.precise; },   // the smoothing is kept as floating-point numbers   // frames the WebGL chain really drew (it skips still ones)
     };

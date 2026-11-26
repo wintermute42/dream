@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="/static/movecard.css">
 <link rel="stylesheet" href="/static/signs.css">
 <link rel="stylesheet" href="/static/compute.css">
+<link rel="stylesheet" href="/static/reccard.css">
 <style>
   :root { --ap: rgba(80,190,255,.16); --apline: rgba(80,190,255,.55); --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --panel: rgba(20,18,30,.9); --panelsolid: #141220; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 16px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -670,7 +671,7 @@
     <label>MIDI controller</label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
-      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="wled_amt">Room light: strength</option><option value="hue_lamps_amt">Hue lamps: strength</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select>
+      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="wled_amt">Room light: strength</option><option value="hue_lamps_amt">Hue lamps: strength</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option><option value="rec">Button: record the output on/off</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
@@ -730,7 +731,7 @@
 
   </details>
   <details class="sec" data-sec="out">
-    <summary>Output (master brightness, format, projector, Syphon, room light)</summary>
+    <summary>Output (master brightness, recording, format, projector, Syphon, room light)</summary>
   <!-- #241: the master fader of the show – it acts only on what the audience, the projector and Syphon see -->
   <div class="row keep masterrow">
     <label for="master">Master brightness <span class="val" id="v-master">100 %</span></label>
@@ -738,6 +739,19 @@
       <input type="range" id="master" min="0" max="1" step="0.01" value="1" style="flex:1 1 60%;min-width:0">
       <button class="btn" id="blackout" aria-pressed="false" title="Master to black and back to the brightness before (a MIDI button can do it too)">■ Blackout</button>
     </div>
+  </div>
+  <!-- #276: recording what the audience sees as a video (recording.py; the stage records: recorder.js; the card: reccard.js) -->
+  <div class="row recrow" id="recrow">
+    <div class="btns" style="align-items:center">
+      <button class="btn recbtn" id="recbtn" aria-pressed="false" title="Record what the audience sees as a video – Shift+R, or a MIDI button"><span class="recdot" aria-hidden="true">●</span><span class="rectext">Record</span></button>
+      <span id="recclock" class="recclock" aria-hidden="true" hidden></span>
+    </div>
+    <div class="btns" style="align-items:center;margin-top:6px">
+      <label style="display:flex;align-items:center;gap:6px;margin:0" title="With the sound of the music input Dream listens to for the beat"><input type="checkbox" id="rec_audio"> with sound</label>
+      <select id="rec_quality" style="flex:1 1 40%;min-width:0" aria-label="Recording quality" title="How many bits a second the video gets (at 1080p: about 4, 8 or 16 Mbit/s)"><option value="low">Economical</option><option value="standard">Standard</option><option value="high">High</option></select>
+    </div>
+    <div id="recstat" class="muted recstat" role="status"></div>
+    <div id="recdone" class="btns recdone" hidden><span id="recdonetext"></span><button class="btn" id="recreveal">Show in Finder</button></div>
   </div>
   <div class="row">
     <label>Format · resolution · seed</label>
@@ -876,6 +890,8 @@
 <script src="/static/soft.js"></script>
 <script src="/static/roomlight.js"></script>
 <script src="/static/huecard.js"></script>
+<script src="/static/reccard.js"></script>
+<script src="/static/recorder.js"></script>
 <script src="/static/dreamface.js" data-detect defer></script><!-- #214: where the painted faces have their eyes and mouth, for the dream windows: found here once per face, in a worker, when Dream asks -->
 <script>
   // #132: the page in the chosen language (the markup is English; I18N.apply translates it once, T() the rest)
@@ -1995,6 +2011,7 @@
     beatSpec = new Float32Array(beatAn.frequencyBinCount); srcNode.connect(beatAn);
     beatTr.setAudio(actx.sampleRate, beatAn.fftSize);
     analyser = an;
+    if (recDest) srcNode.connect(recDest);             // #276: a recording with sound hears the new input too
   }
   $('music').onchange = e => startMusic(e.target.value);
   $('pickaudio').onclick = () => $('audiofile').click();
@@ -2102,7 +2119,8 @@
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
     cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', flow_auto: 'flow_auto', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt',
     wled: 'wled', wled_amt: 'wled_amt', wled_beat: 'wled_beat',   // #212 (the device's address: on "change", below)
-    hue_lamps: 'hue_lamps', hue_lamps_amt: 'hue_lamps_amt' };     // #272 (the bridge and the lamps: huecard.js)
+    hue_lamps: 'hue_lamps', hue_lamps_amt: 'hue_lamps_amt',       // #272 (the bridge and the lamps: huecard.js)
+    rec_audio: 'rec_audio', rec_quality: 'rec_quality' };         // #276 (the button and the state: reccard.js)
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt', 'wled_amt', 'hue_lamps_amt']);
@@ -3599,11 +3617,12 @@
     const el = e.target, typing = el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !['checkbox', 'range', 'radio', 'button'].includes(el.type));
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing) return;
     const k = e.key.toLowerCase();
-    if (k === 'l') (moveMode() === 'flowtrack' ? openFlowPage : openDancePage)();
+    if (k === 'r' && e.shiftKey) recCard.toggle();     // #276: Shift+R records the output (R alone: the dance lab's)
+    else if (k === 'l') (moveMode() === 'flowtrack' ? openFlowPage : openDancePage)();
     else if (k === 'k' && moveMode() === 'dance') setClutch(!clutchOn());   // #251: the clutch
     else if (danceLab.active && k === 'g') danceLab.feedback('good', 'panel');
     else if (danceLab.active && k === 'b') danceLab.feedback('bad', 'panel');
-    else if (danceLab.open && k === 'r') danceLab.record();
+    else if (danceLab.open && k === 'r' && !e.shiftKey) danceLab.record();
   });
   const fxMine = () => $('fx').value.split('+').filter(e => FX_NAMES[e]);
   // by hand: autopilot off, or a hand on the effects in the last minute (then the autopilot leaves them alone)
@@ -3666,6 +3685,64 @@
       notice = T('The graphics card’s drawing (WebGL 2) stopped – Dream draws with Canvas 2D now.'); noticeUntil = performance.now() + 8000; status(notice); chips();
     } });
   const smoothTau = () => DreamSigns.rules.smoothTau(+$('smooth').value);      // 0 … 1.6 s; the trail sign shows the same
+  // ---------- #276: recording what the audience sees ----------
+  // The source is the stage's own output picture: right after the chain has drawn a frame it is copied – only the
+  // picture's place, as the audience sees it (master, blackout, effects, morph, touch layers, the zoom) – into a canvas
+  // of the size Dream chose; nothing of the panel is in it. That canvas is a stream of exactly 30 frames a second
+  // (a frame is taken every 1/30 s, a still picture repeats); recorder.js records it and hands the pieces to Dream.
+  const recCv = document.createElement('canvas'), recCx = recCv.getContext('2d', { alpha: false });
+  let recTrack = null, recDest = null, recFrameAt = 0, recDrawn = -1;
+  function recStream(w, h, audio) {
+    if (recTrack) recTrack.stop();
+    recCv.width = w; recCv.height = h; recCx.fillStyle = '#000'; recCx.fillRect(0, 0, w, h); recDrawn = -1;
+    const st = recCv.captureStream(0);                 // frames only when asked (recFrame): an even 30 a second
+    recTrack = st.getVideoTracks()[0];
+    if (audio) {                                       // the music input the beat detection hears – no second prompt
+      recDest = recDest || actx.createMediaStreamDestination();
+      try { srcNode.connect(recDest); } catch (e) { /* connected already */ }
+      st.addTrack(recDest.stream.getAudioTracks()[0]);
+    }
+    return st;
+  }
+  const recorder = DreamRec.create({
+    MediaRecorder: window.MediaRecorder,
+    post: async (url, body) => {
+      const r = await fetch(url, { method: 'POST', body, headers: { 'Content-Type': body instanceof Blob ? 'application/octet-stream' : 'application/json' } });
+      let json = null; try { json = await r.json(); } catch (e) { /* no answer of Dream's */ }
+      return { ok: r.ok, status: r.status, json };
+    },
+    stream: recStream,
+    onError: code => sendCtl({ rec_error: code }),
+  });
+  async function recCmd(arg) {
+    if (arg === 'stop') { await recorder.stop(); return; }
+    if (arg !== 'start' || recorder.on) return;
+    const wide = $('aspect').value === 'wide', pw = front.naturalWidth || (wide ? 16 : 1), ph = front.naturalHeight || (wide ? 9 : 1);
+    const audio = $('rec_audio').checked && !!(actx && srcNode && analyser);
+    if ($('rec_audio').checked && !audio) { notice = T('No music input – the video is recorded without sound.'); noticeUntil = performance.now() + 6000; status(notice); }
+    recFrameAt = 0;
+    await recorder.start({ pw, ph, audio });
+  }
+  // after every frame the chain drew (sc: the stage's zoom, which the box gets as a CSS transform)
+  function recFrame(now, sc) {
+    if (!recorder.on || !recTrack) return;
+    recorder.tick(now);
+    const W = recCv.width, H = recCv.height;
+    if (view.renderer === 'webgl2') {
+      if (view.drawn !== recDrawn) {                   // a still frame is not drawn again: the canvas keeps it
+        recDrawn = view.drawn;
+        const cv = $('glcv'), r = view.rect, cw = cv.width, ch = cv.height, z = Math.max(0.2, sc || 1);
+        const sx = cw / 2 + (r[0] * cw - cw / 2) / z, sy = ch / 2 + (r[1] * ch - ch / 2) / z;
+        recCx.drawImage(cv, sx, sy, r[2] * cw / z, r[3] * ch / z, 0, 0, W, H);
+      }
+    } else {                                           // Canvas 2D: the elements, then the master as black over them
+      recCx.fillStyle = '#000'; recCx.fillRect(0, 0, W, H);
+      view.snapshot(recCx, W, H);
+      recCx.globalAlpha = 1 - Math.max(0, Math.min(1, look.master)); recCx.fillRect(0, 0, W, H); recCx.globalAlpha = 1;
+    }
+    if (now - recFrameAt >= 1000 / 30 - 4) { recFrameAt = recFrameAt && now - recFrameAt < 100 ? recFrameAt + 1000 / 30 : now; recTrack.requestFrame(); }
+  }
+  const recCard = RecCard.mount({ el: $, send: sendCtl, reveal: () => fetch('/rec/reveal', { method: 'POST' }) });
   // #210: while an output window shows the audience the picture, the one beside the panel is a preview – the graphics
   // card draws it half as often and has more time for the AI
   const previewFps = () => outViewers > 0 && !bodyHas('hide') && !bodyHas('stage-only') ? 30 : 0;
@@ -3785,6 +3862,7 @@
     // pure camera (#111): no smoothing, zoom or brightness of Dream's own – only the chosen effects
     const plain = bodyHas('pure'), tau = smoothTau();
     view.draw({ front, now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master, fps: previewFps() });
+    recFrame(now, plain ? 1 : look.sc);               // #276: the same frame into the recording
     roomLight.tick(now);                               // #212: a dozen times a second, the colour for the room light
     if ((outViewers || $('syphon').checked) && outWs && outWs.readyState === 1 && now - smoothSentAt > 1000) {
       outWs.send(JSON.stringify({ smooth: +tau.toFixed(3) })); smoothSentAt = now;
@@ -3978,6 +4056,7 @@
   function onCmd(c, arg, by) {
     if (c === 'dance_fb') danceLab.feedback(String(arg), by === 'midi' ? 'midi' : 'control');   // #243: from Dream Control or a MIDI button
     if (c === 'dance_rec') danceLab.record();
+    if (c === 'rec') recCmd(String(arg));              // #276: from the panel, Dream Control, a MIDI button or Shift+R
     if (c === 'dance_lab') danceLab.show();
     if (c === 'tap') tapBeat();                       // from the phone or a MIDI button
     if (c === 'relieve') relieve();                    // #152: from Dream Control (guests cannot send it)
@@ -4026,6 +4105,7 @@
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server
       if (m.wled) { ledShow(m.wled); if (m.wled.found) ledFound(m.wled.found); }   // #212
       if (m.hue) { hueCard.show(m.hue); if (m.hue.found) hueCard.found(m.hue.found); }   // #272
+      if (m.rec) recCard.show(m.rec);                  // #276
       if (m.eyes_cfg) $('trancefreqm').value = String(m.eyes_cfg.trance_every);
       if (m.gallery) renderGallery(m.gallery);
       if (m.schema) sliders.schema(m.schema);          // #216

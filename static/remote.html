@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/static/signs.css">
 <link rel="stylesheet" href="/static/compute.css">
 <link rel="stylesheet" href="/static/movecard.css">
+<link rel="stylesheet" href="/static/reccard.css">
 <style>
   :root { --idle: #35353e; --idle2: #24242a; --bg: #0b0a10; --card: #17141f; --text: #f2eefb; --muted: #b9b1cf; --accent: #c78bff; --line: rgba(255,255,255,.16);
     --fs: 18px; --warn: #ff6b7d; --ok: #7fe3a0; }
@@ -223,6 +224,13 @@
       <input type="range" id="master" min="0" max="1" step="0.01" style="flex:1;min-width:0">
       <button id="black" aria-pressed="false" style="flex:0 0 auto">■ Blackout</button>
     </div>
+    <!-- #276: recording what the audience sees – the same button as in the panel; the stage on the Mac records -->
+    <div class="row" style="margin-top:8px;align-items:center">
+      <button id="recbtn" class="recbtn" aria-pressed="false" style="flex:0 0 auto"><span class="recdot" aria-hidden="true">●</span><span class="rectext">Record</span></button>
+      <span id="recclock" class="recclock" aria-hidden="true" hidden></span>
+    </div>
+    <div id="recstat" class="hint recstat" role="status"></div>
+    <div id="recdone" class="recdone" hidden><span id="recdonetext"></span></div>
     <label class="check"><input type="checkbox" id="syphon"> Syphon output for Resolume</label>
   </section>
   <section data-key data-sec="scene">
@@ -351,7 +359,7 @@
   <section data-sec="midi" data-only="control">
     <h2>MIDI</h2>
     <div id="midistate" class="hint">no MIDI device at the Mac</div>
-    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
+    <div class="row" style="margin-top:6px"><select id="miditarget"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="world">Button: next style world</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option><option value="rec">Button: record the output on/off</option></select><button id="midilearn" style="flex:0 0 auto">🎛 Learn</button></div>
   </section>
 
   <section data-key data-sec="motion" class="haschar">
@@ -430,6 +438,7 @@
 <script src="/static/signs.js"></script>
 <script src="/static/compute.js"></script>
 <script src="/static/movecard.js"></script>
+<script src="/static/reccard.js"></script>
 <script>
   // #132: the page in the chosen language (markup in English, I18N.apply translates it)
   const T = I18N.t;
@@ -968,6 +977,7 @@
       if (m.playlists) DreamCommon.fillPlaylists($('playlist'), m.playlists);
       if (m.role) { setRole(m); pollCloud(); }
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server
+      if (m.rec) recCard.show(m.rec);                  // #276: recording the output
       if (m.eyes_cfg) tranceSeg(m.eyes_cfg.trance_every);
       if (m.feeds_mine) feedsMine(m.feeds_mine);
       if (m.feeds) feedsOther(m.feeds, m.feeds_mine || []);
@@ -1014,6 +1024,7 @@
   $('bar-next').onclick = () => $('next').click();
   bar.auto.onclick = () => $('autobtn').click();
   bar.black.onclick = $('black').onclick = () => send({ cmd: 'blackout' });   // #241: master to 0 and back, the server keeps what it was
+  const recCard = RecCard.mount({ el: $, send });      // #276: start/stop; the stage on the Mac records
   // the bar's sliders move the card's sliders (which send), and follow them when the value comes from elsewhere
   for (const k of ['strength', 'master']) {
     bar[k].addEventListener('input', () => { $(k).value = bar[k].value; $(k).dispatchEvent(new Event('input', { bubbles: true })); });

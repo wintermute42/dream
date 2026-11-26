@@ -15,6 +15,7 @@ import midi
 import movement
 import paths
 import playlists
+import recording
 import scenes
 import sensors
 import settings
@@ -66,6 +67,8 @@ async def midi_loop():
                 await scenes.next_scene(force=True)
             elif a == "blackout":
                 await hub.blackout()
+            elif a == "rec":                           # #276: recording the output – the stage starts or stops it
+                await recording.command("toggle", by="midi")
             elif a == "reseed":
                 await hub.apply({"seed": secrets.randbelow(99999) + 1})
             elif a == "restart":
