@@ -90,7 +90,11 @@ command line for now, #231) via `dream-cloud`.
   (#266: their calm and wild per base movement, measured by `static/dancecal.js`, kept per person by `danceprofiles.py`,
   the one in use the setting `dance_profile`) act in the engine: the dance's frame is read through them before its
   rows (`DreamDanceMap.calibrate`, only the four base movements, only in the dance) – never on the page alone. The base
-  movement "turn" is the hands running in circles (shown as "hands circling"), not a rotation of the body. The hand model runs exactly
+  movement "turn" is the hands running in circles (shown as "hands circling"), not a rotation of the body. A base movement of one's
+  own (#267: a fader between states of the body the dancer shows and names) is `static/faderteach.js` on
+  `static/dancefaders.js` (a small, explainable regression on body values normalised to the body – the stream reads it
+  as the continuous source `f.<id>`, a base sentence; the measures of #266 do not touch it: it is the dancer's own
+  already) and `dancefaders.py` (the regression and the names, never a frame or a picture). The hand model runs exactly
   while Dream Dance detects with "Hands (AI)" (never in Flowtrack; `fingersOn` in the stage).
   Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –
   `tests/js/flowauto.test.mjs`) chooses the kind of detection and the exposure, holds the one performer and watches the

@@ -99,9 +99,10 @@ def can(role: str | None, capability: str) -> bool:
 # The names of movement sets and of measured dancers (often a first name) are the owner's: a guest's phone and every
 # output (the output window, Dreamy Eyes, dream windows – those never hear the shared state at all) never learn them.
 # Where they travel: the settings that hold one (in a change, "set", and in the snapshot, "state") and the dance's
-# message (its sets with their sentences, the dancers' measures). Every message to a control line goes through `scrub`.
+# message (its sets with their sentences, the dancers' measures, #267: the base movements they taught and named). Every
+# message to a control line goes through `scrub`.
 NAMED_SETTINGS = ("dance_set", "dance_profile")
-NAMED_DANCE = ("slots", "profiles")
+NAMED_DANCE = ("slots", "profiles", "faders")         # #267: the base movements the dancer taught, by name
 
 
 def scrub(role: str | None, msg):
@@ -177,7 +178,9 @@ CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r
                 # #243: the dance lab's sessions (trajectories of the owner's dance, kept on this Mac)
                 ("GET", r"/dance/sessions(/[^/]+)?"), ("POST", r"/dance/sessions(/[^/]+/export)?"), ("DELETE", r"/dance/sessions/[^/]+"),
                 # #236: the dance moves the dancer taught (trajectories too, kept on this Mac)
-                ("GET", r"/dance/moves(/[^/]+)?"), ("POST", r"/dance/moves(/[^/]+)?"), ("DELETE", r"/dance/moves/[^/]+")]
+                ("GET", r"/dance/moves(/[^/]+)?"), ("POST", r"/dance/moves(/[^/]+)?"), ("DELETE", r"/dance/moves/[^/]+"),
+                # #267: the base movements the dancer taught (what the body showed, as a regression, kept on this Mac)
+                ("GET", r"/dance/faders"), ("POST", r"/dance/faders(/[^/]+)?"), ("DELETE", r"/dance/faders/[^/]+")]
 # #251, #252: the pages of Dream Dance and Flowtrack are this Mac's (they steer the stage in the window that opened them)
 LOCAL_ONLY = [("POST", r"/gallery"), ("GET", r"/dance"), ("GET", r"/flowtrack")]
 

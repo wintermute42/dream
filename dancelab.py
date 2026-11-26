@@ -250,10 +250,11 @@ def delete(sid: str) -> bool:
 
 def _tell(note: dict) -> None:
     """Dream Control and this Mac hear that something was kept or removed (a guest has no use for it)."""
-    data = json.dumps({"dance": note})
     for c in list(hub.clients):
-        if rights.can(hub.roles.get(c), "control"):
-            outbox.post(c, data)
+        role = hub.roles.get(c)
+        msg = rights.scrub(role, {"dance": note}) if rights.can(role, "control") else None   # #266, #267: names only with "names"
+        if msg:
+            outbox.post(c, json.dumps(msg, ensure_ascii=False))
 
 
 @app.get("/dance/sessions")

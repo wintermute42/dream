@@ -69,7 +69,43 @@
 .mt-on .mt-meter i { background: var(--ok); }
 .mt-none { color: var(--muted); font-size: .9em; grid-column: 1 / -1; }
 @keyframes mt-in { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .mt-rep, .mt-move, .mt-ask, .mt-legend { display: flex; align-items: center; gap: 6px; }
-.mt-legend i { width: 10px; height: 10px; border-radius: 50%; margin-left: 6px; }
-.mt-legend i.y { background: var(--ok); } .mt-legend i.n { background: var(--warn); } .mt-legend i.m { box-shadow: inset 0 0 0 2px var(--ok); }
-.mt-dots i.go { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .mt-rep, .mt-move, .mt-ask, .mt-dots i.go { animation: none; } }
+/* #267: base movements of one's own (faderteach.js) – the same card, warm like the base movements' lane (danceslots.css):
+   the states to name, the chips of the states being shown, a live level with the states marked on it */
+.ft { --flow: #ffc65c; }
+.ft .mt-wiz { border-color: var(--flow); background: rgba(255,198,92,.05); }
+.ft.mt-taking .mt-wiz { border-color: #e0475b; }
+.ft .mt-steps li.cur { border-color: var(--flow); }
+.ft-states { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 30em; }
+.ft-staterow { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.ft-staterow.ft-in { animation: mt-in .2s ease-out both; }
+.ft-staterow input { min-height: 40px; }
+.ft-y { justify-self: end; font-variant-numeric: tabular-nums; color: var(--flow); font-weight: 700; }
+.ft-why { color: var(--warn); font-size: .9em; }
+.ft-why:empty { display: none; }
+.ft-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.ft-chips li { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: .9em; opacity: .6; }
+.ft-chips li.cur { opacity: 1; border-color: var(--flow); font-weight: 600; }
+.ft-chips li.done { opacity: .9; color: var(--ok); }
+.ft-level { position: relative; padding-bottom: 1.5em; max-width: 40em; }
+.ft-track { position: relative; height: 14px; border-radius: 7px; background: var(--line); overflow: hidden; }
+.ft-track i { display: block; height: 100%; background: var(--flow); transform: scaleX(0); transform-origin: left center; will-change: transform; transition: opacity .2s; }
+.ft-level.off .ft-track i { opacity: .25; }
+.ft-marks { position: absolute; left: 0; right: 0; top: 0; bottom: 0; pointer-events: none; }
+.ft-mark { position: absolute; top: 18px; transform: translateX(-50%); font-size: .78em; color: var(--muted); white-space: nowrap; max-width: 12em; overflow: hidden; text-overflow: ellipsis; }
+.ft-mark::before { content: ''; position: absolute; left: 50%; top: -18px; width: 2px; height: 14px; background: var(--text); opacity: .55; }
+.ft-mark:first-child { transform: none; }
+.ft-mark:first-child::before { left: 0; }
+.ft-mark.end { transform: translateX(-100%); }
+.ft-mark.end::before { left: auto; right: 0; }
+.ft-from { color: var(--muted); font-size: .9em; }
+.ft .btn.ft-more { justify-self: start; }
+.ft-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); }
+.ft-move { grid-template-columns: 56px minmax(0, 1fr) auto auto; }
+.ft-move .ft-pict { grid-row: 1 / 3; width: 56px; height: 64px; color: var(--flow); align-self: start; }
+.ft-move .ft-level { grid-row: 2; grid-column: 2 / 5; padding-bottom: 1.3em; }
+.ft-small .ft-track { height: 8px; }
+.ft-small .ft-mark { top: 11px; }
+.ft-small .ft-mark::before { top: -11px; height: 8px; }
+.ft-sub { display: grid; color: var(--muted); font-size: .84em; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .ft-staterow.ft-in { animation: none; } }

@@ -14,10 +14,13 @@
 // A record: {t, v: {name: value}, c: {name: confidence}, src: {name: source}, bpm, gesture, gc, size, g: {gesture:
 // confidence}, hands: {l: [u, v] | null, r: …} (body units), events: [...]}. Whatever steers something reads `v`
 // through the mapping table (dancemap.js) – a gesture is the source "g.<name>" there, nothing else knows the names.
+// #267: a base movement of one's own (dancefaders.js) is the continuous value "f.<its id>" in `v`, 0 … 1.
 (function (root) {
   'use strict';
   // #236: moves of one's own are matched by dancemoves.js (a page that has none of them does not load it)
   const MV = typeof module === 'object' && module.exports ? require('./dancemoves.js') : root.DreamMoves;
+  // #267: base movements of one's own are read by dancefaders.js (a page that has none of them does not load it)
+  const FD = typeof module === 'object' && module.exports ? require('./dancefaders.js') : root.DreamFaders;
   const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
   const gate = (x, a, b) => clamp((x - a) / (b - a), 0, 1);
   const wrap = x => x - Math.round(x);                 // a phase difference in −0.5 … 0.5
@@ -39,6 +42,8 @@
   const onOf = level => TOL[level] || ON;
   // how large a movement must be (half its swing, in shoulder widths) to count at all … and to count fully
   const MAX_MOVES = 24;                                // #236: taught moves looked for at a time
+  const MAX_FADERS = 12;                               // #267: base movements of one's own read at a time
+  const FADER_SMOOTH = 0.12;                           // seconds: a fader glides, so the pose model's jitter does not show
   const SIZE = { throw: [0.3, 0.6], accordion: [0.35, 0.7], push: [0.3, 0.6], wave: [0.4, 0.8], circle: [0.15, 0.3] };
 
   // ---------- the body: where it is and how big, from the pose model's 33 points ----------
@@ -214,7 +219,9 @@
   }
 
   function create({ aspect = 16 / 9 } = {}) {
-    let st, moves = [], tol = {};                      // #265: tol – gesture name → tolerance (none: normal)                                // #236: the taught moves (compiled templates), gestures like the built-in ones
+    // #236: the taught moves (compiled templates), gestures like the built-in ones; #265: tol – gesture name → tolerance
+    // (none: normal); #267: the base movements of one's own (compiled models), continuous values like the built-in ones
+    let st, moves = [], tol = {}, faders = [];
     const names = () => (moves.length ? [...GESTURES, ...moves.map(m => m.id)] : GESTURES);
     const buf = () => ({ ul: [], vl: [], ur: [], vr: [], sg: [], wl: [], wr: [] });
     function reset() {
@@ -222,7 +229,7 @@
         seen: { l: [], r: [] }, ok: { l: 0, r: 0 }, rad: { l: 0, r: 0 }, bodyAt: -1e9, still: 0, eCam: 0, eSens: 0,
         clock: { period: 0, phase: 0, c: 0, agree: 0, beatAt: -1e9, lost: 0 }, g: Object.fromEntries(names().map(g => [g, 0])),
         active: null, below: 0, size: 0, turn: 0, impulse: 0, spin: 0, force: 0, sens: { at: -1e9, axis: 0, level: [0, 0, 0] },
-        arm: { l: null, r: null },
+        arm: { l: null, r: null }, fad: {},
         fing: Object.fromEntries(HANDS.map(h => [h, { palm: 0, spread: 0, pinch: 0, snap: 0, on: false, was: [], snapAt: -1e9, c: 0 }])) };
     }
     reset();
@@ -346,7 +353,8 @@
     // input: {t (s), hands: {l: [candidates] | candidate | null, r: …}, body: {x, y, s, c} | null,
     //   fingers: {l: {pts, c} | null, r: …}, sensor: {g: [x, y, z] (rad/s), age (s)} | null, dark, aspect (the
     //   picture's width / height, when it is not the one given at the start), arms: {l: {g, age} | null, r: …} | null
-    //   (#237: the gyroscope of a phone that glows as that hand's marker)}
+    //   (#237: the gyroscope of a phone that glows as that hand's marker), pose: the pose model's 33 points
+    //   [{x, y, visibility}] | null (#267: what the base movements of one's own are read from)}
     function step(input) {
       if (input.aspect > 0) aspect = input.aspect;
       const t = input.t, out = { t, v: {}, c: {}, src: {}, bpm: 0, gesture: null, gc: 0, size: 0, g: {}, hands: { l: null, r: null }, events: [] };
@@ -465,6 +473,18 @@
       for (const g of names()) { out.g[g] = +st.g[g].toFixed(3); set('g.' + g, st.active === g ? st.size : 0, st.g[g], camSrc); }
       out.gesture = st.active; out.gc = st.active ? out.g[st.active] : 0; out.size = +st.size.toFixed(3);
 
+      // ---- #267: the base movements of one's own – what the body shows, read through each fader ----
+      if (faders.length) {
+        const f = FD.features(input.pose, out.hands, aspect);
+        for (const m of faders) {
+          const r = FD.read(m, f), was = st.fad[m.id];
+          // a moment without the skeleton (a slow model) holds the value; longer, it is not known
+          if (r.c > 0) st.fad[m.id] = { v: was ? was.v + (r.value - was.v) * Math.min(1, dt / FADER_SMOOTH) : r.value, c: r.c, at: t };
+          const now = st.fad[m.id], known = !!now && t - now.at < 0.4;
+          set('f.' + m.id, known ? now.v : 0, known ? now.c : 0, known ? (input.pose ? 'pose' : camSrc) : '');
+        }
+      }
+
       // ---- fingers, per hand ----
       for (const h of HANDS) {
         const f = st.fing[h], in_ = input.fingers && input.fingers[h], val = in_ && in_.c > 0.3 ? fingerValues(in_.pts) : null;
@@ -493,13 +513,19 @@
       for (const k of keep) if (!(k in st.g)) st.g[k] = 0;
       if (st.active && !keep.includes(st.active)) { st.active = null; st.size = 0; }
     }
+    // #267: the base movements of one's own to read from now on: [compiled model] (DreamFaders.compile) – each is the
+    // source "f.<its id>"; one that is gone is no longer in the record
+    function setFaders(list) {
+      faders = FD ? (Array.isArray(list) ? list : []).filter(m => m && typeof m.id === 'string' && Array.isArray(m.idx)).slice(0, MAX_FADERS) : [];
+      for (const k of Object.keys(st.fad)) if (!faders.some(m => m.id === k)) delete st.fad[k];
+    }
     // #265: how sure the detection must be of each gesture: {name: 'tight' | 'normal' | 'loose'} (what is not named: normal)
     function setTolerance(map) { tol = {}; for (const [g, v] of Object.entries(map && typeof map === 'object' ? map : {})) if (v in TOL) tol[g] = v; }
-    return { step, reset, setMoves, setTolerance, threshold: g => onOf(tol[g]), kick(strength = 1) { st.impulse = Math.max(st.impulse, clamp(+strength || 0, 0, 1)); },
+    return { step, reset, setMoves, setFaders, setTolerance, threshold: g => onOf(tol[g]), kick(strength = 1) { st.impulse = Math.max(st.impulse, clamp(+strength || 0, 0, 1)); },
       get clock() { return { period: st.clock.period, phase: st.clock.phase, c: st.clock.c }; } };
   }
 
-  const api = { create, bodyFrom, findMarkers, fuseHand, armMarker, fingerValues, osc, phaseOf, FEATURES, FINGERS, GESTURES, SOURCES, HANDS, MARKER_HUES, RATE, MAX_MOVES, TOL };
+  const api = { create, bodyFrom, findMarkers, fuseHand, armMarker, fingerValues, osc, phaseOf, FEATURES, FINGERS, GESTURES, SOURCES, HANDS, MARKER_HUES, RATE, MAX_MOVES, MAX_FADERS, TOL };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamDance = api;
 })(typeof window !== 'undefined' ? window : globalThis);

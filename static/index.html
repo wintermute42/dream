@@ -867,6 +867,7 @@
 <script src="/static/gl-stage.js"></script>
 <script src="/static/calib.js"></script>
 <script src="/static/dancemoves.js"></script>
+<script src="/static/dancefaders.js"></script>
 <script src="/static/dance.js"></script>
 <script src="/static/dancemap.js"></script>
 <script src="/static/movement.js"></script>
@@ -3470,6 +3471,15 @@
   }
   const movesLoad = () => fetch('/dance/moves').then(r => (r.ok ? r.json() : null)).then(d => { if (d && Array.isArray(d.moves)) movesSet(d.moves); }).catch(() => { /* asked again with the next change */ });
   movesLoad();
+  // #267: the base movements the dancer taught (kept by Dream: dancefaders.py) – the stream reads each as the
+  // continuous value "f.<its id>", a base sentence of a set says what it does
+  let danceFaders = [];
+  function fadersSet(list) {
+    danceFaders = (Array.isArray(list) ? list : []).filter(f => f && typeof f.id === 'string' && typeof f.name === 'string');
+    danceDet.setFaders(danceFaders.map(f => DreamFaders.compile(f.model, f.id)).filter(Boolean));
+  }
+  const fadersLoad = () => fetch('/dance/faders').then(r => (r.ok ? r.json() : null)).then(d => { if (d && Array.isArray(d.faders)) fadersSet(d.faders); }).catch(() => { /* asked again with the next change */ });
+  fadersLoad();
   // … and the piece of prompt a move brings along: the row to "ai.piece" that asks for most says which move's
   function movePiece() {
     let top = null;
@@ -3548,13 +3558,14 @@
     lab: labOpts, ...labLink,
     // what the page shows beside the lab: the mode, the clutch (and how far the dance is in), the two clocks
     state: () => ({ mode: moveMode(), clutch: clutchOn(), hold: mover.hold,
-      move: moveClock(), music: musicClock(), strength: +$('motion_sens').value, camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang, moves: danceMoves,
+      move: moveClock(), music: musicClock(), strength: +$('motion_sens').value, camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang, moves: danceMoves, faders: danceFaders,
       // the dance's own detection (the setting), what the camera really runs, and the cameras to choose from
       kind: $('dance_kind').value, tracking: flowOn() ? tracker.kind : 'off', cam: $('flow_device').value, cams: [...$('flow_device').options].map(o => [o.value, o.textContent]) }),
     setKind: v => { if (DreamMove.DANCE_KINDS.includes(v)) { $('dance_kind').value = v; $('dance_kind').dispatchEvent(new Event('change', { bubbles: true })); } },
     setCam: v => { $('flow_device').value = v; $('flow_device').dispatchEvent(new Event('change', { bubbles: true })); },
     setMode: m => { $('move_mode').value = m; $('move_mode').dispatchEvent(new Event('change', { bubbles: true })); },
     movesChanged: () => { movesLoad(); },             // #236: the page taught, renamed or deleted a move
+    fadersChanged: () => { fadersLoad(); },           // #267: … or a base movement
     setClutch, setSet: name => { $('dance_set').value = name; $('dance_set').dispatchEvent(new Event('change', { bubbles: true })); },
     // #265: the sets and their sentences, what acts right now; changes go to Dream (dance.py keeps them)
     slots: () => danceSlots, slotsDo: op => sendCtl({ dance_slots: op }),
@@ -4062,6 +4073,7 @@
       if (m.dance && m.dance.slots && Array.isArray(m.dance.slots.sets)) { danceSlots = m.dance.slots; setsSync(); toleranceSync(); }   // #251, #265
       if (m.dance && m.dance.profiles && Array.isArray(m.dance.profiles.names)) { danceProfiles = m.dance.profiles; profileSync(); }   // #266
       if (m.dance && Array.isArray(m.dance.moves)) movesSet(m.dance.moves);   // #236
+      if (m.dance && Array.isArray(m.dance.faders)) fadersSet(m.dance.faders);   // #267
       if (m.move && Array.isArray(m.move.sources)) moveRemote = m.move.sources;   // #249: the sources outside the stage
       if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad
       if (m.scene) {

@@ -137,12 +137,13 @@ def test_every_control_device_is_told_the_measures(server, profiles):
 def test_a_role_without_names_hears_none(role):
     import rights
     msg = {"set": {"dance_set": "Glow Set", "dance_profile": "Kim", "prompt": "a lake"}, "state": {"dance_set": "Glow Set", "master": 1.0},
-           "dance": {"slots": {"sets": ["Glow Set"]}, "profiles": {"names": ["Kim"]}, "map": []}}
+           "dance": {"slots": {"sets": ["Glow Set"]}, "profiles": {"names": ["Kim"]}, "faders": [{"id": "f0a1b2c3d", "name": "Kims Knees"}], "map": []}}
     got = rights.scrub(role, msg)
     assert "Glow" not in json.dumps(got) and "Kim" not in json.dumps(got)
     assert got == {"set": {"prompt": "a lake"}, "state": {"master": 1.0}, "dance": {"map": []}}   # the rest is told as before
     assert rights.scrub(role, {"set": {"dance_set": "Glow Set"}}) is None                 # nothing left: nothing is sent
     assert rights.scrub(role, {"dance": {"profiles": {}}}) is None
+    assert rights.scrub(role, {"dance": {"faders": []}}) is None                          # #267: the base movements a dancer named
     for may in ("local", "control"):
         assert rights.scrub(may, msg) is msg
 

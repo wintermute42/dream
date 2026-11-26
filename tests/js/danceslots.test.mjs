@@ -132,6 +132,9 @@ test('every movement has its pictogram – a small figure, no text in it', () =>
     assert.match(svg, /^<svg class="ds-pict"[^>]*aria-hidden="true"/); assert.ok(!/<text/.test(svg), src);
   }
   assert.notEqual(S.pictogram('g.throw'), S.pictogram('g.push'));
+  // each its own: no movement falls back to another's figure
+  const all = [...S.BASE, ...S.ACCENTS, 'g.m0a1b2c3d', 'f.f0a1b2c3d', 'hands'].map(S.pictogram);
+  assert.equal(new Set(all).size, all.length);
 });
 
 test('the introduction goes the signal’s way, one sentence a step, and stays off once switched off', () => {
