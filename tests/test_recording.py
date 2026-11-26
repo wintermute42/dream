@@ -46,31 +46,22 @@ def test_size_and_bit_rate_are_dreams_choice(server):
     assert r.frame_size(896, 512, "video/mp4") == (1890, 1080)          # 16:9 of the AI, as large as fits 1080p, even
     assert r.frame_size(1344, 768, "video/webm;codecs=vp9") == (1260, 720)   # WebM (the processor encodes): 720p at most
     assert r.frame_size("odd", None, "video/mp4") == (1920, 1080)       # nonsense from the page: 16:9
-    assert r.video_bps("standard", 1920, 1080) == 8_000_000
-    assert r.video_bps("low", 1920, 1080) == 4_000_000 and r.video_bps("high", 1920, 1080) == 16_000_000
-    assert r.video_bps("standard", 1080, 1080) == round(8_000_000 * 1080 * 1080 / (1920 * 1080))
-    assert r.video_bps("high", 64, 64) == 1_000_000                    # never starved
-    assert r.video_bps("nonsense", 1920, 1080) == 8_000_000
-    # the room left: what is free above the stop line, at the bytes a second of the quality
-    assert r.minutes_left(r.STOP_FREE + 60 * 1_000_000, 1_000_000) == 1
-    assert r.minutes_left(r.STOP_FREE // 2, 1_000_000) == 0
+    assert r.video_bps(1920, 1080) == 8_000_000                        # one quality: about 8 Mbit/s at 1080p
+    assert r.video_bps(1080, 1080) == round(8_000_000 * 1080 * 1080 / (1920 * 1080))
+    assert r.video_bps(64, 64) == 1_000_000                            # never starved
 
 
-def test_quality_and_sound_are_settings_never_a_guests(server):
-    s = server.settings
-    assert s.SETTINGS["rec_quality"].default == "standard" and s.SETTINGS["rec_quality"].choices == ("low", "standard", "high")
-    assert s.SETTINGS["rec_audio"].default is False
-    assert not {"rec_quality", "rec_audio"} & s.GUEST_KEYS and not {"rec_quality", "rec_audio"} & set(s.TARGETS)
+def test_recording_has_no_settings_only_a_midi_button(server):
+    assert not any(k.startswith("rec") for k in server.settings.SETTINGS)   # one button, nothing to choose
     assert "rec" in server.inputs.midi.ACTIONS
 
 
-def test_a_take_is_appended_piece_by_piece_and_joined_in_order(server, rec, sandbox, saved_state):
-    saved_state["rec_quality"] = "high"
+def test_a_take_is_appended_piece_by_piece_and_joined_in_order(server, rec, sandbox):
     c = client(server, "local")
     r = start(c)
     assert r.status_code == 200, r.text
     j = r.json()
-    assert (j["w"], j["h"]) == (720, 720) and j["bps"] == server.recording.video_bps("high", 720, 720) and j["abps"] == 128_000
+    assert (j["w"], j["h"]) == (720, 720) and j["bps"] == server.recording.video_bps(720, 720) and j["abps"] == 128_000
     assert j["max_secs"] == 15 * 60
     assert start(c).status_code == 409                                 # one take at a time (a second stage: refused)
     path = os.path.join(sandbox["DREAM_SAVE_DIR"], j["name"])
@@ -82,7 +73,7 @@ def test_a_take_is_appended_piece_by_piece_and_joined_in_order(server, rec, sand
     assert chunk(c, j["id"], 1, b"twice").json().get("again")          # an answer lost, sent again: not written twice
     assert chunk(c, j["id"], 5, b"gap").status_code == 409             # a piece missing: refused, the file stays whole
     st = server.recording.status()["rec"]
-    assert st["on"] and st["left"] == 15 * 60 and st["bytes"] == sum(map(len, pieces)) and st["kind"] == "webm"
+    assert st["on"] and st["secs"] < 5 and st["max_secs"] == 15 * 60 and st["bytes"] == sum(map(len, pieces)) and st["kind"] == "webm"
     assert c.post(f"/rec/end/{j['id']}").json()["last"]["name"] == j["name"]
     assert open(path, "rb").read() == b"".join(pieces)
     st = server.recording.status()["rec"]
@@ -96,7 +87,7 @@ def test_a_recording_ends_by_itself_after_15_minutes(server, rec, sandbox):
     assert j["name"].endswith(".mp4") and (j["w"], j["h"]) == (1080, 1080)
     assert "stop" not in chunk(c, j["id"], 0, b"one").json()
     r.take["t0"] -= r.MAX_SECS + 1                                     # 15 minutes later
-    assert r.status()["rec"]["left"] == 0
+    assert r.status()["rec"]["secs"] >= r.MAX_SECS
     assert chunk(c, j["id"], 1, b"two").json()["stop"] == "time"     # the time is up: the stage is asked to stop
     assert chunk(c, j["id"], 2, b"-end").json()["ok"]                 # its last piece still comes in
     assert c.post(f"/rec/end/{j['id']}?reason=time").json()["last"]["reason"] == "time"
@@ -151,7 +142,6 @@ def test_the_disk_is_never_filled_up(server, rec, monkeypatch):
     assert "stop" not in chunk(c, j["id"], 0, b"x" * 10).json()
     free["n"] = r.STOP_FREE + 5                                        # below the line: the stage is asked to stop
     assert chunk(c, j["id"], 1, b"x" * 10).json()["stop"] == "disk"
-    assert r.status()["rec"]["warn"] == "disk"
     free["n"] = r.HARD_FREE + 5                                        # nearly full: nothing more is written
     res = chunk(c, j["id"], 2, b"x" * 10)
     assert res.status_code == 507 and res.json()["stop"] == "disk"
@@ -170,18 +160,6 @@ def test_pieces_and_names_are_checked_fail_closed(server, rec, monkeypatch):
         assert chunk(c, pid, 0, b"x").status_code in (404, 410)
         assert c.post(f"/rec/end/{pid}").status_code in (404, 410)
     assert r.status()["rec"]["bytes"] == 0
-
-
-def test_status_tells_the_room_left_at_the_chosen_quality(server, rec, saved_state, monkeypatch):
-    r = server.recording
-    saved_state.update(rec_quality="standard", rec_audio=False, aspect="wide")
-    monkeypatch.setattr(r, "free_bytes", lambda: r.STOP_FREE + 60 * 1_000_000)   # a minute at 8 Mbit/s
-    r.tell()
-    st = r.status()["rec"]
-    assert st["left_min"] == 1 and not st["on"]
-    saved_state["rec_quality"] = "low"
-    r.tell()
-    assert r.status()["rec"]["left_min"] == 2
 
 
 def test_reveal_shows_only_the_file_dream_wrote(server, rec, monkeypatch):
@@ -292,3 +270,16 @@ def test_a_real_video_in_pieces_is_whole_and_an_interrupted_one_plays(server, re
             server.recording.watch(time.monotonic() + server.recording.SILENT_SECS + 1)
             v = probe(path)["streams"][0]
             assert int(v["nb_read_frames"]) >= 30                      # what came until then plays
+
+
+def test_one_button_in_the_panels_output_card_and_the_same_in_dream_control():
+    """#276 (owner): just the button – no quality, no sound switch, no hotkey; Dream Control has the same (#241)."""
+    from test_panel_parity import PANEL, REMOTE, section
+    out = section(PANEL, '<details class="sec" data-sec="out">', "</details>")
+    rout = section(REMOTE, 'data-sec="output"', "</section>")
+    for card in (out, rout):
+        assert 'id="recbtn"' in card and 'id="recstat"' in card and 'id="recdone"' in card
+        assert not any(x in card for x in ("rec_quality", "rec_audio", "recclock"))
+    assert 'id="recreveal"' in out and 'id="recreveal"' not in REMOTE      # "Show in Finder" only on this Mac
+    assert "shiftKey" not in PANEL                                        # no hotkey
+    assert '<option value="rec">' in PANEL and '<option value="rec">' in REMOTE   # the MIDI button

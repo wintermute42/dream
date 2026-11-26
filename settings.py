@@ -222,9 +222,6 @@ SETTINGS: dict[str, Setting] = {
     "touch_amt": num(0.6, 0.0, 1.0, weight=0.5, needs="move_mode"),
     "touch_mirror": flag(False),
     "master": num(1.0, 0.0, 1.0, target=True),                  # master brightness (MIDI fader, blackout): 0 = black
-    # #276: recording the output – with the music input's sound or silent, and how many bits a second (recording.QUALITY)
-    "rec_audio": flag(False),
-    "rec_quality": text("standard", choices=("low", "standard", "high")),
     "auto": flag(False),                                        # autopilot steers Dream by itself, led by the music
     "auto_level": num(0.5, 0.0, 1.0),
     "auto_media": flag(True),                                   # … also makes pictures/clips; camera/flowtrack only if allowed

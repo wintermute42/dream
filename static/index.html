@@ -740,15 +740,11 @@
       <button class="btn" id="blackout" aria-pressed="false" title="Master to black and back to the brightness before (a MIDI button can do it too)">■ Blackout</button>
     </div>
   </div>
-  <!-- #276: recording what the audience sees as a video (recording.py; the stage records: recorder.js; the card: reccard.js) -->
+  <!-- #276: recording what the audience sees as a video – one button (recording.py; the stage records: recorder.js;
+       the button and the note: reccard.js) -->
   <div class="row recrow" id="recrow">
     <div class="btns" style="align-items:center">
-      <button class="btn recbtn" id="recbtn" aria-pressed="false" title="Record what the audience sees as a video – Shift+R, or a MIDI button"><span class="recdot" aria-hidden="true">●</span><span class="rectext">Record</span></button>
-      <span id="recclock" class="recclock" aria-hidden="true" hidden></span>
-    </div>
-    <div class="btns" style="align-items:center;margin-top:6px">
-      <label style="display:flex;align-items:center;gap:6px;margin:0" title="With the sound of the music input Dream listens to for the beat"><input type="checkbox" id="rec_audio"> with sound</label>
-      <select id="rec_quality" style="flex:1 1 40%;min-width:0" aria-label="Recording quality" title="How many bits a second the video gets (at 1080p: about 4, 8 or 16 Mbit/s)"><option value="low">Economical</option><option value="standard">Standard</option><option value="high">High</option></select>
+      <button class="btn recbtn" id="recbtn" aria-pressed="false" title="Record what the audience sees as a video (at most 15 minutes; a MIDI button can do it too)"><span class="recdot" aria-hidden="true">●</span> <span class="rectext">Record</span><span class="recsr"></span></button>
     </div>
     <div id="recstat" class="muted recstat" role="status"></div>
     <div id="recdone" class="btns recdone" hidden><span id="recdonetext"></span><button class="btn" id="recreveal">Show in Finder</button></div>
@@ -2119,8 +2115,7 @@
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
     cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', flow_auto: 'flow_auto', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt',
     wled: 'wled', wled_amt: 'wled_amt', wled_beat: 'wled_beat',   // #212 (the device's address: on "change", below)
-    hue_lamps: 'hue_lamps', hue_lamps_amt: 'hue_lamps_amt',       // #272 (the bridge and the lamps: huecard.js)
-    rec_audio: 'rec_audio', rec_quality: 'rec_quality' };         // #276 (the button and the state: reccard.js)
+    hue_lamps: 'hue_lamps', hue_lamps_amt: 'hue_lamps_amt' };     // #272 (the bridge and the lamps: huecard.js)
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
   const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt', 'wled_amt', 'hue_lamps_amt']);
@@ -3617,12 +3612,11 @@
     const el = e.target, typing = el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !['checkbox', 'range', 'radio', 'button'].includes(el.type));
     if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing) return;
     const k = e.key.toLowerCase();
-    if (k === 'r' && e.shiftKey) recCard.toggle();     // #276: Shift+R records the output (R alone: the dance lab's)
-    else if (k === 'l') (moveMode() === 'flowtrack' ? openFlowPage : openDancePage)();
+    if (k === 'l') (moveMode() === 'flowtrack' ? openFlowPage : openDancePage)();
     else if (k === 'k' && moveMode() === 'dance') setClutch(!clutchOn());   // #251: the clutch
     else if (danceLab.active && k === 'g') danceLab.feedback('good', 'panel');
     else if (danceLab.active && k === 'b') danceLab.feedback('bad', 'panel');
-    else if (danceLab.open && k === 'r' && !e.shiftKey) danceLab.record();
+    else if (danceLab.open && k === 'r') danceLab.record();
   });
   const fxMine = () => $('fx').value.split('+').filter(e => FX_NAMES[e]);
   // by hand: autopilot off, or a hand on the effects in the last minute (then the autopilot leaves them alone)
@@ -3691,10 +3685,13 @@
   // of the size Dream chose; nothing of the panel is in it. That canvas is a stream of exactly 30 frames a second
   // (a frame is taken every 1/30 s, a still picture repeats); recorder.js records it and hands the pieces to Dream.
   const recCv = document.createElement('canvas'), recCx = recCv.getContext('2d', { alpha: false });
-  let recTrack = null, recDest = null, recFrameAt = 0, recDrawn = -1;
+  let recTrack = null, recDest = null, recFrameAt = 0, recDrawn = false;   // recDrawn: a frame of the stage is in the canvas
   function recStream(w, h, audio) {
     if (recTrack) recTrack.stop();
-    recCv.width = w; recCv.height = h; recCx.fillStyle = '#000'; recCx.fillRect(0, 0, w, h); recDrawn = -1;
+    // the canvas's first content is the stream's first frame: the picture now (master as black over it), not black
+    recCv.width = w; recCv.height = h; recCx.fillStyle = '#000'; recCx.fillRect(0, 0, w, h); recDrawn = false;
+    if (front.naturalWidth) { recCx.drawImage(front, 0, 0, w, h); recCx.globalAlpha = 1 - Math.max(0, Math.min(1, look.master)); recCx.fillRect(0, 0, w, h); recCx.globalAlpha = 1; }
+    view.again();                                      // the picture as it is now, even when nothing moves
     const st = recCv.captureStream(0);                 // frames only when asked (recFrame): an even 30 a second
     recTrack = st.getVideoTracks()[0];
     if (audio) {                                       // the music input the beat detection hears – no second prompt
@@ -3718,19 +3715,19 @@
     if (arg === 'stop') { await recorder.stop(); return; }
     if (arg !== 'start' || recorder.on) return;
     const wide = $('aspect').value === 'wide', pw = front.naturalWidth || (wide ? 16 : 1), ph = front.naturalHeight || (wide ? 9 : 1);
-    const audio = $('rec_audio').checked && !!(actx && srcNode && analyser);
-    if ($('rec_audio').checked && !audio) { notice = T('No music input – the video is recorded without sound.'); noticeUntil = performance.now() + 6000; status(notice); }
+    const audio = !!(actx && srcNode && analyser);     // Dream listens to music: its sound comes along, else silent
     recFrameAt = 0;
     await recorder.start({ pw, ph, audio });
   }
-  // after every frame the chain drew (sc: the stage's zoom, which the box gets as a CSS transform)
-  function recFrame(now, sc) {
+  // after every frame of the stage (drew: the chain really drew it – a still frame it skips leaves its canvas empty,
+  // the recording keeps the frame before; sc: the stage's zoom, which the box gets as a CSS transform)
+  function recFrame(now, sc, drew) {
     if (!recorder.on || !recTrack) return;
     recorder.tick(now);
     const W = recCv.width, H = recCv.height;
     if (view.renderer === 'webgl2') {
-      if (view.drawn !== recDrawn) {                   // a still frame is not drawn again: the canvas keeps it
-        recDrawn = view.drawn;
+      if (drew) {
+        recDrawn = true;
         const cv = $('glcv'), r = view.rect, cw = cv.width, ch = cv.height, z = Math.max(0.2, sc || 1);
         const sx = cw / 2 + (r[0] * cw - cw / 2) / z, sy = ch / 2 + (r[1] * ch - ch / 2) / z;
         recCx.drawImage(cv, sx, sy, r[2] * cw / z, r[3] * ch / z, 0, 0, W, H);
@@ -3739,7 +3736,9 @@
       recCx.fillStyle = '#000'; recCx.fillRect(0, 0, W, H);
       view.snapshot(recCx, W, H);
       recCx.globalAlpha = 1 - Math.max(0, Math.min(1, look.master)); recCx.fillRect(0, 0, W, H); recCx.globalAlpha = 1;
+      recDrawn = true;
     }
+    if (!recDrawn) return;                             // no black first frame: the video begins with the picture
     if (now - recFrameAt >= 1000 / 30 - 4) { recFrameAt = recFrameAt && now - recFrameAt < 100 ? recFrameAt + 1000 / 30 : now; recTrack.requestFrame(); }
   }
   const recCard = RecCard.mount({ el: $, send: sendCtl, reveal: () => fetch('/rec/reveal', { method: 'POST' }) });
@@ -3861,8 +3860,9 @@
     const k = on ? clamp(top * 1.6, 0, 1) : 0, now = performance.now();
     // pure camera (#111): no smoothing, zoom or brightness of Dream's own – only the chosen effects
     const plain = bodyHas('pure'), tau = smoothTau();
+    const drawnBefore = view.drawn;
     view.draw({ front, now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master, fps: previewFps() });
-    recFrame(now, plain ? 1 : look.sc);               // #276: the same frame into the recording
+    recFrame(now, plain ? 1 : look.sc, view.drawn !== drawnBefore);   // #276: the same frame into the recording
     roomLight.tick(now);                               // #212: a dozen times a second, the colour for the room light
     if ((outViewers || $('syphon').checked) && outWs && outWs.readyState === 1 && now - smoothSentAt > 1000) {
       outWs.send(JSON.stringify({ smooth: +tau.toFixed(3) })); smoothSentAt = now;
@@ -4056,7 +4056,7 @@
   function onCmd(c, arg, by) {
     if (c === 'dance_fb') danceLab.feedback(String(arg), by === 'midi' ? 'midi' : 'control');   // #243: from Dream Control or a MIDI button
     if (c === 'dance_rec') danceLab.record();
-    if (c === 'rec') recCmd(String(arg));              // #276: from the panel, Dream Control, a MIDI button or Shift+R
+    if (c === 'rec') recCmd(String(arg));              // #276: from the panel, Dream Control or a MIDI button
     if (c === 'dance_lab') danceLab.show();
     if (c === 'tap') tapBeat();                       // from the phone or a MIDI button
     if (c === 'relieve') relieve();                    // #152: from Dream Control (guests cannot send it)

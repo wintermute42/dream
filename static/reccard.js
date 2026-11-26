@@ -1,14 +1,15 @@
-/* Dream – recording the output (#276) in the panel's card "Output" and in Dream Control's: the button, the time left
-   of the 15 minutes a recording may run (● REC · 12:46 left – plain to see in the last minute), the room left on the
-   disk at the chosen quality, and after the stop the file with "Show in Finder" (only on this Mac) – and that it
-   stopped by itself when it did. The markup is the page's; this file gives it its behaviour. What is
-   recorded, the file and the room left come from Dream ({"rec": …}, recording.py) – both pages show the same. Nothing
-   of it is ever drawn into the output picture.
+/* Dream – recording the output (#276): one button in the panel's card "Output" and the same in Dream Control's.
+   Idle it says "● Record"; while it records it shows how long the recording runs (● 02:14), and in the last minute
+   before the automatic stop after 15 minutes it blinks (without motion – prefers-reduced-motion – it stands out in
+   the warning colour instead). Afterwards a note says what was saved, or that the recording stopped by itself, with
+   "Show in Finder" (only on this Mac). A plain message only when something went wrong. The markup is the page's; this
+   file gives it its behaviour; the state comes from Dream ({"rec": …}, recording.py). Nothing of it is ever drawn into
+   the output picture.
 
      const card = RecCard.mount({ el: id => element, send: msg => …, reveal: () => … (only on this Mac) });
      card.show(rec);           // {"rec": …} of Dream
 
-   `clock`, `size`, `say`, `doneText` and `button` are pure (tests/js/recorder.test.mjs). A global `RecCard`. */
+   `clock`, `size`, `say`, `doneText`, `soon` and `button` are pure (tests/js/recorder.test.mjs). A global `RecCard`. */
 (function (root) {
   'use strict';
   const T = (text, vars) => (root.I18N ? root.I18N.t(text, vars) : vars ? text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : text);
@@ -16,7 +17,7 @@
   const ERRORS = new Map([
     ['nostage', () => T('The stage is not open – recording needs the stage on the Mac.')],
     ['nosupport', () => T('This browser cannot record video (MediaRecorder) – use Chrome for the stage.')],
-    ['disk', () => T('Stopped: the disk is nearly full. Free some space to record again.')],
+    ['disk', () => T('The disk is nearly full – free some space to record.')],
     ['folder', () => T('The save folder cannot be written to – check it (README: Recording).')],
     ['interrupted', () => T('The stage went away during the recording – what came until then is saved.')],
     ['upload', () => T('The recording stopped: the stage could not hand its video to Dream.')],
@@ -34,52 +35,44 @@
     const b = Math.max(0, +bytes || 0);
     return b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`;
   }
-  // the line beside the button while it runs: ● REC · 12:46 left (counted down from what Dream says)
-  function running(st, secs) {
-    return '● REC · ' + T('{t} left', { t: clock(Math.max(0, (+st.max_secs || 900) - secs)) });
-  }
-  const soon = (st, secs) => (+st.max_secs || 900) - secs <= 60;   // the last minute
-  // the status line: what is wrong, or how much room the disk has at this quality – changes rarely (read out)
-  function say(st) {
+  const soon = (st, secs) => (+st.max_secs || 900) - secs <= 60;   // the last minute before the automatic stop
+  // the status line: only when something went wrong – and, for screen readers, the last minute (the button blinks)
+  function say(st, secs = +((st || {}).secs) || 0) {
     const s = st || {};
+    if (s.error === 'disk' && !s.on && s.last && s.last.reason === 'disk') return '';   // the note says it already
     if (s.error && ERRORS.has(s.error)) return pick(ERRORS, s.error);
-    if (s.left_min == null) return '';
-    const left = s.left_min >= 600 ? T('more than 10 hours') : s.left_min >= 120 ? T('about {h} hours', { h: Math.floor(s.left_min / 60) }) : T('about {m} min', { m: s.left_min });
-    if (s.on && s.warn === 'disk') return T('⚠ Little room left on the disk: {left} – Dream stops by itself before it is full.', { left });
-    if (s.on) return s.left != null && s.left <= 60 ? T('Less than a minute left – the recording stops by itself after 15 minutes.') : '';
-    return s.left_min < 10 ? T('⚠ Little room left on the disk: {left} at this quality.', { left }) : T('Room on the disk for {left} at this quality.', { left });
+    if (s.on && soon(s, secs)) return T('One minute left – then the recording stops by itself.');
+    return '';
   }
-  // after the stop: what was saved
+  // after the stop: what was saved, and why it stopped when it was not by hand
   function doneText(last) {
     if (!last || !last.name) return '';
     const what = { name: last.name, size: size(last.bytes), time: clock(last.secs) };
-    return last.reason === 'time' ? T('Stopped by itself after 15 minutes – saved: {name} ({size}, {time})', what)
-      : T('Saved: {name} ({size}, {time})', what);
+    if (last.reason === 'time') return T('Stopped by itself after 15 minutes – saved: {name} ({size}, {time})', what);
+    if (last.reason === 'disk') return T('Stopped: the disk is nearly full – saved: {name} ({size}, {time})', what);
+    return T('Saved: {name} ({size}, {time})', what);
   }
-  function button(on) {
-    return on ? { text: T('Stop'), title: T('Stop recording'), dot: '■' } : { text: T('Record'), title: T('Record what the audience sees as a video – Shift+R, or a MIDI button'), dot: '●' };
+  // the button: its visible words and what a screen reader hears beside them
+  function button(on, secs = 0) {
+    return on ? { text: clock(secs), sr: ' ' + T('Recording – stop'), dot: '●' } : { text: T('Record'), sr: '', dot: '●' };
   }
 
   function mount({ el, send, reveal }) {
     let st = {}, at = 0, secsAt = 0;
-    const btn = el('recbtn'), clk = el('recclock'), stat = el('recstat'), done = el('recdone'), doneT = el('recdonetext');
+    const btn = el('recbtn'), stat = el('recstat'), done = el('recdone'), doneT = el('recdonetext');
     const finder = reveal ? el('recreveal') : null;
+    const now = () => secsAt + (performance.now() - at) / 1000;
     function draw() {
-      const b = button(!!st.on);
+      const secs = now(), b = button(!!st.on, secs), last = !!st.on && soon(st, secs);
       btn.setAttribute('aria-pressed', String(!!st.on));
       btn.classList.toggle('on', !!st.on);
+      btn.classList.toggle('soon', last);
       btn.querySelector('.recdot').textContent = b.dot;
       btn.querySelector('.rectext').textContent = b.text;
-      btn.title = b.title;                          // the visible word is the button's name (axe: label-content-name-mismatch)
-      clk.hidden = !st.on;
-      if (st.on) {
-        const secs = secsAt + (performance.now() - at) / 1000;
-        clk.textContent = running(st, secs);
-        clk.classList.toggle('soon', soon(st, secs));
-      }
-      const text = say(st);
+      btn.querySelector('.recsr').textContent = b.sr;
+      const text = say(st, secs);
       if (stat.textContent !== text) stat.textContent = text;
-      stat.classList.toggle('warn', /⚠/.test(text) || (!!st.error && ERRORS.has(st.error)));
+      stat.classList.toggle('recsr', last && !st.error);   // the last minute: read out, the button shows it
       const d = st.on ? '' : doneText(st.last);
       done.hidden = !d;
       if (doneT.textContent !== d) doneT.textContent = d;
@@ -91,12 +84,11 @@
     draw();
     return {
       show(s) { if (s && typeof s === 'object') { st = s; at = performance.now(); secsAt = +s.secs || 0; } draw(); },
-      toggle() { btn.click(); },
       get on() { return !!st.on; },
     };
   }
 
-  const api = { mount, clock, size, say, doneText, button, running, soon };
+  const api = { mount, clock, size, say, doneText, button, soon };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.RecCard = api;
 })(typeof window !== 'undefined' ? window : globalThis);

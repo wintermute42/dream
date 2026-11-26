@@ -1,18 +1,25 @@
-/* #276: recording the output (reccard.js) – in the colours of the page it stands on (the panel and Dream Control).
-   Recording is told by the words and the running time, the red only underlines it. Only transform and opacity move. */
-.recbtn { --rec: #ff4d5e; font-weight: 600; }
-.recbtn .recdot { display: inline-block; color: var(--rec); margin-right: 4px; }
+/* #276: recording the output (reccard.js) – one button in the colours of the page it stands on (the panel and Dream
+   Control). Recording is told by the running time on the button, the red only underlines it; the last minute before
+   the automatic stop blinks. Only opacity moves; without motion the last minute stands out in the warning colour. */
+.recbtn { --rec: #ff4d5e; font-weight: 600; min-width: 7.5em; font-variant-numeric: tabular-nums; }
+.recbtn .recdot { color: var(--rec); }
 .recbtn.recbtn.on { background: var(--rec); color: #1a0306; border-color: transparent; }   /* above the pages' own .btn.on */
-.recbtn.on .recdot { color: #1a0306; animation: rec-blink 1.2s ease-in-out infinite; }
-.recclock { --rec: #e0283a; color: #ff8a95; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; animation: rec-in .25s ease-out; }
-.recstat { margin-top: 4px; line-height: 1.35; }
+.recbtn.recbtn.on .recdot { color: #1a0306; animation: rec-dot 1.2s ease-in-out infinite; }
+.recbtn.recbtn.on.soon { position: relative; isolation: isolate; }
+/* the last minute: a light flash over the red, behind the words – they keep their contrast while it blinks */
+.recbtn.recbtn.on.soon::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: #fff;
+  opacity: 0; animation: rec-blink .7s steps(2, jump-none) infinite; }
+.recsr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.recstat { margin-top: 4px; line-height: 1.35; color: var(--warn, #ff6b7d); }
 .recstat:empty { display: none; }
-.recstat.warn { color: var(--warn, #ffb454); }
 .recdone { margin-top: 6px; align-items: center; animation: rec-in .3s ease-out; }
 .recdone > span { flex: 1 1 60%; min-width: 0; overflow-wrap: anywhere; line-height: 1.35; }
-.recdone[hidden], .recclock[hidden] { display: none !important; }
-.recclock.soon { color: #fff; background: var(--rec, #ff4d5e); padding: 2px 8px; border-radius: 8px; animation: rec-pulse 1s ease-in-out infinite; }
-@keyframes rec-pulse { 50% { transform: scale(1.06); } }
-@keyframes rec-blink { 50% { opacity: .25; } }
-@keyframes rec-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .recbtn .recdot, .recclock, .recclock.soon, .recdone { animation: none !important; } }
+.recdone[hidden] { display: none !important; }
+@keyframes rec-dot { 50% { opacity: .25; } }
+@keyframes rec-blink { 50% { opacity: .6; } }
+@keyframes rec-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .recbtn .recdot, .recbtn.recbtn.on .recdot, .recbtn.recbtn.on.soon::before, .recdone { animation: none !important; }
+  .recbtn.recbtn.on.soon { background: #ffd23f; color: #1a1400; outline: 3px solid #fff; outline-offset: 2px; }
+  .recbtn.recbtn.on.soon .recdot { color: #1a1400; }
+}

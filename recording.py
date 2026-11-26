@@ -35,11 +35,10 @@ GRACE_SECS = 30                   # … the stage stops it itself; pieces later 
 CHUNK_MAX = 16 * 1024 * 1024      # one piece (about a second; 2 MB at the highest quality) – anything larger is refused
 STOP_FREE = 1024 ** 3             # below this much free space the recording stops (macOS itself needs room)
 HARD_FREE = 256 * 1024 ** 2       # … and a piece that would leave less than this is not written at all
-WARN_MIN = 10                     # minutes left on the disk at the recording's rate: the panel warns
 SILENT_SECS = 15                  # no piece for this long: the stage is gone (closed, crashed) – the recording ends
-# #276 (owner): three qualities, the video's bit rate at 1080p and 30 frames a second; smaller pictures get less in
-# proportion to their pixels. The sound, if any, takes AUDIO_BPS.
-QUALITY = {"low": 4_000_000, "standard": 8_000_000, "high": 16_000_000}
+# #276 (owner): one quality – about 8 Mbit/s at 1080p and 30 frames a second; a smaller picture gets less in proportion
+# to its pixels. The sound (the music input, when Dream listens to music) takes AUDIO_BPS.
+VIDEO_BPS = 8_000_000
 AUDIO_BPS = 128_000
 FULL = 1920 * 1080
 MIME = re.compile(r"video/(mp4|webm)(;\s*codecs=\"?[\w.,]+\"?)?")
@@ -48,11 +47,11 @@ REASONS = ("stop", "time", "disk", "error")
 
 take: dict = {}                   # the recording running now (empty: none): its file, where it is, its numbers
 done: dict = {}                   # the one before: {"name", "path", "bytes", "secs", "reason"}
-note: dict = {"error": "", "free": None, "told": 0.0, "sent": ""}
+note: dict = {"error": ""}
 tidying: set = set()              # the files ffmpeg tidies right now (remux)
 
 
-# ---------- what Dream decides: the size, the bit rate, the room left ----------
+# ---------- what Dream decides: the size, the bit rate ----------
 def frame_size(pw, ph, mime: str) -> tuple[int, int]:
     """The video's size for a picture of pw × ph: its shape, as large as fits 1920 × 1080 (H.264) – WebM (VP8/VP9,
     encoded on the processor beside the AI) at most 1280 × 720. Even numbers (the encoders need them)."""
@@ -67,23 +66,8 @@ def frame_size(pw, ph, mime: str) -> tuple[int, int]:
     return max(2, int(pw * s) // 2 * 2), max(2, int(ph * s) // 2 * 2)
 
 
-def video_bps(quality: str, w: int, h: int) -> int:
-    base = QUALITY.get(quality, QUALITY["standard"])
-    return max(1_000_000, round(base * w * h / FULL))
-
-
-def aspect_size() -> tuple[int, int]:
-    """The size a recording of the format chosen now has (for the room left, before anything is recorded)."""
-    return (1920, 1080) if hub.state.get("aspect") == "wide" else (1080, 1080)
-
-
-def rate(quality: str | None = None, audio: bool | None = None) -> float:
-    """Bytes a second: the take's own, or – with nothing recorded – what the chosen quality and format would take."""
-    if take and quality is None:
-        return (take["bps"] + take["abps"]) / 8
-    q = quality or hub.state.get("rec_quality", "standard")
-    a = hub.state.get("rec_audio", False) if audio is None else audio
-    return (video_bps(q, *aspect_size()) + (AUDIO_BPS if a else 0)) / 8
+def video_bps(w: int, h: int) -> int:
+    return max(1_000_000, round(VIDEO_BPS * w * h / FULL))
 
 
 def free_bytes() -> int:
@@ -91,10 +75,6 @@ def free_bytes() -> int:
     folder = paths.save_dir()
     os.makedirs(folder, exist_ok=True)
     return shutil.disk_usage(folder).free
-
-
-def minutes_left(free: int, per_sec: float) -> int:
-    return max(0, int((free - STOP_FREE) / max(1.0, per_sec) / 60))
 
 
 # ---------- the file ----------
@@ -158,27 +138,18 @@ def finish(reason: str) -> None:
 
 
 # ---------- what the pages learn ----------
-def status(free: int | None = None) -> dict:
-    free = note["free"] if free is None else free
-    st = {"on": bool(take), "free": free, "left_min": minutes_left(free, rate()) if free is not None else None,
-          "error": note["error"], "max_secs": MAX_SECS,
+def status() -> dict:
+    st = {"on": bool(take), "error": note["error"], "max_secs": MAX_SECS,
           "last": {k: done[k] for k in ("name", "bytes", "secs", "reason")} if done else None}
     if take:
-        secs = time.monotonic() - take["t0"]
-        st.update(secs=round(secs), left=max(0, round(MAX_SECS - secs)), file=os.path.basename(take["path"]),
-                  bytes=take["bytes"], w=take["w"], h=take["h"], kind=take["ext"], audio=take["abps"] > 0,
-                  warn="disk" if free is not None and st["left_min"] < WARN_MIN else "")
+        st.update(secs=round(time.monotonic() - take["t0"]), file=os.path.basename(take["path"]), bytes=take["bytes"],
+                  w=take["w"], h=take["h"], kind=take["ext"], audio=take["abps"] > 0)
     return {"rec": st}
 
 
-def tell(force: bool = True) -> None:
+def tell() -> None:
     """To every page with the right "control" (the panel, Dream Control) – queued, never awaited."""
-    with contextlib.suppress(OSError):
-        note["free"] = free_bytes()
     msg = json.dumps(status(), ensure_ascii=False)
-    if not force and msg == note["sent"]:
-        return
-    note.update(sent=msg, told=time.monotonic())
     for c in list(hub.clients):
         if rights.can(hub.roles.get(c), "control") and not rights.can(hub.roles.get(c), "eyes_only"):
             outbox.post(c, msg)
@@ -186,8 +157,6 @@ def tell(force: bool = True) -> None:
 
 def greet(sock) -> None:
     if rights.can(hub.roles.get(sock), "control"):
-        with contextlib.suppress(OSError):
-            note["free"] = free_bytes()
         outbox.post(sock, json.dumps(status(), ensure_ascii=False))
 
 
@@ -212,8 +181,8 @@ def stage_error(code) -> None:
 
 
 async def keep() -> None:
-    """Started with the server: the time left once a second, the room left every half minute, and the watch for a
-    stage that went away in the middle of a recording."""
+    """Started with the server: the running time once a second, and the watch for a stage that went away in the middle
+    of a recording."""
     while True:
         await asyncio.sleep(1.0)
         with contextlib.suppress(Exception):
@@ -228,8 +197,8 @@ def watch(now: float) -> None:
     elif take and now - take["t0"] > MAX_SECS + GRACE_SECS:   # the stage did not stop it: Dream does
         finish("time")
         tell()
-    elif take or now - note["told"] > 30:
-        tell(force=bool(take))
+    elif take:                                     # the running time on every page, once a second
+        tell()
 
 
 def _json_error(code: str, status_code: int) -> JSONResponse:
@@ -260,7 +229,7 @@ async def rec_start(request: Request):
     except OSError:
         return _json_error("folder", 507)
     if free < STOP_FREE + 256 * 1024 ** 2:
-        note.update(error="disk", free=free)
+        note["error"] = "disk"
         tell()
         return _json_error("disk", 507)
     ext = "mp4" if mime.startswith("video/mp4") else "webm"
@@ -272,7 +241,7 @@ async def rec_start(request: Request):
         return _json_error("folder", 507)
     now = time.monotonic()
     take.update(id=secrets.token_hex(8), path=path, fd=fd, ext=ext, t0=now, seen=now, seq=0, bytes=0, w=w, h=h,
-                bps=video_bps(hub.state.get("rec_quality", "standard"), w, h), abps=AUDIO_BPS if audio else 0)
+                bps=video_bps(w, h), abps=AUDIO_BPS if audio else 0)
     note["error"] = ""
     tell()
     return {"id": take["id"], "name": os.path.basename(path), "w": w, "h": h, "bps": take["bps"], "abps": take["abps"],
@@ -306,7 +275,7 @@ async def rec_chunk(rid: str, request: Request, seq: int = -1):
     free = free_bytes()
     if free - len(data) < HARD_FREE:               # the disk is (nearly) full: nothing more is written
         finish("disk")
-        note.update(error="disk", free=free)
+        note["error"] = "disk"
         tell()
         return JSONResponse({"error": "disk", "stop": "disk"}, status_code=507)
     try:
@@ -318,7 +287,6 @@ async def rec_chunk(rid: str, request: Request, seq: int = -1):
         return _json_error("folder", 507)
     now = time.monotonic()
     take.update(seq=take["seq"] + 1, bytes=take["bytes"] + len(data), seen=now)
-    note["free"] = free - len(data)
     stop = "disk" if free - len(data) < STOP_FREE else "time" if now - take["t0"] >= MAX_SECS else ""
     return {"ok": True, **({"stop": stop} if stop else {})}
 
@@ -342,7 +310,3 @@ async def rec_reveal():
     subprocess.Popen(["open", "-R", path], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"ok": True}
 
-
-hub.on_change("rec_quality", tell)
-hub.on_change("rec_audio", tell)
-hub.on_change("aspect", tell)

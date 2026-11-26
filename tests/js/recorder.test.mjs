@@ -165,28 +165,25 @@ test('no MediaRecorder, or Dream refuses the start: nothing records, the reason 
   assert.deepEqual(e.errors, []);                              // another stage records: Dream knows
 });
 
-test('the card: the time left, the room left, what was saved', () => {
+test('the card: one button with the running time, a warning in the last minute, what was saved', () => {
   assert.equal(C.clock(0), '00:00'); assert.equal(C.clock(134), '02:14'); assert.equal(C.clock(3725), '1:02:05');
   assert.equal(C.size(312e6), '312 MB'); assert.equal(C.size(1.44e9), '1.4 GB');
-  assert.equal(C.running({ max_secs: 900 }, 134), '● REC · 12:46 left');
-  assert.equal(C.running({ max_secs: 900 }, 960), '● REC · 00:00 left');
-  assert.equal(C.soon({ max_secs: 900 }, 839), false); assert.equal(C.soon({ max_secs: 900 }, 840), true);   // the last minute
-  assert.equal(C.say({ left_min: 95 }), 'Room on the disk for about 95 min at this quality.');
-  assert.equal(C.say({ left_min: 300 }), 'Room on the disk for about 5 hours at this quality.');
-  assert.equal(C.say({ left_min: 4000 }), 'Room on the disk for more than 10 hours at this quality.');
-  assert.match(C.say({ left_min: 6 }), /^⚠ Little room left on the disk: about 6 min/);
-  assert.equal(C.say({ on: true, left_min: 95, left: 600, warn: '' }), '');     // while it runs: quiet …
-  assert.match(C.say({ on: true, left_min: 95, left: 45 }), /Less than a minute left/);   // … but the last minute is told
-  assert.match(C.say({ on: true, left_min: 7, left: 600, warn: 'disk' }), /stops by itself before it is full/);
-  assert.match(C.say({ error: 'nostage', left_min: 95 }), /stage is not open/);
-  assert.match(C.say({ error: 'disk' }), /disk is nearly full/);
-  assert.equal(C.say({ error: '__proto__', left_min: 95 }), 'Room on the disk for about 95 min at this quality.');
+  assert.deepEqual(C.button(false), { text: 'Record', sr: '', dot: '●' });
+  assert.deepEqual(C.button(true, 134), { text: '02:14', sr: ' Recording – stop', dot: '●' });   // how long it runs, not a countdown
+  assert.equal(C.soon({ max_secs: 900 }, 839), false); assert.equal(C.soon({ max_secs: 900 }, 840), true);   // the last minute blinks
+  assert.equal(C.say({ on: true, max_secs: 900 }, 600), '');                    // nothing else to read while it runs …
+  assert.match(C.say({ on: true, max_secs: 900 }, 845), /One minute left/);    // … but the last minute is told
+  assert.equal(C.say({ left_min: 3 }), '');                                     // no disk minutes, no quality
+  assert.match(C.say({ error: 'nostage' }), /stage is not open/);
+  assert.match(C.say({ error: 'disk' }), /disk is nearly full/);               // a plain message only when it happens
+  assert.equal(C.say({ error: 'disk', last: { reason: 'disk', name: 'a.mp4' } }), '');   // the note says it already
+  assert.equal(C.say({ error: '__proto__' }), '');
   assert.equal(C.doneText({ name: 'dream-rec-20261126-221530.mp4', bytes: 4e8, secs: 75, reason: 'stop' }),
     'Saved: dream-rec-20261126-221530.mp4 (400 MB, 01:15)');
   assert.equal(C.doneText({ name: 'a.mp4', bytes: 1.5e9, secs: 900, reason: 'time' }),
     'Stopped by itself after 15 minutes – saved: a.mp4 (1.5 GB, 15:00)');
+  assert.equal(C.doneText({ name: 'a.mp4', bytes: 9e8, secs: 300, reason: 'disk' }),
+    'Stopped: the disk is nearly full – saved: a.mp4 (900 MB, 05:00)');
   assert.equal(C.doneText({ name: '', bytes: 0 }), '');
   assert.equal(C.doneText(null), '');
-  assert.deepEqual(C.button(true), { text: 'Stop', title: 'Stop recording', dot: '■' });
-  assert.equal(C.button(false).text, 'Record');
 });
