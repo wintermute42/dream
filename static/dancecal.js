@@ -1,14 +1,14 @@
 /* Dream – measuring a dancer (#266): where their calm and their wild lie, per base movement – their own measures.
 
    A part of the learning assistant on the page of Dream Dance (static/dance.html – it reads the stage through the
-   bridge of the window that opened it). The base movements – energy, opening, turning, height – reach the sentences
+   bridge of the window that opened it). The base movements – energy, opening, hands circling, height – reach the sentences
    through ranges Dream picks for an average dancer; one dancer's calm is another's warm-up. Measuring takes about 45
    seconds, step by step, each with a countdown bar and the base movement it measures:
-   1. stand still, arms hanging (your calm: energy, height and turning at rest),
+   1. stand still, arms hanging (your calm: energy, height and the hands at rest),
    2. dance wild (your wild: the top of your energy),
    3. arms closed and 4. arms wide open (the range of your opening),
    5. arms up high (the top of your height),
-   6. turning, the hands circling (the top of your turning).
+   6. circling the hands (the top of their circling).
    While Dream does not see the dancer, the step waits. The result shows per base movement the standard range and
    yours on one bar, with a dot where you are right now and how far that is between your calm (0 %) and your wild
    (100 %); [Keep] keeps it under the dancer's name (danceprofiles.py – numbers only), in use from now on. The profiles
@@ -39,7 +39,7 @@
     { k: 'closed', secs: 5, say: () => T('Arms closed – hands together in front of you'), sub: () => T('Your arms fully closed.'), takes: [['open', 'lo', 0.5]] },
     { k: 'open', secs: 5, say: () => T('Arms wide open'), sub: () => T('Your arms fully open.'), takes: [['open', 'hi', 0.5]] },
     { k: 'up', secs: 5, say: () => T('Arms up high'), sub: () => T('As high as your arms go.'), takes: [['height', 'hi', 0.5]] },
-    { k: 'turn', secs: 8, say: () => T('Turn around – let your hands circle'), sub: () => T('As far as you turn in your dance: Dream reads turning from your hands going round.'),
+    { k: 'turn', secs: 8, say: () => T('Circle your hands'), sub: () => T('As big and as fast as your hands circle in your dance – that is your 100 %.'),
       takes: [['turn', 'hi', 0.9]] },
   ];
   const r3 = x => Math.round(x * 1000) / 1000;
@@ -112,7 +112,7 @@
     const chips = el('div', 'dc-chips'); chips.setAttribute('role', 'group'); chips.setAttribute('aria-label', T('Whose measures the dance reads'));
     // ---- the wizard ----
     const wiz = el('div', 'mt-wiz'); wiz.hidden = true; wiz.setAttribute('role', 'region'); wiz.setAttribute('aria-label', T('Measure your base movements'));
-    const NAMES = [...STEPS.map((s, i) => `${i + 1} · ${{ calm: T('Calm'), wild: T('Wild'), closed: T('Arms closed'), open: T('Arms open'), up: T('Arms up'), turn: T('Turn') }[s.k]}`), `${STEPS.length + 1} · ${T('Result')}`];
+    const NAMES = [...STEPS.map((s, i) => `${i + 1} · ${{ calm: T('Calm'), wild: T('Wild'), closed: T('Arms closed'), open: T('Arms open'), up: T('Arms up'), turn: T('Hands circle') }[s.k]}`), `${STEPS.length + 1} · ${T('Result')}`];
     const stepBar = el('ol', 'mt-steps'); NAMES.forEach(t => stepBar.append(el('li', '', t)));
     const big = el('div', 'mt-big'), small = el('div', 'mt-say'), bar = el('div', 'mt-bar'), barFill = el('i');
     bar.setAttribute('aria-hidden', 'true'); bar.append(barFill); small.setAttribute('aria-live', 'polite');

@@ -1640,7 +1640,7 @@ that was loaded before an update of Dream). On it:
   the **dashed frame** where Dream's picture lies in the camera picture (the calibration; the page also says how much
   of the projection is taken out while “Subtract the projection” is on) and the **green circle** around the one
   person; the output beside it; and the curves of energy, tempo, opening (the distance of the props or hands),
-  turning, height and stillness.
+  hands circling, height and stillness.
 - **Sessions** – **● Record** keeps a session in the dance lab's format (numbers only, never a camera picture; see
   [Dance lab](#dance-lab)) to play back, loop and export – the ground for a performer's profile later.
 
@@ -1678,7 +1678,7 @@ delivers pictures, measured on the dancer's own body – where you stand in the 
 | Energy | how much and how hard you move |
 | Tempo, phase, own beat | the tempo of your own repetition and where in it you are – a **movement clock** beside the music's beat clock |
 | Opening | how far apart the hands are |
-| Turning | a hand running in circles, and which way |
+| Hands circling | a hand running in circles, and which way (not a rotation of the body) |
 | Height | hands down … up |
 | Stillness | you stand still |
 
@@ -1818,7 +1818,7 @@ are on hover (and for screen readers).
 
 **Sentences in three lanes.** Every sentence says one thing, e.g. **“When I [throw my arms up] → [trails follow]”**:
 - **Base movement** (warm yellow, *as long as you move*) – 2 sentences. A continuous movement (moving a lot, opening
-  the arms, turning, raising the arms) sets one effect: “When I move a lot → the waves grow stronger”.
+  the arms, circling the hands, raising the arms) sets one effect: “When I move a lot → the waves grow stronger”.
 - **Accents** (cold blue, *a short moment*) – 4 sentences. A gesture (throwing the arms up, the accordion, pushing,
   drawing a circle, a wave) or a move of your own sets off one effect: “When I draw a circle → a mandala blooms”.
 - **Hands in the picture** (green, *where your hands are*) – one sentence of switches: “My hands [paint trails of
@@ -1875,7 +1875,7 @@ Control and in a playlist scene's `dance_set`. Your sets (at most 24) and the on
 sets that were such tables. On the first start after the update Dream turns them into sets of sentences, as well as
 they go: your own dance table (if it was not one of the built-in sets) becomes the set **“My table”**, and each set of
 your own a set of the same name (with a number after it if a built-in set is called so already). A row of a
-continuous movement (energy, opening, turning, height) becomes a base movement, a gesture or a move of your own an
+continuous movement (energy, opening, hands circling, height) becomes a base movement, a gesture or a move of your own an
 accent with the strength nearest to the row's, and the hands in the picture stay switched on as they were (at most two); what a
 sentence cannot say (finger values, the AI sliders, effects that would cancel each other out) is left out, and the
 strongest rows go first when a lane is full. The set that was in use stays in use. Have a look at them on the page
@@ -1952,18 +1952,18 @@ sentence by showing) takes three repetitions and puts the move on an accent at o
 
 ### Your measures – calm and wild
 
-The base movements (energy, opening, turning, height) reach the sentences through ranges Dream picks for an average
+The base movements (energy, opening, hands circling, height) reach the sentences through ranges Dream picks for an average
 dancer – one dancer's calm is another's warm-up. **📏 Your measures** (below your moves) measures you, so that **your
 calm is 0 %** and **your wild is 100 %** for every sentence. Start it with **📏 Measure me …** (in the section, beside
 “🎓 Teach a movement …”, or key **M**). After a countdown of three seconds Dream says in big words what to do; each
 step has a bar, the first second and a half is for getting there, and while Dream does not see you the step waits:
 
-1. **Calm** (10 s): stand still, arms hanging loosely – your calm of energy, height and turning.
+1. **Calm** (10 s): stand still, arms hanging loosely – your calm of energy, height and the hands' circling.
 2. **Wild** (10 s): dance as wild as you do in a show – the top of your energy.
 3. **Arms closed** (5 s): hands together in front of you – 4. **Arms open** (5 s): wide open – your range of opening.
 5. **Arms up** (5 s): as high as they go – the top of your height.
-6. **Turn** (8 s): turn as far as you do in your dance, your hands circling – Dream reads turning from your hands going
-   round, so let them circle.
+6. **Hands circle** (8 s): circle your hands as big and as fast as you do in your dance – the top of their circling.
+   (This base movement is the hands running in circles, not a rotation of your body.)
 7. **Result:** per base movement one bar with the standard range (grey) and yours (violet), a green dot where you are
    right now and “now … %” between your calm and your wild – move and watch it. A base movement Dream did not see well
    enough, or whose calm and wild lie too close together, keeps the standard range (it says so). Give it a **name**
@@ -1981,7 +1981,9 @@ step has a bar, the first second and a half is for getting there, and while Drea
   movements are read so (gestures, hands, the beat stay as they are), only in Dream Dance (the mood and Flowtrack read
   the movement as it is), and the rules stay: one effect per group, at most three groups, the minimum.
 - **What is kept:** per dancer a name and four pairs of numbers, in `~/.config/dream/dance-profiles.json` on this Mac
-  – never a camera picture. Only this Mac and Dream Control may keep or delete measures; a guest changes nothing. A
+  – never a camera picture. Only this Mac and Dream Control may keep or delete measures; a guest changes nothing.
+  The names of dancers and of movement sets are told to this Mac and Dream Control only – never to a guest's phone and
+  never to an output (output window, Dreamy Eyes, dream windows); a guest works without them. A
   broken file is ignored: the standard measures act.
 - **Limits.** The standard ranges are the built-in ones, not yet learned from real sessions. Measure with the detection
   you dance with (hands by AI or LED markers) and in the place you dance in.
@@ -2006,7 +2008,7 @@ dancing:
   view shows whether the hand model runs (it does by itself with Dream Dance and “Hands (AI)”). An empty view says
   why: fingers need the detection “Hands (AI)” in Dream Dance, the hand model is still loading (once, about 8 MB), or
   there is no hand in the picture.
-- **Feature stream:** energy, tempo, phase, opening, turning, height and stillness as running curves over the last 12
+- **Feature stream:** energy, tempo, phase, opening, hands circling, height and stillness as running curves over the last 12
   seconds, the recognised gesture as a band above them, and – once a hand was seen – the finger values per hand. Where
   a value is not known (a hand lost, no rhythm) the curve has a **gap**, marked by a dashed red line: that is where
   the limits of distance, light and tempo show. Where the **skeleton was lost**, a pale red band runs through all

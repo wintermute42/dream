@@ -92,9 +92,9 @@ WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW,
       "/facemarks": {"local"}}                         # #214: only the stage on this Mac says where a painted face has its eyes
 # what each role may do (rights.ROLES), written down by hand too: the pages are told it with their role
 CAN = {
-    "local": ["beat", "control", "ctl", "eyes", "faces", "feed", "render", "set:all", "stage", "state", "view"],
-    "control": ["beat", "control", "ctl", "eyes", "faces", "feed", "pair_eyes", "render", "set:all", "state", "take_over",
-                "view"],
+    "local": ["beat", "control", "ctl", "eyes", "faces", "feed", "names", "render", "set:all", "stage", "state", "view"],
+    "control": ["beat", "control", "ctl", "eyes", "faces", "feed", "names", "pair_eyes", "render", "set:all", "state",
+                "take_over", "view"],
     "guest": ["ctl", "set:guest", "state", "view"],
     "eyes": ["beat", "ctl", "eyes", "eyes_only", "faces", "feed", "view"],
     "window": ["faces", "view"],

@@ -98,11 +98,15 @@ def save_now():
 
 async def broadcast(msg: dict, exclude=None, only=None):
     """To every control client. #187: only queued (outbox.py) – a slow device never holds up the others."""
-    data = json.dumps(msg, ensure_ascii=False)
+    full = json.dumps(msg, ensure_ascii=False)
+    # #266: what a role without "names" hears (rights.scrub – the same for all of them): never a set's or a dancer's name
+    scrubbed = rights.scrub(None, msg)
+    bare = full if scrubbed == msg else json.dumps(scrubbed, ensure_ascii=False) if scrubbed else None
     for c, kind in list(clients.items()):
         if c is exclude or (only and kind != only) or rights.can(roles.get(c), "eyes_only"):   # #156: the eyes learn nothing
             continue
-        if not outbox.post(c, data):
+        data = full if rights.can(roles.get(c), "names") else bare
+        if data is not None and not outbox.post(c, data):
             clients.pop(c, None)
 
 

@@ -165,7 +165,7 @@
     // ---------- the curves ----------
     const curves = el('figure', 'dl-curves'), cvCap = el('figcaption', '', T('Feature stream')), gestTxt = el('span', 'dl-gesture'), cvCv = el('canvas');
     gestTxt.setAttribute('role', 'status'); gestTxt.setAttribute('aria-live', 'polite'); cvCap.append(' ', gestTxt);
-    cvCv.setAttribute('role', 'img'); cvCv.setAttribute('aria-label', T('Running curves of energy, tempo, phase, opening, turning, height and stillness; a gap where a value is not known'));
+    cvCv.setAttribute('role', 'img'); cvCv.setAttribute('aria-label', T('Running curves of energy, tempo, phase, opening, hands circling, height and stillness; a gap where a value is not known'));
     const lostKey = el('span', 'dl-lostkey', T('▮ skeleton lost')); lostKey.hidden = true; cvCap.append(' ', lostKey);
     // what every curve is made of: its source and how sure it is, in words beside the picture
     const srcBox = el('table', 'dl-srcs'), srcHead = el('thead'), srcBody = el('tbody'), srcRows = {};

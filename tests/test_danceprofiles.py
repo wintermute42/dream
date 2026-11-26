@@ -130,3 +130,52 @@ def test_every_control_device_is_told_the_measures(server, profiles):
     (told,) = [m["dance"]["profiles"] for m in got if "profiles" in m.get("dance", {})]
     assert told == {"use": "Kim", "names": ["Kim"], "data": {"Kim": KIM}, "std": danceprofiles.STANDARD, "min": danceprofiles.MIN_SPAN}
     assert any("slots" in m.get("dance", {}) for m in got)                      # in the one message of the dance
+
+
+# ---------- #266: the names of sets and dancers only for this Mac and Dream Control ----------
+@pytest.mark.parametrize("role", ["guest", "eyes", "window", None, "stranger"])
+def test_a_role_without_names_hears_none(role):
+    import rights
+    msg = {"set": {"dance_set": "Glow Set", "dance_profile": "Kim", "prompt": "a lake"}, "state": {"dance_set": "Glow Set", "master": 1.0},
+           "dance": {"slots": {"sets": ["Glow Set"]}, "profiles": {"names": ["Kim"]}, "map": []}}
+    got = rights.scrub(role, msg)
+    assert "Glow" not in json.dumps(got) and "Kim" not in json.dumps(got)
+    assert got == {"set": {"prompt": "a lake"}, "state": {"master": 1.0}, "dance": {"map": []}}   # the rest is told as before
+    assert rights.scrub(role, {"set": {"dance_set": "Glow Set"}}) is None                 # nothing left: nothing is sent
+    assert rights.scrub(role, {"dance": {"profiles": {}}}) is None
+    for may in ("local", "control"):
+        assert rights.scrub(may, msg) is msg
+
+
+def test_no_guest_and_no_output_ever_hears_a_set_or_a_dancer(server, profiles, saved_state, monkeypatch):
+    """A guest's phone, its output window, Dreamy Eyes and a dream window: none of them ever receives the name of a set or
+    of a measured dancer – not in the greeting, not in a change, not in the dance's message. This Mac and Dream Control do."""
+    monkeypatch.setattr(dance, "tables", dance.default_tables())                 # the sets and tables come back afterwards
+    monkeypatch.setattr(dance, "slot_sets", {})
+    monkeypatch.setattr(dance, "slot_use", "standard")
+    monkeypatch.setattr(dance, "slot_drafts", {})
+    assert profiles.save("Kim", KIM) and dance.save_slots_as("Glow Set", dance.SLOT_SETS["waves"], "waves")
+    server.hub.state.update(dance_set="Glow Set", dance_profile="Kim")
+    told, post = [], server.hub.outbox.post
+    monkeypatch.setattr(server.hub.outbox, "post", lambda sock, data: (
+        told.append((server.hub.roles.get(sock) or server.hub.key_roles.get(sock), data)) if isinstance(data, str) else None, post(sock, data))[1])
+    k, view = server.rights.keys, "ws://192.168.1.20:7860/view"
+    with client(server, "guest").websocket_connect(ws_url(server, "/ctl", "guest")), \
+            client(server, "eyes").websocket_connect(ws_url(server, "/ctl", "eyes") + "&as=eyes"), \
+            client(server, "guest").websocket_connect(f"{view}?k={k['guest']}"), \
+            client(server, "eyes").websocket_connect(f"{view}?preview=1&as=eyes&k={k['eyes']}"), \
+            client(server, "window").websocket_connect(f"{view}?as=window&k={k['window']}"), \
+            client(server, "control").websocket_connect(ws_url(server, "/ctl", "control")) as ctl:
+        wait_until(lambda: len(server.hub.viewers) == 2)
+        for m in ({"dance_profiles": {"op": "save", "name": "Kim", "bounds": KIM}}, {"set": {"dance_profile": ""}},
+                  {"set": {"dance_profile": "Kim"}}, {"set": {"dance_set": "standard"}}, {"set": {"dance_set": "Glow Set"}},
+                  {"dance_slots": {"op": "draft", "name": "Glow Set", "slots": dance.SLOT_SETS["fire"]}},
+                  {"set": {"prompt": "after the names"}}):
+            ctl.send_text(json.dumps(m))
+        wait_until(lambda: server.hub.state["prompt"] == "after the names")
+        wait_until(lambda: sum(1 for r, t in told if r == "guest" and "after the names" in t) >= 1)
+    without = [t for r, t in told if not server.rights.can(r, "names")]
+    assert {r for r, _ in told} >= {"guest", "control", "window"} and without
+    assert not [t for t in without if "Kim" in t or "Glow" in t]
+    mine = [t for r, t in told if r == "control"]
+    assert any("Kim" in t for t in mine) and any("Glow Set" in t for t in mine)          # Dream Control hears them
