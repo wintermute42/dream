@@ -75,6 +75,11 @@ HTTP = {
     ("GET", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("POST", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("DELETE", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
+    # #267: the base movements the dancer taught – what the body showed, as a regression: this Mac and Dream Control only
+    ("GET", "/dance/faders"): ("/dance/faders", LC),
+    ("POST", "/dance/faders"): ("/dance/faders", LC),
+    ("POST", "/dance/faders/{fid}"): ("/dance/faders/f0a1b2c3d", LC),
+    ("DELETE", "/dance/faders/{fid}"): ("/dance/faders/f0a1b2c3d", LC),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [

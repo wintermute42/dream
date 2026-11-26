@@ -34,6 +34,7 @@
   const BASE = ['energy', 'open', 'turn', 'height'];
   const ACCENTS = ['g.throw', 'g.accordion', 'g.push', 'g.circle', 'g.wave'];
   const OWN = /^g\.m[0-9a-f]{8}$/;                    // a move the dancer taught (#236)
+  const OWN_BASE = /^f\.f[0-9a-f]{8}$/;               // a base movement the dancer taught (#267)
   const HANDS = ['paint', 'warp', 'impulse', 'light'];
   const MAX_HANDS = 2, SLOTS = { base: 2, accents: 4 };
   const STEPS = [0, 0.5, 1];                           // light, medium, strong (dance.py STEPS)
@@ -108,10 +109,14 @@
     });
     return best ? { l: best, r: best } : null;
   }
-  // The words of a sentence: {lead, move, fx} – where: 'base' | 'accents'; names: {move id → the name the dancer gave it}.
-  function phrase(where, slot, names = {}) {
+  // The words of a sentence: {lead, move, fx} – where: 'base' | 'accents'; names: {move id → the name the dancer gave it};
+  // faders (#267): {base movement id → {name, to: the name of its state at 1}}.
+  function phrase(where, slot, names = {}, faders = {}) {
     const own = OWN.test(slot.src) ? names[slot.src.slice(2)] || T('a move of yours') : null;
-    return { lead: T('When I'), move: own ? T('dance “{n}”', { n: own }) : (MOVE_PHRASE[slot.src] || (() => slot.src))(),
+    const fd = OWN_BASE.test(slot.src) ? faders[slot.src.slice(2)] || null : null;
+    const move = own ? T('dance “{n}”', { n: own }) : OWN_BASE.test(slot.src) ? (fd ? T('go towards “{n}”', { n: fd.to || fd.name }) : T('a base movement of yours'))
+      : (MOVE_PHRASE[slot.src] || (() => slot.src))();
+    return { lead: T('When I'), move,
       fx: ((where === 'base' ? FX_GROW : FX_FLASH)[slot.fx] || (() => slot.fx))() };
   }
   // A name for a new set made of this one: "<shown name> – mine" (the dancer changes it as they like); with a number
@@ -140,7 +145,8 @@
   // What the dancer showed while Dream listened: samples [{g: {gesture: how sure}, v: {feature: value}}] → {src, where,
   // sure} for the clearest movement – a gesture (an accent) when Dream was at least `sure` of one, else the continuous
   // value that changed most (a base movement) – or null when nothing was clear.
-  function strongest(samples, { sure = 0.45, swing = 0.25, gestures = null } = {}) {
+  // base: the continuous values that count (#267: the built-in ones and the base movements of one's own, "f.<id>")
+  function strongest(samples, { sure = 0.45, swing = 0.25, gestures = null, base = BASE } = {}) {
     let g = null;
     for (const s of samples || []) for (const [name, c] of Object.entries((s && s.g) || {})) {
       if (gestures && !gestures.includes(name)) continue;
@@ -148,7 +154,7 @@
     }
     if (g) return g;
     let b = null;
-    for (const k of BASE) {
+    for (const k of base) {
       const vs = (samples || []).map(s => s && s.v && s.v[k]).filter(Number.isFinite);
       if (vs.length < 2) continue;
       const d = k === 'turn' ? Math.max(...vs.map(Math.abs)) : Math.max(...vs) - Math.min(...vs);
@@ -178,20 +184,26 @@
     turn: [[-14, 2], [14, 2], 'M-16 30 a17 6 0 1 0 32 0 M13 26 l4 4 l-5 2'], height: [[-12, -28], [12, -28], 'M0 -34 v-4'],
     'g.throw': [[-8, 4], [12, -30], 'M14 -38 v-6 M10 -40 l4 -4 l4 4'], 'g.accordion': [[-12, -8], [12, -8], 'M-20 -8 h-6 M20 -8 h6 M-24 -11 l-3 3 l3 3 M24 -11 l3 3 l-3 3'],
     'g.push': [[18, -10], [20, -6], 'M26 -14 h7 M30 -18 l4 4 l-4 4'], 'g.circle': [[-10, 4], [16, -14], ''], 'g.wave': [[-20, -18], [20, 0], 'M-28 -26 q4 -6 8 0 t8 0'],
-    hands: [[-16, -14], [16, -14], ''], own: [[-14, -14], [16, -4], 'M18 -26 l2 4 l4 1 l-3 3 l1 4 l-4 -2 l-4 2 l1 -4 l-3 -3 l4 -1 z'] };
+    hands: [[-16, -14], [16, -14], ''], own: [[-14, -14], [16, -4], 'M18 -26 l2 4 l4 1 l-3 3 l1 4 l-4 -2 l-4 2 l1 -4 l-3 -3 l4 -1 z'],
+    // #267: a base movement of one's own – the placeholder: a figure beside a fader with its knob
+    fader: [[-14, -2], [14, -2], 'M27 -34 V30 M21 -4 h12'] };
   function pictogram(src) {
-    const k = OWN.test(src) ? 'own' : src in POSE ? src : 'hands', [l, r, more] = POSE[k];
-    const circle = k === 'g.circle' ? '<circle cx="18" cy="-20" r="8"/>' : k === 'hands' ? '<circle cx="-16" cy="-14" r="3.5"/><circle cx="16" cy="-14" r="3.5"/>' : '';
+    const k = OWN.test(src) ? 'own' : OWN_BASE.test(src) ? 'fader' : src in POSE ? src : 'hands', [l, r, more] = POSE[k];
+    const circle = k === 'g.circle' ? '<circle cx="18" cy="-20" r="8"/>' : k === 'hands' ? '<circle cx="-16" cy="-14" r="3.5"/><circle cx="16" cy="-14" r="3.5"/>'
+      : k === 'fader' ? '<circle cx="27" cy="-4" r="4"/>' : '';
     return `<svg class="ds-pict" viewBox="-36 -46 72 86" aria-hidden="true" focusable="false"><circle cx="0" cy="-24" r="7"/><path d="M0 -17 V12 M-6 -10 L${l[0]} ${l[1]} M6 -10 L${r[0]} ${r[1]} M-6 -10 H6 M0 12 L-9 34 M0 12 L9 34"/>${more ? `<path d="${more}"/>` : ''}${circle}</svg>`;
   }
 
   // ---------- the page part ----------
   // opts: {bridge, fxNames, fxIcons, label(src) → short name, setLabel(name) → shown name, frame, figure,
-  //        names() → {move id: name} (#236), learn({src?, fx?, quick?}) – start teaching a movement (moveteach.js)}
+  //        names() → {move id: name} (#236), learn({src?, fx?, quick?}) – start teaching a movement (moveteach.js),
+  //        faders() → {base movement id: {name, to}} (#267), learnBase({fx?, i?}) – teach a base movement (faderteach.js)}
   function mount(box, opts) {
     const { bridge } = opts, fxName = e => (opts.fxNames && opts.fxNames[e]) || e, icon = e => (opts.fxIcons && opts.fxIcons[e]) || '✦';
     const names = () => (opts.names ? opts.names() : {});
-    const shortName = src => (OWN.test(src) ? names()[src.slice(2)] || src : opts.label(src));
+    const faders = () => (opts.faders ? opts.faders() : {});
+    const fadersSrc = () => Object.keys(faders()).map(id => 'f.' + id);
+    const shortName = src => (OWN.test(src) ? names()[src.slice(2)] || src : OWN_BASE.test(src) ? (faders()[src.slice(2)] || {}).name || src : opts.label(src));
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const tip = (e, text) => { e.title = text; e.setAttribute('aria-label', text); };
     const btn = (text, title, cls = '') => { const b = el('button', 'btn ' + cls, text); b.type = 'button'; if (title) b.title = title; return b; };
@@ -367,7 +379,7 @@
       return g;
     }
     function sentence(where, i, s) {
-      const row = el('div', 'ds-row ds-' + where), ph = phrase(where, s, names()), meter = el('span', 'ds-meter'), bar = el('i');
+      const row = el('div', 'ds-row ds-' + where), ph = phrase(where, s, names(), faders()), meter = el('span', 'ds-meter'), bar = el('i');
       meter.setAttribute('aria-hidden', 'true'); meter.append(bar);
       const pict = el('span', 'ds-pictbox'); pict.innerHTML = pictogram(s.src);
       const flash = el('i', 'ds-flash'); flash.setAttribute('aria-hidden', 'true');
@@ -392,7 +404,7 @@
       rows.push(r); return row;
     }
     function drawLanes() {
-      const s = cur(), key = JSON.stringify([s, names()]);
+      const s = cur(), key = JSON.stringify([s, names(), faders()]);
       if (key === drawnKey) return;
       const had = lanes.contains(document.activeElement) ? [document.activeElement.closest('.ds-row, .ds-more, .ds-handrow'), [...(document.activeElement.closest('.ds-row, .ds-more, .ds-handrow') || box).querySelectorAll('button')].indexOf(document.activeElement)] : null;
       const hadIdx = had && had[0] ? [had[0].dataset.where, had[0].dataset.i, had[1]] : null;
@@ -409,6 +421,10 @@
         if (where === 'accents') {
           const own = btn(T('＋ A move of your own …'), T('Teach Dream a move of your own: it becomes an accent'), 'ds-add');
           own.onclick = () => opts.learn && opts.learn({ fresh: true });
+          more.append(own);
+        } else if (opts.learnBase) {
+          const own = btn(T('＋ A base movement of your own …'), T('Teach Dream a base movement of your own: show two or more states of your body, it becomes a fader'), 'ds-add');
+          own.onclick = () => opts.learnBase({});
           more.append(own);
         }
       }
@@ -456,10 +472,10 @@
       dlgHead.textContent = where === 'base' ? T('When I … – which movement? (as long as you move)') : T('When I … – which movement? (a short moment)');
       dlgList.textContent = ''; dlgList.className = 'ds-choices ds-moves';
       const own = Object.keys(names()).map(id => 'g.' + id);
-      for (const src of where === 'base' ? BASE : [...ACCENTS, ...own]) {
+      for (const src of where === 'base' ? [...BASE, ...fadersSrc()] : [...ACCENTS, ...own]) {
         const taken = s[where].some((o, j) => o && j !== i && o.src === src), b = el('button', 'ds-opt' + (slot && slot.src === src ? ' on' : ''));
         b.type = 'button'; const p = el('span', 'ds-pictbox'); p.innerHTML = pictogram(src);
-        b.append(p, el('span', 'ds-optname', shortName(src)), el('span', 'ds-optsub', phrase(where, { src, fx: slot.fx }, names()).move));
+        b.append(p, el('span', 'ds-optname', shortName(src)), el('span', 'ds-optsub', phrase(where, { src, fx: slot.fx }, names(), faders()).move));
         if (taken) { b.setAttribute('aria-disabled', 'true'); tip(b, shortName(src) + ' – ' + T('Already in another sentence')); }
         b.onclick = () => { if (taken) { hint(T('Already in another sentence'), null, b); return; } dlg.close(); change(place(cur(), { where, i, slot: { ...slot, src } })); };
         dlgList.append(b);
@@ -468,6 +484,12 @@
         const b = el('button', 'ds-opt ds-optnew'); b.type = 'button';
         b.append(el('span', 'ds-optname', T('＋ A move of your own …')), el('span', 'ds-optsub', T('show it, Dream learns it')));
         b.onclick = () => { dlg.close(); opts.learn({ fresh: true, fx: slot.fx, i }); };
+        dlgList.append(b);
+      }
+      if (where === 'base' && opts.learnBase) {
+        const b = el('button', 'ds-opt ds-optnew'); b.type = 'button';
+        b.append(el('span', 'ds-optname', T('＋ A base movement of your own …')), el('span', 'ds-optsub', T('show its states, Dream learns the fader')));
+        b.onclick = () => { dlg.close(); opts.learnBase({ fx: slot.fx, i }); };
         dlgList.append(b);
       }
       dlg.showModal();
@@ -532,7 +554,7 @@
       (wiz.querySelector('.ds-wizclose')).focus();
     }
     function heard() {
-      const all = Object.keys(names()), got = strongest(flow.samples, { gestures: [...ACCENTS.map(g => g.slice(2)), ...all] });
+      const all = Object.keys(names()), got = strongest(flow.samples, { gestures: [...ACCENTS.map(g => g.slice(2)), ...all], base: [...BASE, ...fadersSrc()] });
       flow.step = 2; flow.got = got;
       const [b1, b2, b3] = wizShow(2);
       b1.append(el('b', 'ds-big', fxName(flow.fx))); b2.append(el('b', 'ds-big', T('✓ seen')));
@@ -557,8 +579,8 @@
     function pickOther(b3) {
       b3.textContent = ''; b3.append(el('span', 'ds-stepn', T('3 · Is that right?')), el('b', 'ds-big', T('Which movement?')));
       const list = el('div', 'ds-choices ds-moves ds-inline'), own = Object.keys(names()).map(id => 'g.' + id);
-      for (const src of [...BASE, ...ACCENTS, ...own]) {
-        const where = BASE.includes(src) ? 'base' : 'accents', r = assign(cur(), where, src, flow.fx), b = el('button', 'ds-opt');
+      for (const src of [...BASE, ...fadersSrc(), ...ACCENTS, ...own]) {
+        const where = BASE.includes(src) || OWN_BASE.test(src) ? 'base' : 'accents', r = assign(cur(), where, src, flow.fx), b = el('button', 'ds-opt');
         b.type = 'button'; const p = el('span', 'ds-pictbox'); p.innerHTML = pictogram(src); b.append(p, el('span', 'ds-optname', shortName(src)));
         if (r.why) { b.setAttribute('aria-disabled', 'true'); tip(b, shortName(src) + ' – ' + REASONS[r.why]()); }
         b.onclick = () => { if (r.why) { hint(REASONS[r.why](), null, b); return; } change(r.slots); hint(T('New sentence: {m} → {e}.', { m: shortName(src), e: fxName(flow.fx) })); endFlow(); };
@@ -630,11 +652,11 @@
       if (figNote.hidden !== body) figNote.hidden = body;
       if (f && opts.figure) opts.figure(c, sizes.w, sizes.h, f, glow(s, live));
     }
-    return { tick, draw: () => draw(true), slots: cur, change, hint, set hidden(v) { box.hidden = v; }, get hidden() { return box.hidden; } };
+    return { tick, draw: () => draw(true), slots: cur, change, hint, label: shortName, set hidden(v) { box.hidden = v; }, get hidden() { return box.hidden; } };
   }
 
   const api = { mount, fits, handFits, place, level, glow, phrase, stepOf, suggestName, nameProblem, chain, strongest, assign, pictogram,
-    BASE, ACCENTS, HANDS, MAX_HANDS, STEPS, TOLS, COLOURS, GROUP_OF, EFFECTS, REASONS, SLOTS };
+    BASE, ACCENTS, OWN_BASE, HANDS, MAX_HANDS, STEPS, TOLS, COLOURS, GROUP_OF, EFFECTS, REASONS, SLOTS };
   if (node) module.exports = api;
   else root.DanceSlots = api;
 })(typeof window !== 'undefined' ? window : globalThis);
