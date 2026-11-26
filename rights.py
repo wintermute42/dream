@@ -151,7 +151,9 @@ CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r
                 # #236: the dance moves the dancer taught (trajectories too, kept on this Mac)
                 ("GET", r"/dance/moves(/[^/]+)?"), ("POST", r"/dance/moves(/[^/]+)?"), ("DELETE", r"/dance/moves/[^/]+")]
 # #251, #252: the pages of Dream Dance and Flowtrack are this Mac's (they steer the stage in the window that opened them)
-LOCAL_ONLY = [("POST", r"/gallery"), ("GET", r"/dance"), ("GET", r"/flowtrack")]
+# #276: recording the output – the stage on this Mac hands its video in and shows the file in the Finder
+LOCAL_ONLY = [("POST", r"/gallery"), ("GET", r"/dance"), ("GET", r"/flowtrack"),
+              ("POST", r"/rec/(start|reveal)"), ("POST", r"/rec/(chunk|end)/[^/]+")]
 
 
 def needs(method: str, path: str) -> set | None:

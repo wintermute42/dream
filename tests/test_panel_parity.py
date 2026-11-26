@@ -89,7 +89,8 @@ PHONE_ONLY_CMDS = {"relieve_ask": "the phone asks the stage how it is doing, to 
 PHONE_ONLY_MSGS = {"feed": "lends this phone's camera or motion", "motion_in": "this phone's motion",
                    "glow": "this phone's screen glows", "take_control": "this device takes over the role"}
 # the parts both pages mount: what such a part sends, it sends from either page
-SHARED_PARTS = ("WorldBand.mount", "MoveCard.mount", "DreamSliders.resetButton", "DreamCommon.gallery", "DreamCompute.draw")
+SHARED_PARTS = ("WorldBand.mount", "MoveCard.mount", "DreamSliders.resetButton", "DreamCommon.gallery", "DreamCompute.draw",
+                "RecCard.mount")   # #276: recording the output – the same button on both pages
 
 
 def test_every_control_of_dream_control_is_in_the_panel():
