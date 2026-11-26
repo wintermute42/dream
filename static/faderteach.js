@@ -33,7 +33,7 @@
   const stateValues = n => Array.from({ length: n }, (_, k) => Math.round(k / (n - 1) * 1e5) / 1e5);
   // What is wrong with the names of a base movement and its states: null, or {what: 'name' | 'state' | 'taken' | 'twice', i?}
   // taken: the names of the other base movements (compared without regard to case)
-  function nameProblem(name, states, taken = []) {
+  function nameProblem(name, states = [], taken = []) {
     if (!NAME_OK.test(clean(name))) return { what: 'name' };
     if (taken.some(t => String(t).toLowerCase() === clean(name).toLowerCase())) return { what: 'taken' };
     for (let i = 0; i < states.length; i++) if (!NAME_OK.test(clean(states[i]))) return { what: 'state', i };
@@ -117,14 +117,14 @@
       const nameIn = el('input'), field = el('label', 'mt-field');
       nameIn.type = 'text'; nameIn.maxLength = 32; nameIn.autocomplete = 'off'; nameIn.id = 'ft-name'; nameIn.placeholder = T('e.g. Knees'); nameIn.value = w.name;
       field.htmlFor = 'ft-name'; field.append(el('span', '', T('Name of the base movement')), nameIn);
-      const rows = el('ol', 'ft-states'), more = btn(T('＋ A step in between'), T('One more state between the others (at most three) – the states are spread evenly from 0 to 1'));
+      const rows = el('ol', 'ft-states'), more = btn(T('＋ A step in between'), T('One more state between the others (at most three) – the states are spread evenly from 0 to 1'), 'ft-more');
       rows.setAttribute('aria-label', T('The states, from 0 to 1'));
       const why = el('div', 'ft-why'); why.setAttribute('role', 'status'); why.setAttribute('aria-live', 'polite');
-      const draw = focusAt => {
+      const draw = (focusAt, fresh = -1) => {          // fresh: the row just added – only it comes in
         rows.textContent = '';
         const ys = stateValues(w.states.length);
         w.states.forEach((s, k) => {
-          const li = el('li', 'ft-staterow'), inp = el('input'), tag = el('span', 'ft-y', (Math.round(ys[k] * 100) / 100).toLocaleString(root.I18N ? root.I18N.lang : 'en'));
+          const li = el('li', 'ft-staterow' + (k === fresh ? ' ft-in' : '')), inp = el('input'), tag = el('span', 'ft-y', (Math.round(ys[k] * 100) / 100).toLocaleString(root.I18N ? root.I18N.lang : 'en'));
           tag.setAttribute('aria-hidden', 'true');
           inp.type = 'text'; inp.maxLength = 32; inp.autocomplete = 'off'; inp.value = s; inp.dataset.k = k;
           inp.placeholder = k === 0 ? T('e.g. upright') : k === w.states.length - 1 ? T('e.g. deep in the knees') : T('e.g. halfway');
@@ -142,7 +142,7 @@
         more.disabled = w.states.length >= FD.MAX_STATES;
         if (focusAt != null) { const f = rows.querySelector(`input[data-k="${focusAt}"]`); if (f) f.focus(); }
       };
-      more.onclick = () => { w.states.splice(w.states.length - 1, 0, ''); draw(w.states.length - 2); };
+      more.onclick = () => { w.states.splice(w.states.length - 1, 0, ''); draw(w.states.length - 2, w.states.length - 2); };
       nameIn.oninput = () => { w.name = nameIn.value; };
       nameIn.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
       const go = () => {
@@ -208,7 +208,7 @@
       w.model = md; w.c = FD.compile(md, 'try'); w.v = null;
       show('try', 2, T('Try “{n}”', { n: w.name }), T('Move between the states – the level follows you. Keep it, or show the states again.'));
       level = meter(w.states, md);
-      const from = el('div', 'hint ft-from', T('Dream reads it from: {p}', { p: readFrom(md) }));
+      const from = el('div', 'ft-from', T('Dream reads it from: {p}', { p: readFrom(md) }));   // no hint: it is what the fader is
       pane.append(level.box, from);
       add(btn(T('Keep'), T('Keep this base movement on this Mac – numbers only, no camera picture'), 'on'), true).onclick = keepIt;
       add(btn(T('Again'), T('Show the states once more'))).onclick = () => { w.samples = []; w.k = 0; countdown(); };
@@ -265,7 +265,7 @@
           name.dataset.part = 'name'; del.dataset.part = 'del'; again.dataset.part = 'again';
           it = { li, name, del, again, lv, sub, key, f: null };
           name.onchange = () => {
-            const v = clean(name.value), p = nameProblem(v, ['ok'], list0().filter(x => x.id !== f.id).map(x => x.name));
+            const v = clean(name.value), p = nameProblem(v, [], list0().filter(x => x.id !== f.id).map(x => x.name));
             if (p) { say(p.what === 'taken' ? T('“{n}” exists already – choose another name.', { n: v }) : T('A name: letters, digits, spaces and . + - , at most 32 characters.')); name.value = it.f.name; return; }
             api.change(f.id, { name: v }).then(r => { if (r && r.id) { opts.changed(); say(T('Saved.')); } else say((r && r.error) || T('Could not be kept.')); }).catch(() => say(T('Could not be kept.')));
           };
@@ -279,7 +279,11 @@
         }
         it.f = f;
         if (document.activeElement !== it.name && it.name.value !== f.name) it.name.value = f.name;
-        it.sub.textContent = f.states.map(s => s.name).join(' ↔ ') + (readFrom(f.model) ? ' · ' + T('reads {p}', { p: readFrom(f.model) }) : '');
+        const from = readFrom(f.model), subKey = f.states.map(s => s.name).join(' ↔ ') + '|' + from;
+        if (it.sub.dataset.k !== subKey) {                 // the states, and below them what it is read from
+          it.sub.dataset.k = subKey; it.sub.textContent = '';
+          it.sub.append(el('span', '', f.states.map(s => s.name).join(' ↔ ')), ...(from ? [el('span', '', T('reads {p}', { p: from }))] : []));
+        }
         it.name.setAttribute('aria-label', T('Name of the base movement “{n}”', { n: f.name }));
         it.del.setAttribute('aria-label', T('Delete the base movement “{n}”', { n: f.name }));
         it.again.setAttribute('aria-label', T('Teach the base movement “{n}” again', { n: f.name }));

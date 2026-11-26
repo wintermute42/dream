@@ -56,6 +56,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
   - [Die Sätze – was dein Tanz bewirkt](#die-sätze--was-dein-tanz-bewirkt)
   - [Eigene Bewegungen – eine Bewegung lernen](#eigene-bewegungen--eine-bewegung-lernen)
+  - [Eigene Grundbewegungen – ein Regler durch Vormachen](#eigene-grundbewegungen--ein-regler-durch-vormachen)
   - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
@@ -1922,7 +1923,9 @@ keiner ist zu sehen. Die Worte dazu stehen beim Darüberfahren (und für Screenr
 
 **Sätze in drei Spuren.** Jeder Satz sagt eine Sache, z. B. **„Wenn ich [die Arme hochwerfe] → [ziehen Spuren nach]“**:
 - **Grundbewegung** (warmes Gelb, *solange du dich bewegst*) – 2 Sätze. Eine fließende Bewegung (viel bewegen, die
-  Arme öffnen, drehen, die Arme heben) steuert eine Wirkung: „Wenn ich mich viel bewege → werden die Wellen stärker“.
+  Arme öffnen, drehen, die Arme heben) oder eine eigene Grundbewegung (siehe
+  [Eigene Grundbewegungen](#eigene-grundbewegungen--ein-regler-durch-vormachen)) steuert eine Wirkung: „Wenn ich mich
+  viel bewege → werden die Wellen stärker“.
 - **Akzente** (kaltes Blau, *ein kurzer Moment*) – 4 Sätze. Eine Geste (die Arme hochwerfen, Akkordeon spielen, nach
   vorn schieben, einen Kreis ziehen, eine Welle machen) oder eine eigene Bewegung löst eine Wirkung aus: „Wenn ich
   einen Kreis ziehe → blüht ein Mandala auf“.
@@ -2063,6 +2066,52 @@ Akzent.
   Tanz-Session – und der mittlere Weg der Hände als Vorlage. **Nur Zahlen, nie ein Kamerabild.** Die Bewegungen
   liegen in `~/.local/state/dream/dance/moves/` auf diesem Mac; nur dieser Mac und Dream Control können sie lesen oder
   ändern, und nichts davon verlässt den Mac.
+
+### Eigene Grundbewegungen – ein Regler durch Vormachen
+
+Neben den vier eingebauten Grundbewegungen (viel bewegen, die Arme öffnen, drehen, die Arme heben) kannst du Dream
+eigene Grundbewegungen beibringen: einen **Regler** zwischen Zuständen deines Körpers, die du vormachst und benennst –
+z. B. „aufrecht“ ↔ „tief in den Knien“ oder „nach links gelehnt“ ↔ „nach rechts gelehnt“. Unter den eigenen Bewegungen
+steht **🎚 Eigene Grundbewegungen**; starten mit **＋ Grundbewegung anlernen …** dort, mit **＋ Eigene Grundbewegung …**
+bei den Grundbewegungen oder in der Bewegungswahl eines Grundbewegungs-Satzes (dann wird sie die Bewegung dieses
+Satzes).
+
+1. **Benennen:** die Grundbewegung und ihre Zustände – den bei **0** und den bei **1**, wenn du magst bis zu drei
+   **Zwischenstufen** (**＋ Zwischenstufe**; sie liegen gleichmäßig, z. B. 0 · 0,5 · 1). Namen: Buchstaben, Ziffern,
+   Leerzeichen und `. + -`, höchstens 32 Zeichen; keine zwei Zustände mit demselben Namen.
+2. **Zustände zeigen.** Für jeden Zustand zählt Dream drei Sekunden herunter (Haltung einnehmen), dann **hältst** du
+   ihn zweieinhalb Sekunden – ein wenig wiegen ist gut, dann lernt Dream ihn stabiler. Die Chips zeigen, welche
+   Zustände fertig sind. Hat Dream dich in einem Zustand nicht gesehen, sagt es das, und du zeigst diesen nochmal.
+3. **Ausprobieren.** Ein **Live-Pegel** folgt dir zwischen den Zuständen, die Zustände sind darauf markiert, und eine
+   Zeile sagt, woraus Dream den Regler liest (z. B. „Füße ↕ 62 % · Knie ↕ 36 %“). **Behalten** speichert ihn auf diesem
+   Mac und macht ihn zu einem Grundbewegungs-Satz (mit der Wirkung des Satzes, aus dem du gestartet bist, oder der
+   ersten passenden Wirkung; sind beide Grundbewegungs-Sätze belegt, ersetzt er den zweiten und sagt das – das Set ist
+   wie immer „● geändert“). **Nochmal** zeigt die Zustände noch einmal. Sehen die Zustände für Dream gleich aus oder
+   laufen sie ineinander, entsteht kein Regler, und Dream sagt warum – zeig sie nochmal, unterschiedlicher, oder ändere
+   die Zustände.
+
+- **Lernen** ist eine kleine Regression wie bei Wekinator, so klein, dass sie sich erklären lässt. Was der Körper
+  zeigt, sind ein paar Zahlen, gemessen an deinem eigenen Körper (jeder Punkt des Skeletts in Schulterbreiten von der
+  Mitte der Schultern, wie weit eine Schulter über der anderen steht, und deine Hände) – wo du im Bild stehst und wie
+  nah, spielt also keine Rolle. Dream nimmt die Werte, die sich zwischen den Zuständen ändern, gewichtet jeden danach,
+  wie ruhig er war, während du einen Zustand gehalten hast (so steht der Regler still, wenn du stillhältst), und passt
+  ihre Summe so an, dass jeder Zustand bei seinem Wert herauskommt; der Regler bleibt zwischen 0 und 1 und gleitet ein
+  wenig (etwa eine Zehntelsekunde).
+- **Erkennung.** Am besten mit **Hände (KI)** und dem ganzen Körper im Bild: Aus dem Skelett wird er gelesen. Mit
+  LED-Markern allein liest Dream eine Grundbewegung nur aus deinen Händen (z. B. „Arme unten“ ↔ „Arme oben“). Lern sie
+  mit der Erkennung an, mit der du sie tanzen wirst. Ist außer Sicht, woraus er gelesen wird (z. B. die Füße verlassen
+  das Bild), ist der Regler unbekannt und sein Satz ruht.
+- **Was sie bewirkt**, ist ein Grundbewegungs-Satz: „Wenn ich Richtung „tief in den Knien“ gehe → werden die Wellen
+  stärker“ – er wirkt, solange du da bist, nur bei eingelegter Kupplung und nach denselben Regeln wie jeder Satz (eine
+  Wirkung je Gruppe, höchstens drei Gruppen zugleich, das Minimum). Ihr Piktogramm ist eine Figur neben einem Regler.
+- **In der Liste** zeigt jede Grundbewegung ihren Namen (ein Textfeld: gespeichert, wenn du es verlässt), ihre
+  Zustände, woraus sie gelesen wird, und einen Live-Pegel dessen, was die Bühne gerade liest. **🎓 Nachlernen** zeigt
+  die Zustände neu (Name und Sätze bleiben); **🗑** löscht nach einer Rückfrage auf dem Knopf selbst – ihre Sätze (in
+  deinen Sets und in noch nicht gespeicherten Änderungen) sind dann leer. Höchstens 12 werden gespeichert.
+- **Was gespeichert wird:** die Regression – je Körperwert seine Mitte, sein Gewicht und sein Anteil –, die Namen der
+  Grundbewegung und ihrer Zustände und wo jeder Zustand herauskam. **Nur Zahlen und Namen, nie ein Kamerabild, nicht
+  einmal die gezeigten Frames.** Sie liegen in `~/.local/state/dream/dance/faders/` auf diesem Mac; nur dieser Mac und
+  Dream Control können sie lesen oder ändern, und nichts davon verlässt den Mac.
 
 ### Tanz-Labor
 
@@ -2549,6 +2598,15 @@ Wiederholungen und Hysterese, die Grenzen der Toleranz und wie eine Aufnahme in 
 `node --test tests/js/moveteach.test.mjs` prüft die Teile der Anlern-Karte ohne Seite (eine Aufnahme, die Datei, die
 gespeichert wird, die Zeile der Tabelle, die Kupplung); `tests/test_dancemoves.py`, was Dream von einer Bewegung
 speichert, wer sie erreicht und dass das Löschen ihre Zeilen entfernt.
+`node --test tests/js/dancefaders.test.mjs` (#267) prüft die eigenen Grundbewegungen (`static/dancefaders.js`,
+gelesen in `static/dance.js`) an einem simulierten Körper: Ein Regler, gelernt aus zwei gezeigten Zuständen (aufrecht ↔
+tief in den Knien), wird aus den Beinen gelesen und läuft gleichmäßig zwischen ihnen – weiter weg, näher, an anderer
+Stelle im Bild; hält man einen Zustand mit dem Zittern des Posenmodells, hält der Merkmalstrom ihn still; drei Zustände
+mit Zwischenstufe (Lehnen), zwei Regler, die sich nicht ins Gehege kommen, Marker allein (die Hände), ein Regler, der
+keiner sein kann, sagt warum, ein Skelett außer Sicht ist kein Wert, eine Session spielt ihn wieder ab, und ein kaputtes
+Modell wird abgelehnt. `node --test tests/js/faderteach.test.mjs` prüft die Teile der Anlern-Karte ohne Seite und den
+Satz einer eigenen Grundbewegung; `tests/test_dancefaders.py`, was Dream davon speichert (nur Zahlen und Namen), wer es
+erreicht, eine kaputte Datei und dass das Löschen ihre Grundbewegungs-Sätze leert.
 `node --test tests/js/dancerec.test.mjs` (#243) prüft die Sessions des Tanz-Labors (`static/dancerec.js`): Ein
 aufgenommener simulierter Tanz gibt beim Abspielen genau die Merkmale wieder, aus denen er gemacht wurde, und enthält
 nichts als Zahlen; seine Eingaben, einem frischen Erkenner gefüttert, ergeben dieselben Gesten; ein Feedback behält

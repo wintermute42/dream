@@ -5,7 +5,7 @@
    strong]". The pill of the movement and the pill of the effect are buttons – each half of a sentence is changed with
    a click (a choice with a pictogram per movement; effects that do not fit beside the others are greyed, with the
    reason). Three lanes keep them apart: the base movement (2 slots: a continuous value sets one effect, as long as you
-   move), the accents (4 slots: a gesture or a move of one's own sets off one effect for a short moment – each with its
+   move – a built-in one or, #267, a base movement of one's own, "f.<id>", taught in faderteach.js), the accents (4 slots: a gesture or a move of one's own sets off one effect for a short moment – each with its
    tolerance, how sure the detection must be, and a bar of how sure it is right now with the threshold marked) and the
    hands in the picture (paint, stir, impulses, light as switches, at most 2). A strength is one of three steps; the
    panel's "Strength" of the movement tunes them all together. Dream picks curve, ranges and smoothing (dance.py

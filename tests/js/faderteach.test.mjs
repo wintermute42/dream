@@ -24,6 +24,7 @@ test('the names: of the base movement (none twice among them) and of each state 
   assert.deepEqual(FT.nameProblem('', ['a', 'b']), { what: 'name' });
   assert.deepEqual(FT.nameProblem('<b>', ['a', 'b']), { what: 'name' });
   assert.deepEqual(FT.nameProblem('knees', ['a', 'b'], ['Knees']), { what: 'taken' });
+  assert.equal(FT.nameProblem('Squat', [], ['Knees']), null, 'a new name alone (renaming in the list)');
   assert.deepEqual(FT.nameProblem('Knees', ['a', '', 'b']), { what: 'state', i: 1 });
   assert.deepEqual(FT.nameProblem('Knees', ['up', 'Up']), { what: 'twice', i: 1 });
 });
