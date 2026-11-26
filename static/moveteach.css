@@ -10,7 +10,7 @@
 .mt .btn.mt-close { position: absolute; right: 8px; top: 8px; min-height: 40px; min-width: 40px; background: none; border-color: transparent; }
 /* the five steps, the one at hand lit */
 .mt-steps { list-style: none; margin: 0; padding: 0 48px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.mt-steps li { font-size: .8em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; opacity: .6; }
+.mt-steps li { font-size: .8em; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; opacity: .85;   /* #266: still readable (axe: contrast) */ }
 .mt-steps li.cur { opacity: 1; color: var(--text); border-color: #6fd3ff; }
 .mt-steps li.done { opacity: .9; }
 .mt-say { color: var(--muted); font-size: .92em; min-height: 1.3em; }

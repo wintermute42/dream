@@ -66,10 +66,12 @@ def sandbox(tmp_path, monkeypatch):
     for k, v in env.items():
         monkeypatch.setenv(k, v)
     import dance
+    import danceprofiles
     import midi
     import playlists
     import sensors
     monkeypatch.setattr(dance, "MAP_FILE", os.path.join(env["DREAM_CONFIG_DIR"], "dance.json"))
+    monkeypatch.setattr(danceprofiles, "FILE", os.path.join(env["DREAM_CONFIG_DIR"], "dance-profiles.json"))   # #266
     monkeypatch.setattr(midi, "MAP_FILE", os.path.join(env["DREAM_CONFIG_DIR"], "midi.json"))
     monkeypatch.setattr(sensors, "MAP_FILE", os.path.join(env["DREAM_CONFIG_DIR"], "sensors.json"))
     monkeypatch.setattr(playlists, "USER_FILE", os.path.join(env["DREAM_CONFIG_DIR"], "playlists.json"))

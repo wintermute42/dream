@@ -187,7 +187,8 @@
 
   // ---------- the page part ----------
   // opts: {bridge, fxNames, fxIcons, label(src) → short name, setLabel(name) → shown name, frame, figure,
-  //        names() → {move id: name} (#236), learn({src?, fx?, quick?}) – start teaching a movement (moveteach.js)}
+  //        names() → {move id: name} (#236), learn({src?, fx?, quick?}) – start teaching a movement (moveteach.js),
+  //        measure() – start measuring the dancer (#266, dancecal.js)}
   function mount(box, opts) {
     const { bridge } = opts, fxName = e => (opts.fxNames && opts.fxNames[e]) || e, icon = e => (opts.fxIcons && opts.fxIcons[e]) || '✦';
     const names = () => (opts.names ? opts.names() : {});
@@ -227,7 +228,10 @@
     const actions = el('div', 'ds-actions');
     const showBtn = btn(T('＋ New sentence: show it'), T('Tap what should happen, then show the movement – Dream says what it saw'), 'ds-show');
     const learnBtn = btn(T('🎓 Teach a movement …'), T('Teach Dream a movement (a built-in one more exactly, or one of your own): show it five times, dance freely, confirm each hit'), 'ds-learn');
-    actions.append(showBtn, learnBtn);
+    // #266: measuring the dancer's calm and wild per base movement (dancecal.js)
+    const measureBtn = btn(T('📏 Measure me …'), T('Measure your calm and your wild for each base movement (about 45 seconds, key M)'), 'ds-measure');
+    measureBtn.hidden = !opts.measure; measureBtn.onclick = () => opts.measure && opts.measure();
+    actions.append(showBtn, learnBtn, measureBtn);
     const wiz = el('div', 'ds-wiz'); wiz.hidden = true; wiz.setAttribute('role', 'region'); wiz.setAttribute('aria-label', T('New sentence by showing'));
 
     // ---- the lanes: the figure beside them ----

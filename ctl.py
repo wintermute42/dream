@@ -13,6 +13,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 import cloud
 import config
 import dance
+import danceprofiles
 import eyes
 import hub
 import hue
@@ -84,7 +85,8 @@ async def ctl(sock: WebSocket):
         outbox.post(sock, json.dumps({"midi": {"map": inputs.midi_map}}))
         outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
         # #235: the dance mapping table; #243: whether the dance lab is open, records or plays
-        outbox.post(sock, json.dumps({"dance": {**dance.msg()["dance"], "lab": hub.live.get("dance_lab") or {}}}))
+        outbox.post(sock, json.dumps({"dance": {**dance.msg()["dance"], **danceprofiles.msg()["dance"], "lab": hub.live.get("dance_lab") or {}}},
+                                     ensure_ascii=False))   # #266: the dancers' measures with it
         outbox.post(sock, json.dumps(movement.msg(hub.state)))   # #249: the register of movement sources
         if kind == "stage" and movement.presence.calm:   # nobody in front of Dreamy Eyes: a stage that comes now is calm too
             outbox.post(sock, json.dumps({"cmd": "calm"}))
@@ -211,6 +213,8 @@ async def ctl(sock: WebSocket):
                 await hub.broadcast(inputs.dance_map(msg["dance_map"], msg["mode"]))
             if "dance_slots" in msg and rights.can(hub.roles.get(sock), "control"):   # #265: the movement sets of Dream Dance
                 await hub.broadcast(inputs.dance_slots(msg["dance_slots"]))
+            if "dance_profiles" in msg and rights.can(hub.roles.get(sock), "control"):   # #266: the dancers' measures
+                await hub.broadcast(inputs.dance_profiles(msg["dance_profiles"]))
             if "midi_forget" in msg:
                 inputs.midi_map.pop(str(msg["midi_forget"]), None)
                 midi.save_map(inputs.midi_map)

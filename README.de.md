@@ -1475,7 +1475,8 @@ Interaktion“):
   - **Flowtrack:** was Dream gerade erkennt – die Art, Werte pro Sekunde, ob jemand da ist –, **Automatik: AN/AUS**
     und was die Automatik gewählt hat und warum (siehe [Flowtrack](#flowtrack)).
   - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo, die **Ampel** (was den Tanz blockiert),
-    die **Kupplung**, das **Bewegungs-Set** und der Regler **Stärke** – alle Wirkungen des Tanzes zusammen
+    die **Kupplung**, das **Bewegungs-Set**, **wessen Maße** der Tanz liest (siehe
+    [Deine Maße](#deine-maße--ruhig-und-wild)) und der Regler **Stärke** – alle Wirkungen des Tanzes zusammen
     (siehe [Dream Dance](#dream-dance-die-seite-die-kupplung-die-sets)).
 - **Seite ↗** öffnet die Seite des Modus in einem eigenen Fenster, für einen zweiten Bildschirm: Flowtrack und Dream
   Dance haben eine, die Stimmung braucht keine.
@@ -1859,7 +1860,8 @@ Kamera (nur die Sessions des Labors gehen direkt an Dream und zurück) – öffn
 ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
 selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
 Erkennung, der Takt, darunter die Sätze mit den Sets (siehe [Die Sätze](#die-sätze--was-dein-tanz-bewirkt)), deine
-eigenen Bewegungen (siehe [Eigene Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)) und das Tanz-Labor.
+eigenen Bewegungen (siehe [Eigene Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)), deine Maße
+(siehe [Deine Maße](#deine-maße--ruhig-und-wild)) und das Tanz-Labor.
 
 **Die Kupplung** entscheidet, ob dein Tanz wirkt. Was Regler, Bedienfeld und ein MIDI-Controller einstellen, ist die
 **Grundlage**; der Tanz wirkt **obendrauf** – ein Effekt mit 30 % von Hand und 40 % vom Tanz zeigt sich mit 70 %, und
@@ -2063,6 +2065,45 @@ Akzent.
   Tanz-Session – und der mittlere Weg der Hände als Vorlage. **Nur Zahlen, nie ein Kamerabild.** Die Bewegungen
   liegen in `~/.local/state/dream/dance/moves/` auf diesem Mac; nur dieser Mac und Dream Control können sie lesen oder
   ändern, und nichts davon verlässt den Mac.
+
+### Deine Maße – Ruhig und Wild
+
+Die Grundbewegungen (Energie, Öffnung, Drehung, Höhe) erreichen die Sätze über Bereiche, die Dream für Tanzende im
+Durchschnitt wählt – das Ruhig der einen ist das Aufwärmen der anderen. **📏 Deine Maße** (unter den eigenen
+Bewegungen) misst dich ein, sodass **dein Ruhig 0 %** und **dein Wild 100 %** für jeden Satz ist. Starten mit
+**📏 Mich einmessen …** (im Abschnitt, neben „🎓 Bewegung lernen …“, oder Taste **M**). Nach drei Sekunden Countdown
+sagt Dream in großen Worten, was zu tun ist; jeder Schritt hat einen Balken, die ersten anderthalb Sekunden sind zum
+Hinkommen, und solange Dream dich nicht sieht, wartet der Schritt:
+
+1. **Ruhig** (10 s): still stehen, Arme hängen locker – dein Ruhig von Energie, Höhe und Drehung.
+2. **Wild** (10 s): so wild tanzen wie in einer Show – das Oberste deiner Energie.
+3. **Arme zu** (5 s): Hände vor dir zusammen – 4. **Arme auf** (5 s): weit auf – dein Bereich der Öffnung.
+5. **Arme hoch** (5 s): so hoch sie reichen – das Oberste deiner Höhe.
+6. **Drehen** (8 s): so weit drehen wie in deinem Tanz, die Hände kreisen – Dream liest die Drehung daran, wie deine
+   Hände kreisen, also lass sie kreisen.
+7. **Ergebnis:** je Grundbewegung ein Balken mit dem Standardbereich (grau) und deinem (violett), ein grüner Punkt, wo
+   du gerade bist, und „jetzt … %“ zwischen deinem Ruhig und deinem Wild – beweg dich und schau hin. Eine
+   Grundbewegung, die Dream nicht gut genug gesehen hat oder deren Ruhig und Wild zu nah beieinander liegen, behält den
+   Standardbereich (es steht dabei). Gib einen **Namen** (z. B. deinen Vornamen; dieselben Regeln wie beim Namen eines
+   Sets) und **Behalten** – deine Maße gelten ab jetzt. Ein Name, den es schon gibt, wird neu eingemessen (das Feld
+   sagt es). **Noch einmal messen**, **Verwerfen**, **✕** oder **Esc** ändern nichts.
+
+- **Wählen.** Die Chips über den Balken – **Standard-Maße** und alle eingemessenen Tanzenden – wählen, mit wessen
+  Maßen der Tanz liest; **Standard-Maße** holt jederzeit die eingebauten Bereiche zurück. Das Panel hat dieselbe Wahl
+  unter dem Bewegungs-Set („Maße: Kim“), und eine Playlist-Szene kann sie mitbringen (die Einstellung
+  `dance_profile`). **🗑** neben den Maßen in Gebrauch löscht sie nach einer Rückfrage am Knopf selbst (dann gelten die
+  Standard-Maße).
+- **Was es bewirkt.** Die Engine auf der Bühne liest den Tanz durch die Maße in Gebrauch, bevor irgendeine Zeile der
+  Tanz-Tabelle wirkt: dein Ruhig liegt, wo das Standard-Ruhig liegt, und dein Wild, wo das Standard-Wild liegt – so
+  erreicht eine sanfte Tänzerin die volle Wirkung, und ein unruhiger Tänzer löst im Stehen nicht alles aus. Nur die vier
+  Grundbewegungen werden so gelesen (Gesten, Hände, der Takt bleiben, wie sie sind), nur in Dream Dance (Stimmung und
+  Flowtrack lesen die Bewegung, wie sie ist), und die Regeln bleiben: ein Effekt je Gruppe, höchstens drei Gruppen,
+  die Mindestwirkung.
+- **Was gespeichert wird:** je Person ein Name und vier Zahlenpaare, in `~/.config/dream/dance-profiles.json` auf
+  diesem Mac – nie ein Kamerabild. Nur dieser Mac und Dream Control dürfen Maße behalten oder löschen; ein Gast ändert
+  nichts. Eine kaputte Datei wird übergangen: dann gelten die Standard-Maße.
+- **Grenzen.** Die Standardbereiche sind die eingebauten, noch nicht aus echten Sessions gelernt. Miss dich mit der
+  Erkennung ein, mit der du tanzt (Hände per KI oder LED-Marker), und an dem Ort, an dem du tanzt.
 
 ### Tanz-Labor
 
@@ -2549,6 +2590,11 @@ Wiederholungen und Hysterese, die Grenzen der Toleranz und wie eine Aufnahme in 
 `node --test tests/js/moveteach.test.mjs` prüft die Teile der Anlern-Karte ohne Seite (eine Aufnahme, die Datei, die
 gespeichert wird, die Zeile der Tabelle, die Kupplung); `tests/test_dancemoves.py`, was Dream von einer Bewegung
 speichert, wer sie erreicht und dass das Löschen ihre Zeilen entfernt.
+`node --test tests/js/dancecal.test.mjs` (#266) misst den simulierten Tänzer ein (ruhig, wild, Arme zu und auf, Arme
+hoch, drehen) und prüft die Grenzen, die herauskommen, dass Ungesehenes oder zu Nahes beim Standard bleibt und dass die
+Engine den Tanz durch die Maße liest – eine sanfte Tänzerin erreicht die volle Wirkung, nur in Dream Dance, die Gruppen
+gelten weiter; `tests/test_danceprofiles.py`, was ein Profil sagen darf, eine kaputte Datei (dann gelten die
+Standard-Maße), Wählen, Behalten und Löschen, und dass nur dieser Mac und Dream Control das dürfen.
 `node --test tests/js/dancerec.test.mjs` (#243) prüft die Sessions des Tanz-Labors (`static/dancerec.js`): Ein
 aufgenommener simulierter Tanz gibt beim Abspielen genau die Merkmale wieder, aus denen er gemacht wurde, und enthält
 nichts als Zahlen; seine Eingaben, einem frischen Erkenner gefüttert, ergeben dieselben Gesten; ein Feedback behält

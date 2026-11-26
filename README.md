@@ -1391,7 +1391,8 @@ interaction”):
   - **Flowtrack:** what Dream detects right now – the kind, values a second, whether someone is there –,
     **Automatic: ON/OFF** and what the automatic chose and why (see [Flowtrack](#flowtrack)).
   - **Dream Dance:** the recognised gesture with how sure Dream is and your tempo, the **traffic light** (what blocks
-    the dance), the **clutch**, the **movement set** and the slider **Strength** – all effects of the dance together
+    the dance), the **clutch**, the **movement set**, **whose measures** the dance reads with (see
+    [Your measures](#your-measures--calm-and-wild)) and the slider **Strength** – all effects of the dance together
     (see [Dream Dance](#dream-dance-the-page-the-clutch-the-sets)).
 - **Page ↗** opens the page of the mode in a window of its own, for a second screen: Flowtrack and Dream Dance have
   one, the mood needs none.
@@ -1755,7 +1756,8 @@ written to Dream directly), so open it from the panel, not by its address.
 If the stage is reloaded, the page finds it again by itself. If the browser blocks the window, allow pop-ups for
 Dream. On the page: the clutch, the detection, the beat, below them the sentences with the sets
 (see [The sentences](#the-sentences--what-your-dance-does)), your own moves
-(see [Moves of your own](#moves-of-your-own--teaching-a-movement)) and the dance lab.
+(see [Moves of your own](#moves-of-your-own--teaching-a-movement)), your measures
+(see [Your measures](#your-measures--calm-and-wild)) and the dance lab.
 
 **The clutch** decides whether your dance acts. What the sliders, the panel and a MIDI controller set is the **base**;
 the dance acts **on top of it** – an effect at 30 % by hand and 40 % by the dance shows at 70 %, and a fader moved
@@ -1947,6 +1949,42 @@ sentence by showing) takes three repetitions and puts the move on an accent at o
   the mean way of the hands as the template. **Numbers only, never a camera picture.** The moves are in
   `~/.local/state/dream/dance/moves/` on this Mac; only this Mac and Dream Control can read or change them, and
   nothing of them leaves the Mac.
+
+### Your measures – calm and wild
+
+The base movements (energy, opening, turning, height) reach the sentences through ranges Dream picks for an average
+dancer – one dancer's calm is another's warm-up. **📏 Your measures** (below your moves) measures you, so that **your
+calm is 0 %** and **your wild is 100 %** for every sentence. Start it with **📏 Measure me …** (in the section, beside
+“🎓 Teach a movement …”, or key **M**). After a countdown of three seconds Dream says in big words what to do; each
+step has a bar, the first second and a half is for getting there, and while Dream does not see you the step waits:
+
+1. **Calm** (10 s): stand still, arms hanging loosely – your calm of energy, height and turning.
+2. **Wild** (10 s): dance as wild as you do in a show – the top of your energy.
+3. **Arms closed** (5 s): hands together in front of you – 4. **Arms open** (5 s): wide open – your range of opening.
+5. **Arms up** (5 s): as high as they go – the top of your height.
+6. **Turn** (8 s): turn as far as you do in your dance, your hands circling – Dream reads turning from your hands going
+   round, so let them circle.
+7. **Result:** per base movement one bar with the standard range (grey) and yours (violet), a green dot where you are
+   right now and “now … %” between your calm and your wild – move and watch it. A base movement Dream did not see well
+   enough, or whose calm and wild lie too close together, keeps the standard range (it says so). Give it a **name**
+   (e.g. your first name; the same rules as a set's name) and **Keep** – your measures are in use from now on. A name
+   that exists already is measured anew (the field says so). **Measure again**, **Throw away**, **✕** or **Esc**
+   change nothing.
+
+- **Choosing.** The chips above the bars – **Standard measures** and every measured dancer – choose whose measures
+  the dance reads; **Standard measures** brings the built-in ranges back at any time. The panel has the same choice
+  under the movement set (“Measures: Kim”), and a playlist scene can carry it (the setting `dance_profile`). **🗑**
+  beside the one in use deletes it after asking once more on the button (the standard measures act then).
+- **What it does.** The engine on the stage reads the dance through the measures in use before any row of the dance
+  table: your calm lies where the standard calm lies and your wild where the standard wild lies – so a gentle dancer
+  reaches the full effect, and a restless one does not set everything off while standing. Only the four base
+  movements are read so (gestures, hands, the beat stay as they are), only in Dream Dance (the mood and Flowtrack read
+  the movement as it is), and the rules stay: one effect per group, at most three groups, the minimum.
+- **What is kept:** per dancer a name and four pairs of numbers, in `~/.config/dream/dance-profiles.json` on this Mac
+  – never a camera picture. Only this Mac and Dream Control may keep or delete measures; a guest changes nothing. A
+  broken file is ignored: the standard measures act.
+- **Limits.** The standard ranges are the built-in ones, not yet learned from real sessions. Measure with the detection
+  you dance with (hands by AI or LED markers) and in the place you dance in.
 
 ### Dance lab
 
@@ -2384,6 +2422,11 @@ waving, talking hands and the like (none), the built-in gestures beside the taug
 the ends of the tolerance, and how a take is cut into its repetitions. `node --test tests/js/moveteach.test.mjs` tests
 the teaching card's parts without a page (a take, the file that is kept, the row of the table, the clutch);
 `tests/test_dancemoves.py` what Dream keeps of a move, who may reach it and that deleting one removes its rows.
+`node --test tests/js/dancecal.test.mjs` (#266) measures the simulated dancer (calm, wild, arms closed and open, arms
+up, turning) and checks the bounds that come out, that what was not seen or lies too close keeps the standard, and that
+the engine reads the dance through the measures – a gentle dancer reaches the full effect, only in Dream Dance, with
+the groups still in force; `tests/test_danceprofiles.py` what a profile may say, a broken file (the standard measures
+act), choosing, keeping and deleting, and that only this Mac and Dream Control may.
 `node --test tests/js/dancerec.test.mjs` (#243) tests the dance lab's sessions (`static/dancerec.js`): a recorded
 simulated dance plays back the very features it was made from and holds nothing but numbers, feeding its inputs to a
 fresh detector gives the same gestures, a feedback keeps exactly its seconds, playback (pause, slow motion, jumps, a

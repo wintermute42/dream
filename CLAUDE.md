@@ -86,7 +86,10 @@ command line for now, #231) via `dream-cloud`.
   version (the dance's own table, table-based sets) is migrated into sets once (`dance.migrate`, version 3; a broken or
   unknown file: the built-in sets act). Teaching a
   movement (#236 moves of one's own, the wizard with counter-check and 👍/👎 per hit, the tolerance it chooses) is
-  `static/moveteach.js` on `dancemoves.py`/`static/dancemoves.js`; an own move is an accent. The hand model runs exactly
+  `static/moveteach.js` on `dancemoves.py`/`static/dancemoves.js`; an own move is an accent. A dancer's own measures
+  (#266: their calm and wild per base movement, measured by `static/dancecal.js`, kept per person by `danceprofiles.py`,
+  the one in use the setting `dance_profile`) act in the engine: the dance's frame is read through them before its
+  rows (`DreamDanceMap.calibrate`, only the four base movements, only in the dance) – never on the page alone. The hand model runs exactly
   while Dream Dance detects with "Hands (AI)" (never in Flowtrack; `fingersOn` in the stage).
   Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –
   `tests/js/flowauto.test.mjs`) chooses the kind of detection and the exposure, holds the one performer and watches the
