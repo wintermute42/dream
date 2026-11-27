@@ -15,6 +15,7 @@ import config
 import dance
 import eyes
 import hub
+import hue
 import i18n
 import inputs
 import measure
@@ -23,10 +24,24 @@ import midi
 import movement
 import outbox
 import rights
+import roomlight
 import scenes
 import settings
 import windows
+import wled
 from web import app
+
+
+async def wled_find(sock) -> None:
+    """#212: the WLED devices in the network, to the page that asked."""
+    found = await wled.find()
+    outbox.post(sock, json.dumps({"wled": {**wled.status, "found": found}}))
+
+
+async def hue_find(sock) -> None:
+    """#272: the Hue Bridges in the network, to the page that asked."""
+    found = await hue.find()
+    outbox.post(sock, json.dumps({"hue": {**hue.status, "found": found}}, ensure_ascii=False))
 
 
 @app.websocket("/ctl")
@@ -77,6 +92,9 @@ async def ctl(sock: WebSocket):
                                          "cams": hub.live.get("cams", []), "lan": config.LAN,
                                          "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
                                          **eyes.drift_msg(time.monotonic()), **hub.status_msg()}, ensure_ascii=False))
+    if rights.can(role, "control"):                # #212: the room light's status (after the state: the page knows the switch)
+        outbox.post(sock, json.dumps(wled.msg()))
+        outbox.post(sock, json.dumps(hue.msg(), ensure_ascii=False))   # #272: the Hue lamps' (never the bridge's key)
     await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
     try:
@@ -98,6 +116,8 @@ async def ctl(sock: WebSocket):
                 eyes_energy(sock, msg.get("move"))     # #249: the energy in front of the eyes – a number, never a picture
                 if msg.get("eyes_mood") in windows.WINDOW_MOODS:  # #201: the dream windows feel with the eyes
                     await windows.windows_mood(msg["eyes_mood"])
+                if msg.get("eyes_mood") == "trance":       # #212: … and the room light flashes
+                    roomlight.flash()
             mr = msg.get("measure_report")             # #180: a device's frames during a measurement run
             if measure.measure["run"] and isinstance(mr, dict) and len(measure.measure["reports"]) < 50:
                 kind = mr.get("kind") if mr.get("kind") in ("stage", "eyes", "remote", "output") else "other"
@@ -106,7 +126,7 @@ async def ctl(sock: WebSocket):
                         **{k: float(min(max(float(mr.get(k) or 0), 0), 10000)) for k in ("fps", "ms_avg", "ms_p95", "slow_pct")},
                         "render": mr.get("render") if mr.get("render") in ("webgl2", "canvas") else "",
                         # #205: the stage's share of pictures that came with a flow field, and what a field cost
-                        **{k: float(min(max(float(mr[k]), 0), 10000)) for k in ("flow_pct", "flow_ms") if k in mr}}
+                        **{k: float(min(max(float(mr[k]), 0), 10000)) for k in ("flow_pct", "flow_ms", "light_ms") if k in mr}}
             if rights.can(hub.roles.get(sock), "eyes_only"):  # #156: Dreamy Eyes only lends (or stops) its front camera
                 f = msg.get("feed")
                 msg = {"feed": {"cam": bool(f.get("cam")), "facing": "user"}} if isinstance(f, dict) and "cam" in f else {}
@@ -118,6 +138,21 @@ async def ctl(sock: WebSocket):
                 feed_motion(msg["motion_in"], motion_of(sock))
                 if len(msg) == 1:                      # motion alone, ~30 times a second: nothing else to read in it,
                     continue                           # and none of a guest's allowance spent (#237: the second phone)
+            if "led" in msg and kind == "stage":       # #212: the colour of what the audience sees, a beat, a flash
+                roomlight.take(msg["led"])
+                if len(msg) == 1:                      # about a dozen times a second: nothing else to read in it
+                    continue
+            if msg.get("wled_find") is True and rights.can(hub.roles.get(sock), "control") and (   # #212: WLED devices
+                    not hub.live.get("wled_find") or hub.live["wled_find"].done()):                  # over mDNS, one search at a time
+                hub.live["wled_find"] = asyncio.create_task(wled_find(sock))
+            # #272: the Hue Bridge – find it, pair with it (that writes the key into the config folder), forget the key
+            if rights.can(hub.roles.get(sock), "control"):
+                if msg.get("hue_find") is True and (not hub.live.get("hue_find") or hub.live["hue_find"].done()):
+                    hub.live["hue_find"] = asyncio.create_task(hue_find(sock))
+                if msg.get("hue_pair") is True:
+                    hub.live["hue_pair"] = asyncio.create_task(hue.pair())
+                if msg.get("hue_unpair") is True:
+                    hue.unpair()
             if "glow" in msg:                          # #237: the phone that lends its motion glows as a light marker
                 await glow_set(sock, msg["glow"])
             if rights.can(hub.roles.get(sock), "control"):    # #172: Dream Control sends the eyes into trance / sets how often
@@ -153,6 +188,8 @@ async def ctl(sock: WebSocket):
             if is_name(msg.get("cmd")):            # one-off actions, handled by the stage
                 if msg["cmd"] == "next":
                     await scenes.next_scene(force=True)
+                elif msg["cmd"] == "blackout":         # #241: the server keeps what the master was before
+                    await hub.blackout(by=kind)
                 else:
                     await hub.broadcast({"cmd": msg["cmd"], "arg": msg.get("arg")}, exclude=sock)
             if "midi_learn" in msg:                # the next touched MIDI control gets this target
@@ -169,11 +206,11 @@ async def ctl(sock: WebSocket):
                 lab = {k: bool(msg["dance_lab"].get(k)) for k in ("open", "rec", "play")}
                 hub.live["dance_lab"] = lab
                 await hub.broadcast({"dance": {"lab": lab}}, exclude=sock)
-            if "dance_map" in msg and rights.can(hub.roles.get(sock), "control"):   # #235: never a guest
-                mode = msg.get("mode") if is_name(msg.get("mode")) and msg["mode"] in dance.MODES else "dance"   # #249
-                await hub.broadcast(inputs.dance_map(msg["dance_map"], mode))
-            if ("dance_set_save" in msg or "dance_set_delete" in msg) and rights.can(hub.roles.get(sock), "control"):   # #251
-                await hub.broadcast(inputs.dance_sets(msg))
+            # #235: never a guest; #249: the mode whose table it is – #265: the mood's or flowtrack's, never the dance's
+            if "dance_map" in msg and rights.can(hub.roles.get(sock), "control") and is_name(msg.get("mode")) and msg["mode"] in dance.TABLE_MODES:
+                await hub.broadcast(inputs.dance_map(msg["dance_map"], msg["mode"]))
+            if "dance_slots" in msg and rights.can(hub.roles.get(sock), "control"):   # #265: the movement sets of Dream Dance
+                await hub.broadcast(inputs.dance_slots(msg["dance_slots"]))
             if "midi_forget" in msg:
                 inputs.midi_map.pop(str(msg["midi_forget"]), None)
                 midi.save_map(inputs.midi_map)

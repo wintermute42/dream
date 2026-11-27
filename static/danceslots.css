@@ -1,0 +1,152 @@
+/* #265: the sentences of Dream Dance (danceslots.js) – in the colours of the movement pages (movepage.css).
+   Each lane has its colour (--lane): warm for the base movement, cold for the accents, green for the hands; the half of
+   a sentence that is the movement is magenta, the effect carries its group's colour (--g). Only transform and opacity
+   are animated; nothing holds up a click. */
+.ds { --mv: #f070dc; --flow: #ffc65c; --beat: #6fd3ff; --hand: #8af0b0; display: grid; gap: 12px; margin-bottom: 14px; position: relative; }
+.ds[hidden] { display: none; }
+/* the signal's way and the traffic light */
+.ds-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+.ds-chain { list-style: none; margin: 0; padding: 0; display: flex; flex: 1 1 520px; gap: 6px; min-width: 0; counter-reset: link; }
+.ds-link { flex: 1 1 0; min-width: 0; position: relative; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px 7px; background: rgba(255,255,255,.03); display: grid; gap: 1px; }
+.ds-link::before { counter-increment: link; content: counter(link); position: absolute; right: 8px; top: 5px; font-size: .72em; color: var(--muted); }
+.ds-link b { font-size: .88em; }
+.ds-link span { font-size: .74em; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-link::after { content: ''; position: absolute; inset: -1px; border-radius: 10px; box-shadow: 0 0 0 1px var(--ok), 0 0 16px -2px var(--ok); opacity: 0; transition: opacity .2s; pointer-events: none; }
+.ds-link.on::after { opacity: 1; }
+.ds-link:not(:last-child) { margin-right: 8px; }
+.ds-link:not(:last-child) > b::after { content: '→'; position: absolute; right: -13px; top: 40%; color: var(--muted); font-weight: 400; }
+@media (max-width: 760px) { .ds-chain { flex-wrap: wrap; } .ds-link { flex: 1 1 40%; } .ds-link:not(:last-child) > b::after { content: none; } }
+/* the sets: a row of cards */
+.ds-sets { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ds-set { display: inline-flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.05); padding: 2px; }
+.ds-set.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.ds-setbtn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 4px 12px; border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; border-radius: 8px; }
+.ds-set.on .ds-setbtn { font-weight: 600; }
+.ds-setbtn:hover { background: rgba(255,255,255,.08); }
+.ds-lock { font-size: .78em; opacity: .7; }
+.ds-changed { color: var(--flow); font-size: .9em; }
+.ds .btn.ds-mini { min-height: 40px; min-width: 40px; padding: 2px 8px; background: none; border-color: transparent; }
+.ds-rename { width: 14em; min-height: 40px; }
+.ds-pop { animation: ds-pop .45s ease-out; }
+@keyframes ds-pop { 0% { transform: scale(.9); opacity: .4; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: none; } }
+/* the bar of a changed set */
+.ds-dirty { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; border: 1px solid rgba(255,198,92,.5); background: rgba(255,198,92,.08); border-radius: 10px; padding: 8px 12px; }
+.ds-dirty[hidden], .ds-dirty [hidden] { display: none; }
+.ds-dirty-text { flex: 1 1 18em; }
+.ds-namefield { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--muted); }
+.ds-namefield input { width: 15em; min-height: 40px; }
+.ds-namewhy { flex-basis: 100%; color: var(--warn); font-size: .88em; }
+.ds-namewhy:empty { display: none; }
+/* making a sentence by showing it */
+.ds-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ds-wiz { position: relative; border: 1px solid var(--beat); border-radius: 12px; padding: 12px; background: rgba(111,211,255,.05); }
+.ds-wiz[hidden] { display: none; }
+.ds-steps3 { list-style: none; margin: 0; padding: 0 40px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.ds-step { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; align-content: start; opacity: .5; transition: opacity .2s; }
+.ds-step.cur { opacity: 1; border-color: var(--beat); }
+.ds-step.done { opacity: .85; }
+.ds-stepn { font-size: .78em; color: var(--muted); }
+.ds-big { font-size: 1.15em; }
+.ds .btn.ds-wizclose { position: absolute; right: 8px; top: 8px; }
+.ds-fxchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ds-listen { width: 100%; height: 8px; }
+/* the lanes and the figure beside them */
+.ds-body { display: grid; grid-template-columns: minmax(220px, 28%) minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (max-width: 900px) { .ds-body { grid-template-columns: minmax(0, 1fr); } }
+.ds-live { position: relative; border: 1px solid var(--line); border-radius: 12px; background: #000; overflow: hidden; }
+.ds-fignote { position: absolute; inset: auto 12px 12px; color: var(--muted); font-size: .85em; text-align: center; }
+.ds-fignote[hidden] { display: none; }
+.ds-fig { width: 100%; aspect-ratio: 3 / 4; display: block; }
+@media (max-width: 900px) { .ds-fig { aspect-ratio: 16 / 9; } }
+.ds-lanes { display: grid; gap: 10px; min-width: 0; }
+.ds-lane { border: 1px solid var(--line); border-top: 3px solid var(--lane); border-radius: 12px; padding: 8px 10px 10px; background: rgba(255,255,255,.025); display: grid; gap: 8px; }
+.ds-base { --lane: var(--flow); } .ds-acc { --lane: var(--beat); } .ds-hands { --lane: var(--hand); }
+.ds-lane h3 { margin: 0; font-size: .95em; display: flex; gap: 10px; align-items: baseline; }
+.ds-lane h3 small { color: var(--muted); font-weight: 400; font-size: .85em; }
+.ds-rows { display: grid; gap: 6px; }
+.ds-none { color: var(--muted); font-size: .9em; }
+.ds-more { display: flex; flex-wrap: wrap; gap: 6px; }
+.ds .btn.ds-add { min-height: 40px; border-style: dashed; color: var(--muted); }
+/* a sentence */
+.ds-row { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+.ds-row::after { content: ''; position: absolute; inset: -1px; border-radius: 10px; box-shadow: 0 0 0 1px var(--lane), 0 0 20px -4px var(--lane); opacity: 0; transition: opacity .15s; pointer-events: none; }
+.ds-row.live::after { opacity: 1; }
+.ds-row.ds-new { animation: ds-pop .45s ease-out; }
+.ds-flash { position: absolute; inset: -1px; border-radius: 10px; background: var(--lane); opacity: 0; pointer-events: none; }
+.ds-flash.go { animation: ds-flash .7s ease-out; }
+@keyframes ds-flash { 0% { opacity: .55; transform: scale(.98); } 100% { opacity: 0; transform: scale(1.03); } }
+.ds-pictbox { flex: none; width: 34px; height: 40px; color: var(--lane, var(--mv)); display: inline-grid; place-items: center; }
+.ds-pict { width: 100%; height: 100%; }
+.ds-pict path, .ds-pict circle { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.ds-what { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 22em; min-width: 0; font-size: 1.02em; }
+.ds-w { color: var(--muted); }
+.ds-pill { border-radius: 999px; padding: 5px 12px; min-height: 36px; border: 1px solid var(--line); background: rgba(0,0,0,.25); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; text-align: left; transition: transform .08s ease-out; }
+.ds-pill:hover { background-color: rgba(255,255,255,.1); }
+.ds-pill:active { transform: scale(.96); }
+.ds-pill:focus-visible, .ds-opt:focus-visible, .ds-steps button:focus-visible, .ds-setbtn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.ds-mv { color: var(--mv); border-color: rgba(240,112,220,.55); }
+.ds-fxp { color: var(--text); border-color: var(--g, var(--line)); box-shadow: inset 3px 0 0 var(--g, transparent); }
+.ds-hand { color: var(--muted); font-weight: 500; }
+.ds-hand.on { color: var(--text); border-color: var(--hand); background: rgba(138,240,176,.12); font-weight: 600; }
+.ds-hand[aria-disabled=true] { opacity: .45; cursor: not-allowed; }
+.ds-hic { margin-right: 4px; }
+/* three steps, side by side, the chosen one filled */
+.ds-steps { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; flex: none; }
+.ds-steps button { min-height: 36px; padding: 2px 11px; border: 0; background: none; color: var(--muted); font: inherit; font-size: .86em; cursor: pointer; }
+.ds-steps button + button { border-left: 1px solid var(--line); }
+.ds-steps button[aria-pressed=true] { background: var(--lane, var(--accent)); color: #10131a; font-weight: 600; }
+.ds-meter { flex: none; width: 64px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+.ds-meter i { display: block; height: 100%; background: var(--lane, var(--accent)); transform: scaleX(0); transform-origin: left center; will-change: transform; }
+.ds .btn.ds-x { min-height: 36px; min-width: 36px; padding: 0 8px; background: none; border-color: transparent; color: var(--muted); }
+/* an accent's tolerance and how sure Dream is now: the bar fills while you move, above the mark it counts */
+.ds-tol { display: inline-flex; align-items: center; gap: 6px; flex-basis: 100%; padding-left: 44px; font-size: .92em; }
+.ds-conf { position: relative; flex: 1 1 120px; max-width: 220px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.12); }
+.ds-conf i { position: absolute; inset: 0; border-radius: 4px; background: var(--beat); transform: scaleX(0); transform-origin: left center; will-change: transform; opacity: .75; }
+.ds-conf b { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text); left: 60%; }
+/* the choice of one half of a sentence */
+.ds-choice { background: #15131d; color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; width: min(860px, calc(100vw - 32px)); max-height: calc(100vh - 40px); }
+.ds-choice::backdrop { background: rgba(0,0,0,.6); }
+.ds-choice h3 { margin: 0 0 12px; }
+.ds-choices { display: grid; gap: 10px; margin-bottom: 12px; }
+.ds-moves { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.ds-fxs { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.ds-inline { margin: 0; }
+.ds-group { display: grid; gap: 6px; align-content: start; }
+.ds-group h4 { margin: 0; font-size: .8em; color: var(--g); text-transform: uppercase; letter-spacing: .05em; }
+.ds-opt { --lane: var(--mv); display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; align-items: center; min-height: 52px; padding: 6px 10px; text-align: left;
+  border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.05); color: var(--text); font: inherit; cursor: pointer; transition: transform .08s ease-out; }
+.ds-opt > :first-child { grid-row: 1 / 3; }
+.ds-opt:hover:not([aria-disabled]) { background-color: rgba(255,255,255,.12); }
+.ds-opt:active:not([aria-disabled]) { transform: scale(.97); }
+.ds-opt.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.ds-opt[aria-disabled=true] { opacity: .32; cursor: not-allowed; border-style: dashed; }
+.ds-optname { font-weight: 600; }
+.ds-optsub { font-size: .8em; color: var(--muted); }
+.ds-optnew { grid-template-columns: minmax(0, 1fr); border-style: dashed; }
+.ds-optnew > :first-child { grid-row: auto; }
+.ds-fx { border-color: var(--g); }
+.ds-fx .ds-icon { font-size: 22px; }
+/* a short word, and a nudge for what it is about */
+.ds-toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 12px); background: #2a2238; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 8px 16px;
+  display: flex; gap: 10px; align-items: center; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 10; max-width: calc(100vw - 32px); }
+.ds-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.ds-toast .btn[hidden] { display: none; }
+.ds-nudge { animation: ds-nudge .5s ease-out; }
+@keyframes ds-nudge { 30% { transform: scale(1.08); } 60% { transform: scale(.97); } }
+/* the introduction (danceintro.js): the part at hand is lit, the rest dimmed by the spot's wide shadow; one sentence */
+.di-veil { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s; z-index: 20; }
+.di-veil.on { opacity: 1; }
+.di-spot { position: absolute; left: 0; top: 0; border-radius: 12px; box-shadow: 0 0 0 2px var(--accent), 0 0 0 100vmax rgba(5,4,10,.66); transition: transform .3s ease-out; }
+.di-tip { position: fixed; left: 0; top: 0; z-index: 21; width: min(380px, calc(100vw - 24px)); background: #211b2e; color: var(--text); border: 1px solid var(--accent); border-radius: 12px;
+  padding: 12px 14px; display: grid; gap: 8px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .3s ease-out; }
+.di-tip.on { opacity: 1; pointer-events: auto; }
+.di-text { margin: 0; font-size: 1.02em; }
+.di-count { font-size: .78em; color: var(--muted); }
+.mp-help { min-width: 44px; font-weight: 700; margin-left: auto; }
+body.mp-nohelp .hint { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .di-spot, .di-tip, .di-veil { transition: none; }
+  .ds-nudge, .ds-pop, .ds-row.ds-new { animation: none; }
+  .ds-flash.go { animation-duration: .01s; }
+  .ds-pill, .ds-opt, .ds-toast, .ds-link::after, .ds-row::after { transition: none; }
+}

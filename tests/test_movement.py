@@ -334,11 +334,11 @@ def test_the_wristband_moves_the_picture_without_gestures():
     band = {r["id"]: r for r in dance.BAND_ROWS}
     assert {(r["src"], r["dst"]) for r in band.values()} == {("energy", "fx.speed"), ("spin", "fx.spin"), ("force", "fx.hue")}
     assert band["armspin"]["in"] == [-1.0, 1.0] and band["armspin"]["out"][0] < 0 < band["armspin"]["out"][1]   # it turns both ways
-    flow = dance.DEFAULT_TABLES["flowtrack"]
+    flow = dance.default_tables()["flowtrack"]
     assert [r["id"] for r in flow] == [r["id"] for r in dance.TOUCH_ROWS + dance.BAND_ROWS + dance.PROFILE_ROWS]
     assert not any(r["src"].startswith("g.") for r in flow), "no gesture triggers"
     assert dance.clean_rows(flow) == flow
-    assert not any(r["id"] in band for r in dance.DEFAULT_TABLES["dance"])       # the dance has its own table
+    assert not any(r["id"] in band for r in dance.default_tables()["dance"])       # the dance has its own table
 
 
 def test_the_sensor_hands_on_the_pull_on_the_arm():
@@ -365,7 +365,7 @@ def test_relieving_and_the_autopilot_never_change_what_the_movement_detects():
     import os
     page = open(os.path.join(os.path.dirname(__file__), "..", "static", "index.html"), encoding="utf-8").read()
     steps = page[page.index("const REL_STEPS = ["):page.index("const REL_NAMES")]
-    movement = ("flow_kind", "dance_kind", "move_mode", "move_cam", "move_off", "flow_markers", "flow_fingers", "marker_l", "marker_r")
+    movement = ("flow_kind", "dance_kind", "move_mode", "move_cam", "move_off", "flow_markers", "marker_l", "marker_r")
     for key in movement:
         assert key not in steps, key
     assert "relSet('flow_kind'" not in page and "relSet('dance_kind'" not in page

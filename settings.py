@@ -6,6 +6,7 @@ from this table (`DEFAULT_STATE`, `RANGES`, `GUEST_KEYS`, `TARGETS`, `RESET`, `p
 
 The type of a setting is the type of its default: a switch (bool), a number (int or float, always with a range) or a
 text. Nothing here loads PyTorch or reads the environment."""
+import ipaddress
 import math
 import re
 from dataclasses import dataclass
@@ -26,6 +27,7 @@ class Setting:
     weight: float = 0.0               # #216: how strongly a number shapes the picture (0 = not at all … 1); "Reset"
                                       # brings every number with a weight home, the pages colour its slider by it
     needs: str | None = None          # #216: the setting it only acts with (a switch that is on, a choice not "off")
+    steps: tuple | None = None        # #247: a number with fixed values: anything else becomes the nearest of them
 
     @property
     def bipolar(self) -> bool:
@@ -46,12 +48,23 @@ def num(default, lo, hi, *, guest=False, target=False, weight=0.0, needs=None) -
     return Setting(default, lo=lo, hi=hi, guest=guest, target=target, weight=weight, needs=needs)
 
 
+def stepped(default, steps) -> Setting:
+    """#247: a number that only has these values (the pages offer them as a list)."""
+    return Setting(default, lo=min(steps), hi=max(steps), steps=tuple(sorted(steps)))
+
+
 def flag(default: bool, *, guest=False) -> Setting:
     return Setting(default, guest=guest)
 
 
 def text(default: str = "", *, choices=None, guest=False, clean=None) -> Setting:
     return Setting(default, choices=tuple(choices) if choices else None, guest=guest, clean=clean)
+
+
+# #247: the picture sizes (the height in pixels; 16:9 widens it). The pages offer exactly these (the stage's and Dream
+# Control's list, DreamCommon.SIZES) and the stage builds its pictures from the list's value – a size that is not in it
+# left the stage without a picture to send. So any other number becomes the nearest of these, here, for every way in.
+SIZES = (384, 512, 768, 1024)
 
 
 def _style(v: str) -> str:
@@ -83,9 +96,12 @@ MOVE_MODES = ("off", "mood", "flowtrack", "dance")
 MOVE_SOURCES = ("camera", "eyes", "phone", "band")
 
 
+# #251, #265: the name of a movement set – a short plain name: letters, digits, spaces and . + - – ("Flowing – mine")
+SET_NAME = re.compile(r"[^\W_][\w .+\-–]{0,31}")
+
+
 def _set_name(v: str) -> str:
-    """#251: the name of a movement set – a short plain name, or none."""
-    return v if re.fullmatch(r"[\w][\w .+-]{0,23}", v) else ""
+    return v if SET_NAME.fullmatch(v) else ""
 
 
 def _profile(v: str) -> str:
@@ -96,6 +112,30 @@ def _profile(v: str) -> str:
 def _sources(v: str) -> str:
     """Only known kinds of movement sources, each once."""
     return "+".join(dict.fromkeys(k for k in v.split("+") if k in MOVE_SOURCES))
+
+
+# #212: the address of the room light's WLED device – an IPv4 address or a host name (wled-room.local), nothing else:
+# no port, no scheme, never half an address (a half-typed "192.168.1" would be read as another device)
+HOST_NAME = re.compile(r"(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,62})(?:\.[a-z0-9](?:[a-z0-9-]{0,62}))*")
+
+
+def _host(v: str) -> str:
+    v = v.strip().rstrip(".").lower()
+    if re.fullmatch(r"[\d.]+", v):
+        try:
+            return str(ipaddress.IPv4Address(v))
+        except ValueError:
+            return ""
+    return v if HOST_NAME.fullmatch(v) else ""
+
+
+# #272: the Hue lamps and rooms that dream along – "l:<id>" a lamp, "g:<id>" a room or zone of the bridge (its ids are
+# UUIDs), joined by "+"; anything else is dropped
+HUE_ITEM = re.compile(r"[lg]:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+
+
+def _hue_items(v: str) -> str:
+    return "+".join(list(dict.fromkeys(k for k in v.lower().split("+") if HUE_ITEM.fullmatch(k)))[:50])
 
 
 # #235: the colours an LED marker on a hand can have – never red, orange or yellow: those are fire
@@ -128,7 +168,7 @@ SETTINGS: dict[str, Setting] = {
     "hue": num(2.0, 0.0, 20.0, guest=True, target=True, weight=0.8),
     "sens": num(1.0, 0.0, 2.0, guest=True, target=True, weight=0.5, needs="music"),
     "quality": num(2, 1, 4),
-    "size": num(512, 256, 1024),
+    "size": stepped(512, SIZES),
     "seed": num(1, 0, 2**31 - 1, guest=True),
     "music": text("off", choices=("off", "mic", "file")),
     "rewrite": flag(True),
@@ -142,15 +182,27 @@ SETTINGS: dict[str, Setting] = {
     "move_cam": flag(False),
     "motion_sens": num(1.0, 0.0, 3.0, target=True, weight=0.4, needs="move_mode"),   # how strongly movement steers
     "syphon": flag(False),                                      # publish the stage picture as Syphon source "Dream"
+    # #212: the room light – a WLED device lights its chain in the colour of the dream (wled.py): on/off, the device,
+    # how bright (a MIDI fader can move it; the master and its blackout act on top) and whether it pulses on the beat
+    "wled": flag(False),
+    "wled_host": text("", clean=_host),
+    "wled_amt": num(1.0, 0.0, 1.0, target=True),
+    "wled_beat": flag(True),
+    # #272: Hue lamps take the dream's colour as a mood (hue.py): on/off, the bridge's address, how bright (a MIDI fader
+    # can move it; the master and its blackout act on top) and which lamps and rooms
+    "hue_lamps": flag(False),
+    "hue_bridge": text("", clean=_host),
+    "hue_lamps_amt": num(1.0, 0.0, 1.0, target=True),
+    "hue_lamps_sel": text("", clean=_hue_items),
     "pose": flag(False),                                        # the dancer's skeleton (flowtrack) shapes the figure
     "pose_scale": num(0.8, 0.2, 1.5, target=True, weight=0.5, needs="pose"),
     # what the Mac's camera detects: on (light: fire, LED) | hand (pose) | marker (#235: two LED markers, one per hand)
     "flow_kind": text("hand", choices=("on", "hand", "marker")),
     # #251: Dream Dance – the clutch (the dance acts only while it is engaged; released: only what the hands and the
-    # controllers set; released after every start – hub.py – and engaged only on purpose) and the movement set last
-    # chosen (a named table of what a movement does, dance.py)
+    # controllers set; released after every start – hub.py – and engaged only on purpose) and the movement set in use
+    # (#265: its sentences are the dance's table, dance.py)
     "clutch": flag(False),
-    "dance_set": text("", clean=_set_name),
+    "dance_set": text("standard", clean=_set_name),
     "flow_auto": flag(True),                                    # #252: flowtrack's automatic chooses kind and exposure, holds the one person
     "flow_profile": text("", clean=_profile),                   # #253: the performer Flowtrack is fitted to (a profile's id), or none
     # … and what it detects for Dream Dance: a mode is a preset, so the dance keeps its own choice – light chosen for
@@ -160,7 +212,6 @@ SETTINGS: dict[str, Setting] = {
     "marker_l": text("cyan", choices=MARKERS),                  # the marker colour of the left and the right hand
     "marker_r": text("magenta", choices=MARKERS),
     "dance_fb_secs": num(4.0, 1.0, 15.0),                       # #243: the seconds a "good"/"bad" of the dance lab keeps
-    "flow_fingers": flag(False),                                # … the hand model's 21 points per hand (finger values)
     "drift": num(0.5, 0.0, 1.0, guest=True, target=True, weight=0.6),       # keeps the dream alive without new input (0 = off)
     "drift_prompt": flag(True, guest=True),
     "music_patterns": flag(True),                               # music: changing patterns, drop → next scene
@@ -232,7 +283,8 @@ def page_schema() -> dict:
     """#216: what a page needs to draw a number's slider (static/sliders.js): default, range, whether zero lies inside
     the range, the weight and the setting it only acts with."""
     return {k: {"d": s.default, "lo": s.lo, "hi": s.hi, **({"zero": True} if s.bipolar else {}),
-                **({"w": s.weight} if s.weight else {}), **({"needs": s.needs} if s.needs else {})}
+                **({"w": s.weight} if s.weight else {}), **({"needs": s.needs} if s.needs else {}),
+                **({"steps": list(s.steps)} if s.steps else {})}
             for k, s in SETTINGS.items() if s.number}
 
 
@@ -251,6 +303,8 @@ def coerce_number(k, v):
     if not math.isfinite(f):
         raise ValueError(k)
     f = min(max(f, s.lo), s.hi)
+    if s.steps:                                    # #247: the nearest of its values (halfway: the smaller one)
+        return min(s.steps, key=lambda step: (abs(step - f), step))
     return int(round(f)) if isinstance(s.default, int) else f
 
 

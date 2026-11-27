@@ -33,7 +33,7 @@ def test_coerce_number_huge_int_overflows(server):
     ("seed", 7.6, 8),
     ("quality", 2.4, 2),
     ("quality", 99, 4),
-    ("size", 5, 256),
+    ("size", 5, 384),
     ("interval", 1, 5),
     ("master", 2, 1.0),
     ("pose_scale", 0, 0.2),
@@ -159,7 +159,7 @@ def test_one_table_feeds_every_view():
     assert set(settings.RANGES) == {k for k, s in table.items() if s.number}
     assert midi.TARGETS is settings.TARGETS
     assert set(midi.TARGETS) == {"strength", "mix", "zoom", "rot", "hue", "drift", "smooth", "sens", "motion_sens",
-                                 "pose_scale", "master", "fx_amt", "world_mix"}
+                                 "pose_scale", "master", "fx_amt", "world_mix", "wled_amt", "hue_lamps_amt"}
     for k, s in table.items():
         assert s.kind in ("bool", "int", "float", "text"), k
         if s.number:

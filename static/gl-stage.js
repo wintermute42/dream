@@ -321,8 +321,10 @@ void main() {
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
       flowOf = fl; shown = '';
     }
-    // a small copy of what is shown, read back without making the graphics card wait (snapshot below)
-    const shot = { t: target(), buf: null, sync: null, w: 0, h: 0, cv: null, px: null, n: 0 };
+    // small copies of what is shown, read back without making the graphics card wait (snapshot below) – one per reader
+    // (the movement detection, #212 the room light): each keeps its own size and its own copy on the way
+    const shots = {};
+    const shotOf = slot => shots[slot] || (shots[slot] = { t: target(), buf: null, sync: null, w: 0, h: 0, cv: null, px: null, n: 0 });
     // the smoothed picture as the effects read it: as it is, covering the buffer
     const plain = (tex, bw, bh) => ({ vals: { cNew: FULL, cOld: FULL, mOld: REST, mNew: REST, box: [bw, bh], mixv: 1, hasOld: 0, flowK: 0, share: 1 },
       texs: { tOld: tex, tNew: tex, tFlow: flowTex, acc: tex } });
@@ -433,24 +435,28 @@ void main() {
       // #205 (Pf-6 of #187): what the audience sees, small (w × h), as a canvas – without holding up the graphics card.
       // Each call asks for a copy of the picture as it is now and returns the copy the call before asked for (cv: null
       // until one has arrived; n: how many have): the pixels travel to the page's memory beside the drawing instead
-      // of stopping it.
-      snapshot(w, h) {
+      // of stopping it. slot: whose copy (each reader has its own); bare: without the master fader (#212: the room
+      // light dims itself); raw: only the pixels (shot.px), no canvas made of them (#212: the room light reads numbers)
+      snapshot(w, h, slot = 'view', bare = false, raw = false) {
+        const shot = shotOf(slot);
         if (shot.sync) {
           const state = gl.clientWaitSync(shot.sync, 0, 0);
           if (state === gl.TIMEOUT_EXPIRED) return shot;
           gl.deleteSync(shot.sync); shot.sync = null;
           if (state !== gl.WAIT_FAILED) {
-            if (!shot.cv) shot.cv = document.createElement('canvas');
-            if (shot.cv.width !== shot.w || shot.cv.height !== shot.h) { shot.cv.width = shot.w; shot.cv.height = shot.h; shot.px = null; }
-            const ctx = shot.cv.getContext('2d');
-            if (!shot.px) shot.px = ctx.createImageData(shot.w, shot.h);
+            if (!shot.px || shot.px.width !== shot.w || shot.px.height !== shot.h) shot.px = new ImageData(shot.w, shot.h);
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, shot.buf); gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, shot.px.data); gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-            ctx.putImageData(shot.px, 0, 0); shot.n++;
+            if (!raw) {
+              if (!shot.cv) shot.cv = document.createElement('canvas');
+              if (shot.cv.width !== shot.w || shot.cv.height !== shot.h) { shot.cv.width = shot.w; shot.cv.height = shot.h; }
+              shot.cv.getContext('2d').putImageData(shot.px, 0, 0);
+            }
+            shot.n++;
           }
         }
         if (last) {
           fit(shot.t, w, h); shot.w = w; shot.h = h;
-          draw('final', { ...last.vals, rect: [0, 0, 1, 1] }, last.texs, shot.t);   // the picture alone, top row first
+          draw('final', { ...last.vals, rect: [0, 0, 1, 1], ...(bare ? { master: 1 } : {}) }, last.texs, shot.t);   // the picture alone, top row first
           if (!shot.buf) shot.buf = gl.createBuffer();
           gl.bindBuffer(gl.PIXEL_PACK_BUFFER, shot.buf);
           gl.bufferData(gl.PIXEL_PACK_BUFFER, w * h * 4, gl.STREAM_READ);   // a fresh store every time: Chrome keeps its quick copy of the last one otherwise and warns
@@ -477,6 +483,7 @@ void main() {
     const asked = new URLSearchParams(location.search).get('render');
     const canvasOnly = o.canvas || asked === 'canvas';
     let chain = null, master = null, front = a, fxK = 0, rect = [0, 0, 1, 1], drawnAt = -1e9, owed = 0;
+    let small = null;                                  // #212: the canvas the Canvas 2D drawing is read from for the room light
     let rebase = null;                                 // #215: a new picture took over: how the one before lies against it (Fx.morph.rel)
     // #205: the picture now coming – since when, over how long, and the flow field it comes along
     const coming = { at: 0, ms: 0, flow: null };
@@ -580,6 +587,17 @@ void main() {
         const src = smoother.ready ? smooth : front;
         if (src.naturalWidth || src.width) ctx.drawImage(src, 0, 0, w, h);
         if (fx.width && fxK > 0.02) { ctx.globalAlpha = fxK; ctx.drawImage(fx, 0, 0, w, h); ctx.globalAlpha = 1; }
+      },
+      // #212: the pixels of what the audience sees, w × h, without the master fader – for the room light. The WebGL
+      // chain hands out its own copy (slot "light", a frame old, never waited for: null until the first has come);
+      // the Canvas 2D drawing dims with the box's opacity, so drawing its elements small is already without it.
+      pixels(w, h) {
+        if (chain) { const shot = chain.snapshot(w, h, 'light', true, true); return shot.n && shot.px && shot.px.width === w ? shot.px.data : null; }
+        if (!small) { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; small = cv.getContext('2d', { willReadFrequently: true }); }
+        if (small.canvas.width !== w || small.canvas.height !== h) { small.canvas.width = w; small.canvas.height = h; }
+        small.clearRect(0, 0, w, h);
+        this.snapshot(small, w, h);
+        return small.getImageData(0, 0, w, h).data;
       },
       get renderer() { return chain ? 'webgl2' : 'canvas'; },
       get drawn() { return chain ? chain.drawn : 0; },

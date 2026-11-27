@@ -1,16 +1,24 @@
-/* Dream – moves of one's own (#236): teach Dream a dance move by showing it, and say what it does.
+/* Dream – teaching Dream a movement (#236, #265): moves of one's own, and how exactly a movement is recognised.
 
    A part of the page of Dream Dance (static/dance.html – it reads the stage through the bridge of the window that
-   opened it). "Teach a new move" counts down, then takes the hands' way while the dancer shows the move three to five
-   times; the repetitions are found by themselves (dancemoves.js) and shown at once, each as a small skeleton that runs
-   round and round – one that went wrong can be thrown away. With a name it is kept on this Mac (dancemoves.py:
-   trajectories and skeleton points, never a camera picture), and the stage recognises it from then on like a built-in
-   gesture. The list below shows every move with its looping skeleton, its name (change it there), what it steers –
-   that is a row of the mapping table, like everything a movement does –, the piece of prompt it brings along, how
-   sure Dream is of it right now, and the button to delete it.
+   opened it). The wizard, repeatable for every movement:
+   1. choose the movement – a built-in gesture, one of your own, or a new one;
+   2. show it five times (a new one: Dream counts down, takes the hands' way and finds the repetitions by itself –
+      dancemoves.js –, each shown as a small skeleton that runs round; one that went wrong is thrown away; with a name
+      it is kept on this Mac: dancemoves.py, trajectories and skeleton points, never a camera picture);
+   3. dance freely for 30 seconds without it (the counter-check: what is no such movement);
+   4. dance with and without it: every hit flashes, and you say 👍 "recognised right" or 👎 "recognised wrongly"
+      (buttons or the keys G and B);
+   5. the result: dots for hits and false alarms, and the tolerance Dream chose from them (tight, normal, loose) –
+      [Keep] puts it on the accent with that movement (a new move becomes an accent), [Another round] starts again.
+   While it teaches, the detection takes the movement loosely (every candidate counts – the dancer says which were right).
+   The quick way (a new sentence by showing it, danceslots.js) takes three repetitions and keeps the move at once.
+   The list shows every move of one's own with its looping skeleton, its name (change it there), the piece of prompt it
+   brings along (blended in while its accent acts), how sure Dream is of it right now, and the
+   button to delete it (its accents go with it).
 
-   `take` (a take in the making), `spans`, `moveFile`, `assign` and `targetOf` are pure (tests/js/moveteach.test.mjs).
-   Looks: moveteach.css – only transform and opacity move. A global `MoveTeach`. */
+   `take` (a take in the making), `spans`, `moveFile`, `why`, `bounds`, `episodes` and `pickTolerance` are pure
+   (tests/js/moveteach.test.mjs). Looks: moveteach.css – only transform and opacity move. A global `MoveTeach`. */
 (function (root) {
   'use strict';
   const node = typeof module === 'object' && module.exports;
@@ -21,7 +29,6 @@
   const MV_MAX = 24;                                   // as many moves as Dream keeps (dancemoves.py)
   const COUNT = 3, MAX_TAKE = 12;                      // seconds: the countdown, and the longest take
   const r4 = x => Math.round(x * 10000) / 10000, r5 = x => Math.round(x * 100000) / 100000;
-  let mounted = 0;
   const NAME_OK = /^[\p{L}\p{N}][\p{L}\p{N}_ .+-]{0,31}$/u;
 
   // ---------- a take in the making ----------
@@ -54,18 +61,28 @@
   const moveFile = (name, piece, tpl, reps, keys, aspect = 16 / 9) => ({ format: FORMAT, version: VERSION, name, piece: piece || '', rate: R.RATE, aspect: r4(aspect), keys, tpl,
     reps: reps.map(frames => ({ frames })) });
 
-  // ---------- what a move steers: a row of the mapping table ----------
-  const srcOf = id => 'g.' + id;
-  // the target of the move's first row ('' – it steers nothing in this table)
-  const targetOf = (rows, id) => { const r = rows.find(x => x.src === srcOf(id)); return r ? r.dst : ''; };
-  // the table after the move was given a target: '' removes its rows, a target changes its first row or adds one –
-  // a row like a built-in gesture's (the size of the movement is its strength), marked as taught
-  function assign(rows, id, dst) {
-    const src = srcOf(id), mine = rows.find(r => r.src === src);
-    if (!dst) return rows.filter(r => r.src !== src);
-    if (mine) return rows.map(r => (r === mine ? { ...r, dst, on: true } : r));
-    let rid = id, n = 1; while (rows.some(r => r.id === rid)) rid = id + '-' + (++n);
-    return rows.concat({ id: rid, on: true, src, dst, curve: 'lin', in: [0, 1], out: [0, 1], smooth: 0.15, origin: 'taught' });
+  // ---------- how exactly a movement is recognised ----------
+  // The peaks of how sure the detection was of a movement: series [how sure, frame by frame] → [the highest value of
+  // every stretch above `hi` (it ends below `lo`)] – one per time Dream took it for the movement.
+  function episodes(series, hi = 0.3, lo = 0.2) {
+    const out = []; let top = null;
+    for (const c of series || []) {
+      if (!Number.isFinite(c)) continue;
+      if (top == null) { if (c >= hi) top = c; continue; }
+      top = Math.max(top, c);
+      if (c < lo) { out.push(top); top = null; }
+    }
+    if (top != null) out.push(top);
+    return out;
+  }
+  // The tolerance that fits what the dancer showed: good – the peaks of the times the movement was done (the five
+  // showings, the hits confirmed with 👍), bad – the peaks of the times it was not (the counter-check, the hits marked
+  // 👎); levels: {tight, normal, loose} → how sure the detection must be (dance.js TOL). The loosest one without a false
+  // alarm, else the one with the fewest. → {tol, hits, misses, alarms} at that tolerance.
+  function pickTolerance(good, bad, levels) {
+    const at = tol => ({ tol, hits: good.filter(p => p >= levels[tol]).length, misses: good.filter(p => p < levels[tol]).length, alarms: bad.filter(p => p >= levels[tol]).length });
+    const all = ['loose', 'normal', 'tight'].map(at);
+    return all.find(r => r.alarms === 0) || all.reduce((a, r) => (r.alarms < a.alarms ? r : a));
   }
   // Why a take did not become a move, in words
   const WHY = {
@@ -114,8 +131,13 @@
     for (const h of ['l', 'r']) { const w = R.wrist(f, h); if (w) { c.fillStyle = cols[h]; c.beginPath(); c.arc(...P(w), 4.5, 0, 7); c.fill(); } }
   }
 
+  // opts: {keys, fxNames, live() → the lab's live frame (for a take), sure() → {g: {gesture: how sure}, gesture} – what the
+  //        detection says right now, moves() → [{id, name, piece}], clutch() → engaged?, colours(),
+  //        changed() – a move was kept, renamed or deleted, levels() → {tight, normal, loose} (dance.js TOL),
+  //        probe(name | null) – the detection takes this gesture loosely while it teaches, gestures – the built-in ones,
+  //        pictogram(src) → svg (danceslots.js), keep({src, tol, fx, fresh}) – put what was taught on an accent}
   function mount(box, opts) {
-    const { keys, fxNames = {}, targets = {} } = opts, label = n => (root.DancePanel ? root.DancePanel.label(n, fxNames) : n);
+    const { keys, fxNames = {} } = opts, label = n => (root.DancePanel ? root.DancePanel.label(n, fxNames) : n);
     const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
     const btn = (text, title, cls = '') => { const b = el('button', 'btn ' + cls, text); b.type = 'button'; if (title) b.title = title; return b; };
     const css = getComputedStyle(document.documentElement), TEXT = css.getPropertyValue('--text').trim() || '#fff';
@@ -128,140 +150,230 @@
       change: (id, what) => fetch('/dance/moves/' + id, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(what) }).then(r => r.json()),
       del: id => fetch('/dance/moves/' + id, { method: 'DELETE' }).then(r => r.ok),
     };
+    const nameOf = src => { if (w && w.name && src === w.src) return w.name;
+       const m = src.startsWith('g.') && opts.moves().find(x => x.id === src.slice(2)); return m ? m.name : label(src); };
+    const probe = name => { try { opts.probe(name); } catch (e) { /* the stage is reloading */ } };
 
-    box.classList.add('mt'); box.setAttribute('role', 'region'); box.setAttribute('aria-label', T('Your moves')); box.textContent = '';
-    const head = el('header', 'mt-head'), title = el('h2', '', T('🕺 Your moves')), teachBtn = btn(T('Teach a new move'), T('Show Dream a move of your own three to five times – it recognises it from then on (key T)'), 'mt-teachbtn');
+    box.classList.add('mt'); box.setAttribute('role', 'region'); box.setAttribute('aria-label', T('Teaching and your moves')); box.textContent = '';
+    const head = el('header', 'mt-head'), title = el('h2', '', T('🕺 Your moves'));
     const state = el('div', 'mt-state'); state.setAttribute('role', 'status'); state.setAttribute('aria-live', 'polite');
-    head.append(title, teachBtn);
-    // ---- the teaching box ----
-    const teach = el('div', 'mt-teach'); teach.hidden = true;
-    const big = el('div', 'mt-big'); big.setAttribute('aria-hidden', 'true');
-    const bar = el('div', 'mt-bar'), barFill = el('i'); bar.setAttribute('aria-hidden', 'true'); bar.append(barFill);
-    const stopBtn = btn(T('■ Done'), T('End the take (it also ends by itself)')), cancelBtn = btn(T('Throw away'), T('Throw this take away (key Esc)'));
-    const repList = el('ul', 'mt-reps'); repList.setAttribute('aria-label', T('The repetitions of this take'));
-    const form = el('div', 'mt-form'); form.hidden = true;
-    const nameIn = el('input'), dstSel = el('select'), pieceIn = el('input'), keepBtn = btn(T('Keep the move'), T('Keep this move on this Mac – numbers only, no camera picture'), 'on');
-    const uid = 'mt' + (++mounted);                  // the fields' ids, one set per card
-    const field = (text, input, id) => { const l = el('label', 'mt-field'); input.id = id; l.htmlFor = id; l.append(el('span', '', text), input); return l; };
-    nameIn.type = 'text'; nameIn.maxLength = 32; nameIn.placeholder = T('e.g. Lasso'); nameIn.autocomplete = 'off';
-    pieceIn.type = 'text'; pieceIn.maxLength = 80; pieceIn.placeholder = T('e.g. fire, glowing embers'); pieceIn.autocomplete = 'off';
-    function fillTargets(sel, value) {
-      sel.textContent = '';
-      const none = el('option', '', T('– nothing yet –')); none.value = ''; sel.append(none);
-      for (const [g, kind] of [[T('Effects (at once)'), 'instant'], [T('AI sliders (slow)'), 'slow']]) {
-        const og = document.createElement('optgroup'); og.label = g;
-        for (const t of Object.keys(targets).filter(t => targets[t] === kind)) { const o = el('option', '', label(t)); o.value = t; og.append(o); }
-        sel.append(og);
-      }
-      if (value && ![...sel.options].some(o => o.value === value)) { const o = el('option', '', label(value)); o.value = value; sel.append(o); }
-      sel.value = value || '';
-    }
-    fillTargets(dstSel, '');
-    const formBtns = el('div', 'btns'); formBtns.append(keepBtn);
-    form.append(field(T('Name'), nameIn, uid + 'n'), field(T('Steers'), dstSel, uid + 'd'), field(T('Prompt piece'), pieceIn, uid + 'p'), formBtns);
-    const teachBtns = el('div', 'btns'); teachBtns.append(stopBtn, cancelBtn);
-    teach.append(big, bar, teachBtns, repList, form);
+    head.append(title);
+    // ---- the wizard ----
+    const wiz = el('div', 'mt-wiz'); wiz.hidden = true; wiz.setAttribute('role', 'region'); wiz.setAttribute('aria-label', T('Teach a movement'));
+    const STEPS = [T('1 · Choose'), T('2 · Show it 5×'), T('3 · Counter-check'), T('4 · Check'), T('5 · Result')];
+    const stepBar = el('ol', 'mt-steps'); STEPS.forEach(t => stepBar.append(el('li', '', t)));
+    const big = el('div', 'mt-big'), small = el('div', 'mt-say'), bar = el('div', 'mt-bar'), barFill = el('i');
+    bar.setAttribute('aria-hidden', 'true'); bar.append(barFill); small.setAttribute('aria-live', 'polite');
+    const pane = el('div', 'mt-pane'), btns = el('div', 'btns mt-btns'), closeBtn = btn('✕', T('Stop teaching (Esc) – a move not kept yet is thrown away'), 'mt-x mt-close');
+    closeBtn.setAttribute('aria-label', T('Stop teaching'));
+    wiz.append(closeBtn, stepBar, big, small, bar, pane, btns);
     // ---- the list ----
     const list = el('ul', 'mt-list'); list.setAttribute('aria-label', T('The moves you taught'));
-    const hint = el('div', 'hint', T('A move is a rhythmic movement of your hands, shown three to five times in a row (one repetition in a third of a second to a good second). Dream keeps its way as numbers on this Mac – never a camera picture – and recognises it like a built-in gesture: after two to three repetitions, also a little faster, slower, larger or smaller. What it steers is a row of the table, so it acts only with the clutch engaged and belongs to the movement set you keep it in. The prompt piece is blended into the prompt when the move steers “Prompt piece of the move”.'));
-    box.append(head, state, teach, list, hint);
+    const hint = el('div', 'hint', T('A move is a rhythmic movement of your hands, shown a few times in a row (one repetition in a third of a second to a good second). Dream keeps its way as numbers on this Mac – never a camera picture – and recognises it like a built-in gesture. It becomes an accent: “When I dance “…” → …”. The prompt piece is blended into the prompt while its accent acts.'));
+    box.append(head, state, wiz, list, hint);
 
-    // ---------- state ----------
-    let phase = 'idle', countAt = 0, tk = null, found = null, reps = [], lookAt = 0, raf = 0, busy = false, listKey = '', rowsKey = '', lastDraw = 0;
-    const items = new Map();                           // move id → {li, cv, bar, name, dst, piece, frames, box}
+    // ---------- the wizard's state ----------
+    let w = null, phase = 'idle', raf = 0, lastDraw = 0, listKey = '', busy = false;
     const say = text => { if (state.textContent !== text) state.textContent = text; };
+    const items = new Map();
+    function show(p, step, bigText, smallText) {
+      phase = p; wiz.hidden = p === 'idle';
+      [...stepBar.children].forEach((li, k) => { li.className = k === step ? 'cur' : k < step ? 'done' : ''; if (k === step) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current'); });
+      big.textContent = bigText || ''; small.textContent = smallText || ''; pane.textContent = ''; btns.textContent = '';
+      bar.hidden = !['count', 'take', 'show', 'check'].includes(p); barFill.style.transform = 'scaleX(0)';
+      box.classList.toggle('mt-taking', p === 'take' || p === 'show' || p === 'check' || p === 'test');
+      big.classList.toggle('mt-huge', p === 'count');   // the countdown is read from where the dancer stands
+    }
+    const add = (b, focus) => { btns.append(b); if (focus) b.focus(); return b; };
+    function wizard(o = {}) {
+      if (phase !== 'idle' || busy) { wiz.scrollIntoView({ block: 'nearest' }); return; }
+      w = { fx: o.fx || null, quick: !!o.quick, src: o.src || null, made: null, good: [], bad: [], hits: [], rounds: 0 };
+      wiz.hidden = false; wiz.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' });
+      if (o.fresh) startTake(); else if (w.src) showIt(); else choose();
+    }
+    function stopAll(text) {
+      probe(null);
+      const made = w && w.made && !w.kept ? w.made : null;
+      if (made) api.del(made).then(ok => { if (ok) opts.changed(); });
+      w = null; tk = null; reps = []; show('idle', -1); say(text || '');
+    }
+    closeBtn.onclick = () => stopAll(T('Teaching stopped – nothing changed.'));
+    wiz.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); stopAll(T('Teaching stopped – nothing changed.')); } });
+
+    // 1 · choose
+    function choose() {
+      show('choose', 0, T('Which movement?'), T('A built-in one, to tune how exactly Dream takes it – or a new one of your own.'));
+      const grid = el('div', 'mt-choices');
+      for (const src of [...(opts.gestures || []).map(g => 'g.' + g), ...opts.moves().map(m => 'g.' + m.id)]) {
+        const b = el('button', 'mt-opt'); b.type = 'button';
+        if (opts.pictogram) { const p = el('span', 'mt-pict'); p.innerHTML = opts.pictogram(src); b.append(p); }
+        b.append(el('span', '', nameOf(src))); b.onclick = () => { w.src = src; showIt(); }; grid.append(b);
+      }
+      const fresh = el('button', 'mt-opt mt-optnew', T('＋ A new move of your own')); fresh.type = 'button'; fresh.onclick = startTake; grid.append(fresh);
+      pane.append(grid); grid.firstChild.focus();
+    }
+    // 2 · show it: a known movement five times – Dream counts what it takes for it
+    const SHOW = 5, SHOW_MAX = 30, CHECK = 30;
+    let series = [], at = 0, hit = null;
+    function showIt() {
+      const name = w.src.slice(2); probe(name); series = []; at = performance.now();
+      show('show', 1, T('Show “{m}” – 0 of {n}', { m: nameOf(w.src), n: SHOW }), T('Do the movement five times, with a short pause between them. Every time Dream takes it, the counter goes on.'));
+      add(btn(T('Skip'), T('Go on with fewer showings')), true).onclick = check;
+    }
+    // 3 · the counter-check: dance freely without the movement
+    function check() {
+      if (phase === 'show') w.good.push(...episodes(series));
+      probe(w.src.slice(2)); series = []; at = performance.now();
+      show('check', 2, T('Dance freely – without “{m}”', { m: nameOf(w.src) }), T('For {n} seconds: anything but this movement. Dream counts how often it would take something else for it.', { n: CHECK }));
+      add(btn(T('Skip'), T('Go on without the counter-check')), true).onclick = test;
+    }
+    // 4 · check every hit: recognised right or wrongly?
+    function test() {
+      if (phase === 'check') w.bad.push(...episodes(series));
+      probe(w.src.slice(2)); hit = null; w.hits = [];
+      show('test', 3, T('Dance – with and without “{m}”', { m: nameOf(w.src) }), T('Every time Dream takes it, it flashes: say whether it was right – 👍 (key G) or 👎 (key B).'));
+      const dots = el('div', 'mt-dots'); dots.setAttribute('aria-label', T('The hits so far')); dots.setAttribute('role', 'img');
+      const ask = el('div', 'mt-ask'); ask.hidden = true;
+      const good = btn(T('👍 recognised right'), T('It was the movement (key G)'), 'mt-good'), bad = btn(T('👎 recognised wrongly'), T('I did not do it (key B)'), 'mt-bad');
+      good.onclick = () => answer(true); bad.onclick = () => answer(false);
+      ask.append(el('span', 'mt-asktext', T('Dream took it for “{m}” – right?', { m: nameOf(w.src) })), good, bad);
+      pane.append(ask, dots);
+      w.ui = { dots, ask, good };
+      const done = add(btn(T('Done → result'), T('Show the result'), 'on'), true); done.onclick = result;
+    }
+    function answer(right) {
+      if (phase !== 'test' || !w.hits.length) return;
+      const h = w.hits.find(x => x.ok == null); if (!h) return;
+      h.ok = right; (right ? w.good : w.bad).push(h.peak); drawDots();
+      w.ui.ask.hidden = !w.hits.some(x => x.ok == null);
+    }
+    function drawDots() {
+      const d = w.ui.dots; d.textContent = '';
+      for (const h of w.hits) { const i = el('i', h.ok == null ? 'q' : h.ok ? 'y' : 'n'); d.append(i); }
+      const y = w.hits.filter(h => h.ok).length, n = w.hits.filter(h => h.ok === false).length;
+      d.setAttribute('aria-label', T('{y} right, {n} wrong so far', { y, n }));
+    }
+    // 5 · the result: the tolerance Dream chose
+    function result() {
+      probe(null);
+      const seen = w.good.length + w.bad.length > 0, r = seen ? pickTolerance(w.good, w.bad, opts.levels()) : { tol: 'normal', hits: 0, misses: 0, alarms: 0 };
+      w.result = r; w.rounds++;
+      show('result', 4, T('Tolerance: {t}', { t: { tight: T('tight'), normal: T('normal'), loose: T('loose') }[r.tol] }), seen
+        ? T('{h} of {g} times recognised, {a} false alarms at this tolerance.', { h: r.hits, g: r.hits + r.misses, a: r.alarms })
+        : T('Nothing was recognised – the tolerance stays normal. Try another round, a little larger.'));
+      const dots = el('div', 'mt-dots mt-result'); dots.setAttribute('role', 'img');
+      dots.setAttribute('aria-label', T('{h} hits, {m} missed, {a} false alarms', { h: r.hits, m: r.misses, a: r.alarms }));
+      for (let k = 0; k < r.hits; k++) dots.append(el('i', 'y')); for (let k = 0; k < r.misses; k++) dots.append(el('i', 'm')); for (let k = 0; k < r.alarms; k++) dots.append(el('i', 'n'));
+      const legend = el('div', 'hint mt-legend');
+      for (const [cls, text] of [['y', T('hit')], ['m', T('missed')], ['n', T('false alarm')]]) { const i = el('i', cls); i.setAttribute('aria-hidden', 'true'); legend.append(i, el('span', '', text)); }
+      pane.append(dots, legend);
+      add(btn(T('Keep'), T('Use this tolerance for the accent with this movement'), 'on'), true).onclick = keepIt;
+      add(btn(T('Another round'), T('Show, check and confirm once more – the more rounds, the more exactly Dream knows it'))).onclick = () => (w.made ? check() : showIt());
+    }
+    function keepIt() {
+      const { src, fx } = w, tol = w.result.tol, fresh = !!w.made, name = w.name || nameOf(src);
+      w.kept = true; probe(null);
+      try { opts.keep({ src, tol, fx, fresh }); } catch (e) { /* the page is gone */ }
+      w = null; show('idle', -1);
+      say(fresh ? T('“{n}” is kept and is an accent now – engage the clutch and dance it.', { n: name }) : T('“{n}” is taken {t} from now on.', { n: name, t: { tight: T('tight'), normal: T('normal'), loose: T('loose') }[tol] }));
+    }
+
+    // 2 · a new move: count down, take, look at the repetitions, name it
+    let countAt = 0, tk = null, found = null, reps = [], lookAt = 0;
     const aspect = () => { const f = tk && tk.frames[0]; return (f && f.i.a) || 16 / 9; };
-    function setPhase(p) {
-      phase = p; teach.hidden = p === 'idle'; teachBtn.disabled = p !== 'idle' || busy;
-      stopBtn.hidden = p !== 'take'; bar.hidden = p !== 'take' && p !== 'count'; big.hidden = p === 'review'; repList.hidden = form.hidden = p !== 'review';
-      box.classList.toggle('mt-taking', p === 'take');
+    const want = () => (w && w.quick ? MV.MIN_REPS : MV.MAX_REPS);
+    function startTake() {
+      if (opts.moves().length >= MV_MAX) { stopAll(T('Too many moves are kept – delete one first.')); return; }
+      tk = take(keys); found = null; reps = []; countAt = performance.now();
+      show('count', 1, String(COUNT), T('Get ready: then show your move {n} times in a row.', { n: want() }));
+      add(btn(T('Throw away'), T('Throw this take away (key Esc)')), true).onclick = () => stopAll(T('Thrown away – nothing kept.'));
     }
-    function start() {
-      if (phase !== 'idle' || busy) return;
-      if (opts.moves().length >= MV_MAX) { say(T('Too many moves are kept – delete one first.')); return; }
-      tk = take(keys); found = null; reps = []; countAt = performance.now(); setPhase('count');
-      say(T('Get ready: the take starts in {n} seconds. Then show your move three to five times in a row.', { n: COUNT }));
-      cancelBtn.focus();
-    }
-    function cancel(text) { const had = teach.contains(document.activeElement); tk = null; reps = []; setPhase('idle'); say(text || ''); if (had) teachBtn.focus(); }
-    function stop() {
+    function stopTake() {
       if (phase !== 'take') return;
       const { g, seg } = tk.look();
-      if (seg.why) { cancel(why(seg)); return; }
+      if (seg.why) { stopAll(why(seg)); return; }
       const fr = spans(tk.frames, seg.reps);
       found = { g, seg }; reps = seg.reps.map((r, i) => ({ span: r, frames: fr[i], box: bounds(fr[i], aspect()), cv: null }));
-      setPhase('review'); drawReps(); review(); nameIn.value = ''; pieceIn.value = ''; dstSel.value = '';
-      nameIn.focus();
+      show('review', 1, T('{n} repetitions', { n: reps.length }), '');
+      const repList = el('ul', 'mt-reps'); repList.setAttribute('aria-label', T('The repetitions of this take'));
+      const nameIn = el('input'), field = el('label', 'mt-field'); nameIn.type = 'text'; nameIn.maxLength = 32; nameIn.placeholder = T('e.g. Lasso'); nameIn.autocomplete = 'off'; nameIn.id = 'mt-name';
+      field.htmlFor = 'mt-name'; field.append(el('span', '', T('Name of the move')), nameIn);
+      pane.append(repList, field);
+      const next = add(btn(w.quick ? T('Keep the move') : T('Keep and go on →'), T('Keep this move on this Mac – numbers only, no camera picture'), 'on'));
+      add(btn(T('Throw away'), T('Throw this take away'))).onclick = () => stopAll(T('Thrown away – nothing kept.'));
+      const review = () => {
+        const enough = reps.length >= MV.MIN_REPS; next.disabled = !enough || busy;
+        small.textContent = enough ? T('{n} repetitions taken (one lasts {s} s). Throw away one that went wrong, give the move a name.', { n: reps.length, s: found.seg.period.toFixed(2) })
+          : T('Only {n} repetitions are left – a move needs at least 3. Throw the take away and show it again.', { n: reps.length });
+      };
+      const drawReps = () => {
+        repList.textContent = '';
+        reps.forEach((r, i) => {
+          const li = el('li', 'mt-rep'), cv = el('canvas', 'mt-cv'), cap = el('span', '', T('Repetition {n}', { n: i + 1 })), x = btn('✕', T('Throw this repetition away'), 'mt-x');
+          cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', T('Repetition {n} as a skeleton that runs round', { n: i + 1 })); x.setAttribute('aria-label', T('Throw repetition {n} away', { n: i + 1 }));
+          x.onclick = () => { reps.splice(reps.indexOf(r), 1); drawReps(); review(); (repList.querySelector('.mt-x') || nameIn).focus(); };
+          r.cv = cv; li.append(cv, cap, x); repList.append(li);
+        });
+      };
+      drawReps(); review(); nameIn.focus();
+      const keep = async () => {
+        if (busy || reps.length < MV.MIN_REPS) return;
+        const name = nameIn.value.trim().replace(/\s+/g, ' ');
+        if (!NAME_OK.test(name)) { small.textContent = T('A name: letters, digits, spaces and . + - , at most 32 characters.'); nameIn.focus(); return; }
+        const tpl = MV.template(found.g, reps.map(r => r.span), found.seg.hands);
+        if (!tpl) { small.textContent = WHY.small(); return; }
+        busy = true; next.disabled = true;
+        let r = null; try { r = await api.add(moveFile(name, '', tpl, reps.map(x => x.frames), keys, aspect())); } catch (e) { r = null; }
+        busy = false;
+        if (!w) return;
+        if (!r || !r.id) { next.disabled = false; small.textContent = (r && r.error) || T('Could not be kept.'); return; }
+        w.made = r.id; w.src = 'g.' + r.id; w.name = name; opts.changed(); tk = null;
+        if (w.quick) { w.result = { tol: 'normal' }; keepIt(); return; }
+        setTimeout(() => { if (w && phase === 'review') check(); }, 150);   // the stage knows the move by then
+      };
+      next.onclick = keep; nameIn.addEventListener('keydown', e => { if (e.key === 'Enter') keep(); });
     }
-    function review() {
-      const enough = reps.length >= MV.MIN_REPS;
-      keepBtn.disabled = !enough || busy;
-      say(enough ? T('{n} repetitions taken (one lasts {s} s). Throw away one that went wrong, give the move a name and keep it.', { n: reps.length, s: found.seg.period.toFixed(2) })
-        : T('Only {n} repetitions are left – a move needs at least 3. Throw the take away and show it again.', { n: reps.length }));
-    }
-    function drawReps() {
-      repList.textContent = '';
-      reps.forEach((r, i) => {
-        const li = el('li', 'mt-rep'), cv = el('canvas', 'mt-cv'), cap = el('span', '', T('Repetition {n}', { n: i + 1 })), x = btn('✕', T('Throw this repetition away'), 'mt-x');
-        cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', T('Repetition {n} as a skeleton that runs round', { n: i + 1 })); x.setAttribute('aria-label', T('Throw repetition {n} away', { n: i + 1 }));
-        x.onclick = () => { reps.splice(reps.indexOf(r), 1); drawReps(); review(); (repList.querySelector('.mt-x') || nameIn).focus(); };
-        r.cv = cv; li.append(cv, cap, x); repList.append(li);
-      });
-    }
-    async function keep() {
-      if (phase !== 'review' || busy || reps.length < MV.MIN_REPS) return;
-      const name = nameIn.value.trim().replace(/\s+/g, ' '), piece = pieceIn.value.trim().replace(/\s+/g, ' '), dst = dstSel.value;
-      if (!NAME_OK.test(name)) { say(T('A name: letters, digits, spaces and . + - , at most 32 characters.')); nameIn.focus(); return; }
-      const tpl = MV.template(found.g, reps.map(r => r.span), found.seg.hands);
-      if (!tpl) { say(WHY.small()); return; }
-      busy = true; keepBtn.disabled = true;
-      let r = null; try { r = await api.add(moveFile(name, piece, tpl, reps.map(x => x.frames), keys, aspect())); } catch (e) { r = null; }
-      busy = false;
-      if (!r || !r.id) { keepBtn.disabled = false; say((r && r.error) || T('Could not be kept.')); return; }
-      if (dst) opts.setRows(assign(opts.rows(), r.id, dst));
-      opts.changed();
-      cancel(dst ? T('“{n}” is kept and steers “{t}”. Engage the clutch and dance it.', { n: name, t: label(dst) }) : T('“{n}” is kept. Choose below what it steers.', { n: name }));
-    }
-    teachBtn.onclick = start; stopBtn.onclick = stop; cancelBtn.onclick = () => cancel(T('Thrown away – nothing kept.')); keepBtn.onclick = keep;
-    nameIn.addEventListener('keydown', e => { if (e.key === 'Enter') keep(); });
-    teach.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); cancel(T('Thrown away – nothing kept.')); } });
+    addEventListener('keydown', e => {
+      if (phase !== 'test' || e.metaKey || e.ctrlKey || e.altKey || (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) return;
+      const k = e.key.toLowerCase();
+      if (k === 'g') { e.preventDefault(); answer(true); } else if (k === 'b') { e.preventDefault(); answer(false); }
+    });
 
     // ---------- the list of moves ----------
     function drawList(moves) {
       const keepFocus = document.activeElement && list.contains(document.activeElement) ? [document.activeElement.closest('li').dataset.id, document.activeElement.dataset.part] : null;
       for (const id of [...items.keys()]) if (!moves.some(m => m.id === id)) { items.get(id).li.remove(); items.delete(id); }
-      if (!moves.length && !list.querySelector('.mt-none')) list.append(el('li', 'mt-none', T('No move of your own yet. “Teach a new move” – and show it three to five times.')));
+      if (!moves.length && !list.querySelector('.mt-none')) list.append(el('li', 'mt-none', T('No move of your own yet – “🎓 Teach a movement …” above, or “＋ A move of your own …” in the accents.')));
       if (moves.length && list.querySelector('.mt-none')) list.querySelector('.mt-none').remove();
       for (const m of moves) {
         let it = items.get(m.id);
         if (!it) {
-          const li = el('li', 'mt-move'), cv = el('canvas', 'mt-cv'), body = el('div', 'mt-body'), name = el('input'), dst = el('select'), piece = el('input'), meter = el('span', 'mt-meter'), fill = el('i'), del = btn('🗑', T('Delete this move'), 'mt-del');
+          const li = el('li', 'mt-move'), cv = el('canvas', 'mt-cv'), body = el('div', 'mt-body'), name = el('input'), piece = el('input'), meter = el('span', 'mt-meter'), fill = el('i');
+          const tune = btn(T('🎓 Tune'), T('Teach Dream this move more exactly'), 'mt-tune'), del = btn('🗑', T('Delete this move'), 'mt-del');
           li.dataset.id = m.id; cv.setAttribute('role', 'img'); meter.setAttribute('aria-hidden', 'true'); meter.append(fill);
           name.type = piece.type = 'text'; name.maxLength = 32; piece.maxLength = 80; piece.placeholder = T('Prompt piece, e.g. fire'); name.autocomplete = piece.autocomplete = 'off';
-          name.dataset.part = 'name'; dst.dataset.part = 'dst'; piece.dataset.part = 'piece'; del.dataset.part = 'del';
-          it = { li, cv, fill, name, dst, piece, del, frames: null, box: null, asked: false, m: null };
+          name.dataset.part = 'name'; piece.dataset.part = 'piece'; del.dataset.part = 'del'; tune.dataset.part = 'tune';
+          it = { li, cv, fill, name, piece, del, tune, frames: null, box: null, asked: false, m: null };
           const send = what => api.change(m.id, what).then(r => { if (r && r.id) { opts.changed(); say(T('Saved.')); } else say((r && r.error) || T('Could not be kept.')); }).catch(() => say(T('Could not be kept.')));
           name.onchange = () => { const v = name.value.trim().replace(/\s+/g, ' '); if (!NAME_OK.test(v)) { say(T('A name: letters, digits, spaces and . + - , at most 32 characters.')); name.value = it.m.name; return; } send({ name: v }); };
           piece.onchange = () => send({ piece: piece.value.trim().replace(/\s+/g, ' ') });
-          dst.onchange = () => { opts.setRows(assign(opts.rows(), m.id, dst.value)); say(dst.value ? T('“{n}” steers “{t}”.', { n: it.m.name, t: label(dst.value) }) : T('“{n}” steers nothing in this table.', { n: it.m.name })); };
+          tune.onclick = () => wizard({ src: 'g.' + m.id });
           del.onclick = () => {                           // asks once more on the button itself – no dialog in the way
-            if (del.dataset.sure) { api.del(m.id).then(ok => { if (ok) { opts.changed(); say(T('“{n}” deleted.', { n: it.m.name })); teachBtn.focus(); } }); return; }
+            if (del.dataset.sure) { api.del(m.id).then(ok => { if (ok) { opts.changed(); say(T('“{n}” deleted – its accents are empty now.', { n: it.m.name })); } }); return; }
             del.dataset.sure = '1'; del.textContent = T('Really delete?'); setTimeout(() => { delete del.dataset.sure; del.textContent = '🗑'; }, 3000);
           };
-          body.append(name, dst, piece); li.append(cv, body, meter, del); list.append(li); items.set(m.id, it);
+          body.append(name, piece); li.append(cv, body, meter, tune, del); list.append(li); items.set(m.id, it);
         }
         it.m = m;
         const set = (i, v) => { if (document.activeElement !== i && i.value !== v) i.value = v; };
         set(it.name, m.name); set(it.piece, m.piece || '');
-        it.name.setAttribute('aria-label', T('Name of the move “{n}”', { n: m.name })); it.dst.setAttribute('aria-label', T('What “{n}” steers', { n: m.name }));
+        it.name.setAttribute('aria-label', T('Name of the move “{n}”', { n: m.name }));
         it.piece.setAttribute('aria-label', T('Prompt piece of “{n}”', { n: m.name })); it.del.setAttribute('aria-label', T('Delete the move “{n}”', { n: m.name }));
+        it.tune.setAttribute('aria-label', T('Tune the move “{n}”', { n: m.name }));
         it.cv.setAttribute('aria-label', T('“{n}”: one repetition as a skeleton that runs round, the hands’ ways in colour', { n: m.name }));
         if (!it.asked) { it.asked = true; api.get(m.id).then(file => { const fr = file && Array.isArray(file.reps) && file.reps[0] && file.reps[0].frames; if (Array.isArray(fr) && fr.length) { it.frames = fr; it.aspect = file.aspect || 16 / 9; it.box = bounds(fr, it.aspect); it.still = false; } }).catch(() => { it.asked = false; }); }
       }
       if (keepFocus) { const again = list.querySelector(`[data-id="${keepFocus[0]}"] [data-part="${keepFocus[1]}"]`); if (again) again.focus(); }
-    }
-    function drawTargets(rows) {
-      for (const [id, it] of items) { const v = targetOf(rows, id); if (document.activeElement !== it.dst) fillTargets(it.dst, v); }
     }
     function fit(cv) {                                   // a square canvas, no finer than twice the CSS pixels
       const s = cv.clientWidth; if (!s) return null;
@@ -270,33 +382,50 @@
       const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); return [c, s];
     }
 
-    // ---------- the loop: the take, the previews, the list ----------
+    // ---------- the loop: the wizard, the previews, the list ----------
     function tick(now) {
       raf = requestAnimationFrame(tick);
-      let live = null; try { live = opts.live(); } catch (e) { live = null; }
+      let live = null, rec = null;
+      try { if (phase === 'take') live = opts.live(); rec = opts.sure(); } catch (e) { rec = null; }
       if (phase === 'count') {
         const left = COUNT - (now - countAt) / 1000;
         big.textContent = String(Math.max(1, Math.ceil(left))); barFill.style.transform = `scaleX(${clamp(1 - left / COUNT, 0, 1).toFixed(3)})`;
-        if (left <= 0) { setPhase('take'); lookAt = now; big.textContent = T('Show it now'); say(T('The take runs – show your move three to five times in a row. It ends by itself.')); stopBtn.focus(); }
+        if (left <= 0) { phase = 'take'; box.classList.add('mt-taking'); lookAt = now; big.textContent = T('Show it now'); small.textContent = T('The take runs – it ends by itself.'); }
       } else if (phase === 'take') {
         const room = tk.add(live, !!opts.clutch());
         barFill.style.transform = `scaleX(${clamp(tk.seconds / MAX_TAKE, 0, 1).toFixed(3)})`;
         if (now - lookAt > 400) {                        // how many repetitions so far – and enough of them ends the take
           lookAt = now; const { seg } = tk.look(), n = seg.why ? (seg.why === 'few' ? seg.count : 0) : seg.count;
-          big.textContent = n ? T('{n} × seen', { n: Math.min(n, MV.MAX_REPS) }) : T('Show it now');
-          if (n > MV.MAX_REPS) { stop(); return; }
+          big.textContent = n ? T('{n} × seen', { n: Math.min(n, want()) }) : T('Show it now');
+          if (n > want()) { stopTake(); return; }
         }
-        if (!room) stop();
+        if (!room) stopTake();
+      } else if (phase === 'show' || phase === 'check') {
+        const name = w.src.slice(2), c = rec && rec.g && Number.isFinite(rec.g[name]) ? rec.g[name] : 0;
+        series.push(c);
+        const secs = (now - at) / 1000;
+        if (phase === 'show') {
+          const n = episodes(series).length;
+          big.textContent = T('Show “{m}” – {k} of {n}', { m: nameOf(w.src), k: Math.min(n, SHOW), n: SHOW });
+          barFill.style.transform = `scaleX(${clamp(n / SHOW, 0, 1).toFixed(3)})`;
+          if ((n >= SHOW && c < 0.2) || secs > SHOW_MAX) check();
+        } else {
+          barFill.style.transform = `scaleX(${clamp(secs / CHECK, 0, 1).toFixed(3)})`;
+          const n = episodes(series).length, txt = T('{s} s left · taken for it {n}×', { s: Math.max(0, Math.ceil(CHECK - secs)), n });
+          if (small.textContent !== txt) small.textContent = txt;
+          if (secs >= CHECK) test();
+        }
+      } else if (phase === 'test' && rec) {
+        const name = w.src.slice(2), c = rec.g && Number.isFinite(rec.g[name]) ? rec.g[name] : 0;
+        if (rec.gesture === name && !hit) { hit = { peak: c, ok: null }; w.hits.push(hit); drawDots(); w.ui.ask.hidden = false; w.ui.dots.lastChild.classList.add('go'); }
+        if (hit) { hit.peak = Math.max(hit.peak, c); if (rec.gesture !== name) hit = null; }
       }
       if (now - lastDraw < 45 || document.hidden) return;
       lastDraw = now;
       const moves = opts.moves(), key = JSON.stringify(moves.map(m => [m.id, m.name, m.piece]));
-      if (key !== listKey) { listKey = key; rowsKey = ''; drawList(moves); }
-      const rows = opts.rows(), rk = JSON.stringify(rows.map(r => [r.src, r.dst]));
-      if (rk !== rowsKey) { rowsKey = rk; drawTargets(rows); }
+      if (key !== listKey) { listKey = key; drawList(moves); }
       const col = cols();
       if (phase === 'review') for (const r of reps) { const g = r.cv && fit(r.cv); if (g) drawRep(g[0], g[1], r.frames, r.box, aspect(), calm ? 0 : (now / 1000 / Math.max(0.3, found.seg.period)) % 1, col, TEXT); }
-      const rec = live && live.rec;
       for (const [id, it] of items) {
         const sure = rec && rec.g && Number.isFinite(rec.g[id]) ? rec.g[id] : 0, on = !!rec && rec.gesture === id;
         it.fill.style.transform = `scaleX(${clamp(sure, 0, 1).toFixed(2)})`; if (it.li.classList.contains('mt-on') !== on) it.li.classList.toggle('mt-on', on);
@@ -306,11 +435,11 @@
         drawRep(g[0], g[1], it.frames, it.box, it.aspect, calm ? 0 : (now / 1000 / secs) % 1, col, TEXT); it.still = true;
       }
     }
-    setPhase('idle'); raf = requestAnimationFrame(tick);
-    return { start, cancel: () => { if (phase !== 'idle') cancel(T('Thrown away – nothing kept.')); }, get phase() { return phase; }, stop: () => cancelAnimationFrame(raf) };
+    show('idle', -1); raf = requestAnimationFrame(tick);
+    return { wizard, cancel: () => { if (phase !== 'idle') stopAll(T('Teaching stopped – nothing changed.')); }, get phase() { return phase; }, stop: () => cancelAnimationFrame(raf) };
   }
 
-  const api = { mount, take, spans, moveFile, assign, targetOf, why, bounds, FORMAT, VERSION, COUNT, MAX_TAKE };
+  const api = { mount, take, spans, moveFile, why, bounds, episodes, pickTolerance, FORMAT, VERSION, COUNT, MAX_TAKE };
   if (node) module.exports = api;
   else root.MoveTeach = api;
 })(typeof window !== 'undefined' ? window : globalThis);

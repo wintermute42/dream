@@ -26,6 +26,10 @@ This file only puts the parts together (#189):
                output.py       Syphon, the output windows and previews (/out, /view)
                eyes.py         Dreamy Eyes: painted faces, portraits, trance
                windows.py      dream windows
+               roomlight.py    the dream's colour for the room light (what the stage samples, smoothed; master)
+               wled.py         the room light's LED chain: a WLED device in that colour (DDP)
+               hue.py          Hue lamps in that colour as a mood (the bridge's local API)
+               mdns.py         devices that announce themselves in the home network (WLED, Hue Bridge)
                cloud.py        the cloud GPU through ./dream-cloud
                measure.py      measurement runs
                media.py        uploads, the gallery, style reference pictures
@@ -68,6 +72,7 @@ if config.ROLE == "app":
     import eyes
     import flowprofiles
     import hub
+    import hue
     import inputs
     import measure
     import media
@@ -77,10 +82,12 @@ if config.ROLE == "app":
     import output
     import pages
     import rights
+    import roomlight
     import scenes
     import settings
     import voice
     import windows
+    import wled
 
     app.middleware("http")(rights.guard)               # in front of every request: origin, role, what the role may ask
     render_api.guard = lambda sock: rights.ws_can(sock, "render")   # #148: rendering is for the stage, not for guests
@@ -95,3 +102,7 @@ if config.ROLE == "app":
         _background("https", lambda: net.https_serve(app))   # #145
         app.router.on_shutdown.append(net.https_stop)
     _background("windows", windows.windows_loop)       # #201
+    _background("wled", wled.keep)                     # #212
+    app.router.on_shutdown.append(wled.stop)           # #212: WLED back to its own program at once
+    _background("hue", hue.keep)                       # #272
+    app.router.on_shutdown.append(hue.stop)            # #272: the Hue lamps get their previous state back

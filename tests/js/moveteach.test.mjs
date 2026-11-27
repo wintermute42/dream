@@ -1,5 +1,5 @@
-// #236: teaching a move of one's own (static/moveteach.js, the parts without a page) – a take in the making, its
-// repetitions as frames, the file Dream keeps, and the row of the table that says what the move steers. A simulated
+// #236, #265: teaching a movement (static/moveteach.js, the parts without a page) – a take in the making, its
+// repetitions as frames, the file Dream keeps, how exactly a movement is taken (its tolerance) and a move as an accent. A simulated
 // dancer (dance-sim.mjs) is taken as the page would take the stage's live dance; what is kept is then recognised.
 // Run: node --test tests/js/moveteach.test.mjs   (the CI runs it too)
 import assert from 'node:assert/strict';
@@ -63,25 +63,34 @@ test('a take that is no move says why, in words', () => {
   assert.match(T.why({ why: 'nohands' }), /hands were not seen/);
 });
 
-test('what a move steers is a row of the table: given, changed, taken away – other rows are left alone', () => {
-  const rows = [{ id: 'energy', on: true, src: 'energy', dst: 'fx.trails', curve: 'soft', in: [0.1, 0.8], out: [0, 0.7], smooth: 0.2, origin: 'fixed' }];
-  assert.equal(T.targetOf(rows, 'm0a1b2c3d'), '');
-  const one = T.assign(rows, 'm0a1b2c3d', 'fx.tunnel');
-  assert.deepEqual(one[1], { id: 'm0a1b2c3d', on: true, src: 'g.m0a1b2c3d', dst: 'fx.tunnel', curve: 'lin', in: [0, 1], out: [0, 1], smooth: 0.15, origin: 'taught' });
-  assert.equal(one[0], rows[0]); assert.equal(T.targetOf(one, 'm0a1b2c3d'), 'fx.tunnel');
-  const two = T.assign(one.map(r => (r.src === 'g.m0a1b2c3d' ? { ...r, on: false, out: [0, 0.4] } : r)), 'm0a1b2c3d', 'ai.piece');
-  assert.equal(two.length, 2); assert.equal(two[1].dst, 'ai.piece'); assert.equal(two[1].on, true); assert.deepEqual(two[1].out, [0, 0.4], 'its strength stays');
-  assert.deepEqual(T.assign(two, 'm0a1b2c3d', ''), rows);
-  // the id is taken by another row: the new row gets one of its own
-  assert.equal(T.assign([{ ...rows[0], id: 'm0a1b2c3d' }], 'm0a1b2c3d', 'fx.rgb')[1].id, 'm0a1b2c3d-2');
-  // the row is one the table takes (dance.py: ids, sources, targets) and the mapping knows the target
-  assert.match(one[1].id, /^[a-z0-9_-]{1,24}$/); assert.match(one[1].src, /^[a-z][a-z0-9_]{0,23}(\.[a-z0-9_]{1,24})?$/);
-  assert.equal(M.targets([])['ai.piece'], 'slow');
+test('how exactly a movement is taken: the peaks of each time, and the tolerance chosen from them', () => {
+  assert.deepEqual(T.episodes([0, 0.1, 0.35, 0.7, 0.5, 0.1, 0, 0.32, 0.31, 0.15, 0.9]), [0.7, 0.32, 0.9], 'one peak a time, the last one open');
+  assert.deepEqual(T.episodes([0.25, 0.29, 0.1, NaN]), [], 'never sure enough: no time at all');
+  const L = D.TOL;
+  assert.deepEqual(Object.keys(L), ['tight', 'normal', 'loose']); assert.ok(L.tight > L.normal && L.normal > L.loose);
+  // clear hits, nothing wrong: as loose as can be
+  assert.deepEqual(T.pickTolerance([0.8, 0.7, 0.5], [0.3], L), { tol: 'loose', hits: 3, misses: 0, alarms: 0 });
+  // something else was taken for it at 0.5: loose would let it through – normal does not
+  assert.deepEqual(T.pickTolerance([0.8, 0.7, 0.65], [0.5], L), { tol: 'normal', hits: 3, misses: 0, alarms: 0 });
+  assert.equal(T.pickTolerance([0.9, 0.8], [0.7, 0.62], L).tol, 'tight');
+  // false alarms at every tolerance: the one with the fewest
+  assert.deepEqual(T.pickTolerance([0.9], [0.95, 0.7, 0.5], L), { tol: 'tight', hits: 1, misses: 0, alarms: 1 });
+  assert.equal(T.pickTolerance([], [], L).tol, 'loose');
 });
 
-test('the taught row acts through the table like a gesture’s – and only with the clutch engaged', () => {
+test('the tolerance is the detection’s: tight takes less for the gesture, loose more', () => {
+  const run = tol => { const d = D.create(); if (tol) d.setTolerance({ throw: tol }); let n = 0, was = null; for (const f of frames('drum', { seconds: 6, size: 0.5, seed: 3 })) { const r = d.step(f); if (r.gesture === 'throw' && was !== 'throw') n++; was = r.gesture; } return { n, thr: d.threshold('throw') }; };
+  const tight = run('tight'), normal = run(null), loose = run('loose');
+  assert.deepEqual([tight.thr, normal.thr, loose.thr], [D.TOL.tight, D.TOL.normal, D.TOL.loose]);
+  assert.ok(D.create().threshold('wave') === D.TOL.normal, 'what is not named: normal');
+  const d = D.create(); d.setTolerance({ throw: 'sloppy', push: 'tight' }); assert.equal(d.threshold('throw'), D.TOL.normal); assert.equal(d.threshold('push'), D.TOL.tight);
+  assert.ok(tight.n <= normal.n && normal.n <= loose.n, `tight ${tight.n} ≤ normal ${normal.n} ≤ loose ${loose.n}`);
+});
+
+test('a taught move as an accent acts through the dance table like a gesture’s – and only with the clutch engaged', () => {
   const tk = taken('drum'), { g, seg } = tk.look(), c = MV.compile(MV.template(g, seg.reps, seg.hands), 'm0a1b2c3d');
-  const rows = T.assign([], 'm0a1b2c3d', 'fx.tunnel'), d = D.create(); d.setMoves([c]);
+  // the row an accent makes "When I dance “…” → a tunnel tears open" (dance.py compile_slots)
+  const rows = [{ id: 'accent0', on: true, src: 'g.m0a1b2c3d', dst: 'fx.tunnel', curve: 'lin', in: [0, 1], out: [0, 1], smooth: 0.15, origin: 'slot' }], d = D.create(); d.setMoves([c]);
   const run = clutch => { const mover = MOVE.create({ maps: M }); let out = {}; d.reset(); for (const f of frames('drum', { seconds: 6, seed: 2 })) out = mover.step({ mode: 'dance', tables: { dance: rows }, rec: d.step(f), clutch, dt: 1 / 30 }); return out; };
   assert.ok(run(true)['fx.tunnel'] > 0.8, 'engaged: the move steers its effect');
   assert.equal(run(false)['fx.tunnel'] || 0, 0, 'released: nothing');
@@ -95,7 +104,7 @@ test('a taught move reads as the name the dancer gave it; a session played back 
   assert.equal(P.label('g.m0a1b2c3d'), 'g.m0a1b2c3d');
   const frame = { t: 1, v: KEYS.map(() => 0), c: KEYS.map(() => 0), g: 'm0a1b2c3d', gc: 0.8, s: 0.9 }, rec = R.unpack(frame, KEYS);
   assert.equal(rec.v['g.m0a1b2c3d'], 0.9); assert.equal(rec.c['g.m0a1b2c3d'], 0.8);
-  assert.ok(M.create().apply(T.assign([], 'm0a1b2c3d', 'fx.tunnel'), rec, 10) ['fx.tunnel'] > 0.8);
+  assert.ok(M.create().apply([{ id: 'accent0', on: true, src: 'g.m0a1b2c3d', dst: 'fx.tunnel', curve: 'lin', in: [0, 1], out: [0, 1], smooth: 0.15, origin: 'slot' }], rec, 10)['fx.tunnel'] > 0.8);
   assert.equal(R.unpack({ ...frame, g: 'throw' }, KEYS).v['g.throw'], 0, 'a built-in gesture keeps its own value');
 });
 

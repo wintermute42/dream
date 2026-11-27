@@ -30,6 +30,7 @@ state["style"] = playlists.OLD_STYLES.get(state["style"], state["style"])
 # the movement mode is remembered like every other setting (#90, #249)
 state["backend"] = "local"        # #102: every start computes on this Mac; the cloud (it costs) only when chosen
 state["clutch"] = False           # #251: every start has the dance's clutch released – it is engaged only on purpose
+state["dance_set"] = dance.slot_use   # #265: the set in use is kept with the sets (dance.json; a set of an earlier version is migrated there)
 if state.get("cam_device") == "device":          # #146: a device's live camera never outlives the run it was sent in
     state["cam_device"] = ""
     if state.get("mode") == "cam":
@@ -138,6 +139,20 @@ async def apply(changes: dict, exclude=None, persist=True, by=None):
             if not outbox.post(v, json.dumps({"master": state["master"]})):
                 viewers.discard(v)
     await broadcast({"set": clean, **({"by": by} if by else {})}, exclude=exclude)
+    # #247: whoever asked for a value a stepped setting does not have hears what it became (the others hear it anyway)
+    snapped = {k: v for k, v in clean.items() if settings.SETTINGS[k].steps and v != changes[k]}
+    if snapped and exclude in clients and not rights.can(roles.get(exclude), "eyes_only"):
+        outbox.post(exclude, json.dumps({"set": snapped}))
+
+
+async def blackout(by=None) -> None:
+    """#241: the master to black and back – the panel's and Dream Control's "Blackout", a MIDI button, a strike. Back is
+    the brightness it had before (or full, if it was already dark)."""
+    if state["master"] > 0.05:
+        live["master_before"] = state["master"]
+        await apply({"master": 0.0}, by=by)
+    else:
+        await apply({"master": live.get("master_before", 1.0)}, by=by)
 
 
 # ---------- #216: reset – the picture's settings glide home, and back again for a few seconds ----------

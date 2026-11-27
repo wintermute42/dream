@@ -132,7 +132,7 @@
   h1 small { color: var(--muted); font-weight: 400; }
   .row { margin: 10px 0; }
   label { display: block; color: var(--muted); font-size: .9em; margin-bottom: 4px; }
-  textarea, select, input[type=number] { width: 100%; background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--line);
+  textarea, select, input[type=number], input[type=text] { width: 100%; background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--line);
     border-radius: 8px; padding: 7px 8px; font: inherit; }
   textarea { height: 64px; resize: vertical; }
   input[type=range] { width: 100%; height: 32px; accent-color: var(--accent); }
@@ -230,6 +230,21 @@
   #panel [style*="font-size:12px"], #panel [style*="font-size:11px"] { font-size: .82em !important; }
   .only { display: none; }
   .btns.compact { gap: 4px; } .btns.compact .btn { padding: 5px 7px; flex: 1 1 auto; }
+  /* #241: the master fader and its Blackout – pressed while the picture is black, as in Dream Control */
+  .masterrow #blackout { flex: 0 0 auto; font-weight: 600; }
+  .masterrow #blackout[aria-pressed="true"] { background: var(--accent); color: #140b1f; border-color: transparent; }
+  /* #212: the room light – the lamp glows in the colour the chain gets (before the device's own correction) */
+  .ledlamp { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; background: #000; border: 2px solid var(--line, rgba(255,255,255,.25));
+    opacity: .25; box-shadow: 0 0 10px 2px currentColor; color: transparent; }
+  .ledrow.off .ledset :is(input, button), .huerow.off .hueset input[type=range] { opacity: .55; }   /* only the controls: the words stay readable */
+  .ledstat { margin-top: 4px; min-height: 1.3em; }
+  /* #272: the Hue lamps – the bridge, pairing, the rooms and lamps that dream along */
+  .huerow { border-top: 1px solid var(--line); padding-top: 10px; }
+  .huelist { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; margin-top: 6px; }
+  .huelamp { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text); font-size: .9em; min-height: 28px; }
+  .huelamp small { margin-left: auto; }
+  #huepair.on { background: var(--accent); color: #140b1f; border-color: transparent; }
+  .labbtns { margin-top: 6px; }
   #prompt.resting { opacity: .7; filter: grayscale(1); }
   .patauto.pale { filter: grayscale(1); opacity: .74; }
   .srchint { font-size: .85em; color: var(--muted); margin-top: 6px; line-height: 1.3; height: 2.6em; overflow: hidden;
@@ -389,6 +404,11 @@
     </div>
     <label for="cam_device" style="margin-top:6px">Camera</label>
     <select id="cam_device" class="camsel"><option value="">Default camera</option><option value="device">📱 Live camera of a phone</option></select>
+    <!-- #241: a camera another device lends (Dream Control, Dreamy Eyes) can be ended here too -->
+    <div class="btns compact" id="feedother" hidden style="margin-top:4px;align-items:center">
+      <span id="feedothertext" role="status" style="flex:1;min-width:0;font-size:12px;color:var(--muted)"></span>
+      <button class="btn" id="feedend" title="Ends the live camera this device lends – the input goes back to the Mac">■ End</button>
+    </div>
   </div>
   <div class="row">
     <label>Own file · or made by the AI</label>
@@ -553,13 +573,19 @@
         <button type="button" class="btn movepage" id="movepage" disabled title="Opens the page of this mode in a window of its own (for a second screen)">Page ↗</button>
       </div>
       <select id="move_mode" hidden aria-hidden="true"><option value="off">Off</option><option value="mood">Mood</option><option value="flowtrack">Flowtrack</option><option value="dance">Dream Dance</option></select>
+      <!-- #265: one strength for the mood and for Dream Dance (all its effects together, on top of the three steps of
+           each sentence) – a row of its own, above the part of the mode -->
+      <div class="moveparts moveshared">
+        <div class="movepart" data-for="mood dance">
+          <label for="motion_sens" title="How strongly movement moves the dream: the energy in the room (Mood), all effects of the dance together (Dream Dance: the fine tuning of the three strengths of its sentences) – 0 = not at all">Strength <span class="val" id="v-msens"></span></label>
+          <input type="range" id="motion_sens" min="0" max="3" step="0.05" value="1">
+        </div>
+      </div>
       <div class="moveparts">
         <div class="movepart on" data-for="off">
           <div class="hint" style="margin:0">Movement is off. Choose a mode: <b>Mood</b> catches the energy in the room, <b>Flowtrack</b> follows one performer, <b>Dream Dance</b> lets your dance steer the dream.</div>
         </div>
         <div class="movepart" data-for="mood">
-          <label for="motion_sens" title="How strongly the energy in the room moves the dream (0 = not at all)">Strength <span class="val" id="v-msens"></span></label>
-          <input type="range" id="motion_sens" min="0" max="3" step="0.05" value="1">
           <div class="moveenergy"><span id="moveenergy-l">Energy</span>
             <span class="movemeter" id="moveenergy" role="meter" aria-labelledby="moveenergy-l" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="fill"></i><i class="peak"></i></span>
             <span class="movemeter-word" id="moveenergy-word">–</span></div>
@@ -577,11 +603,16 @@
         </div>
         <div class="movepart" data-for="dance">
           <div class="moveinfo" id="moveinfo-dance" role="status">–</div>
-          <!-- #251: what a show needs at hand – the clutch and the movement set (the rest is on the page) -->
+          <!-- #251, #265: what a show needs at hand – the traffic light, the clutch and the movement set (the rest is on the page) -->
+          <div class="movelight" id="movelight"></div>
           <button type="button" class="btn clutchbtn" id="clutchbtn" aria-pressed="false" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do. Key K, a MIDI button or Dream Control.">Clutch: released</button>
           <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
           <input type="checkbox" id="clutch" hidden aria-hidden="true">
-          <select id="dance_set" aria-label="Movement set" title="A movement set: a named table of what your movements do. Choosing one makes it the table in use; tune and keep your own on the page."><option value="">Set: your table</option></select>
+          <select id="dance_set" aria-label="Movement set" title="A movement set: the sentences that say what your movements do. Choose one here, with a MIDI button or in a playlist scene; change them and keep your own on the page (“Page ↗”)."><option value="standard">Set: Standard</option></select>
+          <!-- #241: while the lab is open on its page, recording is at hand here too ("good"/"bad" live in the learning assistant on the page since #265, and on a MIDI button) -->
+          <div class="btns compact labbtns" id="labbtns" role="group" aria-label="Dance lab" hidden>
+            <button type="button" class="btn" id="labrec" aria-pressed="false" title="Records a session of the dance (key R)">● Record</button>
+          </div>
           <select id="dance_kind" class="movekind" aria-label="What Dream Dance detects" title="What Dream Dance detects: your hands and body (AI) or two LED markers, one colour per hand. Flowtrack keeps its own choice."><option value="hand">Dance: Hands (AI)</option><option value="marker">Dance: LED markers (2 colours)</option></select>
         </div>
       </div>
@@ -603,7 +634,7 @@
         <select id="marker_r" aria-label="Marker colour of the right hand" title="LED marker on the right hand: another colour than the left one" style="flex:1 1 45%;min-width:0">
           <option value="cyan">Right: cyan</option><option value="magenta">Right: magenta</option><option value="green">Right: green</option><option value="blue">Right: blue</option></select>
         <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: the LED markers are followed as well – in the dark and on fast moves they lead, otherwise both confirm each other"><input type="checkbox" id="flow_markers"> LED markers beside the hand AI</label>
-        <label style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="With “Hands (AI)”: a second model finds 21 points per hand – fist, spread fingers, pinch and snap become values the dance card can use. Costs some of the graphics chip; downloaded once (about 8 MB)."><input type="checkbox" id="flow_fingers"> Fingers (hand AI, 21 points per hand)</label>
+        <label id="fingersrow" style="display:flex;align-items:center;gap:6px;margin:0;flex-basis:100%" title="Shows whether the hand model runs (21 points per hand – fist, spread fingers, pinch, snap): by itself while Dream Dance detects with “Hands (AI)”, so your hands always belong to the dance; never in Flowtrack. Downloaded once (about 8 MB)."><input type="checkbox" id="fingersshow" disabled> Fingers (hand AI, 21 points per hand)</label>
       </div>
     </div>
   <div class="row">
@@ -637,17 +668,15 @@
     </details>
   </details>
   <details class="sec" data-sec="control">
-    <summary>Control (MIDI, sensors, master)</summary>
+    <summary>Control (MIDI, sensors)</summary>
   <div class="row">
     <label>MIDI controller</label>
     <div id="midistate" style="font-size:12px;color:var(--muted)">no MIDI device</div>
     <div class="btns" style="margin-top:4px">
-      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select>
+      <select id="miditarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option><option value="wled_amt">Room light: strength</option><option value="hue_lamps_amt">Hue lamps: strength</option><option value="fx_amt">Effect strength</option><option value="world_mix">Style worlds: crossfade</option><option value="pause">Button: pause/start</option><option value="next">Button: next scene</option><option value="restart">Button: new</option><option value="reseed">Button: new seed</option><option value="blackout">Button: blackout on/off</option><option value="tap">Button: tap tempo</option><option value="pattern">Button: next pattern</option><option value="world">Button: next style world</option><option value="fx_new">Button: roll effects anew</option><option value="fx_off">Button: effects off</option><option value="fx_kaleido">Button: kaleidoscope</option><option value="fx_mandala">Button: mandala</option><option value="fx_mirror">Button: mirror</option><option value="fx_tunnel">Button: tunnel</option><option value="fx_waves">Button: waves</option><option value="fx_feedback">Button: feedback</option><option value="fx_trails">Button: afterglow</option><option value="fx_pixel">Button: pixel</option><option value="fx_raster">Button: grid</option><option value="fx_rgb">Button: RGB shift</option><option value="fx_glitch">Button: glitch</option><option value="fx_hue">Button: colour rotation</option><option value="dance_good">Button: dance lab – good</option><option value="dance_bad">Button: dance lab – bad</option><option value="clutch">Button: clutch in/out</option><option value="dance_set">Button: next movement set</option></select>
       <button class="btn" id="midilearn" title="Choose a target, click, then turn or press on the controller">🎛 Learn</button>
     </div>
     <div id="midimap" style="font-size:12px;margin-top:4px"></div>
-    <label for="master" style="margin-top:6px">Master brightness <span class="val" id="v-master">100 %</span></label>
-    <input type="range" id="master" min="0" max="1" step="0.01" value="1">
   </div>
 
   <div class="row">
@@ -655,7 +684,7 @@
     <div id="sensstate" style="font-size:12px;color:var(--muted)">no sensor data (OSC port 7020, see README)</div>
     <div id="sensbars" style="font-size:11px;margin-top:4px;height:5.6em;overflow:hidden"></div>
     <div class="btns" style="margin-top:4px">
-      <select id="senstarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Mood: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select>
+      <select id="senstarget" style="width:62%"><option value="strength">Transformation</option><option value="mix">Dream share</option><option value="zoom">Zoom pull</option><option value="rot">Rotation</option><option value="hue">Colour drift</option><option value="drift">Drift</option><option value="sens">Music reaction</option><option value="motion_sens">Movement: strength</option><option value="pose_scale">Pose strength</option><option value="master">Master brightness</option></select>
       <button class="btn" id="senslearn" title="Choose a target, click, then make the wanted movement for 2 seconds">📡 Learn</button>
     </div>
     <div id="sensmap" style="font-size:12px;margin-top:4px"></div>
@@ -704,7 +733,15 @@
 
   </details>
   <details class="sec" data-sec="out">
-    <summary>Output (format, projector, Syphon)</summary>
+    <summary>Output (master brightness, format, projector, Syphon, room light)</summary>
+  <!-- #241: the master fader of the show – it acts only on what the audience, the projector and Syphon see -->
+  <div class="row keep masterrow">
+    <label for="master">Master brightness <span class="val" id="v-master">100 %</span></label>
+    <div class="btns compact" style="align-items:center">
+      <input type="range" id="master" min="0" max="1" step="0.01" value="1" style="flex:1 1 60%;min-width:0">
+      <button class="btn" id="blackout" aria-pressed="false" title="Master to black and back to the brightness before (a MIDI button can do it too)">■ Blackout</button>
+    </div>
+  </div>
   <div class="row">
     <label>Format · resolution · seed</label>
     <div class="btns" style="margin-bottom:6px">
@@ -742,6 +779,46 @@
   </div>
   <div class="row">
   <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="syphon"> Syphon output “Dream” for Resolume</label>
+  </div>
+  <!-- #212: the room light – a WLED device lights its LED chain in the colour of the dream (wled.py, roomlight.js) -->
+  <div class="row ledrow" id="ledrow">
+    <div class="btns" style="align-items:center">
+      <label style="display:flex;align-items:center;gap:6px;margin:0;flex:1 1 auto"><input type="checkbox" id="wled"> Room light (WLED) dreams along</label>
+      <span id="ledlamp" class="ledlamp" aria-hidden="true"></span>
+    </div>
+    <div class="ledset">
+      <div class="btns" style="margin-top:6px">
+        <input type="text" id="wled_host" placeholder="IP address or name, e.g. 192.168.1.40" aria-label="WLED device: IP address or name" autocomplete="off" spellcheck="false" style="flex:1 1 60%;min-width:0">
+        <button class="btn" id="wledfind" title="Look for WLED devices in the Wi-Fi (mDNS, about two seconds)">🔍 Find</button>
+      </div>
+      <div id="wledfound" class="btns compact" hidden role="group" aria-label="WLED devices found"></div>
+      <label for="wled_amt" style="margin-top:6px">Light strength <span class="val" id="v-wled_amt">100 %</span></label>
+      <input type="range" id="wled_amt" min="0" max="1" step="0.01" value="1">
+      <label style="display:flex;align-items:center;gap:6px;margin:4px 0 0"><input type="checkbox" id="wled_beat" checked> Pulse on the beat</label>
+    </div>
+    <div id="wledstat" class="muted ledstat" role="status"></div>
+  </div>
+  <!-- #272: Hue lamps take the dream's colour as a mood – locally over the Hue Bridge (hue.py, huecard.js) -->
+  <div class="row huerow" id="huerow">
+    <div class="btns" style="align-items:center">
+      <label style="display:flex;align-items:center;gap:6px;margin:0;flex:1 1 auto"><input type="checkbox" id="hue_lamps"> Hue lamps dream along</label>
+      <span id="hueglow" class="ledlamp" aria-hidden="true"></span>
+    </div>
+    <div class="hueset">
+      <div class="btns" style="margin-top:6px">
+        <input type="text" id="hue_bridge" placeholder="IP address of the bridge, e.g. 192.168.1.2" aria-label="Hue Bridge: IP address or name" autocomplete="off" spellcheck="false" style="flex:1 1 60%;min-width:0">
+        <button class="btn" id="huefind" title="Look for the Hue Bridge in the Wi-Fi (mDNS, about two seconds)">🔍 Find</button>
+      </div>
+      <div id="huefound" class="btns compact" hidden role="group" aria-label="Hue Bridges found"></div>
+      <div class="btns" style="margin-top:6px">
+        <button class="btn" id="huepair" title="Pairs Dream with the bridge: press this, then the round button on the bridge">🔗 Pair</button>
+        <button class="btn" id="hueunpair" hidden title="Dream forgets the bridge's key; the lamps get their own light back">Unpair</button>
+      </div>
+      <div id="huelist" class="huelist" hidden role="group" aria-label="Rooms and lamps that dream along"></div>
+      <label for="hue_lamps_amt" style="margin-top:6px">Lamp strength <span class="val" id="v-hue_lamps_amt">100 %</span></label>
+      <input type="range" id="hue_lamps_amt" min="0" max="1" step="0.01" value="1">
+    </div>
+    <div id="huestat" class="muted ledstat" role="status"></div>
   </div>
   </details>
   <details class="sec" data-sec="compute">
@@ -801,6 +878,8 @@
 <script src="/static/motion.js"></script>
 <script src="/static/beat.js"></script>
 <script src="/static/soft.js"></script>
+<script src="/static/roomlight.js"></script>
+<script src="/static/huecard.js"></script>
 <script src="/static/dreamface.js" data-detect defer></script><!-- #214: where the painted faces have their eyes and mouth, for the dream windows: found here once per face, in a worker, when Dream asks -->
 <script>
   // #132: the page in the chosen language (the markup is English; I18N.apply translates it once, T() the rest)
@@ -1155,11 +1234,9 @@
 
   // ---------- building the next input frame ----------
   // Picture size: the chosen resolution is the height; 16:9 widens it (multiple of 64, as the model likes it).
+  // #247: never read from the list alone – a list without a choice gave a picture of 0×0 and the stage stood still.
   const wide = () => $('aspect').value === 'wide';
-  function dims() {
-    const h = +ui.size.value;
-    return { w: wide() ? Math.round(h * 16 / 9 / 64) * 64 : h, h };
-  }
+  const dims = () => DreamCommon.picSize(ui.size.value, wide());
   function seedNoise(w, h) {
     // a soft colourful start for the pure prompt dream
     const g = wctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
@@ -1621,6 +1698,7 @@
   }
   function musicDrop(opts) {
     mu.inBreak = 0; mu.drop = 1; mu.events.push('drop');
+    roomLight.flash(1);                                // #212: the room light flashes on a drop
     mu.seedOff += 37; if (opts.patterns) switchPattern();
   }
   // one beat (from the tracker: music or tap). env: how hard it pushes (a beat only held through a break: not at all).
@@ -1635,6 +1713,7 @@
     }
     mu.beatEnv = ev.held ? 0 : ev.confidence == null || tap.on ? 1 : Math.min(1, 0.35 + 1.3 * ev.confidence);
     if (ev.held) return;
+    roomLight.beat(mu.beatEnv);                        // #212: the room light pulses with it
     if (p.jolt) { mu.jolt = p.jolt * mu.intensity; mu.joltDir = -mu.joltDir; }
     if (p.seed && mu.beats % 2 === 0) mu.seedOff += 1;
     if (opts.patterns && mu.beats >= mu.nextSwitch) switchPattern();
@@ -1750,8 +1829,16 @@
   const moveMode = () => $('move_mode').value;
   const moveOpts = () => ({ off: moveOff, cam: $('move_cam').checked });
   let moveOff = '';                                    // the kinds of sources switched off ("eyes+band")
-  const tableMode = () => (moveMode() === 'off' ? 'dance' : moveMode());   // the table the dance card shows
+  // the table the dance card shows and changes: the mood's or flowtrack's – #265: the dance's is compiled from the
+  // sentences of its set in use (dance.py), changed on its page, never row by row
+  const tableMode = () => (moveMode() === 'mood' || moveMode() === 'flowtrack' ? moveMode() : null);
   const tableRows = () => moveTables[tableMode()] || [];
+  // #265: the dance's sets (dance.py: which one is in use, their sentences, the drafts), and the movement being taught
+  let danceSlots = null, danceProbe = null;
+  // #265: how sure the detection must be of each accent of the set in use (and of a movement being taught: loose)
+  function toleranceSync() {
+    danceDet.setTolerance({ ...(danceSlots ? danceSlots.tol : {}), ...(danceProbe ? { [danceProbe]: 'loose' } : {}) });
+  }
   const danceOn = () => moveMode() !== 'off';          // the stream runs in every mode
   const moveGain = k => danceOut[k] || 0;              // what a target of the one interface is at
   const danceAi = k => danceOut['ai.' + k] || 0;
@@ -2028,12 +2115,77 @@
     motion_sens: 'motion_sens', move_mode: 'move_mode', move_cam: 'move_cam', flow_kind: 'flow_kind', dance_kind: 'dance_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_mirror: 'touch_mirror', ap_words: 'ap_words', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
-    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', flow_auto: 'flow_auto', flow_profile: 'flow_profile', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', flow_fingers: 'flow_fingers', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt' };
+    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', flow_auto: 'flow_auto', flow_profile: 'flow_profile', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt',
+    wled: 'wled', wled_amt: 'wled_amt', wled_beat: 'wled_beat',   // #212 (the device's address: on "change", below)
+    hue_lamps: 'hue_lamps', hue_lamps_amt: 'hue_lamps_amt' };     // #272 (the bridge and the lamps: huecard.js)
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
   const worldBand = WorldBand.mount($('worldband'), { send: set => sendCtl({ set }) });
-  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt']);
+  const NUM = new Set(['strength', 'mix', 'zoom', 'rot', 'hue', 'sens', 'quality', 'size', 'seed', 'interval', 'motion_sens', 'pose_scale', 'drift', 'smooth', 'morph', 'flow', 'touch_amt', 'master', 'auto_level', 'fx_amt', 'edges_scale', 'style_amt', 'style_ref_amt', 'wled_amt', 'hue_lamps_amt']);
   let ctl = null, applying = false;
   const sendCtl = m => { if (ctl && ctl.readyState === 1) ctl.send(JSON.stringify(m)); };
+  // ---------- #212: the room light – the stage tells Dream the colour of what the audience sees (roomlight.js) ----------
+  // The lamp beside the switch glows in it (with the strength and the master); it swells on a beat.
+  const calmMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const roomLight = DreamRoomLight.create({
+    pixels: (w, h) => view.pixels(w, h),
+    send: m => {
+      sendCtl(m);
+      if (m.led.rgb) ledLamp(m.led.rgb);
+      else if (m.led.beat && !calmMotion.matches) $('ledlamp').animate([{ transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
+    },
+  });
+  function ledLamp(rgb) {
+    for (const [id, amt, on] of [['ledlamp', 'wled_amt', 'wled'], ['hueglow', 'hue_lamps_amt', 'hue_lamps']]) {
+      const lamp = $(id), lit = rgb && $(on).checked;
+      lamp.style.background = lamp.style.color = lit ? `rgb(${rgb.join(',')})` : '#000';
+      lamp.style.opacity = lit ? (0.25 + 0.75 * +$(amt).value * look.master).toFixed(2) : '.25';
+    }
+  }
+  // the stage looks at its picture for the room light while one of its outputs is on (#212 WLED, #272 Hue)
+  const lightOn = () => { roomLight.on = $('wled').checked || $('hue_lamps').checked; if (!roomLight.on) ledLamp(null); };
+  let ledSt = { st: 'off' };
+  function ledShow(st) {
+    if (st) ledSt = st;
+    const s = ledSt, on = $('wled').checked, h = s.host || $('wled_host').value;
+    lightOn();
+    $('ledrow').classList.toggle('off', !on);
+    $('v-wled_amt').textContent = Math.round(+$('wled_amt').value * 100) + ' %';
+    const say = !on ? '' : s.st === 'nohost' ? T('Enter the address of the WLED device, or let Dream find it.')
+      : s.st === 'looking' ? T('Looking for {h} …', { h })
+      : s.st === 'unknown' ? T('{h} is not found in the network – check the address (README: room light).', { h })
+      : s.st === 'public' ? T('{h} is not in the home network – Dream sends light only there.', { h })
+      : s.st === 'wait' ? T('Waiting for the picture of the stage …')
+      : s.st === 'live' ? (s.leds ? T('Live: {name} · {n} LEDs', { name: s.name || h, n: s.leds })
+        : s.noinfo ? T('Sending to {h} – the device does not answer (address right? WLED on?)', { h }) : T('Sending to {h} …', { h }))
+      : '';
+    if ($('wledstat').textContent !== say) $('wledstat').textContent = say;
+  }
+  function ledFound(list) {
+    const box = $('wledfound');
+    $('wledfind').disabled = false; $('wledfind').textContent = T('🔍 Find');
+    box.replaceChildren();
+    box.hidden = false;
+    if (!list.length) {
+      const none = document.createElement('span'); none.className = 'muted';
+      none.textContent = T('No WLED device answered – enter its IP address (README: room light).');
+      box.append(none); return;
+    }
+    for (const d of list) {
+      const b = document.createElement('button'), addr = d.ip || d.host;
+      b.className = 'btn'; b.textContent = `💡 ${d.name} · ${addr}`;
+      b.title = T('Use this device');
+      b.onclick = () => { $('wled_host').value = addr; sendCtl({ set: { wled_host: addr } }); box.hidden = true; $('wled_host').focus(); };
+      box.append(b);
+    }
+    box.querySelector('button').focus();
+  }
+  $('wled_host').addEventListener('change', () => sendCtl({ set: { wled_host: $('wled_host').value.trim() } }));
+  $('wledfind').onclick = () => { $('wledfind').disabled = true; $('wledfind').textContent = T('🔍 Looking …'); sendCtl({ wled_find: true }); };
+  ['wled', 'wled_beat'].forEach(id => $(id).addEventListener('change', () => ledShow()));
+  $('wled_amt').addEventListener('input', () => ledShow());
+  // #272: the Hue lamps – the bridge, pairing, the rooms and lamps that dream along
+  const hueCard = HueCard.mount({ el: $, send: sendCtl });
+  $('hue_lamps').addEventListener('change', lightOn);
   const readEl = (k, el) => el.type === 'checkbox' ? el.checked : (NUM.has(k) ? +el.value : el.value);
   const timers = {};
   Object.entries(BIND).forEach(([k, id]) => {
@@ -2078,15 +2230,20 @@
         if (k === 'calib' || k === 'flow_unproject') unprojSync();
         if (k === 'fast_prev') fastPrev = v;
         if (k === 'flow_color' || k === 'flow_short') lightSync();
-        if (k === 'marker_l' || k === 'marker_r' || k === 'flow_markers' || k === 'flow_fingers') danceSync(k);
+        if (k === 'marker_l' || k === 'marker_r' || k === 'flow_markers') danceSync(k);
         if (k === 'clutch') clutchSync();
         if (k === 'flow_auto') flowAutoSync();
-        if (k === 'dance_set') { $('dance_set').dataset.want = v; setsSync(); }
+        if (k === 'dance_set') setsSync();
         if (k === 'flow_profile') { $('flow_profile').dataset.want = String(v || ''); profilesSync(); }
         if (k === 'dance_fb_secs') { danceFbSecs = +v; danceLab.secs(+v); }
         if (k === 'style_ref' || k === 'model') lookSync();
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
-        if (k === 'master') { look.master = +v; $('v-master').textContent = Math.round(v * 100) + ' %'; }
+        if (k === 'master') { look.master = +v; masterShow(); }
+        if (k === 'wled_host' && document.activeElement !== $('wled_host')) $('wled_host').value = v;
+        if (k === 'wled' || k === 'wled_amt') ledShow();
+        if (k === 'hue_bridge' && document.activeElement !== $('hue_bridge')) $('hue_bridge').value = v;   // #272
+        if (k === 'hue_lamps_sel') hueCard.choose(v);
+        if (k === 'hue_lamps' || k === 'hue_lamps_amt') { lightOn(); hueCard.update(); }
       }
       if (['move_mode', 'move_off', 'move_cam', 'flow_kind', 'dance_kind'].some(k => k in st)) { moveSync(); lightSync(); }   // #249: once, with all of them in place
       show();
@@ -2310,13 +2467,13 @@
     const { base, parts } = promptMix();
     const html = esc(T('The AI gets:')) + ' <span class="base">' + esc(base) + '</span>' + (parts.length
       ? ' ' + parts.map(p => `<span class="mix ${p.src}" title="${esc(MIX_NAME[p.src] || T('Prompt change'))}">+ ${esc(p.text)}`
-        + (MIX_OFF[p.src] ? `<button data-off="${MIX_OFF[p.src]}" aria-label="${esc(T('Switch off: {x}', { x: MIX_NAME[p.src] }))}" title="${esc(T('Switch off'))}">✕</button>` : '') + '</span>').join('')
+        + (MIX_OFF[p.src] && (!MIX_OFF[p.src].startsWith('row:') || tableMode()) ? `<button data-off="${MIX_OFF[p.src]}" aria-label="${esc(T('Switch off: {x}', { x: MIX_NAME[p.src] }))}" title="${esc(T('Switch off'))}">✕</button>` : '') + '</span>').join('')
       : ' <span>' + esc(T('– exactly the prompt above, nothing added.')) + '</span>');
     if (html !== mixShown && !$('promptmix').contains(document.activeElement)) { $('promptmix').innerHTML = html; mixShown = html; }
   }
   $('promptmix').addEventListener('click', e => {
     const b = e.target.closest('button[data-off]'); if (!b) return;
-    if (b.dataset.off.startsWith('row:')) tableSay(tableRows().map(r => (r.dst === b.dataset.off.slice(4) ? { ...r, on: false } : r)));   // #249: the rows that do it
+    if (b.dataset.off.startsWith('row:')) { const rows = tableRows().map(r => (r.dst === b.dataset.off.slice(4) ? { ...r, on: false } : r)); tableSend(rows); dancePanel.map(rows); }   // #249: the rows that do it – the mood's or flowtrack's
     else { const el = $(b.dataset.off); el.checked = false; el.dispatchEvent(new Event('change')); }
     showPromptMix(); $('prompt').focus();
   });
@@ -2417,7 +2574,9 @@
   function moveSync() {
     const on = flowOn(), want = on ? camKind() + '|' + flowCam() : '';
     moveCard.set({ move_mode: moveMode(), move_off: moveOff });
-    $('movetable').textContent = moveMode() === 'off' ? T('Movement is off – shown: the table of Dream Dance.') : T('What a movement does in the mode “{m}”.', { m: MoveCard.name(moveMode()) });
+    $('movetable').textContent = moveMode() === 'dance' ? T('Dream Dance says what your movements do in sentences – choose and change them on its page (“Page ↗”).')
+      : moveMode() === 'off' ? T('Movement is off. Mood and Flowtrack show their table here; Dream Dance has its sentences on its page.')
+        : T('What a movement does in the mode “{m}”.', { m: MoveCard.name(moveMode()) });
     tableShow(); moveLive(); movesApply();
     if (want === camWant) return;
     camWant = want;
@@ -2442,7 +2601,16 @@
       dance: { live: !!rec, gesture: rec && rec.gesture ? DancePanel.label('g.' + rec.gesture) : null, sure: rec ? rec.gc : 0, bpm: rec ? rec.bpm : 0, status: flowOn() && tracker.status.code !== 'running' ? tracker.status.text || FLOW_STATE[tracker.status.code] || '' : '' } });
   }
   setInterval(moveLive, 500);
-  (function moveMeter() { requestAnimationFrame(moveMeter); if (moveMode() === 'mood' && moveSeen()) moveCard.show({ room: mover.room, now: performance.now() }); })();
+  // #265: the traffic light of Dream Dance – what blocks the dance (the clutch, nobody detected, markers not seen)
+  const moveLamp = MoveCard.lamp($('movelight'));
+  let lampAt = 0;
+  function moveMeter(now) {
+    requestAnimationFrame(moveMeter);
+    if (!moveSeen()) return;
+    if (moveMode() === 'mood') moveCard.show({ room: mover.room, now: performance.now() });
+    if (moveMode() === 'dance' && now - lampAt >= 100) { lampAt = now; moveLamp.show({ mode: moveMode(), clutch: clutchOn() }, danceLive()); }
+  }
+  requestAnimationFrame(moveMeter);
   // #252: flowtrack's automatic (flowauto.js) – in the mode Flowtrack it chooses the kind of detection and the exposure
   // from what the camera shows, holds the one performer and watches whether the camera still sees what it saw when it
   // was calibrated. Each choice has its reason; one changed by hand stays the hand's until it is given back.
@@ -2533,19 +2701,25 @@
     $('flow_color').disabled = k !== 'on';
     document.querySelector('.markeropts').classList.toggle('off', k === 'on');
     $('marker_l').disabled = $('marker_r').disabled = k === 'on' || (k === 'hand' && !$('flow_markers').checked);
-    $('flow_markers').disabled = $('flow_fingers').disabled = k !== 'hand';
+    $('flow_markers').disabled = k !== 'hand';
+    $('fingersshow').checked = fingersOn();           // #265: shown, never chosen
+    $('fingersrow').hidden = !dancing;                 // Flowtrack has no hand detection: no fingers to show there
   }
+  // #265: the hand model (21 points per hand) runs exactly while Dream Dance detects with "Hands (AI)" – the hands always
+  // belong to the dance then; Flowtrack never loads it. No setting says so.
+  const fingersOn = () => moveMode() === 'dance' && camKind() === 'hand';
   // #235: the two marker colours (never the same for both hands), markers beside the hand AI, the fingers
   function danceSync(changed) {
     if ($('marker_l').value === $('marker_r').value) {
       const other = changed === 'marker_r' ? 'marker_l' : 'marker_r', free = [...$(other).options].find(o => o.value !== $(other).value);
       $(other).value = free.value; if (!applying) sendCtl({ set: { [other]: free.value } });
     }
-    tracker.danceOptions({ markers: $('flow_markers').checked, left: $('marker_l').value, right: $('marker_r').value, fingers: $('flow_fingers').checked });
+    tracker.danceOptions({ markers: $('flow_markers').checked, left: $('marker_l').value, right: $('marker_r').value, fingers: fingersOn() });
     lightSync();
   }
-  ['flow_color', 'flow_short', 'flow_kind', 'dance_kind', 'move_mode'].forEach(id => $(id).addEventListener('change', lightSync));
-  ['marker_l', 'marker_r', 'flow_markers', 'flow_fingers'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));
+  ['flow_color', 'flow_short'].forEach(id => $(id).addEventListener('change', lightSync));
+  ['flow_kind', 'dance_kind', 'move_mode'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));   // #265: the hand model comes and goes with them
+  ['marker_l', 'marker_r', 'flow_markers'].forEach(id => $(id).addEventListener('change', () => danceSync(id)));
   danceSync();
   setInterval(() => {                                  // what it sees, in one line
     if (tracker.status.code !== 'running') return;
@@ -2760,8 +2934,10 @@
   // ---------- #180: a measurement run – where the time of a picture goes, and how smoothly the pages draw ----------
   // #205: with its frames the stage tells how many of the AI's pictures came with a flow field and what one cost
   const measureMe = DreamMeasure('stage', m => sendCtl(m), () => view.renderer, {
-    start() { Object.assign(autoSeen, { pictures: 0, fields: 0, ms: 0 }); },
-    report: () => autoSeen.pictures ? { flow_pct: Math.round(autoSeen.fields / autoSeen.pictures * 100), flow_ms: +(autoSeen.ms / autoSeen.pictures).toFixed(1) } : {} });
+    start() { Object.assign(flowSeen, { pictures: 0, fields: 0, ms: 0 }); roomLight.reset(); },
+    // #212: with the room light on, what one look at the picture cost the stage
+    report: () => ({ ...(flowSeen.pictures ? { flow_pct: Math.round(flowSeen.fields / flowSeen.pictures * 100), flow_ms: +(flowSeen.ms / flowSeen.pictures).toFixed(1) } : {}),
+      ...(roomLight.on && roomLight.cost ? { light_ms: +roomLight.cost.toFixed(2) } : {}) }) });
   const STEP_LABELS = () => ({ queue: T('waiting before rendering'), decode_in: T('decoding the incoming picture'), wait_gpu: T('waiting for the GPU'),
     prompt: T('prompt encoding'), unet: T('UNet (diffusion)'), controlnet: 'ControlNet', decode: T('decoder (latents → picture)'),
     render: T('picture in all'), encode_out: T('JPEG/WebP encoding'), flow: T('flow field (beside the next picture)'), send: T('sending'), server: T('server time per picture') });
@@ -2773,7 +2949,7 @@
     $('measure').disabled = false;
     const L = STEP_LABELS(), rows = Object.keys(L).filter(k => r.steps[k] && r.steps[k].n)
       .map(k => `<tr><td>${esc(L[k])}</td><td>${r.steps[k].mean}</td><td>${r.steps[k].p50}</td><td>${r.steps[k].p95}</td></tr>`).join('');
-    const dev = Object.entries(r.devices || {}).map(([k, d]) => `<tr><td>${esc(k)} ×${d.n}</td><td colspan="3">${d.render ? esc(RENDERERS[d.render] || d.render) + ' · ' : ''}${T('{fps} fps · frame {ms} ms (p95 {p95}) · slow {slow} %', { fps: d.fps, ms: d.ms_avg, p95: d.ms_p95, slow: d.slow_pct })}${d.flow_pct == null ? '' : ' · ' + T('flow field for {p} % of the pictures ({ms} ms each)', { p: d.flow_pct, ms: d.flow_ms })}</td></tr>`).join('');
+    const dev = Object.entries(r.devices || {}).map(([k, d]) => `<tr><td>${esc(k)} ×${d.n}</td><td colspan="3">${d.render ? esc(RENDERERS[d.render] || d.render) + ' · ' : ''}${T('{fps} fps · frame {ms} ms (p95 {p95}) · slow {slow} %', { fps: d.fps, ms: d.ms_avg, p95: d.ms_p95, slow: d.slow_pct })}${d.flow_pct == null ? '' : ' · ' + T('flow field for {p} % of the pictures ({ms} ms each)', { p: d.flow_pct, ms: d.flow_ms })}${d.light_ms == null ? '' : ' · ' + T('room light {ms} ms per look', { ms: d.light_ms })}</td></tr>`).join('');
     out.innerHTML = `<b>${esc(T('{fps} AI pictures/s', { fps: r.fps }))}</b> · ${esc(r.model)} ${esc(r.size)} · ${esc(T('{n} steps', { n: r.ai_steps }))}`
       + `<table><tr><th>${T('part')}</th><th>${T('mean')}</th><th>p50</th><th>p95 (ms)</th></tr>${rows}${dev}</table>`
       + `<div class="muted">${esc(T('Also in the terminal and saved in ~/.local/state/dream/measure/.'))}</div>`;
@@ -2995,7 +3171,9 @@
       row.append(t, x); box.append(row);
     }
   }
-  $('master').addEventListener('input', () => { look.master = +$('master').value; $('v-master').textContent = Math.round($('master').value * 100) + ' %'; });
+  function masterShow() { $('v-master').textContent = Math.round($('master').value * 100) + ' %'; $('blackout').setAttribute('aria-pressed', String(+$('master').value <= 0.05)); }
+  $('master').addEventListener('input', () => { look.master = +$('master').value; masterShow(); });
+  $('blackout').onclick = () => sendCtl({ cmd: 'blackout' });   // #241: the server keeps the brightness before, like a MIDI button
   $('midilearn').onclick = () => {
     sendCtl({ midi_learn: $('miditarget').value }); $('midilearn').classList.add('rec');
     status(T('MIDI: now turn or press on the controller …'));
@@ -3281,11 +3459,12 @@
     pixel: '👾', raster: '▦', rgb: '🌈', glitch: '⚡', hue: '🎨' };
   const FX_LIST = Object.keys(FX_NAMES);
   // #235: the dance card – what Dream sees, and the mapping table (a hand's change goes to Dream, which keeps the table)
-  // #249: the table shown and changed is the one of the mode in use (off: the dance table)
-  const tableSay = rows => { if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); if (Array.isArray(rows)) dancePanel.map(rows); };
-  const dancePanel = DancePanel.mount($('dancepanel'), { send: rows => { if (Array.isArray(rows)) moveTables[tableMode()] = rows; sendCtl({ dance_map: rows, mode: tableMode() }); }, fxNames: FX_NAMES,
+  // #249: the table shown and changed is the one of the mode in use – #265: the mood's or flowtrack's; Dream Dance has
+  // its sentences on its page, the card shows only what Dream sees then
+  const tableSend = rows => { const m = tableMode(); if (!m) return; if (Array.isArray(rows)) moveTables[m] = rows; sendCtl({ dance_map: rows, mode: m }); };
+  const dancePanel = DancePanel.mount($('dancepanel'), { send: tableSend, fxNames: FX_NAMES,
     sources: [...DreamDance.SOURCES, 'present', ...DreamFlowProfile.SOURCES], targets: DreamDanceMap.targets(DreamFx.ALL) });
-  tableShow = () => dancePanel.map(tableRows());
+  tableShow = () => { dancePanel.table(!!tableMode()); dancePanel.map(tableRows()); };
   // #236: the moves the dancer taught (kept by Dream: dancemoves.py). The stream recognises them like the built-in
   // gestures; what one does is a row of the table with the source "g.<its id>", named as the dancer named it.
   function movesSet(list) {
@@ -3339,7 +3518,7 @@
   // It is opened from here and reads the live dance through `DreamBridge.dance`: the record with what the detector was
   // fed and the skeleton's points, the camera picture (drawn there, kept nowhere), the table, the clutch, the sets and
   // the two clocks. While it plays a session, its record stands in for the live one here.
-  let danceMapTimer = 0, dancePage = null, labApi = null, danceSets = [], danceOwnSets = [];
+  let danceMapTimer = 0, dancePage = null, labApi = null;
   const labState = () => ({ open: !!labApi && labApi.open, rec: !!labApi && labApi.recording, play: !!labApi && labApi.playing });
   function openDancePage() {
     if (dancePage && !dancePage.closed) { dancePage.focus(); return; }
@@ -3356,30 +3535,50 @@
   const clutchSync = () => MoveCard.clutchShow($('clutchbtn'), clutchOn(), $('clutchnote'));
   function setClutch(on) { $('clutch').checked = !!on; sendCtl({ set: { clutch: !!on } }); clutchSync(); }
   $('clutchbtn').onclick = () => setClutch(!clutchOn());
-  function setsSync() { MoveCard.fillSets($('dance_set'), danceSets, $('dance_set').dataset.want || $('dance_set').value); }
+  // #251, #265: the select lists the sets and shows the one in use (Dream's word: dance.py keeps it)
+  const setsSync = () => MoveCard.fillSets($('dance_set'), danceSlots ? danceSlots.sets : ['standard'], danceSlots ? danceSlots.use : $('dance_set').value);
   const musicClock = () => { const on = apBeating(); return { on, bpm: on && mu.period > 0 ? 60000 / mu.period : 0, pulse: on ? mu.beatEnv : 0 }; };
   const moveClock = () => { const r = danceNow(), on = !!r && r.bpm > 0; return { on, bpm: on ? r.bpm : 0, pulse: on ? r.v.pulse : 0, sure: r ? r.c.tempo || 0 : 0 }; };
   // what a mode's page asks of the lab (the camera with the tracks, the curves, the sessions)
-  const labOpts = { keys: DreamDance.SOURCES, fxNames: FX_NAMES, targets: DreamDanceMap.targets(DreamFx.ALL),
+  const labOpts = { keys: DreamDance.SOURCES, fxNames: FX_NAMES, fxIcons: FX_ICON, targets: DreamDanceMap.targets(DreamFx.ALL),
       video: tracker.video, snapshot: (c, w, h) => view.snapshot(c, w, h),
       live: () => (danceOn() && danceFrame && performance.now() - danceAt < 300 ? { rec: danceFrame, input: danceInput, landmarks: tracker.frame.landmarks, out: danceOut } : null),
-      rows: tableRows,
-      setRows: rows => { const m = tableMode(); moveTables[m] = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: moveTables[m], mode: m }); }, 200); },
+      rows: tableRows,                                 // the lab's row to tune: flowtrack's on its page (the dance's are sentences)
+      setRows: rows => { const m = tableMode(); if (!m) return; moveTables[m] = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: moveTables[m], mode: m }); }, 200); },
       play: rec => { dancePlay = rec; },
       secs: () => danceFbSecs, setSecs: v => { danceFbSecs = v; sendCtl({ set: { dance_fb_secs: v } }); },
       colours: () => ({ l: $('marker_l').value, r: $('marker_r').value }),
-      // what the stage detects with right now – the lab says why a view is empty – and the fingers' switch
+      // what the stage detects with right now – the lab says why a view is empty – and whether the hand model runs
       detect: () => ({ kind: flowOn() ? tracker.kind : 'off', camera: flowOn() ? tracker.status.code : 'off', status: flowOn() ? tracker.status.text || FLOW_STATE[tracker.status.code] || '' : T('Movement off'),
-        fingers: $('flow_fingers').checked, ready: tracker.fingersReady }),
-      setFingers: on => { $('flow_fingers').checked = !!on; $('flow_fingers').dispatchEvent(new Event('change', { bubbles: true })); },
-      state: st => sendCtl({ dance_lab: st }),
+        fingers: fingersOn(), ready: tracker.fingersReady }),
+      state: st => { sendCtl({ dance_lab: st }); labBtnsSync(); },
       voice: on => (on ? startVoice(null, 'feedback') : stopVoice()) };
-  const labLink = { attach(api) { labApi = api; sendCtl({ dance_lab: labState() }); }, detach() { labApi = null; dancePlay = null; sendCtl({ dance_lab: labState() }); } };
+  // #265: what the page of Dream Dance (and the traffic light here) shows live, every frame: what each target is at
+  // (after the groups and the budget), what each row asks for, the gesture, whether someone is seen and whether the
+  // markers are
+  function danceLive() {
+    const r = danceNow(), inp = danceInput, fresh = !!r && performance.now() - danceAt < 500;
+    const seenOf = h => [].concat((inp && inp.hands && inp.hands[h]) || []).filter(Boolean);   // a hand: what its sources found (a list, maybe empty)
+    const hands = fresh && inp ? ['l', 'r'].filter(h => seenOf(h).length > 0) : [];
+    return { out: danceOut, held: id => mover.of('dance', id), gesture: fresh ? r.gesture : null, g: fresh ? r.g || {} : {}, v: fresh ? r.v : {},
+      thr: name => danceDet.threshold(name), seen: fresh && (hands.length > 0 || !!(inp && inp.body)),
+      markers: fresh && inp ? hands.filter(h => seenOf(h).some(c => String(c.src || '').includes('marker'))).length : 0,
+      markerWanted: $('dance_kind').value === 'marker' || $('flow_markers').checked, kind: $('dance_kind').value, running: flowOn() && tracker.status.code === 'running' };
+  }
+  const labLink = { attach(api) { labApi = api; sendCtl({ dance_lab: labState() }); labBtnsSync(); }, detach() { labApi = null; dancePlay = null; sendCtl({ dance_lab: labState() }); labBtnsSync(); } };
+  // #241: recording in the dance's part of the card – shown while the lab is open on its page ("good" and "bad" live in
+  // the learning assistant there since #265, and on a MIDI button and the wristband)
+  function labBtnsSync() {
+    const st = labState();
+    $('labbtns').hidden = !(st.open || st.rec);
+    $('labrec').setAttribute('aria-pressed', String(st.rec)); $('labrec').textContent = st.rec ? T('■ Stop') : T('● Record');
+  }
+  $('labrec').onclick = () => danceLab.record();
   window.DreamBridge = { dance: {
     lab: labOpts, ...labLink,
-    // what the page shows beside the lab: the mode, the clutch (and how far the dance is in), the sets, the two clocks
-    state: () => ({ mode: moveMode(), clutch: clutchOn(), hold: mover.hold, set: $('dance_set').value, sets: danceSets, own: danceOwnSets,
-      move: moveClock(), music: musicClock(), camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang, moves: danceMoves,
+    // what the page shows beside the lab: the mode, the clutch (and how far the dance is in), the two clocks
+    state: () => ({ mode: moveMode(), clutch: clutchOn(), hold: mover.hold,
+      move: moveClock(), music: musicClock(), strength: +$('motion_sens').value, camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang, moves: danceMoves,
       // the dance's own detection (the setting), what the camera really runs, and the cameras to choose from
       kind: $('dance_kind').value, tracking: flowOn() ? tracker.kind : 'off', cam: $('flow_device').value, cams: [...$('flow_device').options].map(o => [o.value, o.textContent]) }),
     setKind: v => { if (DreamMove.DANCE_KINDS.includes(v)) { $('dance_kind').value = v; $('dance_kind').dispatchEvent(new Event('change', { bubbles: true })); } },
@@ -3387,10 +3586,13 @@
     setMode: m => { $('move_mode').value = m; $('move_mode').dispatchEvent(new Event('change', { bubbles: true })); },
     movesChanged: () => { movesLoad(); },             // #236: the page taught, renamed or deleted a move
     setClutch, setSet: name => { $('dance_set').value = name; $('dance_set').dispatchEvent(new Event('change', { bubbles: true })); },
-    // kept first, chosen second: choosing a set loads its rows, and they must be the ones just kept
-    saveSet: name => { $('dance_set').dataset.want = name; sendCtl({ dance_set_save: name }); sendCtl({ set: { dance_set: name } }); },
-    deleteSet: name => { const mine = $('dance_set').value === name; if (mine) { $('dance_set').dataset.want = ''; $('dance_set').value = ''; }   // the table stays as it is: it is "your table" again
-      sendCtl({ dance_set_delete: name, ...(mine ? { set: { dance_set: '' } } : {}) }); },
+    // #265: the sets and their sentences, what acts right now; changes go to Dream (dance.py keeps them)
+    slots: () => danceSlots, slotsDo: op => sendCtl({ dance_slots: op }),
+    live: () => danceLive(),
+    // #265: while the page teaches a movement, the detection takes it loosely (every candidate counts: the dancer says
+    // which were right); null ends it
+    probe: name => { danceProbe = typeof name === 'string' ? name : null; toleranceSync(); },
+    levels: () => ({ ...DreamDance.TOL }),            // how sure the detection must be at each tolerance
   } };
   // #252: the page of Flowtrack (static/flowtrack.html) – the automatic with its reasons, the effect per target, and
   // the lab's views with the calibration drawn in
@@ -3447,8 +3649,8 @@
     const k = e.key.toLowerCase();
     if (k === 'l') (moveMode() === 'flowtrack' ? openFlowPage : openDancePage)();
     else if (k === 'k' && moveMode() === 'dance') setClutch(!clutchOn());   // #251: the clutch
-    else if (danceLab.active && k === 'g') danceLab.feedback('good', 'key');
-    else if (danceLab.active && k === 'b') danceLab.feedback('bad', 'key');
+    else if (danceLab.active && k === 'g') danceLab.feedback('good', 'panel');
+    else if (danceLab.active && k === 'b') danceLab.feedback('bad', 'panel');
     else if (danceLab.open && k === 'r') danceLab.record();
   });
   const fxMine = () => $('fx').value.split('+').filter(e => FX_NAMES[e]);
@@ -3631,6 +3833,7 @@
     // pure camera (#111): no smoothing, zoom or brightness of Dream's own – only the chosen effects
     const plain = bodyHas('pure'), tau = smoothTau();
     view.draw({ front, now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master, fps: previewFps() });
+    roomLight.tick(now);                               // #212: a dozen times a second, the colour for the room light
     if ((outViewers || $('syphon').checked) && outWs && outWs.readyState === 1 && now - smoothSentAt > 1000) {
       outWs.send(JSON.stringify({ smooth: +tau.toFixed(3) })); smoothSentAt = now;
     }
@@ -3853,15 +4056,24 @@
   }
   // #216: "↺ Reset" – the server glides the picture's settings to their defaults and takes it back for a few seconds
   const resetMsg = DreamSliders.resetButton($('reset'), sendCtl, t => { status(t); notice = t; noticeUntil = performance.now() + 5000; chips(); });
+  // #241: a live camera another device lends – who it is, and "End", as in Dream Control
+  function feedShow() {
+    const cam = feedsNow.cam;
+    $('feedother').hidden = !cam;
+    if (cam) $('feedothertext').textContent = T('The live camera comes from: {by}', { by: cam.by });
+  }
+  $('feedend').onclick = () => sendCtl({ feed_end: 'cam' });
   function ctlConnect() {
     ctl = new WebSocket(`ws://${location.host}/ctl?role=stage`);
     ctl.onmessage = ev => {
       if (typeof ev.data !== 'string') { devFrameIn(ev.data); return; }   // #146: a picture of the live camera
       const m = JSON.parse(ev.data);
       measureMe(m); if (m.measure) measureShow(null, m.measure.ms); if (m.measure_result) measureShow(m.measure_result);   // #180
-      if (m.feeds) { feedsNow = m.feeds; if (!m.feeds.cam && devFrame) { devFrame.close(); devFrame = null; } chips(); }
+      if (m.feeds) { feedsNow = m.feeds; if (!m.feeds.cam && devFrame) { devFrame.close(); devFrame = null; } chips(); feedShow(); }
       if (m.playlists) fillPlaylists(m.playlists);
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server
+      if (m.wled) { ledShow(m.wled); if (m.wled.found) ledFound(m.wled.found); }   // #212
+      if (m.hue) { hueCard.show(m.hue); if (m.hue.found) hueCard.found(m.hue.found); }   // #272
       if (m.eyes_cfg) $('trancefreqm').value = String(m.eyes_cfg.trance_every);
       if (m.gallery) renderGallery(m.gallery);
       if (m.schema) sliders.schema(m.schema);          // #216
@@ -3881,9 +4093,9 @@
       if (m.sensors && m.sensors.dance) danceSensor(m.sensors.dance);
       if (m.sensors && m.sensors.impulse) danceDet.kick(m.sensors.impulse);
       if (m.dance && m.dance.tables && !dancePanel.busy && !danceMapTimer) { moveTables = m.dance.tables; dancePanel.map(tableRows()); }
+      if (m.dance && m.dance.slots && Array.isArray(m.dance.slots.sets)) { danceSlots = m.dance.slots; setsSync(); toleranceSync(); }   // #251, #265
       if (m.dance && Array.isArray(m.dance.moves)) movesSet(m.dance.moves);   // #236
       if (m.dance && Array.isArray(m.dance.profiles)) profilesSet(m.dance.profiles);   // #253
-      if (m.dance && Array.isArray(m.dance.sets)) { danceSets = m.dance.sets; danceOwnSets = m.dance.own_sets || []; setsSync(); }   // #251
       if (m.move && Array.isArray(m.move.sources)) moveRemote = m.move.sources;   // #249: the sources outside the stage
       if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad
       if (m.scene) {

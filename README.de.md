@@ -5,7 +5,7 @@
 <p align="center"><b>Live-KI-Visuals für VJs, Künstler und Installationen</b><br>
 <i>Deutsch · English: <a href="README.md">README.md</a></i></p>
 
-<p align="center"><a href="#auf-einen-blick">Schnellstart</a> · <a href="#starten">Starten</a> · <a href="#bedienung">Bedienung</a> · <a href="#fernbedienung-per-handy">Handys</a> · <a href="#dreamy-eyes--ein-handy-als-träumende-augen-installation">Dreamy Eyes</a> · <a href="#bewegung">Bewegung</a> · <a href="#scaleway-gpu">Cloud-GPU</a> · <a href="#wenn-etwas-hakt">Hilfe</a> · <a href="#lizenzen">Lizenzen</a></p>
+<p align="center"><a href="#installation-in-drei-befehlen">Installieren</a> · <a href="#auf-einen-blick">Schnellstart</a> · <a href="#starten">Starten</a> · <a href="#bedienung">Bedienung</a> · <a href="#fernbedienung-per-handy">Handys</a> · <a href="#dreamy-eyes--ein-handy-als-träumende-augen-installation">Dreamy Eyes</a> · <a href="#bewegung">Bewegung</a> · <a href="#scaleway-gpu">Cloud-GPU</a> · <a href="#wenn-etwas-hakt">Hilfe</a> · <a href="#lizenzen">Lizenzen</a></p>
 
 Dream ist ein endloser, sich ständig verwandelnder Bilderstrom: Ein schnelles Bildmodell (SD-Turbo bzw. SDXL-Turbo)
 verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im Browser, nur unter
@@ -17,6 +17,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 
 **Loslegen**
 
+- [Installation in drei Befehlen](#installation-in-drei-befehlen)
 - [Auf einen Blick](#auf-einen-blick)
 - [Starten](#starten)
   - [Aktualisieren](#aktualisieren)
@@ -30,6 +31,8 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Playlists und Autostart](#playlists-und-autostart)
 - [Ausgabe auf Beamer oder zweitem Monitor (16:9)](#ausgabe-auf-beamer-oder-zweitem-monitor-169)
 - [Als Quelle in Resolume (Syphon)](#als-quelle-in-resolume-syphon)
+- [Raumlicht (WLED)](#raumlicht-wled)
+- [Hue-Lampen träumen mit](#hue-lampen-träumen-mit)
 
 **Handys und Tablets**
 
@@ -52,7 +55,8 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Personen: ein Profil je Person](#personen-ein-profil-je-person)
 - [Tanz](#tanz)
   - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
-  - [Eigene Bewegungen](#eigene-bewegungen)
+  - [Die Sätze – was dein Tanz bewirkt](#die-sätze--was-dein-tanz-bewirkt)
+  - [Eigene Bewegungen – eine Bewegung lernen](#eigene-bewegungen--eine-bewegung-lernen)
   - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
@@ -72,6 +76,21 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Lizenzen](#lizenzen)
 
 ---
+
+## Installation in drei Befehlen
+
+Auf einem Mac mit Apple Silicon (M1 oder neuer) und 16 GB Arbeitsspeicher oder mehr, mit installiertem [Homebrew](https://brew.sh):
+
+```bash
+brew install uv
+git clone https://github.com/wintermute42/dream && cd dream
+./dream.sh --open
+```
+
+Der erste Start installiert die Python-Pakete selbst; beim ersten Bild wird das Bildmodell geladen (etwa 2,6 GB,
+einmalig). Optionales (Ollama, ffmpeg, eine Cloud-GPU) steht unter [Starten](#starten).
+
+<sub>[↑ Inhalt](#inhalt)</sub>
 
 ## Auf einen Blick
 
@@ -133,6 +152,14 @@ Python-Pakete installiert `dream.sh` beim Start von selbst.
 Zum Ausprobieren eines Tickets vor der Abnahme: `git switch <branch>` (steht im Ticket), danach zurück mit
 `git switch main`.
 
+Paket-Updates kommen von Dependabot (`.github/dependabot.yml`): eine Lösung für eine bekannte Sicherheitslücke sofort,
+sobald sie veröffentlicht ist, alles andere einmal im Monat als ein Pull Request für die Python-Pakete und einer für
+die GitHub Actions. Die Pakete, von denen die Bild- und Sprachmodelle abhängen (torch, diffusers, transformers,
+accelerate, peft, mlx-whisper, huggingface-hub, safetensors, tokenizers), bekommen so nur Sicherheits-Updates: Eine neue
+Version kann den Look oder das Tempo des Traums ändern, deshalb werden sie von Hand hochgezogen und mit dem echten
+Modell gemessen (siehe [Tests](#tests)). Jeder dieser Pull Requests läuft wie jeder andere durch die Tests und wird von
+Hand gemergt.
+
 ## Ordner und eigene Einstellungen
 
 Alle Befehle hier laufen im **Dream-Ordner** (dort, wo dieses Repository liegt): `cd <Dream-Ordner>`, dann `./dream.sh`.
@@ -156,6 +183,20 @@ Ordner – in `dream.env` oder in der Umgebung; ohne sie bleibt alles, wo es ist
 
 `dream.sh`, `dream-cloud` und `install-autostart.sh` nehmen dieselben Ordner; der Autostart liest auch `DREAM_PORT` aus
 `dream.env`.
+
+**Eine Testkopie** (Neues ausprobieren, ohne dein echtes Dream anzufassen): `./dream.sh --test-copy` startet Dream mit
+eigenen Ordnern unter `~/dream-test-copy` (`state`, `config`, `pictures`; ein anderer Ort: `--test-copy=<Ordner>`) auf
+Port **7870** (https 7470, Sensoren 7170) – egal, was in einer `dream.env` steht. Die echten Einstellungen, Schlüssel,
+Tabellen und Bilder bleiben, wie sie sind. Damit sie mit deinen Einstellungen startet, kopiere einmal deine
+`dream.env` hinein:
+
+```bash
+mkdir -p ~/dream-test-copy/config && cp ~/.config/dream/dream.env ~/dream-test-copy/config/
+./dream.sh --test-copy --open        # Bedienfeld: http://127.0.0.1:7870/
+```
+
+Das echte Dream und die Kopie nicht gleichzeitig auf der Cloud-GPU rechnen lassen: beide bräuchten den Port 7861 des
+Cloud-Tunnels. Entfernen: `rm -rf ~/dream-test-copy`.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -210,6 +251,20 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   `dream-cloud`, Autostart) folgen der Systemsprache bzw. `DREAM_LANG=de`. Was die Bühne ans Handy meldet
   (Autopilot-Zeile, „Jetzt läuft“), kommt in der Sprache der Bühne. Prüfen: `python3 scripts/i18n_check.py` meldet
   jeden Text ohne deutsche Fassung.
+- **Das Bedienfeld ist die Hauptkontrolle (#241):** Alles, was Dream Control einstellen oder auslösen kann, kann auch
+  das Bedienfeld auf dem Mac – beschriftet und in der Karte, in die es gehört. Dream Control kann nie mehr; nur was das
+  Handy selbst beiträgt (seine eigene Kamera, seine Bewegung und seinen leuchtenden Bildschirm leihen, Karte „Dieses
+  Gerät“) und wie die Seite auf dem Handy aussieht (Schriftgröße, Nachtfarben, ihre Live-Vorschau), bleibt Dream
+  Control vorbehalten. Ein Test (`tests/test_panel_parity.py`) hält das fest. Seit #241 hat das Bedienfeld außerdem:
+  - **Master-Helligkeit und ■ Blackout** zusammen oben in der Karte **„Ausgabe“**, wie ein Master-Fader am Pult: Sie
+    wirken nur auf das, was Publikum, Beamer und Syphon sehen. Blackout fährt den Master auf Schwarz und, noch einmal
+    gedrückt, zurück auf die Helligkeit davor (solange es schwarz ist, leuchtet der Knopf; der Chip sagt „■ Blackout“).
+    Derselbe Knopf steht in Dream Control in der Karte „Ausgabe“ und in der Show-Leiste, und eine MIDI-Taste kann es
+    auch; „↺ Zurücksetzen“ bringt den Master auf 100 %.
+  - **■ Beenden** unter der Kamera-Wahl (Karte „Eingang & Prompt“), solange ein anderes Gerät seine Live-Kamera leiht
+    (Dream Control, Dreamy Eyes): Es sagt, wer es ist, und beendet sie.
+  - **● Aufnehmen** fürs Tanz-Labor im Teil „Dream Dance“ der Bewegungskarte, solange das Labor
+    auf seiner Seite offen ist.
 - Die Handy-Fernbedienung hat Show, A−/A+ und 🌙 weiterhin; ihre Abschnitte lassen sich durch Tippen auf die Überschrift zuklappen.
 
 - **Rechnen auf:** „Lokal (Mac)“ oder „Cloud-GPU“. Umschalten geht jederzeit, ohne Neustart. Das **Abzeichen** oben
@@ -340,6 +395,10 @@ mit der GPU gestoppt, deshalb ist der Lauf selbst etwas langsamer als sonst. Sta
   **„wirkt …“ unter Verwandlung (#115):** zeigt, woraus die Verwandlung gerade besteht, z. B. „wirkt 0,52 = Regler 0,03 ·
   Musik +0,21 · Bewegung +0,13 · Mindestwert 0,15“ – so sieht man sofort, wer sie hochdreht (die KI braucht mindestens
   0,15, darunter macht sie keinen ganzen Schritt). Leer, solange der Regler allein wirkt.
+  **Auflösung:** 384, 512, 768 oder 1024 px – die Höhe des Bildes; 16:9 macht es breiter (704×384, 896×512, 1344×768,
+  1792×1024). Dream kennt genau diese Größen: Eine Zahl dazwischen, die auf anderem Weg ankommt (ein Skript an `/ctl`,
+  eine Szene, eine von Hand geänderte Einstellungsdatei), wird zur nächstgelegenen – aus 640 wird 512 –, und jede Seite
+  zeigt diese Größe.
   **Echte Stile (#123, Karte Traum, nur mit SDXL-Turbo):** Beides verändert den Look der KI, **nie den Prompt**.
   - **Stil-Modell:** Aquarell, Wachsmalstift, Pixel-Art, Scherenschnitt, Sticker oder Illustration, mit Stärke bis 200 %
     (über 100 % wird der Stil stärker gedrückt, als er gelernt wurde – Pixel-Art braucht etwa 200 %). Es sind kleine
@@ -615,6 +674,172 @@ dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
+## Raumlicht (WLED)
+
+Der Raum träumt mit: eine LED-Kette leuchtet in der Farbe des Traums – dem geglätteten Durchschnitt dessen, was das
+Publikum sieht, Effekte eingeschlossen –, pulsiert im Takt, blitzt kurz auf bei einem Drop und wenn die Dreamy Eyes
+in Trance gehen, und folgt dem Master-Regler und seinem **Blackout**. Das Licht kommt von einem **WLED**-Gerät (ein
+ESP32-LED-Controller mit der freien Firmware WLED) im WLAN; Dream schickt ihm live per **DDP** (UDP, Port 4048) 40
+Bilder pro Sekunde. Heute zeigt die ganze Kette eine Farbe; mehrere Zonen folgen später.
+
+So funktioniert es: Die Bühne schaut sich ihr eigenes Bild winzig an (16×16 Punkte, etwa 12-mal pro Sekunde, ohne die
+Grafikkarte warten zu lassen – die KI merkt davon nichts) und sagt Dream die Durchschnittsfarbe; Dream macht sie etwas
+farbiger, gleitet sanft von Farbe zu Farbe und schickt sie weiter. Ein Gerät, das nicht antwortet, bremst nichts: Dream
+wartet nie darauf. Schaltest du das Licht aus, schließt die Bühne oder endet Dream, bittet Dream WLED sofort, zu
+seinem eigenen Programm zurückzukehren; geht das verloren, tut WLED es nach seinem Realtime-Timeout (2,5 s) selbst.
+
+### Was kaufen (die getestete Kombination)
+
+- **Controller:** Gledopto **GL-C-017WL-D** – ESP32 mit vorinstalliertem WLED, 4 Ausgänge, Stromeingang 5–24 V.
+- **LEDs:** eine **WS2811-Lichterkette, 12 V** (z. B. von BTF-Lighting) – jedes „Pixel“ ist ein Chip mit seiner
+  Lampe oder einer Gruppe von 3 LEDs; die LED-Zahl in WLED ist also die Zahl der Pixel, nicht der einzelnen LEDs.
+- **Netzteil:** **12 V, 60 W** (IP67 für draußen oder feuchte Räume).
+- Strombedarf: ein 12-V-WS2811-Pixel braucht bei vollem Weiß bis etwa 0,25–0,3 W, 50 Pixel also etwa 15 W, 100
+  Pixel etwa 30 W. Das 60-W-Netzteil (5 A) reicht für etwa 150–200 Pixel in vollem Weiß; stell die Stromgrenze in
+  WLED auf etwa 4500 mA (unten). Dreams Licht ist selten voll weiß – eine Traumfarbe braucht weit weniger.
+- Alternative (klein, 5 V): ein **M5Stack Atom Lite** mit einem **SK6812**-Streifen und einem 5-V-Netzteil (etwa
+  60 mA pro LED bei vollem Weiß: 30 LEDs ≈ 1,8 A). WLED kommt aus Chrome auf den Atom: https://install.wled.me
+  (USB-Kabel, „Install“); die Datenleitung ist G26 oder G32 (Grove-Anschluss). Ein RGBW-Streifen (SK6812 RGBW) geht
+  auch – den Weißkanal rechnet WLED selbst (LED Preferences → „Auto-calculate white channel“).
+
+### Anschließen (Strom aus, solange du verkabelst)
+
+1. Netzteil **12 V+ und GND** an den Stromeingang des Controllers (V+ / GND oder die DC-Buchse).
+2. Das **Eingangsende** der Kette (der Pfeil auf der Kette zeigt davon weg) an **Ausgang 1** des Controllers:
+   12 V (meist rot) an V+, GND (meist weiß oder schwarz) an GND, **Daten** (meist grün) an DATA dieses Ausgangs.
+3. Eine längere Kette (mehr als etwa 100 Pixel) bekommt zusätzlich am fernen Ende 12 V und GND vom Netzteil
+   („Einspeisung“), sonst wird das Ende gelblich. GND bleibt immer mit dem Controller verbunden.
+
+### WLED einrichten
+
+1. Einschalten. Der Controller öffnet ein eigenes WLAN **`WLED-AP`**, Passwort **`wled1234`**. Mit Handy oder Mac
+   verbinden; die WLED-Seite öffnet sich von selbst (oder http://4.3.2.1 öffnen).
+2. **WiFi Setup:** Name und Passwort deines Heim-WLANs → Save. Der Controller startet neu in deinem WLAN.
+3. Seine Adresse finden: in der Geräteliste des Routers (Name wie `wled-…`), in der WLED-App, oder Dream suchen lassen
+   („🔍 Suchen“, unten).
+4. **Im Router eine feste IP geben**, damit Dream es jedes Mal gleich findet – z. B. in der FRITZ!Box: Heimnetz →
+   Netzwerk → das WLED-Gerät → bearbeiten → „Diesem Netzwerkgerät immer die gleiche IPv4-Adresse zuweisen“.
+5. In WLED **Config → LED Preferences:**
+   - LED-Typ **WS281x**, **Farbreihenfolge** wie deine Kette sie braucht (WS2811-Ketten meist **GRB** oder **RGB**;
+     prüfen, siehe unten), **Length** = Zahl der Pixel, der GPIO des benutzten Ausgangs (Gledopto: für Ausgang 1
+     voreingestellt).
+   - **Automatic Brightness Limiter:** Höchststrom etwa **4500 mA** für das 60-W-Netzteil.
+6. **Config → Sync Interfaces → Realtime:** „Receive UDP realtime“ an (ist es ab Werk), Timeout 2500 ms. Haken bei
+   **„Force max brightness“** – dann bestimmen Dreams Stärke und Master, wie hell es ist (sonst dimmt WLEDs eigene
+   Helligkeit Dreams Licht mit).
+7. Farbreihenfolge prüfen: in WLED im Farbrad reines Rot wählen – die Kette muss rot leuchten, dann Grün, dann Blau.
+   Zeigt sie eine andere Farbe, die Farbreihenfolge in LED Preferences ändern, bis alle drei stimmen.
+
+### In Dream
+
+Panel → Karte **Ausgabe** → **„Raumlicht (WLED) träumt mit“**:
+
+- den Schalter **an**;
+- das Gerät: seine **IP-Adresse** (oder einen Namen wie `wled-room.local`) eintippen und Enter – oder **„🔍 Suchen“**:
+  Dream fragt im WLAN nach WLED-Geräten (mDNS `_wled._tcp`, etwa zwei Sekunden) und zeigt sie als Knöpfe; ein Tipp
+  übernimmt es. Dream schickt nur an Adressen im Heimnetz.
+- **Lichtstärke:** wie hell die Kette leuchtet (Master-Regler und Blackout wirken obendrauf). Ein MIDI-Controller kann
+  sie lernen („Raumlicht: Stärke“).
+- **Im Takt pulsieren:** mit Musik sinkt das Licht zwischen den Schlägen etwas ab und ist auf jedem Schlag voll
+  (Beat-Erkennung der Karte Musik). Aus: ruhiges Licht.
+- Die Lampe neben dem Schalter leuchtet in der Farbe, die die Kette bekommt, und schwillt im Takt. Darunter sagt Dream,
+  was es tut: „Live: wled-… · 50 LEDs“ (Name und LED-Zahl des Geräts aus seiner JSON-API), „Warte auf das Bild der
+  Bühne …“ (die Bühne zeichnet nicht – sie muss offen und sichtbar sein), „… das Gerät antwortet nicht“ (Dream sendet,
+  aber WLED antwortet nicht unter der Adresse), „im Netz nicht zu finden“, „liegt nicht im Heimnetz“.
+- Gäste (Dream Remote) können nichts davon ändern; die Einstellung bleibt nach einem Neustart, wie sie war.
+
+### Wenn etwas nicht geht
+
+- **Gar kein Licht:** Ist WLED eingeschaltet (Power-Knopf in der WLED-App) und im selben WLAN wie der Mac? Sagt der
+  Status „Live“? Ist „Receive UDP realtime“ an? Ab macOS 15 braucht das Programm, das Dream gestartet hat (Terminal,
+  iTerm), **Systemeinstellungen → Datenschutz & Sicherheit → Lokales Netzwerk** – ohne das erreicht nichts die Geräte
+  im WLAN. Verkabelung prüfen: Daten am Eingangsende der Kette, GND gemeinsam.
+- **Falsche Farben** (Rot zeigt Grün, …): Farbreihenfolge in WLEDs LED Preferences (siehe oben).
+- **Nur ein Teil der Kette leuchtet:** Length in LED Preferences; bei „das Gerät antwortet nicht“ schickt Dream 480
+  Pixel, eine längere Kette braucht die Antwort der JSON-API.
+- **Flackern oder Ruckeln:** in WLED **WiFi sleep** ausschalten (Config → WiFi Setup → „Disable WiFi sleep“), den
+  Controller näher an den Router, prüfen, dass GND gemeinsam ist und das Netzteil reicht (ein dunkles, gelbliches Ende:
+  Einspeisung). Dream gleitet von Farbe zu Farbe, kurze WLAN-Aussetzer halten nur die Farbe an.
+- **Zu dunkel im Vergleich zum Traum:** „Force max brightness“ in WLEDs Sync-Einstellungen, Lichtstärke und Master hoch.
+- **WLED bleibt nach dem Ende von Dream auf Dreams Farbe:** es kehrt nach seinem Realtime-Timeout zu seinem Programm
+  zurück (Sync Interfaces, ab Werk 2500 ms); ein viel längerer Timeout dort hält die letzte Farbe so lange.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+---
+
+## Hue-Lampen träumen mit
+
+Philips-Hue-Lampen (eine Hue Signe, eine Play-Leiste, gewöhnliche Farblampen) nehmen die Farbe des Traums als
+**Stimmung** auf: die Lampen und Räume, die du wählst, gleiten sanft in die geglättete Farbe dessen, was das Publikum
+sieht – dieselbe Farbe, die die WLED-Kette bekommt, ohne ihren Takt und ihr Aufblitzen –, so hell, wie das Bild, die
+**Lampenstärke** und der Master-Regler sagen; **Blackout** schaltet sie sofort aus. Ein Drop oder eine neue Szene ist
+ein weicher Farbwechsel, nie ein Sprung.
+
+Alles bleibt zu Hause: Dream spricht mit der **Hue Bridge** in deinem Netz über ihre eigene lokale Schnittstelle
+(Hue-API v2, https im Heimnetz) – kein Hue-Konto, keine Cloud, nichts verlässt das Haus.
+
+**Die Grenze: Stimmung, kein Takt.** Die Bridge nimmt für alle Lampen zusammen etwa zehn Befehle pro Sekunde an und
+für Räume einen, darum ändert sich jede Lampe höchstens einmal pro Sekunde und gleitet dorthin. Licht, das jedem
+Schlag folgt, braucht die Hue-Entertainment-API (ein Strom an einen Entertainment-Bereich) – das ist eine eigene
+Story; für den Takt gibt es die WLED-Kette.
+
+### Einmal einrichten
+
+1. Die Bridge (quadratisch, mit dem runden Knopf oben) hängt per Kabel am Router und ist im **selben Netz wie der
+   Mac**. Die Lampen sind wie gewohnt in der Hue-App eingerichtet (Räume und Zonen eingeschlossen).
+2. **Der Bridge im Router eine feste IP geben**, damit Dream sie jedes Mal gleich findet – z. B. in der FRITZ!Box:
+   Heimnetz → Netzwerk → die Bridge (Name wie `Philips-hue`) → bearbeiten → „Diesem Netzwerkgerät immer die gleiche
+   IPv4-Adresse zuweisen“.
+3. Panel → Karte **Ausgabe** → **„Hue-Lampen träumen mit“**: die **IP-Adresse** der Bridge eintippen und Enter – oder
+   **„🔍 Suchen“**: Dream fragt im Netz nach Hue Bridges (mDNS `_hue._tcp`, etwa zwei Sekunden) und zeigt sie als
+   Knöpfe; ein Tipp übernimmt sie. Dream spricht nur mit Adressen im Heimnetz.
+4. **Koppeln:** **„🔗 Koppeln“** tippen, dann innerhalb von 30 Sekunden den **runden Knopf auf der Bridge** drücken.
+   Solange Dream wartet, sagt der Status „Jetzt den runden Knopf auf der Bridge drücken … 27 s“, danach „Gekoppelt
+   mit …“. Den App-Schlüssel der Bridge behält Dream nur auf diesem Mac, in `~/.config/dream/hue.json` (nur für dich
+   lesbar, Modus 0600) – nie im Repository, in einem Log oder auf einer Seite; die Seiten erfahren nur „gekoppelt“
+   oder nicht. Der Schlüssel geht nur an die Bridge, zu der er gehört (ihr Zertifikat muss die Kennung dieser Bridge
+   tragen).
+
+### In Dream
+
+- Die **Räume, Zonen und Lampen** der Bridge stehen als Liste da, jede mit ihrem Schalter: was angehakt ist, träumt
+  mit (ein Raum heißt: alle seine Lampen). Lampen, die nur Weiß können, folgen der Helligkeit.
+- Den Schalter **„Hue-Lampen träumen mit“** an – die Lampen nehmen die Farbe des Traums an, sobald die Bühne zeichnet
+  (sie muss offen und sichtbar sein). Die kleine Lampe neben dem Schalter leuchtet in der Farbe, die die Lampen bekommen.
+- **Lampenstärke:** wie hell die Lampen höchstens werden (Master-Regler und Blackout wirken obendrauf). Ein
+  MIDI-Controller kann sie lernen („Hue-Lampen: Stärke“).
+- **Danach bekommen die Lampen ihr eigenes Licht zurück:** Wenn eine Lampe dazukommt, merkt sich Dream, was sie zeigte
+  (an oder aus, Helligkeit, Farbe oder Weiß), und gibt genau das zurück, wenn sie geht – du nimmst den Haken weg,
+  schaltest die Lampen aus, die Bühne schließt oder Dream endet. Blackout verdunkelt nur; die Lampen bleiben bei Dream.
+- Bis zu zehn Lampen bekommen ihre Befehle einzeln (jede in den Farben, die sie zeigen kann); mehr Lampen in gewählten
+  Räumen bekommen sie als Raum, ein Befehl pro Sekunde.
+- **Entkoppeln** lässt Dream den Schlüssel vergessen (vorher bekommen die Lampen ihr eigenes Licht zurück).
+- Gäste (Dream Remote) können nichts davon ändern; Dream Control kann es.
+
+### Wenn etwas nicht geht
+
+- **„im Netz nicht zu finden“ / „antwortet nicht wie eine Hue Bridge“:** Adresse prüfen (die Hue-App zeigt sie:
+  Einstellungen → Mein Hue-System → die Bridge). Ab macOS 15 braucht das Programm, das Dream gestartet hat (Terminal,
+  iTerm), **Systemeinstellungen → Datenschutz & Sicherheit → Lokales Netzwerk** – ohne das erreicht nichts die Geräte
+  im Netz.
+- **„Der Knopf auf der Bridge wurde nicht rechtzeitig gedrückt“:** nochmal „Koppeln“ und den Knopf innerhalb von 30
+  Sekunden drücken.
+- **„Die Bridge kennt Dream nicht mehr“:** der App-Schlüssel wurde entfernt (in der Hue-App bei den Apps der Bridge,
+  oder die Bridge wurde zurückgesetzt) – neu koppeln.
+- **„Das Gerät unter … ist nicht die gekoppelte Bridge“:** unter der Adresse antwortet ein anderes Gerät (die Bridge hat
+  eine neue IP bekommen – gib ihr eine feste) oder es ist eine neue Bridge: die richtige Adresse eintragen oder neu
+  koppeln.
+- **„… antwortet nicht – Dream versucht es von selbst wieder“:** die Bridge ist aus oder das Netz weg. Sonst bremst
+  nichts in Dream; Dream fragt immer seltener wieder nach und macht weiter, sobald sie antwortet.
+- **Die Lampen reagieren spät oder gar nicht:** eine andere App oder die „Synchronisierung“ der Hue-App (ein
+  Entertainment-Bereich) steuert sie mit – das beenden. Eine Lampe, die in der Hue-App nicht erreichbar ist (am
+  Wandschalter aus), kann nicht mitträumen.
+- **Die Lampen sind in Dreams Farbe geblieben:** wurde Dream hart beendet (nicht gestoppt), konnte es den Lampen ihr
+  Licht nicht zurückgeben – in der Hue-App einstellen.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
 ---
 
 ## Fernbedienung per Handy
@@ -738,7 +963,8 @@ unten):
   freiwillig – die Fernbedienung bleibt eine normale Webseite.
 - **Der Bildschirm bleibt an,** solange die Fernbedienung offen ist (Wake Lock, wo der Browser es anbietet, sonst eine
   winzige stumme Video-Schleife).
-- **Blackout** in der Leiste setzt Master auf 0 und zurück, wie die MIDI-Taste.
+- **Blackout** in der Leiste (und in der Karte „Ausgabe“ neben der Master-Helligkeit) setzt Master auf 0 und zurück auf
+  die Helligkeit davor – wie der Knopf im Bedienfeld und die MIDI-Taste.
 
 ### Live-Kamera und Bewegung des Control-Geräts
 
@@ -753,7 +979,7 @@ Dream Control (über https, siehe oben) hat eine Karte **„Dieses Gerät“**:
   Gerät kräftig schwingen) wird zum Impuls (Blitz, Dreh-Ruck, neues Motiv, nächste Szene, Blackout); der 🧭-Knopf
   ruckt kurz, wenn der Mac einen Schlag erkannt hat. Der Blitz ist ein Lichtpuls auf der Bühne, mit und ohne Musik. Die
   Bühne zeigt „📱 Bewegung: Dream Control“; die gelernten Zuordnungen stehen im Bedienfeld unter „Steuerung (MIDI,
-  Sensoren, Master)“ wie die von OSC.
+  Sensoren)“ wie die von OSC.
 - **💡 Als Leucht-Marker leuchten** (erscheint, solange 🧭 Bewegung an ist): Das Handy, das seine Bewegung leiht, ist
   zugleich der Leucht-Marker der Hand, die es hält. Farbe wählen – **Cyan, Grün, Blau oder Magenta** (kein Rot, Orange
   oder Gelb: das ist Feuer) – und den Schalter tippen: Der ganze Bildschirm leuchtet in dieser Farbe, die Bewegung
@@ -1155,7 +1381,8 @@ träumende Augen**, die zum Herantreten und Mitspielen einladen:
   die Bilder und (#230), wo jedes Augen, Brauen, Mund und Umriss hat – sonst nichts. Der Schlüssel ist ein eigener (`~/.local/state/dream/eyes-token`), mit
   eigenem Cookie – die Augen auf dem eigenen Handy auszuprobieren, ersetzt also nie Dream Control.
 - **Immer nur eine Kamera:** Die Bühne zeigt „👀 Live-Kamera: Dreamy Eyes“. In Dream Control sagt die Karte „Dieses Gerät“,
-  wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp), und die eigene
+  wer die Kamera leiht, **■ Beenden** stoppt sie (die Augen sagen es und warten auf einen Tipp; das Bedienfeld hat dasselbe
+  **■ Beenden** unter der Kamera-Wahl), und die eigene
   Live-Kamera zu starten, übernimmt. Die Bühne geht dann zurück zum Traum, nie von selbst auf die Kamera des Macs.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
@@ -1248,15 +1475,17 @@ Interaktion“):
     **Stimmung** bzw. **Aus**.
   - **Flowtrack:** was Dream gerade erkennt – die Art, Werte pro Sekunde, ob jemand da ist –, **Automatik: AN/AUS**
     und was die Automatik gewählt hat und warum (siehe [Flowtrack](#flowtrack)).
-  - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo, die **Kupplung** und das
-    **Bewegungs-Set** (siehe [Dream Dance](#dream-dance-die-seite-die-kupplung-die-sets)).
+  - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo, die **Ampel** (was den Tanz blockiert),
+    die **Kupplung**, das **Bewegungs-Set** und der Regler **Stärke** – alle Wirkungen des Tanzes zusammen
+    (siehe [Dream Dance](#dream-dance-die-seite-die-kupplung-die-sets)).
 - **Seite ↗** öffnet die Seite des Modus in einem eigenen Fenster, für einen zweiten Bildschirm: Flowtrack und Dream
   Dance haben eine, die Stimmung braucht keine.
 - **Quellen** – ein Chip je Art, siehe unten.
 - Darunter eingeklappt: **Kamera und Erkennung** (Art der Erkennung, Kamera, Licht- und Marker-Farben, Finger,
   ⚡ Schnell, Kalibrieren, Projektion abziehen, Diagnose, Pose) und **Was eine Bewegung bewirkt** (was Dream sieht, die
-  Tabelle des gewählten Modus, das Tanz-Labor, die Direktheit der Hände und „Spiegeln“).
-- **Dream Control** hat nur die vier Modus-Knöpfe und die Stärke der Stimmung („Stimmung – Stärke“). Die Art der
+  Tabelle der Stimmung bzw. von Flowtrack – Dream Dance sagt es in Sätzen auf seiner Seite –, die Direktheit der Hände
+  und „Spiegeln“).
+- **Dream Control** hat nur die vier Modus-Knöpfe und die Stärke der Stimmung und des Tanzes („Bewegung – Stärke“). Die Art der
   Erkennung, die Kamera für Bewegung, ⚡ Schnell, die Direktheit, „Spiegeln“ und die Pose stellst du im Bedienfeld am
   Mac ein (es ist die Hauptsteuerung), und die Seiten gehören dem Mac. Was Dream Control an Bewegung anbietet, bietet
   auch das Bedienfeld (ein Test prüft das).
@@ -1645,7 +1874,7 @@ zum Schlag, der die Effekte anstößt.
   halben Sekunde und kommen auf den Regler obendrauf).
   Weitere Ziele: das Tempo der Bewegung im Bild, den Traum beruhigen, die direkte Interaktion (Malen, Anfassen,
   Impulse, Licht im Dunkeln, Bewegung formt die Effekte), der Inhalt nach Energie, der Schub auf die KI-Regler und
-  das Prompt-Stück einer eigenen Bewegung (siehe [Eigene Bewegungen](#eigene-bewegungen)).
+  das Prompt-Stück einer eigenen Bewegung (siehe [Eigene Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)).
   Die Tabellen – eine je Modus – liegen in `~/.config/dream/dance.json`; nur dieser Mac und Dream Control können sie
   ändern.
 
@@ -1679,11 +1908,12 @@ stünde. Die Karte „Bewegung“ zeigt die Wahl des Modus, der gerade läuft.
   Schlag, und seine Schläge sind die Quelle „Schlag (Sensor)“; Lage, Öffnung und die Gesten brauchen die Kamera.
   Zusammen: Ein Sensor, der im Tempo schwingt, das die Kamera sieht, bestätigt eine Geste (eine kleine Bewegung zählt
   dann eher), ein ruhender Arm bezweifelt sie, und fällt eine Quelle aus, macht die andere weiter.
-- **Finger (Hand-KI, 21 Punkte je Hand)** (Häkchen, bei „Hände (KI)“; ein zweites Modell, einmal heruntergeladen,
-  etwa 8 MB, es kostet etwas Grafikchip): je Hand **Faust ↔ offene Hand**, **Finger gespreizt**, **Greifen** (Daumen
-  an Zeigefinger, gehalten, bis sie klar auseinander sind) und **Schnippen** (die Hand schnellt auf). Sie sind Quellen
-  der Tabelle wie alle anderen, z. B. „Rechte Hand: Faust ↔ offene Hand → Kaleidoskop“. Rechne mit Grenzen bei
-  Abstand, Dunkelheit und schnellen Bewegungen – die Anzeige zeigt, wann eine Hand verloren geht.
+- **Finger (Hand-KI, 21 Punkte je Hand)** (ein zweites Modell, einmal heruntergeladen, etwa 8 MB, es kostet etwas
+  Grafikchip; es läuft von selbst, solange Dream Dance mit „Hände (KI)“ erkennt, nie bei Flowtrack – das Häkchen zeigt
+  es nur): je Hand **Faust ↔ offene Hand**, **Finger gespreizt**, **Greifen** (Daumen
+  an Zeigefinger, gehalten, bis sie klar auseinander sind) und **Schnippen** (die Hand schnellt auf). Sie kommen in den
+  Merkmal-Strom (das Tanz-Labor zeigt sie). Rechne mit Grenzen bei Abstand, Dunkelheit und schnellen Bewegungen – die
+  Anzeige zeigt, wann eine Hand verloren geht.
 
 Von der Kamera wird dafür nichts gespeichert oder irgendwohin geschickt: Die Merkmale sind Zahlen, die die Bühne
 selbst rechnet.
@@ -1697,8 +1927,8 @@ Die Seite liest die Bühne in dem Fenster, das sie geöffnet hat; sie hat keine 
 Kamera (nur die Sessions des Labors gehen direkt an Dream und zurück) – öffne sie also aus dem Bedienfeld, nicht über
 ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
 selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
-Erkennung, die Bewegungs-Sets, der Takt, darunter deine eigenen Bewegungen (siehe
-[Eigene Bewegungen](#eigene-bewegungen)) und das Tanz-Labor.
+Erkennung, der Takt, darunter die Sätze mit den Sets (siehe [Die Sätze](#die-sätze--was-dein-tanz-bewirkt)), deine
+eigenen Bewegungen (siehe [Eigene Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)) und das Tanz-Labor.
 
 **Die Kupplung** entscheidet, ob dein Tanz wirkt. Was Regler, Bedienfeld und ein MIDI-Controller einstellen, ist die
 **Grundlage**; der Tanz wirkt **obendrauf** – ein Effekt mit 30 % von Hand und 40 % vom Tanz zeigt sich mit 70 %, und
@@ -1716,19 +1946,14 @@ gelöst**: Dein Tanz bewirkt nichts, bis du sie bewusst einlegst – eine eingel
 mit gestricheltem rotem Rand und zeigt „Kupplung: gelöst“, und die Zeile darunter sagt, dass dein Tanz noch nichts
 bewirkt – in der Karte Bewegung, auf der Seite und in Dream Control gleich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
 
-**Bewegungs-Sets** sind benannte Tabellen dessen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines
-Auftritts. Eingebaut: **Standard** (die eingebaute Tabelle), **Wellen** (Energie → Wellen, Öffnung → Tunnel, Armwelle →
-Nachleuchten, Kreisen → Mandala, Ziehharmonika → Spiegel) und **Feuer** (Energie → Feedback, Hände oben → RGB-Versatz,
-Hochwerfen → Nachleuchten, Schieben → Wellen, Kreisen → Kaleidoskop). Ein gewähltes Set macht seine Zeilen zur
-benutzten Tabelle; die Tabelle danach abzustimmen ändert das Set nie. Wählen kannst du
-- in der Karte Bewegung (Modus Dream Dance) oder auf der Seite,
+**Bewegungs-Sets** sagen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines Auftritts, jedes ein paar
+Sätze (siehe [Die Sätze](#die-sätze--was-dein-tanz-bewirkt)). Eingebaut: **Standard**, **Fließend** und **Wild**.
+Wählen kannst du
+- in der Karte Bewegung (Modus Dream Dance) oder in der Set-Leiste auf der Seite,
 - mit einem MIDI-Knopf: „**Taste: nächstes Bewegungs-Set**“ geht sie der Reihe nach durch,
 - in Dream Control,
-- in einer Playlist-Szene: `"settings": {"dance_set": "waves"}` in einer Szene einer Playlist-Datei.
-
-Auf der Seite behält **Als Set behalten** die Tabelle, wie sie jetzt ist, unter einem eigenen Namen (Buchstaben,
-Ziffern, Leerzeichen und `. + -`, höchstens 24 Zeichen, bis zu 24 Sets); **Dieses Set entfernen** entfernt ein
-eigenes. Deine Sets liegen mit den Tabellen in `~/.config/dream/dance.json`.
+- in einer Playlist-Szene: `"settings": {"dance_set": "waves"}` in einer Szene einer Playlist-Datei (die Schlüssel der
+  eingebauten Sets sind `standard`, `waves` für Fließend und `fire` für Wild; ein eigenes Set mit seinem Namen).
 
 **Erkennung.** Die Karte „Erkennung“ auf der Seite wählt, womit Dream Dance erkennt – **Tanz: Hände (KI)** oder
 **Tanz: Leucht-Marker (2 Farben)** – und, unabhängig davon, die **Kamera** (die Kameras, die die Bühne kennt; die benutzte ist gewählt), und sagt, was
@@ -1748,51 +1973,160 @@ funktionierender Bedienelemente (das Bild setzt kurz aus, die Seite kommt von se
 **Takt.** Die Seite zeigt deinen Takt (das Tempo deiner Wiederholung) und den Musik-Takt
 nebeneinander, je mit einem Punkt, der mitschlägt, und sagt, wer den Takt gibt: dein Tanz, die Musik, beide
 zusammen (auch im halben oder doppelten Tempo) oder zwei verschiedene Takte. Effekte auf dem Schlag stoßen beide
-an – die Zeile „Eigener Schlag → Schub auf den Schlag“ der Tabelle für deine Bewegung, der Schlag der Musik wie immer.
+an – „Eigener Schlag → Schub auf den Schlag“ für deine Bewegung (Dream fügt ihn jedem Set hinzu), der Schlag der Musik
+wie immer.
 
-### Eigene Bewegungen
+### Die Sätze – was dein Tanz bewirkt
 
-Auf der Seite von Dream Dance, zwischen den Karten oben und dem Tanz-Labor, steht **🕺 Eigene Bewegungen**: Bring
-Dream eine Tanzbewegung bei, indem du sie vormachst, und sag, was sie bewirkt.
+Die Mitte der Seite von Dream Dance sagt in ein paar Sätzen, die man laut lesen kann, was dein Tanz bewirkt – sie sind
+seine einzige Bedienung: **„Wenn ich [die Arme hochwerfe] → [reißt ein Tunnel auf]“**. Dream macht daraus die Regeln,
+die seine Engine in jedem Bild anwendet (Kurve, Bereich und Glättung wählt Dream), und hält dabei jede Wirkung sichtbar.
+
+**Der Weg des Signals.** Ein schmales Band oben im mittleren Teil zeigt die Kette, durch die deine Bewegung läuft:
+**Erkennung → Bewegungen → Kupplung → Wirkungen → Stärke**. Jedes Glied leuchtet, solange es deine Bewegung durchlässt –
+so siehst du auf einen Blick, wo sie hängen bleibt (niemand erkannt, Stillstand, Kupplung gelöst, nichts wirkt,
+Stärke 0). Daneben die **Ampel**: Die Lampe ist grün, wenn nichts blockiert; drei Symbole leuchten rot für das, was
+blockiert – 🔓 die Kupplung ist gelöst (Klick legt sie ein), 👤 niemand ist erkannt, ◉ LED-Marker sind gewählt, aber
+keiner ist zu sehen. Die Worte dazu stehen beim Darüberfahren (und für Screenreader).
+
+**Sätze in drei Spuren.** Jeder Satz sagt eine Sache, z. B. **„Wenn ich [die Arme hochwerfe] → [ziehen Spuren nach]“**:
+- **Grundbewegung** (warmes Gelb, *solange du dich bewegst*) – 2 Sätze. Eine fließende Bewegung (viel bewegen, die
+  Arme öffnen, drehen, die Arme heben) steuert eine Wirkung: „Wenn ich mich viel bewege → werden die Wellen stärker“.
+- **Akzente** (kaltes Blau, *ein kurzer Moment*) – 4 Sätze. Eine Geste (die Arme hochwerfen, Akkordeon spielen, nach
+  vorn schieben, einen Kreis ziehen, eine Welle machen) oder eine eigene Bewegung löst eine Wirkung aus: „Wenn ich
+  einen Kreis ziehe → blüht ein Mandala auf“.
+- **Hände im Bild** (grün, *wo deine Hände sind*) – ein Satz aus Schaltern: „Meine Hände [malen Lichtspuren]
+  [rühren das Bild um] [senden Impulse] [machen das Dunkel hell]“, höchstens zwei gleichzeitig.
+
+Die magentafarbene Hälfte eines Satzes ist deine Bewegung, die andere (in der Farbe ihrer Effekt-Gruppe umrandet) ist
+das, was im Bild passiert. **Klick auf eine Hälfte ändert sie:** Die Bewegung öffnet eine Auswahl der Bewegungen
+dieser Spur, jede mit einer kleinen Figur; die Wirkung öffnet eine Auswahl der Wirkungen nach Gruppen – was nicht passt,
+ist ausgegraut, beim Darüberfahren steht, warum (steht schon in einem anderen Satz, dieselbe Gruppe wie die andere
+Grundbewegung, dieselbe Gruppe wie eine Grundbewegung). Esc schließt ohne Änderung. **✕** entfernt einen Satz (mit
+„Rückgängig“), **＋ Satz** fügt einen hinzu, solange die Spur nicht voll ist. Jeder Satz beginnt mit einer kleinen Figur
+seiner Bewegung.
+
+**Stärke: drei Stufen.** Jeder Satz hat **leicht · mittel · stark** – jede Stufe deutlich anders, und auch „leicht“
+sieht man klar (ein Satz ist da oder nicht, „fast nichts“ gibt es nicht). Kurve, Bereich und Glättung wählt Dream je
+Bewegung selbst. Zum Abstimmen von allem zusammen dient **Stärke** in der Karte Bewegung des Bedienfelds (es ist auch
+die Stärke der Stimmung, ein MIDI-Controller bewegt sie als „Bewegung: Stärke“, und das Band zeigt sie als letztes
+Glied): Sie skaliert alle Wirkungen des Tanzes (0 = nichts, 1 = wie die Stufen sagen, bis 3).
+
+**Toleranz eines Akzents.** Unter jedem Akzent: **erkennen genau · normal · locker** und ein Balken, wie sicher Dream
+diese Bewegung gerade erkennt, mit einem Strich, ab dem sie zählt. Genau nimmt nur eine deutliche Bewegung (weniger
+Fehlalarme), locker schon eine Andeutung (kommt leichter, ab und zu auch aus Versehen). Der Strich wandert mit der
+Toleranz. Der Lern-Wizard (unten) stellt sie für dich ein.
+
+**Sehen, wie es wirkt.** Ein Satz leuchtet in der Farbe seiner Spur, solange er wirkt, mit einem Pegel (ein Satz, den
+seine Gruppe oder das Budget zurückhält, leuchtet schwächer); ein Akzent blitzt, wenn seine Geste erkannt wird. Links die
+Live-Figur: Skelett bzw. Marker, jede Hand leuchtet in der Farbe der Wirkung, die gerade am stärksten wirkt.
+
+**Ein neuer Satz durch Vormachen.** **＋ Neuer Satz: vormachen** – 1. die Wirkung antippen, die passieren soll,
+2. bewegen: Dream schaut vier Sekunden zu und nimmt die deutlichste Bewegung (eine Geste für einen Akzent, sonst den Wert,
+der sich am meisten geändert hat, für eine Grundbewegung), 3. **„Das war: Hochwerfen → Wellen?“** mit dem, was es
+ersetzt – **Ja, so** · **Nochmal** · **Andere** (die Bewegung selbst wählen). War nichts eindeutig, bietet Dream an,
+**sie beizubringen (3×)**: Mach die neue Bewegung dreimal vor, und sie wird eine eigene Bewegung auf einem Akzent mit
+dieser Wirkung. Eine Wirkung, die in einem anderen Satz stand, wandert in den neuen.
+
+**Dream hält jede Wirkung sichtbar – in der Engine, nicht nur auf der Seite.** Die Effekte bilden fünf Gruppen:
+Symmetrie (Kaleidoskop, Mandala, Spiegeln), Raum (Tunnel, Wellen), Nachleuchten (Nachleuchten, Rückkopplung), Störung
+(RGB-Versatz, Glitch, Pixel, Raster) und Farbe (Farbrotation). Aus einer Gruppe wirkt immer nur ein Effekt stark;
+höchstens drei Gruppen wirken gleichzeitig stark – kommt ein Akzent dazu, tritt die schwächste der anderen zurück,
+solange der Akzent dauert, und kehrt weich zurück. (Die Tabellen der Stimmung und von Flowtrack wirken so, wie ihre
+Zeilen sagen.)
+
+**Sets als Kartenreihe.** Alle Sets stehen nebeneinander; die eingebauten (**Standard**, **Fließend**, **Wild**) tragen 🔒,
+das aktive ist umrandet. Klick auf eine Karte nimmt sie. Ein eingebautes Set kannst du direkt ändern: Es wird
+**● geändert** (auf der Karte und in einem gelben Band) und wirkt sofort, wird aber nie überschrieben – das Band bietet
+**Als neues Set speichern** mit einem Namensfeld, das du ausfüllst (Vorschlag: „Standard – mein“; Buchstaben, Ziffern,
+Leerzeichen und `. + - –`, höchstens 32 Zeichen, kein Name doppelt) und **Verwerfen**. Ein eigenes Set zeigt
+**Speichern** und **Verwerfen**, solange es geändert ist; auf seiner Karte benennt **✎** es um, **🗑** löscht es –
+„Rückgängig“ in der Meldung holt es zurück. Nach dem Speichern steht die neue Karte da und ist aktiv, mit einer kurzen
+Bestätigung. Wechselst du zu einer anderen Karte, bleiben die Änderungen des verlassenen Sets mit ● vorgemerkt – komm
+zurück, um sie zu speichern oder zu verwerfen (bis dahin hält Dream sie im Speicher, nicht in der Datei; ein Neustart
+von Dream verwirft sie). Gewählt wird das Set auch in der Karte Bewegung, mit einem MIDI-Knopf, in Dream Control und
+mit `dance_set` in einer Playlist-Szene. Deine Sets (höchstens 24) und das aktive stehen in
+`~/.config/dream/dance.json`, neben den Tabellen der Stimmung und von Flowtrack.
+
+**Tabellen früherer Versionen werden Sets – einmal.** Bisher hatte Dream Dance eine Tabelle, die man Zeile für Zeile
+änderte, und Bewegungs-Sets, die solche Tabellen waren. Beim ersten Start nach dem Update macht Dream daraus Sets aus
+Sätzen, so gut es geht: Deine eigene Tanz-Tabelle (wenn sie keines der eingebauten Sets war) wird das Set **„Meine
+Tabelle“** (in der Sprache des Systems), jedes eigene Set ein Set gleichen Namens (mit einer Zahl dahinter, wenn ein
+eingebautes schon so heißt). Eine Zeile einer fließenden Bewegung (Energie, Öffnung, Drehen, Höhe) wird eine
+Grundbewegung, eine Geste oder eigene Bewegung ein Akzent mit der Stärke, die der der Zeile am nächsten ist, und die
+Hände im Bild bleiben so eingeschaltet, wie sie waren (höchstens zwei); was ein Satz nicht sagen kann (Fingerwerte, die
+KI-Regler, Wirkungen, die sich gegenseitig aufheben würden), fällt weg, und ist eine Spur voll, gehen die stärksten
+Zeilen vor. Das Set, das in Gebrauch war, bleibt in Gebrauch. Schau sie dir einmal auf der Seite an – und ergänze, was
+verloren ging. Eine Datei, die Dream nicht lesen kann, bleibt unangetastet, und die eingebauten Sets wirken.
+
+**Hände (KI) heißt: Hände immer dabei.** Solange Dream Dance mit **„Hände (KI)“** erkennt, lädt Dream das Handmodell
+(21 Punkte pro Hand) von selbst mit dem Pose-Modell, und deine Hände gehören immer zum Tanz (die Fingerwerte kommen in
+den Merkmal-Strom). Flowtrack lädt das Handmodell nie. „Finger (Hand-KI)“ im Bedienfeld (unter „Kamera und Erkennung“)
+und im Labor zeigt nur, ob es läuft – zu schalten gibt es nichts.
+
+**Im Bedienfeld** zeigt die Karte Bewegung für Dream Dance, was ein Auftritt griffbereit braucht: was Dream gerade
+erkennt, die Ampel (dieselben drei Symbole wie auf der Seite, die Worte beim Darüberfahren), die Kupplung, das Set und
+die Stärke. „Was eine Bewegung bewirkt“ darunter zeigt, was Dream sieht; die Sätze selbst stehen auf der Seite.
+
+**Einführung und Hilfe.** Beim ersten Öffnen der Seite hebt eine kurze Führung ihre Teile in der Reihenfolge des
+Signalwegs hervor – was Dream sieht, die Kupplung, die Sätze, der Takt, Aufnehmen und Lernen –, je ein Satz,
+**Weiter** geht weiter. **Hilfe aus** beendet sie und blendet die Erklärungen der Seite aus; das **?** im Kopf holt
+beides zurück und startet die Führung neu (in diesem Browser gemerkt).
+
+**„Gut“ und „schlecht“ haben die Seite verlassen.** Das Tanz-Labor auf der Seite behält **● Aufnehmen** für Sessions;
+👍/👎 (und das Feedback per Stimme) stehen nicht mehr auf der Seite – das Lernen fragt dort „richtig erkannt?“. Ein
+MIDI-Knopf (oder Fußtaster) und das Armband markieren eine Session weiterhin; Bedienfeld und Dream Control haben keine
+Knöpfe 👍/👎 mehr.
+
+### Eigene Bewegungen – eine Bewegung lernen
+
+Unter den Sätzen steht **🕺 Eigene Bewegungen**: die Bewegungen, die du beigebracht hast, und der Wizard, der Dream
+eine Bewegung beibringt – eine eingebaute genauer oder eine eigene. Starten mit **🎓 Bewegung lernen …** (oder Taste
+**T**), mit **＋ Eigene Bewegung …** bei den Akzenten, mit **🎓 Nachlernen** an einer Bewegung der Liste oder aus
+„Das war …?“, wenn Dream nichts Bekanntes gesehen hat.
+
+1. **Wählen:** eine eingebaute Geste, eine deiner Bewegungen oder **＋ Neue eigene Bewegung**.
+2. **5× vormachen.** Eine eingebaute Geste oder eine Bewegung, die du schon hast: fünfmal machen, mit einer kurzen
+   Pause dazwischen – der Zähler geht jedes Mal weiter, wenn Dream sie erkennt. Eine neue Bewegung: drei Sekunden
+   Countdown, dann läuft die Aufnahme; mach deine Bewegung **fünfmal hintereinander** vor (drei reichen, gib eine mehr:
+   Die erste und die letzte, bei denen die Arme hoch- und wieder heruntergehen, zählen oft nicht). Dream findet die
+   Wiederholungen selbst und zeigt sie sofort, jede als kleines Skelett in Endlosschleife; **✕** verwirft eine, die
+   danebenging. Gib ihr einen **Namen** (Buchstaben, Ziffern, Leerzeichen und `. + -`, höchstens 32 Zeichen) –
+   **Behalten und weiter →** behält sie auf diesem Mac.
+3. **Gegenprobe: 30 Sekunden frei tanzen – ohne die Bewegung.** Dream zählt, wie oft es etwas anderes dafür halten
+   würde (das verhindert Fehlalarme). **Überspringen** geht früher weiter.
+4. **Prüfen.** Tanz mit und ohne sie: Jedes Mal, wenn Dream sie erkennt, erscheint ein Punkt und fragt –
+   **👍 richtig erkannt** (Taste **G**) oder **👎 falsch erkannt** (Taste **B**). **Fertig → Ergebnis**, wenn du genug
+   hast.
+5. **Ergebnis.** Punkte für Treffer, verpasste und Fehlalarme, und die **Toleranz**, die Dream daraus gewählt hat (die
+   lockerste ohne Fehlalarm; haben alle welche, die mit den wenigsten). **Behalten** setzt sie auf den Akzent mit
+   dieser Bewegung – eine neue Bewegung wird dann ein Akzent, mit der vorher gewählten Wirkung oder der ersten, die
+   passt (das Set ist dann „● geändert“). **Noch eine Runde** macht vor, prüft gegen und bestätigt noch einmal – je
+   mehr Runden, desto genauer kennt Dream sie.
+
+Solange der Wizard läuft, nimmt die Erkennung diese Bewegung locker (jeder Kandidat zählt – du sagst, welche stimmten);
+**✕** oder **Esc** beendet ihn, und eine neue, noch nicht behaltene Bewegung wird verworfen. Der schnelle Weg
+(„Beibringen (3×)“ beim neuen Satz durch Vormachen) nimmt drei Wiederholungen und setzt die Bewegung sofort auf einen
+Akzent.
 
 - **Eine Bewegung** ist eine rhythmische Bewegung deiner Hände, wie die eingebauten Gesten: derselbe Weg immer
   wieder, eine Wiederholung in einer Drittelsekunde bis gut einer Sekunde (0,3–1,25 s). Eine Hand oder beide; gemessen
   wird am eigenen Körper, es ist also egal, wo du im Bild stehst und wie nah. Es geht mit allem, was Dream Dance
   erkennt (Hände per KI oder Leucht-Marker) – lerne eine Bewegung mit der Erkennung an, mit der du sie tanzen wirst.
-- **Neue Bewegung anlernen** (oder Taste **T**): drei Sekunden Countdown, dann läuft die Aufnahme. Mach deine
-  Bewegung **drei- bis fünfmal hintereinander** vor – die große Zeile zählt die Wiederholungen, die Dream gesehen hat,
-  und die Aufnahme endet von selbst (nach genug Wiederholungen, spätestens nach 12 Sekunden; **■ Fertig** beendet sie
-  früher, **Verwerfen** oder **Esc** bricht ab). Mach eine Wiederholung mehr, als du brauchst: Die erste und die
-  letzte, bei denen die Arme hoch- und wieder heruntergehen, zählen oft nicht. Dream findet die Wiederholungen selbst
-  und **zeigt sie sofort**, jede als kleines Skelett in Endlosschleife mit den Bahnen der Hände in Farbe; **✕**
-  verwirft eine, die danebenging (drei müssen übrig bleiben). Wird aus einer Aufnahme keine Bewegung, sagt die Zeile,
-  warum: zu kurz, Hände nicht gesehen, kaum Bewegung, keine Wiederholung gefunden, weniger als drei Wiederholungen.
-- **Bewegung behalten** mit einem **Namen** (Buchstaben, Ziffern, Leerzeichen und `. + -`, höchstens 32 Zeichen) und
-  – wenn du magst – mit dem, was sie **steuert**, und einem **Prompt-Stück**. Höchstens 24 Bewegungen werden
-  gespeichert.
-- **Erkennung.** Von da an erkennt die Bühne die Bewegung wie eine eingebaute Geste: Sie vergleicht die letzten zwei
+  Höchstens 24 Bewegungen werden gespeichert.
+- **Erkennung.** Die Bühne erkennt eine Bewegung wie eine eingebaute Geste: Sie vergleicht die letzten zwei
   Wiederholungen deiner Hände per Dynamic Time Warping mit der Bewegung, so dass auch eine Variante passt – etwas
   schneller oder langsamer (etwa das 0,7- bis 1,4-Fache des angelernten Tempos), größer oder kleiner, an jeder Stelle
   der Wiederholung –, ein anderer Weg der Hände, derselbe Weg im doppelten Tempo oder eine Schulterbreite höher aber
-  nicht. Sie kommt nach **zwei bis drei Wiederholungen** und geht mit derselben Hysterese wie die eingebauten Gesten;
-  immer nur eine Geste zur Zeit. Die Größe der Bewegung ist ihre Stärke: so groß wie angelernt ist alles, kleiner ist
-  weniger, und weniger als etwa die halbe Größe ist nicht die Bewegung. Eine Bewegung, die einer eingebauten Geste
-  ähnelt, geht ihr vor. Der Balken unter jeder Bewegung in der Liste zeigt, wie sicher Dream sie gerade erkennt; der
-  Rahmen wird grün, solange sie die erkannte ist.
-- **Was sie steuert**, ist eine Zeile der Tabelle („Was eine Bewegung bewirkt“), wie alles, was eine Bewegung bewirkt
-  – wähle das Ziel in der Liste, oder ändere Schalter, Ziel und Stärke der Zeile im Bedienfeld, wo die Bewegung unter
-  „Eigene Bewegungen“ mit ihrem Namen erscheint. Eine Bewegung wirkt also **nur bei eingelegter Kupplung**, und sie
-  gehört zum **Bewegungs-Set**: „Als Set behalten“ behält die Tabelle mit den Zeilen deiner Bewegungen; ein
-  eingebautes Set hat keine davon (die Bewegung bleibt in der Liste und zeigt „– noch nichts –“, bis du ihr in dieser
-  Tabelle ein Ziel gibst).
-- **Prompt-Stück.** Eine Bewegung kann ein Stück Prompt mitbringen (z. B. `fire, glowing embers`; in der Sprache
-  deiner Prompts): Mit dem Ziel **„Prompt-Stück der Bewegung“** wird es in den Prompt eingeblendet, so stark, wie die
-  Bewegung erkannt wird und wie groß du sie machst – langsam, wie jedes KI-Ziel (frühestens in einer halben Sekunde).
-  Die Zeile „Die KI bekommt:“ unter dem Prompt zeigt es, mit ✕ zum Ausschalten der Zeile. Solange ein Prompt-Stück
-  wirkt, steht es an der Stelle der Energie-Wörter („Inhalt nach Energie“).
+  nicht. Sie kommt nach **zwei bis drei Wiederholungen**; immer nur eine Geste zur Zeit. Die Größe der Bewegung ist
+  ihre Stärke. Eine Bewegung, die einer eingebauten Geste ähnelt, geht ihr vor. Der Balken unter jeder Bewegung in der
+  Liste zeigt, wie sicher Dream sie gerade erkennt; der Rahmen wird grün, solange sie die erkannte ist.
+- **Was sie bewirkt**, ist ein Akzent: „Wenn ich „Lasso“ tanze → reißt ein Tunnel auf“ – sie wirkt also **nur bei
+  eingelegter Kupplung** und gehört zum Set. Ihr **Prompt-Stück** (z. B. `fire, glowing embers`) wird in den Prompt
+  eingemischt, solange ihr Akzent wirkt, so stark, wie die Stärke des Akzents sagt.
 - **Umbenennen, ändern, löschen** in der Liste: Name und Prompt-Stück sind Textfelder (gespeichert, wenn du das Feld
-  verlässt), **🗑** löscht nach einer Rückfrage auf dem Knopf selbst. Das Löschen einer Bewegung entfernt ihre Zeilen
-  aus den Tabellen und aus deinen eigenen Sets.
+  verlässt), **🗑** löscht nach einer Rückfrage auf dem Knopf selbst. Das Löschen einer Bewegung leert ihre Akzente (in
+  deinen Sets und in noch nicht gespeicherten Änderungen) und entfernt ihre Zeilen aus den Tabellen.
 - **Was gespeichert wird:** je Wiederholung die Merkmale, was die Quellen von den Händen sahen, die Punkte des
   Skeletts, die Hände in Körpereinheiten und ob die Kupplung eingelegt war, jeweils mit Zeit – die Frames einer
   Tanz-Session – und der mittlere Weg der Hände als Vorlage. **Nur Zahlen, nie ein Kamerabild.** Die Bewegungen
@@ -1815,10 +2149,10 @@ beim Tanzen abstimmen lässt:
 - **Ausgabe mit Effekten:** was das Publikum sieht.
 - **Finger (Hand-KI):** die 21 Punkte jeder Hand vergrößert als Hand-Skelett, mit feinen Spuren der Fingerkuppen
   und – bei Mehrfachbelichtung – den letzten Handposen blass dahinter (ein Schnippen wird zur sichtbaren Folge);
-  darunter Faust ↔ offene Hand, Spreizung, Greifen und Schnippen mit der Sicherheit der Hand-KI. Der Schalter
-  **Finger (Hand-KI)** sitzt direkt unter der Ansicht (derselbe wie in der Karte Bewegung). Eine leere Ansicht sagt,
-  warum: Finger brauchen die Erkennung „Hände (KI)“, der Schalter ist aus, das Hand-Modell lädt noch (einmal, ca.
-  8 MB), oder es ist keine Hand im Bild.
+  darunter Faust ↔ offene Hand, Spreizung, Greifen und Schnippen mit der Sicherheit der Hand-KI. Das Häkchen
+  **Finger (Hand-KI)** unter der Ansicht zeigt, ob das Handmodell läuft (von selbst bei Dream Dance mit „Hände (KI)“).
+  Eine leere Ansicht sagt, warum: Finger brauchen die Erkennung „Hände (KI)“ bei Dream Dance, das Hand-Modell lädt noch
+  (einmal, ca. 8 MB), oder es ist keine Hand im Bild.
 - **Merkmal-Strom:** Energie, Tempo, Phase, Öffnung, Drehung, Höhe und Ruhe als laufende Kurven über die letzten
   12 Sekunden, die erkannte Geste als Band darüber und – sobald eine Hand gesehen wurde – die Fingerwerte je Hand. Wo
   ein Wert nicht bekannt ist (Hand verloren, kein Rhythmus), hat die Kurve eine **Lücke**, markiert mit einer
@@ -1827,15 +2161,16 @@ beim Tanzen abstimmen lässt:
   berechnet wird** (z. B. Öffnung: der Abstand der beiden Hände in Schulterbreiten), seine **Quelle jetzt** (Skelett,
   Leucht-Marker, Bewegungssensor …) und **wie sicher** es ist. In einer Wiedergabe stehen die Quellen nicht da – eine
   Sitzung speichert nur Werte und Sicherheiten.
-- **Eine Zeile abstimmen:** eine Zeile der Tabelle wählen und ihr Ziel, ihre Kurve (gerade, früh, spät, S), den
+- **Eine Zeile abstimmen** (auf der Seite von Flowtrack; Dream Dance hat dafür seine Sätze): eine Zeile der Tabelle wählen und ihr Ziel, ihre Kurve (gerade, früh, spät, S), den
   Eingang von … bis (das untere Ende ist die Schwelle), den Ausgang von … bis und die Glättung ändern. Ein kleines
   Bild zeigt die Kurve mit dem Live-Wert als Punkt. Jede Änderung **wirkt sofort**, Dream speichert sie, und
   **↶ Rückgängig** nimmt sie Schritt für Schritt zurück (bis zu 30 Schritte).
 - **Feedback ohne Hände – „gut“ / „schlecht“:** Jedes speichert die **letzten Sekunden** (Regler, 1–15 s,
   standardmäßig 4) als Feedback-Moment: die Merkmale, die erkannte Geste, den Stand jedes Ziels und die benutzte
-  Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen: die Knöpfe **👍 Gut / 👎 Schlecht** oder die
-  Tasten **G / B**; **per Sprache** – **🎙** halten (oder Taste V bei offenem Labor) und „gut“ oder „schlecht“ sagen;
-  die Karte **„Dream Dance“** in Dream Control; eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
+  Tabelle. Eine Notiz oben auf der Bühne bestätigt es. Wege, es zu sagen (#265: keine Knöpfe mehr im Bedienfeld, in Dream Control oder auf der
+  Seite – dort fragt das Lernen „richtig erkannt?“): **per Sprache** – Taste V auf der Bühne halten, solange die Seite offen ist, und „gut“
+  oder „schlecht“ sagen;
+  eine **MIDI**-Taste oder ein Fußpedal (Ziele „Taste: Tanz-Labor –
   gut / schlecht“); die **Taste eines Armbands** per OSC (eine Adresse mit `btn` oder `button` darin, Wert 1 solange
   gedrückt): einmal drücken ist „gut“, zweimal innerhalb einer halben Sekunde „schlecht“. Feedback zählt, solange das
   Labor im Live-Tanz offen ist oder eine Aufnahme läuft.
@@ -1860,8 +2195,7 @@ Control können sie auflisten, lesen, hinzufügen oder löschen – Gäste, Drea
 kostet etwas Bildrate, solange sie offen ist (sie zeichnet Kamera und Kurven): Schließe ihr Fenster, wenn du sie nicht
 brauchst.
 
-**Aus Dream Control** (Karte „Dream Dance“): die **Kupplung**, das **Bewegungs-Set**, **👍 Gut**, **👎 Schlecht**,
-**● Aufnehmen** und **Seite am Mac** (öffnet die Seite am Mac – der Browser dort fragt womöglich, ob er das Fenster
+**Aus Dream Control** (Karte „Dream Dance“): die **Kupplung**, das **Bewegungs-Set**, **● Aufnehmen** und **Seite am Mac** (öffnet die Seite am Mac – der Browser dort fragt womöglich, ob er das Fenster
 erlauben soll). Die Karte sagt, was das Labor gerade tut, und bestätigt, was gespeichert wurde; alles andere – die
 Ansichten, das Abstimmen, die Wiedergabe – ist am Mac.
 
@@ -1875,7 +2209,7 @@ Ausgabe auf dem Beamer. USB-Controller, die macOS ohne Treiber erkennt („class
 unter Audio-MIDI-Setup → Fenster → MIDI-Studio einblenden. Geräte mit runden 5-pol-Buchsen brauchen ein
 USB-MIDI-Interface. Ein- und Ausstecken im Betrieb geht; Dream sucht alle 3 s nach Geräten.
 
-**Zuordnen (MIDI-Learn):** Im Bedienfeld unter „MIDI-Controller“ (oder am Handy unter „MIDI · Master“) ein Ziel
+**Zuordnen (MIDI-Learn):** Im Bedienfeld unter „MIDI-Controller“ (oder am Handy unter „MIDI“) ein Ziel
 wählen, **🎛 Lernen** klicken, dann am Controller den Regler drehen bzw. die Taste drücken – fertig. Die Liste darunter
 zeigt alle Zuordnungen, ✕ löscht eine. Gespeichert wird in `~/.config/dream/midi.json` (nicht im Repository), sie
 gelten also auch nach einem Neustart. Welche Nummern der Controller sendet, hängt von seinem Preset ab – einfach
@@ -2199,7 +2533,9 @@ Lizenzen: SD-Turbo und SDXL-Turbo stehen unter der Stability AI Community Licens
 `uv run pytest` startet die automatischen Tests (wenige Sekunden; kein Modell, keine GPU, kein Netz – sie nehmen einen
 Ersatz für torch und einen temporären Home-Ordner, deine Einstellungen, Schlüssel und Bilder bleiben unberührt). Sie
 prüfen, wer was darf (jede Route des Servers für diesen Mac, Dream Control, Gäste, Dreamy Eyes und Geräte ohne
-Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung, die Ordner, die Zertifikate fürs Heimnetz, die
+Schlüssel), die Herkunftsprüfung, die Grenzen jeder Einstellung (eine Bildgröße, die Dream nicht kennt, wird für Bühne,
+Dream Control und den Absender zur nächstgelegenen: `tests/test_size.py`; `node --test tests/js/size.test.mjs`: das Bild
+der Bühne hat immer eine Größe, was auch in ihrer Liste steht), die Ordner, die Zertifikate fürs Heimnetz, die
 MIDI-, Sensor- und Playlist-Helfer, die Traum-Fenster (jedes Fenster sein eigenes Motiv, das Wandern, die Punkte eines
 gemalten Gesichts nur einmal erfragt), die Übersetzungen und was Dream flüssig hält (der Prompt wird einmal je Prompt
 kodiert, niemand wartet auf ein ladendes Modell oder ein langsames Gerät, der Zustand wird erst geschrieben, wenn die
@@ -2210,7 +2546,7 @@ gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zur�
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
 `node --test tests/js/soft.test.mjs` (#211) prüft die Anteile der weichen Wechsel (altes Eingangsbild, alter und
-neuer Prompt, ein Wechsel während einer laufenden Überblendung). `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
+neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten (`tests/test_mdns.py`). `tests/test_hue.py` und `node --test tests/js/huecard.test.mjs` (#272) prüfen die Hue-Lampen gegen eine nachgebaute Hue Bridge (ein https-Server auf 127.0.0.1 mit eigenem Zertifikat): Koppeln mit und ohne Knopfdruck, den Schlüssel (nur im Konfigurationsordner, Modus 0600, nie in einem Log oder einer Nachricht an eine Seite, nie an ein Gerät, dessen Zertifikat nicht das der Bridge ist), Räume, Zonen und Lampen, die Farbe im Farbraum jeder Lampe, höchstens eine Änderung pro Sekunde und Lampe und zehn pro Sekunde insgesamt, Master und Blackout, den vorherigen Zustand nach jeder Art von Ende, dass eine langsame oder verschwundene Bridge nichts bremst, und dass Gäste nichts davon ändern. `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
@@ -2266,8 +2602,15 @@ erreicht, wohin ein Export geht und dass ein gelöschtes Profil nicht mehr in Ge
 Seite findet die Bühne, die sie geöffnet hat, und merkt, wenn sie neu geladen wird; wer den Schlag gibt, wenn die Uhr
 des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keinen eigenen Socket und keine
 eigene Kamera öffnet. `tests/js/movement.test.mjs` spielt auch die Kupplung (aus und ein in einer Drittelsekunde, ohne
-Sprung) und den Tanz auf der Grundlage. `tests/test_dance.py` prüft die Bewegungs-Sets (eingebaut, eigene, in der
-Datei, wer sie ändern darf).
+Sprung) und den Tanz auf der Grundlage. `tests/test_dance.py` prüft die Tabellen (in der Datei, wer sie ändern darf –
+die des Tanzes nie zeilenweise) und wie ein Set gewählt wird (MIDI, Szene).
+Die Sätze von Dream Dance (#265): `node --test tests/js/dancemap.test.mjs` prüft die Regeln der Engine (ein Effekt je
+Gruppe, höchstens drei Gruppen gleichzeitig – die schwächste tritt für einen Akzent zurück und kehrt weich zurück – und
+jeder Satz sichtbar; nur für die Tabelle des Tanzes), `tests/js/danceslots.test.mjs`, was an welche Stelle passt, die
+leuchtenden Sätze und die Einführung, `tests/js/movecard.test.mjs` die Ampel; `tests/test_slots.py`, wie aus Sätzen
+Zeilen werden, dass sich ein eingebautes Set nicht ändern lässt (auch nicht über `/ctl`), Umbenennen, Löschen und
+Rückgängig, und die einmalige Übernahme der Tabellen und Sets früherer Versionen (eine typische Datei, eine leere, eine
+kaputte und eine übervolle, Namen, die mit den eingebauten Sets zusammenstoßen).
 `node --test tests/js/movecard.test.mjs` (#250) prüft die Karte Bewegung (`static/movecard.js`): dieselben Modi in
 beiden Seiten, die Energie als Wort, die Chips der Quellen, die Zeile, die sagt, was Dream erkennt, und dass ihre
 Stile nur transform und opacity bewegen; `tests/test_movecard.py`, dass die eine Karte alles enthält, was die drei
@@ -2329,7 +2672,7 @@ darf), die Einstellungen (`settings.py`: eine Tabelle mit jeder Einstellung, ihr
 darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlists (`scenes.py`), MIDI und Sensoren
 (`inputs.py`), die Tanz-Zuordnungstabelle (`dance.py`; die Erkennung selbst ist `static/dance.js`, die Zuordnung
 `static/dancemap.js`, die Karte `static/dancepanel.js`), das Tanz-Labor (`dancelab.py` hält die Sessions;
-`static/dancerec.js` ist ihr Format, Aufnahme und Wiedergabe, `static/dancelab.js` das Labor), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), die Cloud-GPU
+`static/dancerec.js` ist ihr Format, Aufnahme und Wiedergabe, `static/dancelab.js` das Labor), die Ausgaben (`output.py`), Dreamy Eyes (`eyes.py`), Traum-Fenster (`windows.py`), das Raumlicht (`roomlight.py` die Farbe des Traums, `wled.py` die LED-Kette, `hue.py` und `static/huecard.js` die Hue-Lampen, `mdns.py` das Finden von Geräten, `static/roomlight.js` der Teil der Bühne), die Cloud-GPU
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
