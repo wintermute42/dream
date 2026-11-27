@@ -31,6 +31,7 @@ import dancemoves
 import hub
 import i18n
 import paths
+import settings
 from web import app
 
 DIR = os.path.join(dancelab.DIR, "profiles")
@@ -42,7 +43,7 @@ MAX_BYTES = 64 * 1024
 PROPS = ("poi", "staff", "hoop", "fans", "hands", "other")
 KINDS = ("hand", "marker", "on")                    # the kinds of detection a person can be learned with (settings: flow_kind)
 ID = re.compile(r"p[0-9a-f]{8}")
-NAME = re.compile(r"[^\W_][\w .+'–\-]{0,31}")       # a move's name, and a dash and an apostrophe: "Anna – Poi"
+NAME = settings.SET_NAME                            # a person's name: the same short plain names as a movement set's
 
 
 def _num(v, lo: float, hi: float) -> float:
@@ -187,8 +188,9 @@ def export(pid: str) -> str | None:
 
 
 def _tell() -> None:
-    """This Mac and Dream Control hear which profiles there are now (a guest has no use for them)."""
-    dancelab._tell({"profiles": listing()})
+    """This Mac and Dream Control hear which profiles there are now – they carry people's names: a guest's phone and
+    every output never learn them (dancelab._tell). "performers": the dance's own "profiles" are not these."""
+    dancelab._tell({"performers": listing()})
 
 
 def _take(body: bytes) -> dict | None:
@@ -222,7 +224,7 @@ async def profiles_change(pid: str, request: Request):
     body = await dancelab._body(request, MAX_BYTES)
     p = change(pid, dancelab._json(body)) if body is not None else None
     if p is None:
-        return JSONResponse({"error": i18n.t("A name: letters, digits, spaces and . + - ' , at most 32 characters.")}, status_code=422)
+        return JSONResponse({"error": i18n.t("A name: letters, digits, spaces and . + - –, at most 32 characters.")}, status_code=422)
     _tell()
     return p
 

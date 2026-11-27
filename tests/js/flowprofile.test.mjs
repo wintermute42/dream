@@ -182,5 +182,7 @@ test('what is no profile is refused (fail closed)', () => {
   assert.equal(P.compile(profile, ''), null);
   assert.equal(P.profile('  Ben   –  Stab ', 'sword', { stats: profile.stats, figures: [] }).name, 'Ben – Stab');
   assert.equal(P.profile('x', 'sword', { stats: profile.stats, figures: [] }).prop, 'other');
-  for (const name of ['Anna – Poi', 'Ben - Stab', 'Zoë O\'Neil 2']) assert.ok(P.NAME.test(name), name);
+  for (const name of ['Anna – Poi', 'Ben - Stab', 'Zoë 2', 'C.+D']) assert.ok(P.NAME.test(name), name);
+  // a person's name follows the rule of a movement set's name (settings.SET_NAME): the same names everywhere
+  for (const name of ['', ' Anna', '_x', 'O\'Neil', '<b>', 'a/b', 'x'.repeat(33)]) assert.ok(!P.NAME.test(name), name);
 });

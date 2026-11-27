@@ -139,7 +139,7 @@
       nm.onchange = () => {
         const v = nm.value.trim().replace(/\s+/g, ' ');
         if (v === p.name) { nm.value = p.name; return; }
-        if (!P.NAME.test(v)) { nm.value = p.name; say(T('A name: letters, digits, spaces and . + - \' , at most 32 characters.')); return; }
+        if (!P.NAME.test(v)) { nm.value = p.name; say(T('A name: letters, digits, spaces and . + - –, at most 32 characters.')); return; }
         api.change(p.id, { name: v }).then(r => { if (r.ok) { opts.changed(); say(T('“{a}” is now called “{b}”.', { a: p.name, b: r.name })); } else { nm.value = p.name; say(r.error || ''); } }).catch(failed);
       };
       prop.onchange = () => api.change(p.id, { prop: prop.value }).then(r => { if (r.ok) { opts.changed(); say(T('“{n}” plays with: {p}.', { n: p.name, p: P.propName(r.prop) })); } else { prop.value = p.prop; say(r.error || ''); } }).catch(failed);
@@ -199,7 +199,7 @@
       if (busy) return;
       if (take) { stop(); return; }
       const called = name.value.trim().replace(/\s+/g, ' ');
-      if (!P.NAME.test(called)) { say(T('Give the profile a name first, e.g. “Anna – Poi” (letters, digits, spaces and . + - \' , at most 32 characters).')); name.focus(); return; }
+      if (!P.NAME.test(called)) { say(T('Give the profile a name first, e.g. “Anna – Poi” (letters, digits, spaces and . + - –, at most 32 characters).')); name.focus(); return; }
       if (from.value) {
         busy = true; button(); say(T('Reading the session …'));
         api.session(from.value).then(s => { busy = false; if (s) learnFrom(s, called); else { button(); say(WHY.nosession()); } }).catch(() => { busy = false; button(); failed(); });

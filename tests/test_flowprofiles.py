@@ -41,6 +41,8 @@ def test_profiles_live_in_the_state_folder_beside_the_sessions_never_in_the_repo
         js = f.read()
     assert "MAX_FIGURES = 3, BINS = 24" in js and f"FORMAT = '{p.FORMAT}', VERSION = {p.VERSION}" in js     # the two sides agree
     assert all(f"{prop}:" in js for prop in p.PROPS)
+    # a person's name: the rule of a movement set's name, on both sides
+    assert p.NAME is server.settings.SET_NAME and r"const NAME = /^[\p{L}\p{N}][\p{L}\p{N}_ .+\-–]{0,31}$/u;" in js
     # no profile, session or export of a person is part of the repository
     tracked = subprocess.run(["git", "ls-files"], cwd=here, capture_output=True, text=True).stdout.split("\n")
     assert not [n for n in tracked if "flow-profile-" in n or n.startswith("profiles/")]
@@ -188,14 +190,30 @@ def test_control_and_this_mac_hear_which_profiles_there_are_a_guest_and_the_eyes
     c = client(server, "local")
     pid = c.post("/flow/profiles", content=json.dumps(profile())).json()["id"]
     assert sorted(d for d, _ in told) == ["mac", "phone"]
-    assert [p["id"] for p in told[0][1]["dance"]["profiles"]] == [pid]
+    assert [p["id"] for p in told[0][1]["dance"]["performers"]] == [pid]
     told.clear()
     assert c.post(f"/flow/profiles/{pid}", content=json.dumps({"name": "New"})).status_code == 200
-    assert [m["dance"]["profiles"][0]["name"] for _, m in told] == ["New", "New"]
+    assert [m["dance"]["performers"][0]["name"] for _, m in told] == ["New", "New"]
     told.clear()
     assert c.delete(f"/flow/profiles/{pid}").status_code == 200
-    assert [(d, m["dance"]["profiles"]) for d, m in told if "dance" in m] == [("mac", []), ("phone", [])]
+    assert [(d, m["dance"]["performers"]) for d, m in told if "dance" in m] == [("mac", []), ("phone", [])]
     assert not any(d in ("visitor", "eyes") and "New" in json.dumps(m) for d, m in told)
+
+
+def test_the_choice_travels_as_an_id_a_persons_name_never_reaches_a_guest_or_an_output(server, store, monkeypatch, saved_state):
+    """The setting is what every control line hears (a guest's phone too): it holds the profile's id, never the name –
+    the name only reaches this Mac and Dream Control (the routes above and `_tell`)."""
+    devices = {"mac": "local", "phone": "control", "visitor": "guest", "eyes": "eyes"}
+    monkeypatch.setattr(server.hub, "clients", {d: "remote" for d in devices})
+    monkeypatch.setattr(server.hub, "roles", dict(devices))
+    told = []
+    monkeypatch.setattr(server.hub.outbox, "post", lambda sock, data: told.append((sock, data)) or True)
+    pid = store.save(store.clean(profile()))["id"]
+    asyncio.run(server.hub.apply({"flow_profile": pid}))
+    heard = {d: " ".join(m for s, m in told if s == d) for d in devices}
+    assert pid in heard["visitor"] and "Anna" not in heard["visitor"]
+    assert not any("Anna" in m for _, m in told), "the change of the setting carries no name for anyone"
+    assert "Anna" not in json.dumps(server.hub.state)
 
 
 def test_the_module_loads_nothing_heavy():
@@ -205,25 +223,31 @@ def test_the_module_loads_nothing_heavy():
     assert out.stdout.strip() == "False", out.stderr
 
 
-def test_the_rows_of_a_profile_are_part_of_flowtracks_table_and_join_a_table_kept_before_them_once(server, monkeypatch, tmp_path):
+@pytest.mark.parametrize("version", [2, 3])
+def test_the_rows_of_a_profile_are_part_of_flowtracks_table_and_join_a_table_kept_before_them_once(server, monkeypatch, tmp_path, version):
     dance = server.dance
     monkeypatch.setattr(dance, "MAP_FILE", str(tmp_path / "config" / "dance.json"))
     monkeypatch.setattr(dance, "tables", dance.default_tables())
-    monkeypatch.setattr(dance, "sets", {})
+    monkeypatch.setattr(dance, "slot_sets", {})
+    monkeypatch.setattr(dance, "slot_use", "standard")
+    built = dance.default_tables()
     rows = {r["id"]: r for r in dance.PROFILE_ROWS}
     assert (rows["figure"]["src"], rows["figure"]["on"], rows["round"]["src"], rows["round"]["on"]) == ("figure", True, "round", False)
-    assert dance.DEFAULT_TABLES["flowtrack"][-2:] == dance.PROFILE_ROWS and dance.clean_rows(dance.PROFILE_ROWS) == dance.PROFILE_ROWS
-    assert not any(r["src"] in ("figure", "round") for m in ("mood", "dance") for r in dance.DEFAULT_TABLES[m])
-    # a table kept before the profiles: the owner's rows stay, the two new ones join
-    old = [r for r in dance.default_tables()["flowtrack"] if r["id"] not in rows][:3]
+    assert built["flowtrack"][-2:] == dance.PROFILE_ROWS and dance.clean_rows(dance.PROFILE_ROWS) == dance.PROFILE_ROWS
+    assert not any(r["src"] in ("figure", "round") for m in ("mood", "dance") for r in built[m])
+    # a table kept before the profiles (#249's file, or #265's with the sets of sentences): the owner's rows stay, the
+    # two new ones join – and the sets of sentences of a file of #265 stay as they are (they are migrated only once)
+    old = [r for r in built["flowtrack"] if r["id"] not in rows][:3]
+    own = {"Night": {"from": "waves", "slots": dance.builtin_slots()["waves"]}}
     os.makedirs(os.path.dirname(dance.MAP_FILE))
     with open(dance.MAP_FILE, "w") as f:
-        json.dump({"version": 2, "tables": {"flowtrack": old}}, f)
+        json.dump({"version": version, "tables": {"flowtrack": old}, **({"slots": {"use": "Night", "sets": own}} if version == 3 else {})}, f)
     got = dance.load_tables()["flowtrack"]
     assert got[:3] == old and got[3:] == dance.PROFILE_ROWS
+    assert dance.load_slots() == ((own, "Night") if version == 3 else ({}, "standard"))
     # … once: kept as the new version, a row the owner deleted then stays deleted
     monkeypatch.setattr(dance, "tables", dance.load_tables())
     dance.set_rows([r for r in got if r["id"] != "round"], "flowtrack")
     with open(dance.MAP_FILE) as f:
-        assert json.load(f)["version"] == dance.VERSION == 3
+        assert json.load(f)["version"] == dance.VERSION == 4
     assert [r["id"] for r in dance.load_tables()["flowtrack"]] == [r["id"] for r in old] + ["figure"]

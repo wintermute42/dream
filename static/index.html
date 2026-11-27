@@ -4095,7 +4095,7 @@
       if (m.dance && m.dance.tables && !dancePanel.busy && !danceMapTimer) { moveTables = m.dance.tables; dancePanel.map(tableRows()); }
       if (m.dance && m.dance.slots && Array.isArray(m.dance.slots.sets)) { danceSlots = m.dance.slots; setsSync(); toleranceSync(); }   // #251, #265
       if (m.dance && Array.isArray(m.dance.moves)) movesSet(m.dance.moves);   // #236
-      if (m.dance && Array.isArray(m.dance.profiles)) profilesSet(m.dance.profiles);   // #253
+      if (m.dance && Array.isArray(m.dance.performers)) profilesSet(m.dance.performers);   // #253
       if (m.move && Array.isArray(m.move.sources)) moveRemote = m.move.sources;   // #249: the sources outside the stage
       if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad
       if (m.scene) {

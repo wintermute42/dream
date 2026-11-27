@@ -1675,8 +1675,8 @@ measures everyone on the same fixed scales – the fast one has the effects at f
 one hardly reaches them. A **profile** is what Dream learned of **one** person's way of moving; with it chosen,
 Flowtrack answers that person: their calm is calm, their wild is wild.
 
-**Learn one** (page of Flowtrack, card **Performers**): give it a name – for example “Anna – Poi” –, choose what to
-learn from and press **Learn**.
+**Learn one** (page of Flowtrack, card **Performers**): give it a name – for example “Anna – Poi”; letters, digits,
+spaces and . + - –, at most 32 characters, as for a movement set –, choose what to learn from and press **Learn**.
 - **live** – Dream takes what the camera sees from now on. Let the performer play as in a show, calm and wild, for a
   minute or two (at least 15 seconds of movement; it stops by itself after three minutes), then press the button
   again. The take stays in the page's memory and is gone after learning – it is not kept as a session.
@@ -1691,7 +1691,7 @@ What is learned, and shown in the list as a line of words with the energy curve 
 | **turning** – how fast, which way, how much of the time | “Turning” is full at their fastest turn |
 | **tempo** – the tempo range of their repetition | “Tempo” covers their range; the smoothing of the effects follows it (a quick person gets a quicker answer, between 0.6 and 1.25 times the table's smoothing) |
 | **planes** – circles seen face-on (wall plane), upright or lying lines (a plane seen edge-on) | shown in the list; live, the new source **Roundness of the path** says how round the prop's path is right now |
-| **figures** – up to three repeated figures the person comes back to (found and recognised with the code of the [moves of your own](#moves-of-your-own)) | the new source **A figure of the performer**: as large as the figure is made, while it is made |
+| **figures** – up to three repeated figures the person comes back to (found and recognised with the code of the [moves of your own](#moves-of-your-own--teaching-a-movement)) | the new source **A figure of the performer**: as large as the figure is made, while it is made |
 | **the view** – how far they reach in the camera picture, how long they drop out of sight, the kind of detection they were learned with | the automatic (below) |
 | **the prop** – poi, staff, hoop, fans, hands or something else: Dream proposes one, you say what it is | a staff's turning is read from the line between its two ends; with poi and a hoop (often behind the body) the automatic waits half as long again |
 
@@ -1716,7 +1716,9 @@ without one.
 **Privacy.** A profile is personal data: the name you typed and numbers measured from one person's movement – no
 camera picture, no skeleton, no recording (the figures are 24 points each of the hands' way through one repetition).
 It is kept in `~/.local/state/dream/dance/profiles/` on this Mac; only this Mac and Dream Control can list or change
-profiles, a guest, Dreamy Eyes and a dream window never see them, and nothing is sent anywhere. **⬇** writes a copy to
+profiles, a guest, Dreamy Eyes and a dream window never see them, and nothing is sent anywhere. The name reaches only
+this Mac and Dream Control: the choice (the setting `flow_profile`), which every phone with Dream Remote hears, is the
+profile's number, never its name. **⬇** writes a copy to
 `~/.local/state/dream/dance/exports/flow-profile-<id>.json` and nowhere else – to carry a profile to another Mac,
 take that file in there with **Take in a profile file …**. **Real profiles never go into Dream's code folder or a
 public repository** (this one holds invented test performers only); keep an export in a private place.
@@ -2425,7 +2427,8 @@ movement is not taken for it; a profile holds numbers and the chosen name only; 
 `tests/js/flowprofiles.test.mjs` tests what the page says of a profile and that its part reaches nothing but the
 profiles and the lab's sessions; `tests/js/flowauto.test.mjs` also that an automatic tuned to a performer waits for
 them and keeps their kind of detection; `tests/test_flowprofiles.py` what Dream keeps of a profile, who may reach it,
-where an export goes and that a deleted profile is no longer in use.
+where an export goes, that a deleted profile is no longer in use and that a guest hears the choice only as a number,
+never the person's name.
 `node --test tests/js/movepage.test.mjs` (#251) tests what the pages of the modes share (`static/movepage.js`): the
 page finds the stage that opened it and notices when it is reloaded, who gives the beat when the dancer's clock and
 the music's are compared, and that the page of Dream Dance opens no socket and no camera of its own;

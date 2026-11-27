@@ -46,7 +46,7 @@
   const MIN_SECONDS = 15;                              // seconds of movement a profile is learned from, at least
   const MAX_FIGURES = 3, BINS = 24, WINDOW = 6;        // figures kept; points of the energy curve; seconds looked at for a figure
   const MOVING = 0.4;                                  // shoulder widths a second: below, the person stands
-  const NAME = /^[\p{L}\p{N}][\p{L}\p{N}_ .+'–-]{0,31}$/u;
+  const NAME = /^[\p{L}\p{N}][\p{L}\p{N}_ .+\-–]{0,31}$/u;   // a person's name: flowprofiles.py NAME (settings.SET_NAME, as a movement set's)
 
   const pct = (a, q) => { if (!a.length) return 0; const s = a.slice().sort((x, y) => x - y), i = clamp(q, 0, 1) * (s.length - 1), lo = Math.floor(i); return s[lo] + (s[Math.min(s.length - 1, lo + 1)] - s[lo]) * (i - lo); };
   const share = (a, test) => (a.length ? a.filter(test).length / a.length : 0);

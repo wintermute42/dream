@@ -98,10 +98,13 @@ command line for now, #231) via `dream-cloud`.
   and matched with `static/dancemoves.js`, never a second recogniser) and lays the person's ranges over the stream's
   record before the mode's table reads it (`fit`; it adds the sources "figure" and "round"); `rows` tunes the table's
   smoothing, `auto` tunes the automatic (`DreamFlowAuto.create().tune`). It acts only in the mode Flowtrack, chosen
-  with the setting `flow_profile` (panel and page); what a movement does stays a row of the table. `flowprofiles.py`
-  keeps the profiles in the state folder (Control-only routes, numbers and the chosen name – fail closed),
-  `static/flowprofiles.js` is the page's part. Profiles are personal data: never in this repository (tests use
-  invented performers only), an export goes to the state folder's `exports/` and nowhere else.
+  with the setting `flow_profile` (panel and page); what a movement does stays a row of flowtrack's table (#265 made
+  only the dance's table sentences). `flowprofiles.py` keeps the profiles in the state folder (Control-only routes,
+  numbers and the chosen name – fail closed), `static/flowprofiles.js` is the page's part. A profile's name is a
+  person's name: the setting holds the profile's id, and the names travel only to this Mac and Dream Control (the
+  routes, and the message `{"dance": {"performers"}}` – never in the shared state). Profiles are personal data: never
+  in this repository (tests use invented performers only), an export goes to the state folder's `exports/` and nowhere
+  else.
 - A setting is one entry in `settings.SETTINGS` (#189: default, range or choices, whether a guest may change it,
   whether a MIDI controller or sensor can move it; #216: its `weight` – how strongly it shapes the picture – and the
   setting it `needs` to act); the defaults, ranges, guests' keys, `midi.TARGETS`, what "Reset" brings home

@@ -1776,8 +1776,9 @@ dauernd auf voller Stärke, der Sanfte erreicht sie kaum. Ein **Profil** ist, wa
 sich zu bewegen, gelernt hat; ist es gewählt, reagiert Flowtrack auf diese Person: Ihr Ruhig ist ruhig, ihr Wild ist
 wild.
 
-**Eines lernen** (Seite von Flowtrack, Karte **Personen**): Gib ihm einen Namen – zum Beispiel „Anna – Poi“ –, wähle,
-woraus gelernt wird, und drücke **Lernen**.
+**Eines lernen** (Seite von Flowtrack, Karte **Personen**): Gib ihm einen Namen – zum Beispiel „Anna – Poi“;
+Buchstaben, Ziffern, Leerzeichen und . + - –, höchstens 32 Zeichen, wie bei einem Bewegungs-Set –, wähle, woraus
+gelernt wird, und drücke **Lernen**.
 - **live** – Dream nimmt auf, was die Kamera ab jetzt sieht. Lass die Person spielen wie im Auftritt, ruhig und wild,
   ein bis zwei Minuten (mindestens 15 Sekunden Bewegung; nach drei Minuten stoppt es von selbst), dann drücke den
   Knopf noch einmal. Die Aufnahme bleibt im Speicher der Seite und ist nach dem Lernen weg – sie wird nicht als
@@ -1793,7 +1794,7 @@ Was gelernt wird und in der Liste als Zeile aus Worten steht, daneben die Energi
 | **Drehung** – wie schnell, in welche Richtung, wie viel der Zeit | „Drehung“ ist voll bei ihrer schnellsten Drehung |
 | **Tempo** – der Tempobereich ihrer Wiederholung | „Tempo“ deckt ihren Bereich ab; die Glättung der Effekte folgt ihm (eine schnelle Person bekommt eine schnellere Antwort, zwischen dem 0,6- und dem 1,25-Fachen der Glättung der Tabelle) |
 | **Ebenen** – Kreise von vorn gesehen (Wandebene), aufrechte oder liegende Linien (eine Ebene von der Kante gesehen) | steht in der Liste; live sagt die neue Quelle **Rundheit der Bahn**, wie rund die Bahn des Props gerade ist |
-| **Figuren** – bis zu drei wiederholte Figuren, zu denen die Person zurückkommt (gefunden und erkannt mit dem Code der [eigenen Bewegungen](#eigene-bewegungen)) | die neue Quelle **Eine Figur der Person**: so groß, wie die Figur gemacht wird, solange sie gemacht wird |
+| **Figuren** – bis zu drei wiederholte Figuren, zu denen die Person zurückkommt (gefunden und erkannt mit dem Code der [eigenen Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)) | die neue Quelle **Eine Figur der Person**: so groß, wie die Figur gemacht wird, solange sie gemacht wird |
 | **der Blick** – wie weit sie im Kamerabild reicht, wie lange sie aus dem Blick gerät, mit welcher Art der Erkennung sie gelernt wurde | die Automatik (unten) |
 | **das Prop** – Poi, Stab, Hoop, Fächer, Hände oder etwas anderes: Dream schlägt eines vor, du sagst, was es ist | die Drehung eines Stabs wird aus der Linie zwischen seinen zwei Enden gelesen; bei Poi und Hoop (oft hinter dem Körper) wartet die Automatik anderthalbmal so lang |
 
@@ -1821,7 +1822,8 @@ läuft Flowtrack ohne Profil weiter.
 Bewegung einer Person – kein Kamerabild, kein Skelett, keine Aufnahme (die Figuren sind je 24 Punkte des Wegs der
 Hände durch eine Wiederholung). Es liegt in `~/.local/state/dream/dance/profiles/` auf diesem Mac; nur dieser Mac und
 Dream Control können Profile auflisten oder ändern, ein Gast, Dreamy Eyes und ein Traumfenster sehen sie nie, und
-nichts wird irgendwohin gesendet. **⬇** schreibt eine Kopie nach
+nichts wird irgendwohin gesendet. Der Name erreicht nur diesen Mac und Dream Control: Die Wahl (die Einstellung
+`flow_profile`), die jedes Handy mit Dream Remote hört, ist die Nummer des Profils, nie sein Name. **⬇** schreibt eine Kopie nach
 `~/.local/state/dream/dance/exports/flow-profile-<id>.json` und nirgendwohin sonst – um ein Profil auf einen anderen
 Mac mitzunehmen, lies diese Datei dort mit **Profil-Datei einlesen …** ein. **Echte Profile kommen nie in Dreams
 Code-Ordner oder ein öffentliches Repository** (dieses enthält nur erfundene Test-Personen); bewahre einen Export an
@@ -2597,7 +2599,8 @@ Profil enthält nur Zahlen und den gewählten Namen; was kein Profil ist, wird a
 `tests/js/flowprofiles.test.mjs` prüft, was die Seite über ein Profil sagt und dass ihr Teil nur die Profile und die
 Sessions des Labors erreicht; `tests/js/flowauto.test.mjs` auch, dass eine auf eine Person abgestimmte Automatik auf
 sie wartet und ihre Art der Erkennung hält; `tests/test_flowprofiles.py`, was Dream von einem Profil speichert, wer es
-erreicht, wohin ein Export geht und dass ein gelöschtes Profil nicht mehr in Gebrauch ist.
+erreicht, wohin ein Export geht, dass ein gelöschtes Profil nicht mehr in Gebrauch ist und dass ein Gast die Wahl nur
+als Nummer hört, nie den Namen der Person.
 `node --test tests/js/movepage.test.mjs` (#251) prüft, was die Seiten der Modi teilen (`static/movepage.js`): Die
 Seite findet die Bühne, die sie geöffnet hat, und merkt, wenn sie neu geladen wird; wer den Schlag gibt, wenn die Uhr
 des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keinen eigenen Socket und keine
