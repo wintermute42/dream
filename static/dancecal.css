@@ -33,3 +33,44 @@
 .mt-say.dc-lost { color: var(--warn); }
 .dc-why:empty { display: none; }
 @media (max-width: 560px) { .dc-row { grid-template-columns: 30px minmax(0, 1fr) 5.5em; } .dc-track { grid-column: 2 / 4; grid-row: 2; } .dc-note { grid-column: 2 / 4; } }
+/* the demo figure (#266): a small skeleton beside the big words that shows each step – in the pictograms' line. Only
+   transform moves; with reduced motion it stands in the step's pose and arrows say the movement. */
+.dc-show { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 14px; align-items: center; }
+.dc-words { display: grid; gap: 10px; min-width: 0; }
+.dc-fig { width: 84px; height: 105px; color: #f070dc; }
+.dc-fig[hidden] { display: none; }
+.dc-fig svg { width: 100%; height: 100%; overflow: visible; }
+.dc-fig path, .dc-fig circle { fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.dc-fig .dcf-ground { fill: currentColor; opacity: .22; }
+.dc-fig .dcf-sign { stroke-width: 2.2; opacity: 0; }
+.dc-fig .dcf-up, .dc-fig .dcf-fore, .dc-fig .dcf-body, .dc-fig .dcf-ground { transform-box: view-box; transform-origin: 0 0; will-change: transform; }
+.dc-fig .dcf-up { transform: rotate(14deg); }
+/* 1 calm: breathing */
+.dc-fig[data-k="calm"] .dcf-body { animation: dcf-breathe 3.2s ease-in-out infinite; }
+/* 2 wild: jumping, the arms swinging one after the other */
+.dc-fig[data-k="wild"] .dcf-body { animation: dcf-jump .46s ease-in-out infinite alternate; }
+.dc-fig[data-k="wild"] .dcf-ground { animation: dcf-land .46s ease-in-out infinite alternate; }
+.dc-fig[data-k="wild"] .dcf-up { transform: rotate(150deg); animation: dcf-swing .46s ease-in-out infinite alternate; }
+.dc-fig[data-k="wild"] .dcf-r .dcf-up { animation-delay: -.46s; }
+.dc-fig[data-k="wild"] .dcf-fore { transform: rotate(-25deg); }
+/* 3 closed, 4 open, 5 up: from hanging into the pose, held, and back */
+.dc-fig[data-k="closed"] .dcf-up { transform: rotate(18deg); }
+.dc-fig[data-k="closed"] .dcf-fore { transform: rotate(-80deg); animation: dcf-closed 2.6s ease-in-out infinite; }
+.dc-fig[data-k="open"] .dcf-up { transform: rotate(95deg); animation: dcf-open 2.6s ease-in-out infinite; }
+.dc-fig[data-k="up"] .dcf-up { transform: rotate(160deg); animation: dcf-high 2.6s ease-in-out infinite; }
+/* 6 hands circle: the upper arms still, the forearms running round */
+.dc-fig[data-k="turn"] .dcf-up { transform: rotate(30deg); }
+.dc-fig[data-k="turn"] .dcf-fore { animation: dcf-spin 1.1s linear infinite; }
+@keyframes dcf-breathe { 50% { transform: translateY(-1.2px); } }
+@keyframes dcf-jump { from { transform: translateY(0); } to { transform: translateY(-7px); } }
+@keyframes dcf-land { from { transform: scale(1); } to { transform: scale(.65); } }
+@keyframes dcf-swing { from { transform: rotate(40deg); } to { transform: rotate(160deg); } }
+@keyframes dcf-closed { 0%, 12%, 100% { transform: rotate(0deg); } 40%, 82% { transform: rotate(-80deg); } }
+@keyframes dcf-open { 0%, 12%, 100% { transform: rotate(14deg); } 40%, 82% { transform: rotate(95deg); } }
+@keyframes dcf-high { 0%, 12%, 100% { transform: rotate(14deg); } 40%, 82% { transform: rotate(160deg); } }
+@keyframes dcf-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .dc-fig * { animation: none !important; }
+  .dc-fig .dcf-sign { opacity: .75; }
+}
+@media (max-width: 560px) { .dc-fig { width: 64px; height: 80px; } }

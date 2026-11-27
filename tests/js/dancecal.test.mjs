@@ -110,3 +110,17 @@ test('in the engine: a gentle dancer reaches the full effect with their measures
   for (const rec of recs) out = eng.step({ mode: 'dance', tables: { dance: two }, rec, cal, dt: 1 / 30 });
   assert.ok(Math.min(out['fx.kaleido'], out['fx.mandala']) <= Map_.RULES.WEAK + 1e-6, JSON.stringify(out));
 });
+
+test('the demo figure: a skeleton for every step, with both arms in two parts; nothing for anything else', () => {
+  for (const s of C.STEPS) {
+    const svg = C.figure(s.k);
+    assert.match(svg, /^<svg [^>]*aria-hidden="true"/, s.k);
+    assert.equal((svg.match(/class="dcf-up"/g) || []).length, 2, s.k);
+    assert.equal((svg.match(/class="dcf-fore"/g) || []).length, 2, s.k);
+    assert.match(svg, /class="dcf-r" transform="translate\(6 -10\) scale\(-1 1\)"/, s.k);   // the right arm: the left mirrored
+  }
+  assert.doesNotMatch(C.figure('calm'), /dcf-sign/);   // standing still needs no sign
+  for (const k of ['wild', 'closed', 'open', 'up', 'turn']) assert.match(C.figure(k), /class="dcf-sign"/, k);
+  assert.equal(C.figure('result'), '');
+  assert.equal(C.figure(''), '');
+});

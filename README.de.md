@@ -2213,7 +2213,8 @@ Die Grundbewegungen (Energie, Öffnung, Hände kreisen, Höhe) erreichen die Sä
 Durchschnitt wählt – das Ruhig der einen ist das Aufwärmen der anderen. **📏 Deine Maße** (unter den eigenen
 Bewegungen) misst dich ein, sodass **dein Ruhig 0 %** und **dein Wild 100 %** für jeden Satz ist. Starten mit
 **📏 Mich einmessen …** (im Abschnitt, neben „🎓 Bewegung lernen …“, oder Taste **M**). Nach drei Sekunden Countdown
-sagt Dream in großen Worten, was zu tun ist; jeder Schritt hat einen Balken, die ersten anderthalb Sekunden sind zum
+sagt Dream in großen Worten, was zu tun ist, und eine kleine Skelettfigur daneben macht es vor (bei reduzierter
+Bewegung im System steht sie still, mit Pfeilen); jeder Schritt hat einen Balken, die ersten anderthalb Sekunden sind zum
 Hinkommen, und solange Dream dich nicht sieht, wartet der Schritt:
 
 1. **Ruhig** (10 s): still stehen, Arme hängen locker – dein Ruhig von Energie, Höhe und dem Kreisen der Hände.
