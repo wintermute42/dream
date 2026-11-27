@@ -23,7 +23,9 @@ test('a StickS3 that is there but not allowed offers "allow" and says its button
 });
 
 test('an allowed StickS3 offers "revoke"; it is ready once it confirmed its key; gone it says the clutch stays', () => {
-  assert.match(W.items([stick({ paired: true })])[0].note, /waiting for the device to confirm/);
+  assert.match(W.items([stick({ paired: true, waiting: true })])[0].note, /waiting for the device to confirm/);
+  const [lost] = W.items([stick({ paired: true, waiting: false })]);            // the key never arrived: said, and how to fix it
+  assert.match(lost.note, /did not get its key – revoke and allow it again/); assert.equal(lost.warn, true);
   const [ready] = W.items([stick({ paired: true, ready: true })]);
   assert.equal(ready.action, 'revoke'); assert.match(ready.note, /engages and releases the clutch/);
   const [gone] = W.items([stick({ paired: true, ready: true, live: false, seen: 300, battery: -1 })]);
@@ -32,7 +34,7 @@ test('an allowed StickS3 offers "revoke"; it is ready once it confirmed its key;
 });
 
 test('a display needs no word of the owner and shows no rate; a low battery is marked', () => {
-  const [m] = W.items([matrix({ battery: 12 })]);
+  const [m] = W.items([matrix({ battery: 12, low: true })]);
   assert.equal(m.action, null); assert.equal(m.note, ''); assert.equal(m.state, 'battery 12 % ⚠'); assert.match(m.role, /display/);
   assert.deepEqual(W.items([matrix()])[0].state, '');
 });

@@ -19,7 +19,7 @@
   const ROLES = new Map([['sticks3', () => T('on the wrist: motion and the clutch')], ['matrix', () => T('display: the clutch and the beat')]]);
   const clean = v => (Number.isFinite(+v) ? +v : 0);
 
-  const battery = b => (Number.isFinite(b) && b >= 0 ? T('battery {p} %', { p: Math.round(b) }) + (b <= 15 ? ' ⚠' : '') : '');
+  const battery = (b, low) => (Number.isFinite(b) && b >= 0 ? T('battery {p} %', { p: Math.round(b) }) + (low ? ' ⚠' : '') : '');   // low: Dream's word
   // how long ago, said plainly
   const ago = s => (s == null ? T('not seen since Dream started') : s < 90 ? T('gone for {n} s', { n: Math.round(s) }) : T('gone for {n} min', { n: Math.round(s / 60) }));
   // the last press on a stick Dream took: {on, ago} → "Last press: engaged, 12 s ago"
@@ -35,7 +35,7 @@
       const stick = d.kind === 'sticks3', parts = [];
       if (d.live) {
         if (stick) parts.push(T('{n} values/s', { n: Math.round(clean(d.rate)) }));
-        const b = battery(d.battery); if (b) parts.push(b);
+        const b = battery(d.battery, d.low); if (b) parts.push(b);
       } else parts.push(ago(d.seen));
       let note = '', action = null, warn = !!(d.live && d.low);
       if (stick) {
@@ -46,7 +46,9 @@
           warn = warn || d.refused > 0;
         } else {
           action = 'revoke';
-          note = !d.live ? T('Gone – the clutch stays as it was.') : d.ready ? T('Its button engages and releases the clutch.') : T('Allowed – waiting for the device to confirm …');
+          note = !d.live ? T('Gone – the clutch stays as it was.') : d.ready ? T('Its button engages and releases the clutch.')
+            : d.waiting ? T('Allowed – waiting for the device to confirm …') : T('The device did not get its key – revoke and allow it again.');
+          warn = warn || (d.live && !d.ready && !d.waiting);
           warn = warn || !d.live;
         }
       }

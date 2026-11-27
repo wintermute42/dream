@@ -153,7 +153,7 @@ void setup() {
   M5.update();
   bool setupNow = M5.BtnB.isPressed();       // B held while switching on: the Wi-Fi setup
   dreamLink.begin("sticks3", setupNow, showSetup, true);
-  if (dreamLink.phase() == dream::Phase::WiFi && setupNow) M5.Power.powerOff();   // the setup timed out: nothing to do
+  if (dreamLink.setupUnfinished()) M5.Power.powerOff();   // the setup timed out: off, the battery keeps
   contactAt = millis();
   seq = esp_random() & 0xffff;               // a press after a restart never looks like one Dream already took
 }

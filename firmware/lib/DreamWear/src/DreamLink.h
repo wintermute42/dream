@@ -42,6 +42,7 @@ class Link {
   void clutchWish(bool want, uint32_t seq);
   void button(bool down);                     // the second button: the dance lab's "good" (twice: "bad")
   bool hasToken() const { return token_[0] != 0; }
+  bool setupUnfinished() const { return setupUnfinished_; }   // the setup hotspot was open and nobody finished it
 
   static const uint32_t FRESH_MS = 2500;
   static const uint32_t SETUP_SECONDS = 300;
@@ -62,7 +63,7 @@ class Link {
   uint16_t port_ = 7020;
   uint32_t got_ = 0, helloAt_ = 0, lookAt_ = 0, wifiAt_ = 0;
   int battery_ = -1;
-  bool clutch_ = false, paired_ = false;
+  bool clutch_ = false, paired_ = false, setupUnfinished_ = false;
   uint32_t ack_ = 0;
   float beat_ = 0;
   uint8_t out_[128];

@@ -2155,6 +2155,7 @@ card). **Its button moves the clutch only once you allow it** – so a stray pac
    values/s · battery 80 %”).
 2. Click **Allow the clutch**. Dream gives the device a key of its own; its screen changes from “allow in Dream” to the
    clutch. From now on the button is a clutch like key K or a MIDI button – also after a restart of either.
+   If the line says the device did not get its key (it was out of reach for half a minute), revoke and allow again.
 3. **Revoke** takes it back (allow it again at any time; a reflashed device needs allowing again).
 
 The ATOM Matrix needs no allowing: it only shows.

@@ -158,7 +158,8 @@ def test_allowing_gives_the_device_a_token_kept_only_in_the_state_folder(wear, s
     assert path.startswith(sandbox["DREAM_STATE_DIR"]) and stat.S_IMODE(os.stat(path).st_mode) == 0o600
     with open(path) as f:
         assert json.load(f) == {"devices": {STICK: {"kind": "sticks3", "token": token}}}
-    assert wear.listing(now=100.0)[0]["ready"] is False      # allowed, not confirmed yet …
+    d = wear.listing(now=100.0)[0]
+    assert (d["ready"], d["waiting"]) == (False, True)       # allowed, not confirmed yet …
     hello(wear, token="")                                   # … a hello without it: the token again
     assert wear.transport.of("pair")[-1] == [token]
     hello(wear, token=token)
@@ -389,3 +390,25 @@ def test_the_panel_hears_a_low_battery_and_the_last_press(wear):
     hello(wear, token=token, battery=60, now=64.0)
     assert wear.listing(now=64.0)[0]["low"] is False
     assert wear.listing(now=64.0 + wearables.GONE + 1)[0]["low"] is False      # gone: no battery is known
+
+
+def test_an_allowed_device_always_finds_room_among_strangers(wear):
+    token = pair(wear, now=1.0)
+    wear.devices.clear()                                       # Dream restarted: the list is empty, the pairing kept
+    for i in range(wearables.MAX_DEVICES):
+        hello(wear, id_=f"{i:012x}", now=2.0 + i)
+    hello(wear, token=token, now=20.0)
+    assert STICK in wear.devices and "000000000000" not in wear.devices and len(wear.devices) == wearables.MAX_DEVICES
+
+
+def test_the_token_never_goes_to_another_address_or_after_the_window(wear):
+    hello(wear, now=100.0)
+    assert wear.allow(STICK, now=100.0)
+    n = len(wear.transport.of("pair"))
+    hello(wear, now=101.0, addr=("192.168.1.66", 9999))      # someone else names the stick's id: no token for them
+    assert len(wear.transport.of("pair")) == n
+    assert all(addr == HOME for addr, a, _ in wear.transport.sent if a.endswith("pair"))
+    hello(wear, now=100.0 + wearables.PAIR_WINDOW + 1)       # the device itself, but long after "allow": not again
+    assert len(wear.transport.of("pair")) == n
+    d = wear.listing(now=100.0 + wearables.PAIR_WINDOW + 1)[0]
+    assert (d["paired"], d["ready"], d["waiting"]) == (True, False, False)

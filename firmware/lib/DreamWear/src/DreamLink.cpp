@@ -66,6 +66,7 @@ void Link::begin(const char* kind, bool setup, void (*showSetup)(const SetupInfo
   if (setup || !wm.getWiFiIsSaved()) {
     phase_ = Phase::Setup;
     ok = wm.startConfigPortal(ap, password ? pass : nullptr);
+    setupUnfinished_ = !ok;
   } else {
     WiFi.begin();
   }

@@ -1812,5 +1812,6 @@
  "Last press: {c}, {t} ago": "Zuletzt gedrückt: {c}, vor {t}",
  "engaged": "eingelegt",
  "released": "gelöst",
- "{n} min": "{n} min"
+ "{n} min": "{n} min",
+ "The device did not get its key – revoke and allow it again.": "Das Gerät hat seinen Schlüssel nicht bekommen – zurücknehmen und neu erlauben."
 }

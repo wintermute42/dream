@@ -2284,6 +2284,8 @@ Die Bewegung eines StickS3 zählt sofort (wie jeder Sensor im Heimnetz, als Quel
 2. **Kupplung erlauben** klicken. Dream gibt dem Gerät einen eigenen Schlüssel; sein Display wechselt von „allow in
    Dream“ zur Kupplung. Ab jetzt ist der Knopf eine Kupplung wie Taste K oder ein MIDI-Knopf – auch nach einem
    Neustart von Dream oder Gerät.
+   Sagt die Zeile, das Gerät habe seinen Schlüssel nicht bekommen (es war eine halbe Minute nicht erreichbar):
+   zurücknehmen und neu erlauben.
 3. **Zurücknehmen** nimmt es zurück (jederzeit wieder erlaubbar; ein neu bespieltes Gerät braucht die Erlaubnis neu).
 
 Der ATOM Matrix braucht keine Erlaubnis: Er zeigt nur an.

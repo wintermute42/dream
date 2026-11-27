@@ -18,8 +18,9 @@ The protocol is OSC over UDP on the sensor port (DREAM_SENSOR_PORT, inputs.py), 
 
 Rights: only senders in the home network are heard (inputs.py, net.home_address). The motion is taken from every such
 sender, like any OSC sensor (it moves nothing by itself: the mode's table and the clutch decide). The clutch is taken
-only from a device the owner allowed in the panel (`allow`): Dream then gives the device a random token, kept in the
-state folder (0600, never in a page, a log or the repository) and compared in constant time – a stray UDP packet in the
+only from a device the owner allowed in the panel (`allow`): Dream then gives the device a random token – sent only to
+the address the device had at that moment, and again only from there for PAIR_WINDOW seconds –, kept in the state
+folder (0600, never in a page, a log or the repository) and compared in constant time – a stray UDP packet in the
 home network, or a device that only knows another's id, never moves the clutch (fail closed). `revoke` takes it back.
 
 A device that sends nothing for GONE seconds is gone: the panel says so, and the clutch stays exactly as it was (the
@@ -46,6 +47,7 @@ PREFIX = "/dream/wear/"
 KINDS = ("sticks3", "matrix")
 LOW_BATTERY = 15                 # % – the panel warns from here on
 NAMES = {"sticks3": "StickS3", "matrix": "ATOM Matrix"}
+PAIR_WINDOW = 30.0               # seconds after "allow" the token is sent again (only to where the device was then)
 GONE = 3.0                       # seconds without a packet: the device is gone (it says hello every second)
 FORGET = 60.0                    # … and an unpaired device leaves the list after this long
 MAX_DEVICES = 8
@@ -111,6 +113,7 @@ class Device:
         self.seq = 0                     # the last clutch seq taken from it
         self.refused = 0                 # presses refused (not allowed, or a wrong token)
         self.last = None                 # its last clutch wish taken: (on, monotonic time)
+        self.pair_to, self.pair_until = None, -1e9   # where and until when its new token is sent again (allow)
         self.dev_t = None                # its clock (ms) in the last motion packet …
         self.offset = None               # … and how far behind the wall clock that is (s): the samples keep its spacing
         self.n, self.rate, self.since = 0, 0.0, now
@@ -153,7 +156,9 @@ class Wearables:
             dev.firmware = (_text(args[4], FIRMWARE) or "") if len(args) > 4 else ""
             token = args[2] if isinstance(args[2], str) else ""
             dev.token_ok = self.allowed(id_, token)
-            if id_ in self.paired and not dev.token_ok:      # allowed, but it has not got (or lost) its token: again
+            # allowed, but the token has not arrived (a lost packet): again – only shortly after "allow" and only to the
+            # address the device had then; a packet that only names its id never makes Dream send the token elsewhere
+            if id_ in self.paired and not dev.token_ok and now < dev.pair_until and dev.addr == dev.pair_to:
                 self.send(dev, "pair", self.paired[id_]["token"])
             self.tell(dev)
         elif what == "imu" and len(args) >= 8 and all(_num(a) for a in args[1:8]):
@@ -193,6 +198,10 @@ class Wearables:
         if dev is not None:
             return dev if dev.kind == kind else None
         self.sweep(now)
+        if len(self.devices) >= MAX_DEVICES and id_ in self.paired:     # an allowed device always finds room: the
+            strangers = [k for k in self.devices if k not in self.paired]  # stranger heard from longest ago makes way
+            if strangers:
+                self.devices.pop(min(strangers, key=lambda k: self.devices[k].at))
         if len(self.devices) >= MAX_DEVICES:
             return None
         dev = self.devices[id_] = Device(id_, kind, now)
@@ -230,6 +239,7 @@ class Wearables:
         self.paired[id_] = {"kind": dev.kind, "token": token}
         save(self.paired)
         dev.token_ok = False
+        dev.pair_to, dev.pair_until = dev.addr, (time.monotonic() if now is None else now) + PAIR_WINDOW
         self.send(dev, "pair", token)
         self.tell(dev)
         return True
@@ -303,6 +313,7 @@ class Wearables:
                         "last": {"on": dev.last[0], "ago": round(now - dev.last[1])}
                         if dev and dev.last else None,
                         "paired": bool(p), "ready": bool(p) and bool(dev) and dev.token_ok,
+                        "waiting": bool(p) and bool(dev) and not dev.token_ok and now < dev.pair_until,
                         "refused": dev.refused if dev else 0, "firmware": dev.firmware if dev else ""})
         return out
 
