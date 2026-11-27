@@ -2141,7 +2141,9 @@ new firmware.” or what went wrong. So you can also simply ask Claude: “flash
 If the stick is not found or the upload fails: hold its **power button** (on the side) for about two seconds until the
 green light inside blinks (download mode), then run the command again. The AtomS3 Lite: hold its button (the whole top
 is the button) while plugging it in. `pio device monitor` shows what a board writes while it runs (stop Dream first for
-the receiver: its port is Dream's while it runs).
+the receiver: its port is Dream's while it runs). For a radio problem flash with `PLATFORMIO_BUILD_FLAGS=-DDREAM_RADIO_LOG`
+in front of the command: the stick then writes every two seconds what it sent and received, the receiver a line
+`# radio …` with what reached it (Dream ignores those lines).
 
 ### Wi-Fi setup (no Wi-Fi password in the code)
 

@@ -2270,7 +2270,9 @@ bitten: „Spiel die Firmware auf den Stick.“
 Wird der Stick nicht gefunden oder scheitert das Aufspielen: seinen **Ein-/Aus-Knopf** (seitlich) etwa zwei Sekunden
 halten, bis das grüne Licht innen blinkt (Download-Modus), dann den Befehl wiederholen. Der AtomS3 Lite: seinen Knopf
 (die ganze Oberseite ist der Knopf) beim Anstecken halten. `pio device monitor` zeigt, was ein Board beim Laufen schreibt
-(beim Empfänger vorher Dream beenden: Solange Dream läuft, gehört sein Port Dream).
+(beim Empfänger vorher Dream beenden: Solange Dream läuft, gehört sein Port Dream). Bei einem Funkproblem mit `PLATFORMIO_BUILD_FLAGS=-DDREAM_RADIO_LOG`
+vor dem Befehl flashen: Der Stick schreibt dann alle zwei Sekunden, was er gesendet und empfangen hat, der Empfänger eine
+Zeile `# radio …` mit dem, was bei ihm ankam (Dream übergeht diese Zeilen).
 
 ### WLAN einrichten (kein WLAN-Passwort im Code)
 

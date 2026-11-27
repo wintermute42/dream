@@ -41,10 +41,16 @@ uint8_t receiverMac[6];
 const uint8_t BROADCAST[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 void onSave() { saveHost = true; }
+#ifdef DREAM_RADIO_LOG
+volatile uint32_t logOk = 0, logFail = 0, logIn = 0;
+#endif
 
 void onReceive(const uint8_t* mac, const uint8_t* data, int len) {   // the Wi-Fi task: only into the inbox
   if (!inbox || len <= 0 || len > static_cast<int>(dream_radio::MAX_FRAME)) return;
   Frame f;
+#ifdef DREAM_RADIO_LOG
+  logIn++;
+#endif
   memcpy(f.mac, mac, 6);
   f.len = static_cast<uint8_t>(len);
   memcpy(f.data, data, len);
@@ -52,6 +58,9 @@ void onReceive(const uint8_t* mac, const uint8_t* data, int len) {   // the Wi-F
 }
 
 void onSent(const uint8_t* mac, esp_now_send_status_t status) {
+#ifdef DREAM_RADIO_LOG
+  if (status == ESP_NOW_SEND_SUCCESS) logOk++; else logFail++;
+#endif
   if (status != ESP_NOW_SEND_SUCCESS || memcmp(mac, receiverMac, 6) != 0) return;
   const uint32_t t = millis();
   deliveredAt = t ? t : 1;
@@ -125,8 +134,8 @@ void Link::radioBegin() {
     r.channel = 0;                           // whatever channel the stick is on (it follows the receiver)
     r.ifidx = WIFI_IF_STA;
     r.encrypt = true;
-    if (esp_now_is_peer_exist(rx_)) esp_now_mod_peer(&r);
-    else esp_now_add_peer(&r);
+    if (esp_now_is_peer_exist(rx_)) esp_now_del_peer(rx_);   // anew, not modified: a changed key takes effect for sure
+    esp_now_add_peer(&r);
   }
 }
 
@@ -145,6 +154,9 @@ bool Link::pairCall() {
   const size_t kl = strlen(kind_) < 8 ? strlen(kind_) : 8;
   memcpy(call + n, kind_, kl);
   n += kl;
+  // the receiver answers unencrypted (it has no key for this stick yet) – while it is an encrypted peer here, ESP-NOW
+  // drops that answer: the stick would keep its old key, the receiver the new one, and nothing would get through
+  if (hasRx_ && esp_now_is_peer_exist(rx_)) esp_now_del_peer(rx_);
   for (uint8_t ch = dream_radio::FIRST_CHANNEL; ch <= dream_radio::LAST_CHANNEL; ch++) {
     setChannel(ch);
     esp_now_send(BROADCAST, call, n);
@@ -170,6 +182,7 @@ bool Link::pairCall() {
       return true;
     }
   }
+  radioBegin();                              // nobody answered: the known receiver again, with its key
   return false;
 }
 
@@ -373,6 +386,15 @@ void Link::wifiLoop(uint32_t now) {
 }
 
 void Link::loop(uint32_t now) {
+#ifdef DREAM_RADIO_LOG
+  static uint32_t logAt = 0;
+  if (now - logAt >= 2000) {
+    logAt = now;
+    Serial.printf("radio via=%d phase=%d ch=%u rxch=%u hasRx=%d sent ok=%lu fail=%lu in=%lu got=%lu rx=%02x%02x%02x%02x%02x%02x\n",
+                  static_cast<int>(via_), static_cast<int>(phase_), channel_, rxChannel_, hasRx_, (unsigned long)logOk, (unsigned long)logFail,
+                  (unsigned long)logIn, (unsigned long)got_, rx_[0], rx_[1], rx_[2], rx_[3], rx_[4], rx_[5]);
+  }
+#endif
   if (via_ == Via::Radio) radioLoop(now);
   else wifiLoop(now);
 }
