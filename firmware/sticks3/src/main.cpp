@@ -159,6 +159,7 @@ void setup() {
   M5.Display.setBrightness(BRIGHT);
   M5.Display.fillScreen(TFT_BLACK);
   M5.Speaker.setVolume(160);
+  M5.Speaker.begin();                        // now, not lazily at the first tone: waking the codec swallowed the pairing tones
   M5.update();
   M5.Display.setTextDatum(middle_center);    // the first seconds: the call for a receiver (#278), then the link
   M5.Display.setFont(&fonts::Font2);
