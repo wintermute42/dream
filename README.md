@@ -769,11 +769,11 @@ While the room light is on and a device is entered, Dream Dance offers a group o
 beside the picture's effects (see [the sentences](#the-sentences--what-your-dance-does)):
 
 - **Flash up** (an accent): the gesture flashes the whole chain in the dream's colour at its fullest, fading softly –
-  once per gesture, never a stroboscope (a new flash only after the gesture has ended, and at most four a second
-  whatever arrives).
+  at the gesture's peak, as strong as the sentence says; while the gesture goes on (throwing again and again) one more
+  about every 0.7 s, never a stroboscope (at most four a second whatever arrives).
 - **Running light** (an accent): the gesture sends a pulse of light along the chain. It runs the way your hands went
   just before – as the camera sees it: towards the chain's last LED when they went to the right of the picture,
-  towards the first when they went left. If it runs the wrong way for your room, mount the chain the other way round.
+  towards the first when they went left. A circle drawn again and again sends one light after the other. If it runs the wrong way for your room, mount the chain the other way round.
 - **Brightness** (a base movement, e.g. “When I move a lot”): calm dims the chain, wild lights it as bright as its base
   colour. Nobody seen: full base colour.
 
@@ -781,7 +781,7 @@ Strength **mild · medium · strong** as with every sentence: how high the flash
 chain. The three lie over the room light's colour (with the beat's pulse); they light the room, not the picture, so
 they count to none of the picture's groups and not to its budget of three. **Light strength**, the **master** and
 **Blackout** act on them too; with the **clutch released** the chain shows only its colour. Hue lamps (below) do not
-take part – they stay a calm mood. With the room light off (or no device entered) the three are greyed out, hovering
+take part – they stay a calm mood. With the room light off (or no device entered) the three are greyed out, and the card
 says why; sentences that use them stay and wait (their effect half is drawn dashed).
 
 ### If something does not work
@@ -1957,8 +1957,8 @@ for an accent, **Brightness** for a base movement – the LED chain dances along
 
 The magenta half of a sentence is your movement, the other half (edged in the colour of its effect group) is what
 happens in the picture. **Click a half to change it:** the movement opens a choice of movements of that lane, each with
-a small figure; the effect opens a choice of effects by group – effects that would not fit are greyed out, hovering
-says why (already in another sentence, the same group as the other base movement, the same group as a base
+a small figure; the effect opens a choice of effects by group – effects that would not fit are greyed out, and the
+card says why (already in “When I …” – which sentence has it, the same group as the other base movement, the same group as a base
 movement). Esc closes without a change. **✕** removes a sentence (with “Undo”), **＋ Sentence** adds one while the lane
 has room. Every sentence starts with a small figure of its movement.
 

@@ -122,6 +122,10 @@
 .ds-opt:active:not([aria-disabled]) { transform: scale(.97); }
 .ds-opt.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .ds-opt[aria-disabled=true] { opacity: .32; cursor: not-allowed; border-style: dashed; }
+/* an effect that does not fit: greyed, but the reason on the card stays readable (#270) */
+.ds-fx[aria-disabled=true] { opacity: 1; }
+.ds-fx[aria-disabled=true] .ds-icon, .ds-fx[aria-disabled=true] .ds-optname { opacity: .4; }
+.ds-optwhy { font-size: .8em; color: var(--text); opacity: .8; }
 .ds-optname { font-weight: 600; }
 .ds-optsub { font-size: .8em; color: var(--muted); }
 .ds-optnew { grid-template-columns: minmax(0, 1fr); border-style: dashed; }

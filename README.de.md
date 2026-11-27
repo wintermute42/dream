@@ -793,11 +793,12 @@ Solange das Raumlicht an ist und ein Gerät eingetragen ist, bietet Dream Dance 
 eigene Gruppe an, **Raumlicht** (siehe [die Sätze](#die-sätze--was-dein-tanz-bewirkt)):
 
 - **Aufleuchten** (ein Akzent): die Geste lässt die ganze Kette in der Traumfarbe voll aufblitzen, sie klingt weich ab –
-  einmal pro Geste, nie ein Stroboskop (ein neues Aufleuchten erst, wenn die Geste vorbei ist, und höchstens vier pro
-  Sekunde, egal was ankommt).
+  auf dem Höhepunkt der Geste, so stark, wie der Satz sagt; solange die Geste weitergeht (immer wieder hochwerfen),
+  etwa alle 0,7 s ein weiteres, nie ein Stroboskop (höchstens vier pro Sekunde, egal was ankommt).
 - **Lauflicht** (ein Akzent): die Geste schickt einen Lichtpuls die Kette entlang. Er läuft in die Richtung, in die
   deine Hände kurz vorher gingen – so, wie die Kamera es sieht: zur letzten LED der Kette, wenn sie im Bild nach rechts
-  gingen, zur ersten, wenn sie nach links gingen. Läuft er für deinen Raum falsch herum, häng die Kette andersherum
+  gingen, zur ersten, wenn sie nach links gingen. Ein Kreis, immer wieder gezogen, schickt ein Licht nach dem anderen.
+  Läuft er für deinen Raum falsch herum, häng die Kette andersherum
   auf.
 - **Helligkeit** (eine Grundbewegung, z. B. „Wenn ich mich viel bewege“): ruhig dimmt die Kette, wild leuchtet sie so
   hell wie ihre Grundfarbe. Niemand erkannt: volle Grundfarbe.
@@ -807,7 +808,7 @@ dunkel wird. Alle drei liegen über der Farbe des Raumlichts (mit dem Takt-Puls)
 Bild, zählen also zu keiner Gruppe der Bild-Wirkungen und nicht zu deren Budget von drei. **Lichtstärke**, **Master**
 und **Blackout** gelten auch für sie; bei **gelöster Kupplung** zeigt die Kette nur ihre Farbe. Hue-Lampen (unten)
 machen nicht mit – sie bleiben eine ruhige Stimmung. Ist das Raumlicht aus (oder kein Gerät eingetragen), sind die drei
-ausgegraut, beim Darüberfahren steht, warum; Sätze, die sie schon nutzen, bleiben und warten (ihre Wirkungs-Hälfte ist
+ausgegraut, und auf der Karte steht, warum; Sätze, die sie schon nutzen, bleiben und warten (ihre Wirkungs-Hälfte ist
 gestrichelt).
 
 ### Wenn etwas nicht geht
@@ -2075,7 +2076,7 @@ Ist das Raumlicht an, hat die Auswahl der Wirkungen auch die Gruppe **Raumlicht*
 Die magentafarbene Hälfte eines Satzes ist deine Bewegung, die andere (in der Farbe ihrer Effekt-Gruppe umrandet) ist
 das, was im Bild passiert. **Klick auf eine Hälfte ändert sie:** Die Bewegung öffnet eine Auswahl der Bewegungen
 dieser Spur, jede mit einer kleinen Figur; die Wirkung öffnet eine Auswahl der Wirkungen nach Gruppen – was nicht passt,
-ist ausgegraut, beim Darüberfahren steht, warum (steht schon in einem anderen Satz, dieselbe Gruppe wie die andere
+ist ausgegraut, und auf der Karte steht, warum (schon in „Wenn ich …“ – welcher Satz sie hat, dieselbe Gruppe wie die andere
 Grundbewegung, dieselbe Gruppe wie eine Grundbewegung). Esc schließt ohne Änderung. **✕** entfernt einen Satz (mit
 „Rückgängig“), **＋ Satz** fügt einen hinzu, solange die Spur nicht voll ist. Jeder Satz beginnt mit einer kleinen Figur
 seiner Bewegung.

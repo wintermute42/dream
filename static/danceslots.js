@@ -527,7 +527,14 @@
       dlg.showModal();
       (dlgList.querySelector('.ds-opt.on') || dlgList.querySelector('.ds-opt')).focus();
     }
-    // the choice of an effect: by group; what does not fit beside the others is greyed, with the reason
+    // the sentence an effect is in already: “Already in “When I throw my arms up””
+    function takenBy(s, where, i, fx) {
+      for (const w of ['base', 'accents']) for (const [j, o] of (s[w] || []).entries()) {
+        if (o && o.fx === fx && !(w === where && j === i)) return T('Already in “When I {m}”', { m: phrase(w, o, names()).move });
+      }
+      return REASONS.taken();
+    }
+    // the choice of an effect: by group; what does not fit beside the others is greyed, with the reason on the card
     function chooseFx(where, i) {
       const s = cur(), slot = s[where][i];
       focusAfter = [where, i, 'ds-fxp'];
@@ -538,9 +545,11 @@
         for (const fx of list) {
           const why = fits(s, where, i, fx, lit), b = el('button', 'ds-opt ds-fx' + (slot.fx === fx ? ' on' : ''));
           b.type = 'button'; const ic = el('span', 'ds-icon', icon(fx)); ic.setAttribute('aria-hidden', 'true');
-          b.append(ic, el('span', 'ds-optname', fxName(fx)), el('span', 'ds-optsub', ((where === 'base' ? FX_GROW : FX_FLASH)[fx])()));
-          if (why) { b.setAttribute('aria-disabled', 'true'); tip(b, fxName(fx) + ' – ' + REASONS[why]()); }
-          b.onclick = () => { if (why) { hint(REASONS[why](), null, b); return; } dlg.close(); change(place(cur(), { where, i, slot: { ...slot, fx } })); };
+          // what does not fit says why on the card itself, not only on hover (an effect taken: in which sentence)
+          const said = why === 'taken' ? takenBy(s, where, i, fx) : why ? REASONS[why]() : '';
+          b.append(ic, el('span', 'ds-optname', fxName(fx)), why ? el('span', 'ds-optwhy', said) : el('span', 'ds-optsub', ((where === 'base' ? FX_GROW : FX_FLASH)[fx])()));
+          if (why) { b.setAttribute('aria-disabled', 'true'); tip(b, fxName(fx) + ' – ' + said); }
+          b.onclick = () => { if (why) { hint(said, null, b); return; } dlg.close(); change(place(cur(), { where, i, slot: { ...slot, fx } })); };
           col.append(b);
         }
         dlgList.append(col);
