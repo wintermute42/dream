@@ -11,14 +11,17 @@
 //   light.dance(out, rec, now);   // #270: every frame, the dance's targets (`led.…`) and the stream's record
 //
 // #270: the dance lights the chain too (wled.py's layers). Its flash and its running pulse are sentences of accents:
-// the moment their target rises (a gesture came) the stage tells Dream once – {"led": {"dflash": 0…1}}, {"led":
-// {"chase": 0…1, "dir": ±1}} with the way the hands went just now – and again only after the target was back at rest
-// (one per gesture: never a stroboscope). The brightness (how far the chain is dimmed, 0…1) travels with the colour.
+// when their target rises (a gesture came) the stage tells Dream – {"led": {"dflash": 0…1}}, {"led": {"chase": 0…1,
+// "dir": ±1}} with the way the hands went just now – at the target's peak (its rise is over, or after PEAK ms: the
+// sentence's strength, not the first moment of the rise), then once more every AGAIN ms while the gesture goes on (a
+// circle drawn again and again runs one light after the other) and anew only after the target was back at rest – never
+// a stroboscope. The brightness (how far the chain is dimmed, 0…1) travels with the colour.
 (function (root) {
   'use strict';
   const SIDE = 16;           // 256 points of the picture: enough for its average, nothing for the graphics card
   const EVERY = 80;          // ms between two looks (12.5 a second; Dream glides between them)
   const RISE = 0.08, REST = 0.03;   // #270: an accent's target above RISE sets one off, below REST the next may come
+  const PEAK = 120, AGAIN = 700;    // #270: ms – the longest wait for an accent's peak; while it goes on, one more every AGAIN
   const SWING = 0.25;        // s: how long the way of the hands is averaged over for the pulse's direction
 
   // the average colour of RGBA pixels, [r, g, b] 0–255 – or null when nothing is drawn there (all transparent: the
@@ -57,7 +60,7 @@
   function create({ pixels, send }) {
     let at = -1e9, on = false, cost = 0, looks = 0, dim = 0, dimSaid = 0, lastDir = 1;
     const round = v => Math.round(Math.min(1, Math.max(0, +v || 0)) * 1000) / 1000;
-    const armed = { 'led.flash': true, 'led.chase': true }, hands = sway();
+    const acc = { 'led.flash': { st: 'rest' }, 'led.chase': { st: 'rest' } }, hands = sway();   // rest → rising → sent
     return {
       get on() { return on; },
       set on(v) { on = !!v; },
@@ -82,12 +85,16 @@
         hands.step(rec && rec.hands, now);
         if (hands.dir) lastDir = hands.dir;
         dim = Math.min(1, Math.max(0, -(+out['led.level'] || 0)));
-        for (const k of Object.keys(armed)) {
+        const fire = (k, v) => send({ led: k === 'led.flash' ? { dflash: round(v) } : { chase: round(v), dir: lastDir } });
+        for (const [k, a] of Object.entries(acc)) {
           const v = Math.max(0, +out[k] || 0);
-          if (armed[k] && v > RISE && on) {
-            armed[k] = false;
-            send({ led: k === 'led.flash' ? { dflash: round(v) } : { chase: round(v), dir: lastDir } });
-          } else if (v < REST) armed[k] = true;
+          if (!on || v < REST) { a.st = 'rest'; continue; }
+          if (a.st === 'rest') { if (v > RISE) Object.assign(a, { st: 'rising', top: v, at: now }); continue; }
+          a.top = Math.max(a.top, v);
+          if (a.st === 'rising' ? v < a.top * 0.97 || now - a.at >= PEAK : now - a.at >= AGAIN && v > RISE) {
+            fire(k, a.top);
+            Object.assign(a, { st: 'sent', top: 0, at: now });
+          }
         }
       },
       beat(v) { if (on && +v > 0) send({ led: { beat: round(v) } }); },
@@ -95,7 +102,7 @@
     };
   }
 
-  const api = { create, mean, sway, SIDE, EVERY, RISE, REST };
+  const api = { create, mean, sway, SIDE, EVERY, RISE, REST, PEAK, AGAIN };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamRoomLight = api;
 })(typeof window !== 'undefined' ? window : globalThis);
