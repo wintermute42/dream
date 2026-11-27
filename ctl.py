@@ -24,6 +24,7 @@ import media
 import midi
 import movement
 import outbox
+import recording
 import rights
 import roomlight
 import scenes
@@ -98,6 +99,7 @@ async def ctl(sock: WebSocket):
     if rights.can(role, "control"):                # #212: the room light's status (after the state: the page knows the switch)
         outbox.post(sock, json.dumps(wled.msg()))
         outbox.post(sock, json.dumps(hue.msg(), ensure_ascii=False))   # #272: the Hue lamps' (never the bridge's key)
+        recording.greet(sock)                      # #276: whether the output is recorded, the room left
     await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
     try:
@@ -193,6 +195,8 @@ async def ctl(sock: WebSocket):
                     await scenes.next_scene(force=True)
                 elif msg["cmd"] == "blackout":         # #241: the server keeps what the master was before
                     await hub.blackout(by=kind)
+                elif msg["cmd"] == "rec":              # #276: recording the output – never a guest (GUEST_CMDS)
+                    await recording.command(msg.get("arg"), by=kind)
                 else:
                     await hub.broadcast({"cmd": msg["cmd"], "arg": msg.get("arg")}, exclude=sock)
             if "midi_learn" in msg:                # the next touched MIDI control gets this target
@@ -205,6 +209,8 @@ async def ctl(sock: WebSocket):
             if "sensor_forget" in msg or "sensor_invert" in msg or "sensor_impulse" in msg or "sensor_sens" in msg:
                 inputs.sensor_setting(msg)
                 await hub.broadcast({"sensors": {"map": inputs.sens.mapping}})
+            if "rec_error" in msg and kind == "stage":   # #276: the stage could not record – the pages say why
+                recording.stage_error(msg["rec_error"])
             if isinstance(msg.get("dance_lab"), dict) and kind == "stage":   # #243: the lab's state, for Dream Control's card
                 lab = {k: bool(msg["dance_lab"].get(k)) for k in ("open", "rec", "play")}
                 hub.live["dance_lab"] = lab

@@ -35,6 +35,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
 - [Playlists and autostart](#playlists-and-autostart)
 - [Output on a projector or second monitor (16:9)](#output-on-a-projector-or-second-monitor-169)
 - [As a source in Resolume (Syphon)](#as-a-source-in-resolume-syphon)
+- [Recording what the audience sees](#recording-what-the-audience-sees)
 - [Room light (WLED)](#room-light-wled)
 - [Hue lamps dream along](#hue-lamps-dream-along)
 
@@ -649,6 +650,41 @@ under **Sources → Syphon**. Dream sends it at 30 pictures per second and blend
 “Shapes travel between the pictures” on (#205) it morphs them along the flow field, like the stage –, so it
 looks fluid even at 2–5 AI pictures per second. The stage must be open for it (it delivers the pictures). Without
 Resolume just leave it off.
+
+<sub>[↑ Contents](#contents)</sub>
+
+## Recording what the audience sees
+
+Panel → card **Output** → **● Record** (or the same button in Dream Control's card “Output”, or a MIDI button – target
+“Button: record the output on/off”) records exactly the picture the audience sees: the AI pictures with their morph,
+the smoothing, the effects, the touch layers, the zoom pulse, the **master brightness and the blackout**. Nothing of
+the panel, and no sign of the recording, is ever in the picture. Press the button again to stop.
+
+- **While it records** the button is red and shows how long the recording runs: **● 02:14**. A recording is at most
+  **15 minutes** long; in the last minute the button **blinks** (with “reduce motion” switched on in macOS it turns
+  yellow instead), then the recording **stops by itself**. A longer show is recorded in several takes.
+- **Afterwards** the card says “Saved: dream-rec-20261126-221530.mp4 (412 MB, 08:03)” – or “Stopped by itself after
+  15 minutes – saved: …” – with **Show in Finder** (only on the Mac). The file is in Dream's save folder
+  (`DREAM_SAVE_DIR`, default `~/Pictures/Dream`), named with date and time.
+- **Picture:** MP4 with H.264 where the browser can (Chrome on the Mac: yes, encoded by the Mac's media engine),
+  otherwise WebM (VP9/VP8). 30 frames per second, the picture's shape as large as fits **1920 × 1080** (square:
+  1080 × 1080; WebM, which the processor encodes, at most 1280 × 720), about **8 Mbit/s** at 1080p. The recording is as
+  sharp as the picture on the stage – a 512 px AI picture is laid out at that size, not made finer.
+- **Sound:** when Dream listens to music (microphone or music file, card “Music”) its sound comes along – no second
+  permission prompt; otherwise the video is silent. There is nothing to set.
+- **Safe against crashes:** the stage hands the video to Dream about once a second and Dream writes it to the file at
+  once. A closed tab, a crashed browser or a lost connection loses at most the last second or two; what is there plays
+  (after 15 s without news Dream closes the file and the card says “The stage went away …”). A cleanly stopped file is
+  tidied once by ffmpeg (no new encoding: duration and index for every player).
+- **Disk:** Dream does not start with less than about 1.3 GB free and stops by itself before the disk is full; the
+  card says so only when it happens.
+- **Who:** the panel on this Mac and Dream Control start and stop; guests cannot (nor see it). The stage on the Mac
+  does the recording – it must be open, and its window should stay visible (a hidden or minimised browser window
+  draws less often).
+- **Load:** the copy of the picture and the encoder (the Mac's media engine) cost the AI little – with the 📏
+  measurement (sd-turbo, 512 px, square, Retina, M-series Mac; four pairs of 40 s, alternating) the AI made 2.72
+  pictures/s with a 1080p recording and 2.80 without: about 3 % fewer, the size of the spread between runs. The
+  stage kept drawing every frame, and the files had exactly 30 frames per second.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -2139,7 +2175,8 @@ numbers the controller sends depends on its preset – just choose a preset and 
   strength and the crossfade between two style worlds (#224).
 - **Button targets:** pause/start, next scene, new, new seed, **blackout on/off** (master to 0 and back), tap tempo,
   next pattern, next style world (#221; #224: the one after the world that shows most), each of the twelve effects on/off, roll effects anew, effects off,
-  the dance lab's “good” and “bad”, the **clutch** of Dream Dance in/out and the next movement set (#251).
+  the dance lab's “good” and “bad”, the **clutch** of Dream Dance in/out, the next movement set (#251) and
+  **recording the output** on/off (#276).
 - Sliders glide softly to the new value (no jumps) and move along in the panel and on the phone. Endless knobs (that
   only send “more/less”) are recognised by Dream after a few clicks.
 - Suggestion for 8 faders + master: transformation, dream share, zoom pull, rotation, colour drift, drift, music
@@ -2429,7 +2466,7 @@ not have becomes the nearest one for the stage, Dream Control and whoever sent i
 that nothing on the stage ever moves back. `node --test tests/js/beat.test.mjs` tests the beat detection (#195) on synthesised music (house with
 room noise, a dotted kick at 100 BPM, a half-time section, a 4-bar break with a drop, drum & bass with taps, music
 without drums, a 120 Hz display) and the beat grid. `node --test tests/js/soft.test.mjs` (#211) tests the shares of the soft switches
-(old input picture, old and new prompt, a change during a running fade). `tests/test_wled.py` and `node --test tests/js/roomlight.test.mjs` (#212) test the room light against a fake WLED receiver (a UDP socket on 127.0.0.1): the DDP packets (header, push flag, LED count, several packets for a long chain), the smoothed colour, strength, master and blackout, the beat pulse and the flash, #270 the dance's dimming, flash and running pulse (one per gesture, its direction, under master and blackout, packets at the fake receiver), that a device that does not answer slows nothing, that light goes only to the home network, that guests change none of it, and the mDNS answers (`tests/test_mdns.py`). `tests/test_hue.py` and `node --test tests/js/huecard.test.mjs` (#272) test the Hue lamps against a fake Hue Bridge (an https server on 127.0.0.1 with a certificate of its own): pairing with and without the link button, the key (only in the config folder, mode 0600, never in a log or a message to a page, never to a device whose certificate is not the bridge's), the rooms, zones and lamps, the colour in each lamp's gamut, at most one change a second per lamp and ten a second in all, master and blackout, the previous state back after every kind of end, that a slow or gone bridge slows nothing, and that guests change none of it. `node --test tests/js/gl-stage.test.mjs` (#204) opens
+(old input picture, old and new prompt, a change during a running fade). `tests/test_wled.py` and `node --test tests/js/roomlight.test.mjs` (#212) test the room light against a fake WLED receiver (a UDP socket on 127.0.0.1): the DDP packets (header, push flag, LED count, several packets for a long chain), the smoothed colour, strength, master and blackout, the beat pulse and the flash, #270 the dance's dimming, flash and running pulse (one per gesture, its direction, under master and blackout, packets at the fake receiver), that a device that does not answer slows nothing, that light goes only to the home network, that guests change none of it, and the mDNS answers (`tests/test_mdns.py`). `tests/test_hue.py` and `node --test tests/js/huecard.test.mjs` (#272) test the Hue lamps against a fake Hue Bridge (an https server on 127.0.0.1 with a certificate of its own): pairing with and without the link button, the key (only in the config folder, mode 0600, never in a log or a message to a page, never to a device whose certificate is not the bridge's), the rooms, zones and lamps, the colour in each lamp's gamut, at most one change a second per lamp and ten a second in all, master and blackout, the previous state back after every kind of end, that a slow or gone bridge slows nothing, and that guests change none of it. `tests/test_recording.py` and `node --test tests/js/recorder.test.mjs` (#276) test recording the output: the pieces appended in order (a piece sent twice is not written twice, a missing one is refused), the end after 15 minutes – by the stage, else by Dream –, a stage that went away (the file stays and plays), the disk limit (the stop before it is full, no start with too little room), size and bit rate, path-safe names Dream gives itself, that only the stage on this Mac hands video in and only this Mac and Dream Control start or stop (guests neither start nor hear it), and – with ffmpeg at hand – a real WebM and MP4 cut into pieces, joined and checked with ffprobe, whole and broken off; the engine of the stage with a fake MediaRecorder and a fake Dream (format choice, the stop's last piece, the 15 minutes, Dream's stop, a failing or lagging upload) and the button's words (one button: the running time, the last minute, what was saved; no settings, no hotkey). `node --test tests/js/gl-stage.test.mjs` (#204) opens
 `tests/js/gl-stage.html` in a headless Chrome or Chromium (found by itself, or named with `CHROME_BIN`; a software
 WebGL is enough) and compares picture by picture what the WebGL 2 chain and the Canvas 2D drawing make of every effect
 and every step of the chain (cross-fade, motion, smoothing, touch layers, colours, master; #215: that the smoothed

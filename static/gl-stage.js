@@ -469,6 +469,7 @@ void main() {
       precise: !!precise,                              // the smoothed picture is kept as floating-point numbers
       get drawn() { return drawn; },                   // how many frames were really drawn
       lost: () => gl.isContextLost(),
+      again: () => { shown = ''; },                    // #276: the next frame is drawn even if nothing moves
     };
   }
 
@@ -600,6 +601,8 @@ void main() {
         return small.getImageData(0, 0, w, h).data;
       },
       get renderer() { return chain ? 'webgl2' : 'canvas'; },
+      get rect() { return rect; },                     // #276: the picture's place on the WebGL canvas, as shares
+      again() { if (chain) chain.again(); },           // #276: draw the next frame even if it is a still one
       get drawn() { return chain ? chain.drawn : 0; },
       get precise() { return !!chain && chain.precise; },   // the smoothing is kept as floating-point numbers   // frames the WebGL chain really drew (it skips still ones)
     };

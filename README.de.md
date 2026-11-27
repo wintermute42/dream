@@ -31,6 +31,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Playlists und Autostart](#playlists-und-autostart)
 - [Ausgabe auf Beamer oder zweitem Monitor (16:9)](#ausgabe-auf-beamer-oder-zweitem-monitor-169)
 - [Als Quelle in Resolume (Syphon)](#als-quelle-in-resolume-syphon)
+- [Aufnehmen, was das Publikum sieht](#aufnehmen-was-das-publikum-sieht)
 - [Raumlicht (WLED)](#raumlicht-wled)
 - [Hue-Lampen träumen mit](#hue-lampen-träumen-mit)
 
@@ -671,6 +672,42 @@ Schalter „Syphon-Ausgabe „Dream“ für Resolume“ (Bühne oder Handy). Dan
 weich zwischen den KI-Bildern über – mit „Formen wandern zwischen den Bildern“ (#205) morpht es sie entlang des
 Flussfelds, wie die Bühne –, damit es auch bei 2–5 KI-Bildern pro Sekunde flüssig wirkt. Die Bühne muss
 dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+## Aufnehmen, was das Publikum sieht
+
+Bedienfeld → Karte **Ausgabe** → **● Aufnehmen** (oder derselbe Knopf in der Karte „Ausgabe“ von Dream Control, oder
+ein MIDI-Knopf – Ziel „Knopf: Ausgabe aufnehmen an/aus“) nimmt genau das Bild auf, das das Publikum sieht: die
+KI-Bilder mit ihrem Morph, die Glättung, die Effekte, die Touch-Ebenen, den Zoom-Puls, die **Master-Helligkeit und den
+Blackout**. Vom Bedienfeld und von der Aufnahme selbst ist nie etwas im Bild. Noch einmal drücken stoppt sie.
+
+- **Während der Aufnahme** ist der Knopf rot und zeigt, wie lange sie schon läuft: **● 02:14**. Eine Aufnahme dauert
+  höchstens **15 Minuten**; in der letzten Minute **blinkt** der Knopf (mit „Bewegung reduzieren“ in macOS wird er
+  stattdessen gelb), dann **stoppt sie von selbst**. Eine längere Show wird in mehreren Aufnahmen aufgenommen.
+- **Danach** steht in der Karte „Gespeichert: dream-rec-20261126-221530.mp4 (412 MB, 08:03)“ – oder „Nach 15 Minuten
+  von selbst gestoppt – gespeichert: …“ – mit **Im Finder zeigen** (nur am Mac). Die Datei liegt im Speicherordner von
+  Dream (`DREAM_SAVE_DIR`, Standard `~/Pictures/Dream`), mit Datum und Uhrzeit im Namen.
+- **Bild:** MP4 mit H.264, wenn der Browser es kann (Chrome am Mac: ja, kodiert von der Media-Engine des Macs), sonst
+  WebM (VP9/VP8). 30 Bilder pro Sekunde, im Format des Bildes so groß, wie es in **1920 × 1080** passt (quadratisch:
+  1080 × 1080; WebM, das der Prozessor kodiert, höchstens 1280 × 720), etwa **8 Mbit/s** bei 1080p. Die Aufnahme ist
+  so scharf wie das Bild auf der Bühne – ein KI-Bild mit 512 px wird auf diese Größe gebracht, nicht feiner gemacht.
+- **Ton:** hört Dream Musik (Mikrofon oder Musikdatei, Karte „Musik“), kommt ihr Ton mit – ohne zweite
+  Freigabe-Abfrage; sonst ist das Video stumm. Einzustellen gibt es nichts.
+- **Sicher gegen Abstürze:** die Bühne gibt das Video etwa einmal pro Sekunde an Dream, und Dream schreibt es sofort in
+  die Datei. Ein geschlossener Tab, ein abgestürzter Browser oder eine verlorene Verbindung kostet höchstens die
+  letzte Sekunde oder zwei; was da ist, spielt (nach 15 s ohne Nachricht schließt Dream die Datei, und die Karte sagt
+  „Die Bühne ist während der Aufnahme weggefallen …“). Eine sauber gestoppte Datei räumt ffmpeg einmal auf (ohne neu
+  zu kodieren: Dauer und Index für jeden Player).
+- **Platte:** mit weniger als etwa 1,3 GB frei startet Dream gar nicht erst, und es stoppt von selbst, bevor die Platte
+  voll ist; die Karte sagt es nur, wenn es passiert.
+- **Wer:** das Bedienfeld an diesem Mac und Dream Control starten und stoppen; Gäste nicht (und sie sehen es auch
+  nicht). Aufgenommen wird auf der Bühne am Mac – sie muss offen sein, und ihr Fenster sollte sichtbar bleiben (ein
+  verdecktes oder minimiertes Browserfenster zeichnet seltener).
+- **Last:** das Kopieren des Bildes und der Encoder (die Media-Engine des Macs) kosten die KI wenig – mit 📏 Messen
+  (sd-turbo, 512 px, quadratisch, Retina, Mac mit M-Chip; vier Paare à 40 s, abwechselnd) machte die KI mit einer
+  1080p-Aufnahme 2,72 Bilder/s und ohne 2,80: etwa 3 % weniger, so viel, wie Läufe untereinander streuen. Die Bühne
+  zeichnete weiter jedes Bild, und die Dateien hatten genau 30 Bilder pro Sekunde.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2269,7 +2306,8 @@ ein Preset wählen und dabei bleiben.
   die Überblendung zwischen zwei Stilwelten (#224).
 - **Tasten-Ziele:** Pause/Start, nächste Szene, Neu, neuer Seed, **Blackout an/aus** (Master auf 0 und zurück),
   Tap-Tempo, Muster weiter, nächste Stilwelt (#221; #224: die nach der Welt, die am meisten zu sehen ist), jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus,
-  „gut“ und „schlecht“ des Tanz-Labors, die **Kupplung** von Dream Dance ein/aus und das nächste Bewegungs-Set (#251).
+  „gut“ und „schlecht“ des Tanz-Labors, die **Kupplung** von Dream Dance ein/aus, das nächste Bewegungs-Set (#251) und
+  **Ausgabe aufnehmen** an/aus (#276).
 - Regler gleiten weich zum neuen Wert (keine Sprünge) und bewegen sich im Bedienfeld und am Handy mit.
   Endlos-Drehregler (die nur „mehr/weniger“ senden) erkennt Dream nach wenigen Rasten selbst.
 - Vorschlag für 8 Fader + Master: Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion,
@@ -2595,7 +2633,7 @@ gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zur�
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
 `node --test tests/js/soft.test.mjs` (#211) prüft die Anteile der weichen Wechsel (altes Eingangsbild, alter und
-neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, #270 das Dimmen, Aufleuchten und Lauflicht des Tanzes (einmal pro Geste, seine Richtung, unter Master und Blackout, Pakete am nachgebauten Empfänger), dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten (`tests/test_mdns.py`). `tests/test_hue.py` und `node --test tests/js/huecard.test.mjs` (#272) prüfen die Hue-Lampen gegen eine nachgebaute Hue Bridge (ein https-Server auf 127.0.0.1 mit eigenem Zertifikat): Koppeln mit und ohne Knopfdruck, den Schlüssel (nur im Konfigurationsordner, Modus 0600, nie in einem Log oder einer Nachricht an eine Seite, nie an ein Gerät, dessen Zertifikat nicht das der Bridge ist), Räume, Zonen und Lampen, die Farbe im Farbraum jeder Lampe, höchstens eine Änderung pro Sekunde und Lampe und zehn pro Sekunde insgesamt, Master und Blackout, den vorherigen Zustand nach jeder Art von Ende, dass eine langsame oder verschwundene Bridge nichts bremst, und dass Gäste nichts davon ändern. `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
+neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, #270 das Dimmen, Aufleuchten und Lauflicht des Tanzes (einmal pro Geste, seine Richtung, unter Master und Blackout, Pakete am nachgebauten Empfänger), dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten (`tests/test_mdns.py`). `tests/test_hue.py` und `node --test tests/js/huecard.test.mjs` (#272) prüfen die Hue-Lampen gegen eine nachgebaute Hue Bridge (ein https-Server auf 127.0.0.1 mit eigenem Zertifikat): Koppeln mit und ohne Knopfdruck, den Schlüssel (nur im Konfigurationsordner, Modus 0600, nie in einem Log oder einer Nachricht an eine Seite, nie an ein Gerät, dessen Zertifikat nicht das der Bridge ist), Räume, Zonen und Lampen, die Farbe im Farbraum jeder Lampe, höchstens eine Änderung pro Sekunde und Lampe und zehn pro Sekunde insgesamt, Master und Blackout, den vorherigen Zustand nach jeder Art von Ende, dass eine langsame oder verschwundene Bridge nichts bremst, und dass Gäste nichts davon ändern. `tests/test_recording.py` und `node --test tests/js/recorder.test.mjs` (#276) prüfen das Aufnehmen der Ausgabe: die Stücke in der richtigen Reihenfolge angehängt (ein doppelt geschicktes nicht doppelt, ein fehlendes abgewiesen), das Ende nach 15 Minuten – durch die Bühne, sonst durch Dream –, eine weggefallene Bühne (die Datei bleibt und spielt), die Plattengrenze (Stopp vor dem Vollwerden, kein Start mit zu wenig Platz), Größe und Bitrate, sichere Dateinamen, die Dream selbst vergibt, dass nur die Bühne an diesem Mac Video abgibt und nur dieser Mac und Dream Control starten oder stoppen (Gäste weder starten noch davon hören), und – wenn ffmpeg da ist – ein echtes WebM und MP4, in Stücke geschnitten, zusammengesetzt und mit ffprobe geprüft, ganz und abgebrochen; die Aufnahme der Bühne mit nachgebautem MediaRecorder und nachgebautem Dream (Formatwahl, das letzte Stück beim Stopp, die 15 Minuten, Dreams Stopp, ein scheiterndes oder nachhinkendes Hochladen) und die Worte des Knopfes (ein Knopf: die Laufzeit, die letzte Minute, was gespeichert wurde; keine Einstellungen, keine Taste). `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
