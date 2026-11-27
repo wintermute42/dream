@@ -99,10 +99,11 @@ def can(role: str | None, capability: str) -> bool:
 # The names of movement sets and of measured dancers (often a first name) are the owner's: a guest's phone and every
 # output (the output window, Dreamy Eyes, dream windows – those never hear the shared state at all) never learn them.
 # Where they travel: the settings that hold one (in a change, "set", and in the snapshot, "state") and the dance's
-# message (its sets with their sentences, the dancers' measures, #267: the base movements they taught and named). Every
-# message to a control line goes through `scrub`.
+# message (its sets with their sentences, the dancers' measures, #267: the base movements they taught and named, #253:
+# Flowtrack's performers by the name of their profile). Every message to a control line goes through `scrub`.
 NAMED_SETTINGS = ("dance_set", "dance_profile")
-NAMED_DANCE = ("slots", "profiles", "faders")         # #267: the base movements the dancer taught, by name
+NAMED_DANCE = ("slots", "profiles", "faders",         # #267: the base movements the dancer taught, by name
+               "performers")                          # #253: Flowtrack's performers' profiles, by the person's name
 
 
 def scrub(role: str | None, msg):
