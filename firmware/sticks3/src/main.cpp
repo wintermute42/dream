@@ -35,7 +35,7 @@ const uint32_t IDLE_OFF_MS = 30UL * 60 * 1000;
 const uint8_t BRIGHT = 90, DIM = 12;
 
 uint32_t imuAt = 0, stillSince = 0, seq = 0, pressAt = 0, sentAt = 0, brightAt = 0, contactAt = 0, battAt = 0, drawnAt = 0;
-bool pending = false, want = false, refusedFlash = false;
+bool pending = false, want = false, refusedFlash = false, pairedTones = false;
 
 // the sounds of a press (the device is often worn where its screen is not seen)
 void beep(bool engaged) {                    // two rising tones: engaged; two falling: released
@@ -174,7 +174,7 @@ void setup() {
     M5.Display.setFont(&fonts::Font4);
     M5.Display.setTextColor(rgb(127, 227, 160), TFT_BLACK);
     M5.Display.drawString("paired", M5.Display.width() / 2, M5.Display.height() / 2);
-    beep(true);
+    pairedTones = true;                      // heard from the first loop on: in the setup they stayed silent
     delay(900);
   }
   contactAt = millis();
@@ -184,6 +184,7 @@ void setup() {
 void loop() {
   M5.update();
   const uint32_t now = millis();
+  if (pairedTones) { pairedTones = false; beep(true); }   // #278: the pairing, heard
   dreamLink.loop(now);
 
   if (now - battAt > 10000 || battAt == 0) {
