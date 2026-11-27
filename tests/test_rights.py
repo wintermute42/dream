@@ -2,6 +2,7 @@
 guests' message allowance. The server runs with --lan in the test sandbox; the requests come from invented home-network
 addresses."""
 import asyncio
+import contextlib
 import itertools
 import json
 import time
@@ -552,6 +553,27 @@ def test_ctl_second_control_is_a_guest_until_it_takes_over(server):
             two.send_text(json.dumps({"take_control": True}))
             assert next_with(two, "role") == {"role": "control", "can_take": False, "can": CAN["control"]}
             assert next_with(one, "taken") == {"role": "guest", "can_take": True, "can": CAN["guest"], "taken": True}
+
+
+@pytest.mark.parametrize("gone", [WebSocketDisconnect(1001), OSError("gallery folder unreadable")])
+def test_ctl_device_that_leaves_while_greeted_leaves_no_control_behind(server, monkeypatch, gone):
+    """#193: a Dream Control that is gone before its greeting is out (or whose greeting fails) is no longer registered –
+    the next Dream Control is Dream Control, not a guest."""
+    gallery, greeted = server.ctl.media.gallery_list, []
+
+    def leaving():                                                  # a step of the greeting, after the registration
+        greeted.append(1)
+        if len(greeted) == 1:
+            raise gone
+        return gallery()
+    monkeypatch.setattr(server.ctl.media, "gallery_list", leaving)
+    c, url = client(server, "control"), ws_url(server, "/ctl", "control")
+    with contextlib.suppress(Exception), c.websocket_connect(url):    # its greeting never reaches it: nothing to read
+        pass
+    wait_until(lambda: not server.hub.roles)
+    assert not server.hub.clients and not server.hub.key_roles
+    with c.websocket_connect(url) as ws:
+        assert ws.receive_json()["role"] == "control"
 
 
 def next_with(ws, key: str) -> dict:
