@@ -65,7 +65,14 @@ void sign(uint8_t r, uint8_t g, uint8_t b, uint8_t times) {
 }
 
 // ESP-NOW calls this in the Wi-Fi task: only copied into the inbox, handled in loop()
+#ifdef DREAM_RADIO_LOG
+volatile uint32_t logIn = 0;
+uint32_t logOsc = 0, logStranger = 0, logCall = 0;
+#endif
 void onReceive(const uint8_t* mac, const uint8_t* data, int len) {
+#ifdef DREAM_RADIO_LOG
+  logIn++;
+#endif
   if (len <= 0 || len > static_cast<int>(MAX_FRAME)) return;
   Frame f;
   memcpy(f.mac, mac, 6);
@@ -83,7 +90,7 @@ bool addPeer(const uint8_t mac[6], const uint8_t* key) {
   p.ifidx = WIFI_IF_STA;
   p.encrypt = key != nullptr;
   if (key) memcpy(p.lmk, key, KEY);
-  if (esp_now_is_peer_exist(mac)) return esp_now_mod_peer(&p) == ESP_OK;
+  if (esp_now_is_peer_exist(mac)) esp_now_del_peer(mac);     // anew, not modified: a changed key takes effect for sure
   return esp_now_add_peer(&p) == ESP_OK;
 }
 
@@ -143,6 +150,11 @@ void forgetAll() {
 
 void handleFrame(const Frame& f) {
   const uint8_t type = typeOf(f.data, f.len);
+#ifdef DREAM_RADIO_LOG
+  if (type == PAIR_CALL) logCall++;
+  else if (type == OSC && !peers.find(f.mac)) logStranger++;
+  else if (type == OSC) logOsc++;
+#endif
   if (type == PAIR_CALL) {
     if (pairUntil && millis() < pairUntil) pair(f.mac);
     return;
@@ -289,6 +301,16 @@ void setup() {
 
 void loop() {
   const uint32_t now = millis();
+#ifdef DREAM_RADIO_LOG
+  static uint32_t logAt = 0;
+  if (now - logAt >= 2000) {
+    logAt = now;
+    char out[120];
+    int n = snprintf(out, sizeof(out), "# radio ch=%u in=%lu calls=%lu osc=%lu strangers=%lu peers=%d\n", channel, (unsigned long)logIn,
+                     (unsigned long)logCall, (unsigned long)logOsc, (unsigned long)logStranger, peers.count());
+    if (n > 0) send(out, n);
+  }
+#endif
   readSerial(now);
   Frame f;
   for (int k = 0; k < 16 && xQueueReceive(inbox, &f, 0) == pdTRUE; k++) handleFrame(f);
