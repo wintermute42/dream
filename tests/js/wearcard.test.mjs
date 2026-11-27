@@ -65,3 +65,39 @@ test('worn blind: a low battery is a warning, and the last press is said', () =>
   assert.equal(W.lastText({ on: false, ago: 600 }), 'Last press: released, 10 min ago');
   assert.equal(W.lastText('x'), ''); assert.equal(W.lastText(null), '');
 });
+
+// ---------- #278: the USB receiver, the way the packets come, the delay ----------
+const rx = (over = {}) => ({ id: 'c0ffee123456', name: 'AtomS3 receiver 3456', live: true, channel: 6, pairing: 0, peers: 1,
+  sticks: ['StickS3 E5F6'], firmware: '1.0.0', led: 'g', ...over });
+
+test('a stick says which way its packets come and how late they are', () => {
+  const [r] = W.items([stick({ link: 'radio', latency: 3.44 })]);
+  assert.equal(r.state, 'by radio · 50 values/s · ≈ 3.4 ms · battery 80 %');
+  assert.equal(W.items([stick({ link: 'wifi', latency: 23.6 })])[0].state, 'over the Wi-Fi · 50 values/s · ≈ 24 ms · battery 80 %');
+  assert.equal(W.items([stick({ link: 'nonsense', latency: 'x' })])[0].state, '50 values/s · battery 80 %');   // old firmware: none
+  assert.equal(W.delayText(null), ''); assert.equal(W.delayText(-1), ''); assert.equal(W.delayText(0.04), '≈ 0 ms');
+});
+
+test('a receiver line: channel, the wristbands by radio, its light, and pairing', () => {
+  const [r] = W.receiverItems([rx()]);
+  assert.equal(r.kind, 'receiver'); assert.equal(r.icon, '📡'); assert.equal(r.action, 'pairing'); assert.equal(r.busy, false);
+  assert.equal(r.state, 'USB · channel 6 · by radio: StickS3 E5F6'); assert.match(r.note, /Its button engages and releases the clutch/);
+  assert.equal(r.led, 'g'); assert.match(r.ledText, /green: wristband there, clutch engaged/);
+  const [open] = W.receiverItems([rx({ pairing: 27, sticks: [], led: 'r' })]);
+  assert.equal(open.busy, true); assert.match(open.note, /Pairing open for 27 s – switch the wristband on near the receiver/);
+  assert.match(open.ledText, /blinking white: waiting for a wristband/);
+  assert.match(W.receiverItems([rx({ sticks: [], peers: 0 })])[0].note, /No wristband paired yet/);
+  assert.match(W.receiverItems([rx({ sticks: [], peers: 2 })])[0].note, /not there – switched off, too far away or on the Wi-Fi/);
+  const [dead] = W.receiverItems([rx({ live: false })]);
+  assert.equal(dead.action, null); assert.equal(dead.warn, true); assert.match(dead.note, /does not answer/);
+  assert.equal(W.receiverItems([rx({ led: 'x' })])[0].led, 'r');                  // a colour it does not know: red
+  assert.deepEqual(W.receiverItems('nonsense'), []); assert.deepEqual(W.receiverItems([null, { name: 'x' }]), []);
+});
+
+test('with a receiver: no "--lan" alarm, and its button is named under the clutch', () => {
+  assert.match(W.statusText({ lan: false, port: 7020, devices: [], receivers: [rx()] }), /USB receiver works as it is/);
+  assert.doesNotMatch(W.statusText({ lan: true, port: 7020, advert: true, devices: [], receivers: [rx()] }), /No worn device yet/);
+  assert.deepEqual(W.clutchLine([], [rx()]), { text: '📡 The receiver’s button too.', warn: false });
+  assert.equal(W.clutchLine([stick({ paired: true, ready: true })], [rx()]).text, '⌚ StickS3 E5F6: the button on the wrist engages and releases. 📡 The receiver’s button too.');
+  assert.deepEqual(W.clutchLine([], [rx({ live: false })]), { text: '', warn: false });
+});
