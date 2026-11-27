@@ -9,8 +9,6 @@ const require = createRequire(import.meta.url);
 const W = require('../../static/wearcard.js');
 const stick = (over = {}) => ({ id: 'a1b2c3d4e5f6', name: 'StickS3 E5F6', kind: 'sticks3', live: true, seen: 0, battery: 80, rate: 50,
   paired: false, ready: false, refused: 0, firmware: '1.0.0', ...over });
-const matrix = (over = {}) => ({ id: '0a0b0c0d0e0f', name: 'ATOM Matrix 0E0F', kind: 'matrix', live: true, seen: 0, battery: -1, rate: 0,
-  paired: false, ready: false, refused: 0, firmware: '1.0.0', ...over });
 
 test('a StickS3 that is there but not allowed offers "allow" and says its button does nothing yet', () => {
   const [r] = W.items([stick()]);
@@ -33,15 +31,16 @@ test('an allowed StickS3 offers "revoke"; it is ready once it confirmed its key;
   assert.match(W.items([stick({ paired: true, live: false, seen: null })])[0].state, /not seen since Dream started/);
 });
 
-test('a display needs no word of the owner and shows no rate; a low battery is marked', () => {
-  const [m] = W.items([matrix({ battery: 12, low: true })]);
-  assert.equal(m.action, null); assert.equal(m.note, ''); assert.equal(m.state, 'battery 12 % ⚠'); assert.match(m.role, /display/);
-  assert.deepEqual(W.items([matrix()])[0].state, '');
+test('a low battery is marked; a kind the panel does not know is not shown', () => {
+  const [low] = W.items([stick({ battery: 12, low: true })]);
+  assert.equal(low.state, '50 values/s · battery 12 % ⚠'); assert.equal(low.warn, true);
+  assert.equal(W.items([stick({ battery: -1 })])[0].state, '50 values/s');
+  assert.deepEqual(W.items([stick({ kind: 'glove' }), stick({ kind: 'constructor' })]), []);
 });
 
 test('what came over the connection is only shown, never called', () => {
-  const odd = W.items([{ id: 'x', kind: 'constructor', name: '<b>x</b>'.repeat(20), live: true }, null, { kind: 'sticks3' }]);
-  assert.equal(odd.length, 1); assert.equal(odd[0].icon, '•'); assert.equal(odd[0].role, ''); assert.ok(odd[0].name.length <= 40);
+  const odd = W.items([{ id: 'x', kind: 'sticks3', name: '<b>x</b>'.repeat(20), live: true }, null, { kind: 'sticks3' }]);
+  assert.equal(odd.length, 1); assert.equal(odd[0].icon, '⌚'); assert.ok(odd[0].name.length <= 40);
   assert.deepEqual(W.items('nonsense'), []);
 });
 
@@ -52,7 +51,7 @@ test('the line under the list: without --lan, nothing yet, and the port', () => 
 });
 
 test('under the clutch: the wrist steers it, or it is gone and the clutch stays', () => {
-  assert.deepEqual(W.clutchLine([stick(), matrix()]), { text: '', warn: false });        // nothing allowed: no word
+  assert.deepEqual(W.clutchLine([stick()]), { text: '', warn: false });        // nothing allowed: no word
   assert.deepEqual(W.clutchLine([stick({ paired: true, ready: true })]), { text: '⌚ StickS3 E5F6: the button on the wrist engages and releases.', warn: false });
   const gone = W.clutchLine([stick({ paired: true, ready: true, live: false })]);
   assert.equal(gone.warn, true); assert.match(gone.text, /StickS3 E5F6 is gone – the clutch stays as it is/);
@@ -64,5 +63,5 @@ test('worn blind: a low battery is a warning, and the last press is said', () =>
   assert.equal(W.items([stick({ paired: true, ready: true })])[0].last, '');
   assert.equal(W.items([stick({ paired: true, ready: true, last: { on: true, ago: 12 } })])[0].last, 'Last press: engaged, 12 s ago');
   assert.equal(W.lastText({ on: false, ago: 600 }), 'Last press: released, 10 min ago');
-  assert.equal(W.lastText('x'), ''); assert.equal(W.items([matrix({ last: { on: true, ago: 1 } })])[0].last, '');
+  assert.equal(W.lastText('x'), ''); assert.equal(W.lastText(null), '');
 });

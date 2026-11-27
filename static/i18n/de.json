@@ -1784,9 +1784,7 @@
  "⌚ Clutch engaged on the wrist": "⌚ Kupplung am Handgelenk eingelegt",
  "⌚ Clutch released on the wrist": "⌚ Kupplung am Handgelenk gelöst",
  "⌚ {d} gone": "⌚ {d} weg",
- "Worn devices (StickS3, ATOM Matrix)": "Am Körper getragen (StickS3, ATOM Matrix)",
  "Worn devices": "Getragene Geräte",
- "display: the clutch and the beat": "Anzeige: Kupplung und Takt",
  "on the wrist: motion and the clutch": "am Handgelenk: Bewegung und Kupplung",
  "battery {p} %": "Akku {p} %",
  "gone for {n} min": "seit {n} min weg",
@@ -1813,5 +1811,6 @@
  "engaged": "eingelegt",
  "released": "gelöst",
  "{n} min": "{n} min",
- "The device did not get its key – revoke and allow it again.": "Das Gerät hat seinen Schlüssel nicht bekommen – zurücknehmen und neu erlauben."
+ "The device did not get its key – revoke and allow it again.": "Das Gerät hat seinen Schlüssel nicht bekommen – zurücknehmen und neu erlauben.",
+ "Worn devices (StickS3 on the wrist)": "Am Körper getragen (StickS3 am Handgelenk)"
 }

@@ -105,7 +105,7 @@ async def midi_loop():
 # ---------- motion sensors on the body (phone app, wristband, glove) over OSC, port DREAM_SENSOR_PORT ----------
 SENSOR_PORT = int(os.environ.get("DREAM_SENSOR_PORT", "7020"))
 sens = sensors.Sensors()
-# #277: the devices worn on the body that speak Dream's own protocol (StickS3, ATOM Matrix): their motion goes into the
+# #277: the devices worn on the body that speak Dream's own protocol (a StickS3): their motion goes into the
 # sensor input like any OSC sender's, their button is the clutch
 wear = wearables.Wearables(feed=lambda address, values, source, t, unit: sens.on_osc(address, values, source, now=t, gyro_unit=unit))
 wear.clutch = bool(hub.state["clutch"])
@@ -142,7 +142,7 @@ def _private(host: str) -> bool:
 
 
 def wear_packet(client, address, *args):
-    """#277: a packet of a StickS3 or an ATOM Matrix – only from the home network (and this Mac), like every sensor."""
+    """#277: a packet of a StickS3 – only from the home network (and this Mac), like every sensor."""
     if _private(client[0]):
         wear.on_osc(address, args, client)
 

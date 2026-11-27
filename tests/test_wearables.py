@@ -1,5 +1,5 @@
 """#277: devices worn on the body (wearables.py) – a StickS3 on the wrist (its raw motion into the sensor input, its
-button the dance's clutch) and an ATOM Matrix as a display. The device is a fake: OSC packets built here and handed in,
+button the dance's clutch). The device is a fake: OSC packets built here and handed in,
 the answers caught by a fake transport – and once the real sensor loop on a free port of 127.0.0.1 with a fake device's
 socket. No real device, no network, no mDNS responder."""
 import asyncio
@@ -17,7 +17,7 @@ import sensors
 import wearables
 from test_rights import ctl_session, no_ghost_sockets, saved_state, wait_until  # noqa: F401
 
-STICK, OTHER, MATRIX = "a1b2c3d4e5f6", "0f0e0d0c0b0a", "112233445566"
+STICK, OTHER = "a1b2c3d4e5f6", "0f0e0d0c0b0a"
 HOME = ("192.168.1.50", 50123)
 
 
@@ -173,8 +173,8 @@ def test_only_a_device_that_is_there_and_has_a_button_can_be_allowed(wear):
     assert not wear.allow(STICK, now=1.0) and not wear.allow(None, now=1.0) and not wear.allow({"x": 1}, now=1.0)
     hello(wear, now=time.monotonic() - wearables.GONE - 1)  # it said hello, but it is gone
     assert not wear.allow(STICK)
-    hello(wear, id_=MATRIX, kind="matrix")
-    assert not wear.allow(MATRIX, now=100.0)
+    hello(wear, id_=OTHER, kind="glove")                     # a kind Dream does not know is not even taken
+    assert OTHER not in wear.devices and not wear.allow(OTHER, now=100.0)
 
 
 def test_a_paired_press_is_a_clutch_wish_once_however_often_it_is_repeated(wear):
@@ -198,7 +198,7 @@ def test_a_broken_or_odd_pairing_file_allows_nothing(wear, sandbox):
     path = wearables.store_file()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     for text in ("{nonsense", json.dumps({"devices": {STICK: {"kind": "sticks3", "token": "short"}}}),
-                 json.dumps({"devices": {STICK: {"kind": "matrix", "token": "a" * 32}}}), json.dumps([1, 2])):
+                 json.dumps({"devices": {STICK: {"kind": "glove", "token": "a" * 32}}}), json.dumps([1, 2])):
         with open(path, "w") as f:
             f.write(text)
         w = wearables.Wearables()
@@ -221,14 +221,14 @@ def test_the_press_moves_the_setting_like_every_clutch_and_every_device_hears_it
     monkeypatch.setattr(server.hub, "broadcast", broadcast)
     saved_state["clutch"] = False
     token = pair(wear, now=time.monotonic())
-    hello(wear, id_=MATRIX, kind="matrix", now=time.monotonic(), addr=("192.168.1.51", 4000))
+    hello(wear, id_=OTHER, now=time.monotonic(), addr=("192.168.1.51", 4000))   # a second stick, not allowed
     press(wear, True, 3, token=token, now=time.monotonic())
     asyncio.run(server.inputs.wear_events())
     assert server.hub.state["clutch"] is True
     assert {"set": {"clutch": True}, "by": "wear"} in sent                  # the pages see who moved it
     to = lambda: {addr: p for addr, a, p in wear.transport.sent if a.endswith("state")}
     assert to() == {HOME: [1, 1, 3], ("192.168.1.51", 4000): [1, 0, 0]}     # the stick: engaged, allowed, its press taken;
-    #                                                                          the display: engaged
+    #                                                                          the other stick hears the clutch too
 
     asyncio.run(server.hub.apply({"clutch": False}, by="midi"))              # another way of the clutch: the wrist hears it too
     assert to()[HOME] == [0, 1, 3] and to()[("192.168.1.51", 4000)] == [0, 0, 0]
@@ -249,31 +249,6 @@ def test_a_device_that_is_gone_is_said_so_and_the_clutch_stays(server, wear, mon
     assert wear.listing(now=10.0 + wearables.FORGET + 100)[0]["paired"]      # an allowed one stays in the list …
     hello(wear, id_=OTHER, now=10.0)
     assert OTHER not in {x["id"] for x in wear.listing(now=10.0 + wearables.FORGET + 100)}   # … an unknown one leaves it
-
-
-# ---------- the display: the clutch and the beat ----------
-def test_displays_get_the_beat_not_too_often_and_nobody_else(wear):
-    hello(wear, id_=MATRIX, kind="matrix", now=5.0, addr=("192.168.1.51", 4000))
-    hello(wear, now=5.0)
-    for t, v in ((5.01, 0.8), (5.03, 0.9), (5.2, 0.5), (5.3, "x"), (5.4, float("nan")), (5.5, -1), (5.6, 3.0)):
-        wear.beat(v, now=t)
-    beats = [(addr, p) for addr, a, p in wear.transport.sent if a.endswith("beat")]
-    assert [p[0] for _, p in beats] == [pytest.approx(0.8), pytest.approx(0.5), 1.0]
-    assert {addr for addr, _ in beats} == {("192.168.1.51", 4000)}
-    assert wear.displays(now=5.6) == 1 and wear.displays(now=5.0 + wearables.GONE + 1) == 0
-    wear.beat(1.0, now=5.0 + wearables.GONE + 1)                               # a display that is gone hears nothing
-    assert len([1 for _, a, _ in wear.transport.sent if a.endswith("beat")]) == 3
-
-
-def test_the_stage_beat_reaches_the_display(server, wear, monkeypatch, saved_state):
-    monkeypatch.setattr(server.inputs, "wear", wear)
-    hello(wear, id_=MATRIX, kind="matrix", now=time.monotonic())
-    from test_wled import stage_url
-    from test_rights import client
-    with client(server, "local").websocket_connect(stage_url(server)) as stage:
-        stage.send_text(json.dumps({"led": {"beat": 0.7}}))
-        wait_until(lambda: wear.transport.of("beat"))
-    assert wear.transport.of("beat") == [[pytest.approx(0.7)]]
 
 
 # ---------- rights ----------

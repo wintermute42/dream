@@ -152,7 +152,7 @@ void setup() {
   M5.Speaker.setVolume(160);
   M5.update();
   bool setupNow = M5.BtnB.isPressed();       // B held while switching on: the Wi-Fi setup
-  dreamLink.begin("sticks3", setupNow, showSetup, true);
+  dreamLink.begin("sticks3", setupNow, showSetup);
   if (dreamLink.setupUnfinished()) M5.Power.powerOff();   // the setup timed out: off, the battery keeps
   contactAt = millis();
   seq = esp_random() & 0xffff;               // a press after a restart never looks like one Dream already took

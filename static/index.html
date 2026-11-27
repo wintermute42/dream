@@ -244,7 +244,7 @@
   .huelamp { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text); font-size: .9em; min-height: 28px; }
   .huelamp small { margin-left: auto; }
   #huepair.on { background: var(--accent); color: #140b1f; border-color: transparent; }
-  /* #277: the worn devices – a StickS3 on the wrist, an ATOM Matrix as a display (wearcard.js) */
+  /* #277: the worn devices – a StickS3 on the wrist (wearcard.js) */
   .wearlist { display: grid; gap: 6px; margin-top: 4px; }
   .wearitem { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 2px 8px; padding: 6px 8px;
     border: 1px solid var(--line); border-radius: 10px; }
@@ -712,9 +712,9 @@
     <label style="margin-top:4px">Hit sensitivity <span class="val" id="v-senssens"></span></label>
     <input type="range" id="senssens" min="0.2" max="3" step="0.1" value="1">
   </div>
-  <!-- #277: devices worn on the body – a StickS3 on the wrist (its motion, its button the clutch), an ATOM Matrix as a display (wearables.py, wearcard.js) -->
+  <!-- #277: devices worn on the body – a StickS3 on the wrist (its motion, its button the clutch) (wearables.py, wearcard.js) -->
   <div class="row" id="wearrow">
-    <label>Worn devices (StickS3, ATOM Matrix)</label>
+    <label>Worn devices (StickS3 on the wrist)</label>
     <div id="wearlist" class="wearlist" role="list" aria-label="Worn devices" hidden></div>
     <div id="wearstat" class="muted ledstat" role="status"></div>
   </div>
@@ -2207,12 +2207,11 @@
   $('wled_amt').addEventListener('input', () => ledShow());
   // #272: the Hue lamps – the bridge, pairing, the rooms and lamps that dream along
   const hueCard = HueCard.mount({ el: $, send: sendCtl });
-  // ---------- #277: the worn devices (wearables.py): a StickS3 on the wrist, an ATOM Matrix as a display ----------
+  // ---------- #277: the worn devices (wearables.py): a StickS3 on the wrist ----------
   const wearCard = WearCard.mount({ list: $('wearlist'), stat: $('wearstat'), clutch: $('clutchwear'), send: sendCtl });
   let wearNow = { devices: [] };
   function wearShow(w) {
     wearNow = w; wearCard.show(w);
-    roomLight.listen = w.displays > 0;                 // a display blinks on the beat: the stage tells the beats
   }
   function wearPressed(on) {
     wearCard.pressed();

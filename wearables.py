@@ -1,11 +1,11 @@
-"""Devices worn on the body that speak Dream's own small protocol (#277): an M5Stack StickS3 on the wrist (its motion
-sensor's raw data, its button as the dance's clutch) and an M5Stack ATOM Matrix as a display (the clutch and the beat).
-The firmware is in `firmware/` (PlatformIO, M5Unified).
+"""Devices worn on the body that speak Dream's own small protocol (#277): an M5Stack StickS3 on the wrist – its motion
+sensor's raw data, and (optionally) its button as the dance's clutch. The firmware is in `firmware/` (PlatformIO,
+M5Unified).
 
 The protocol is OSC over UDP on the sensor port (DREAM_SENSOR_PORT, inputs.py), every address under /dream/wear/:
 
   device → Dream
-    /dream/wear/hello  s id, s kind ("sticks3" | "matrix"), s token ("" until paired), i battery % (-1: unknown), s firmware
+    /dream/wear/hello  s id, s kind ("sticks3"), s token ("" until paired), i battery % (-1: unknown), s firmware
                        once a second – it says the device is there and asks for the state
     /dream/wear/imu    s id, i milliseconds (the device's clock), f ax, f ay, f az (g), f gx, f gy, f gz (degrees a second)
                        50–100 times a second
@@ -14,7 +14,6 @@ The protocol is OSC over UDP on the sensor port (DREAM_SENSOR_PORT, inputs.py), 
   Dream → device (to the address and port the device sent from)
     /dream/wear/state  i clutch (0 | 1), i paired (0 | 1), i seq (the last clutch seq Dream took from that device)
     /dream/wear/pair   s token – once the owner allowed the device in the panel; the device keeps it (NVS)
-    /dream/wear/beat   f strength 0…1 – to the displays, the moment the stage hears a beat
 
 Rights: only senders in the home network are heard (inputs.py, net.home_address). The motion is taken from every such
 sender, like any OSC sensor (it moves nothing by itself: the mode's table and the clutch decide). The clutch is taken
@@ -24,8 +23,7 @@ folder (0600, never in a page, a log or the repository) and compared in constant
 home network, or a device that only knows another's id, never moves the clutch (fail closed). `revoke` takes it back.
 
 A device that sends nothing for GONE seconds is gone: the panel says so, and the clutch stays exactly as it was (the
-dancer's last word stands; the panel, a MIDI button or key K still change it). A display needs no pairing: it only
-shows the clutch and the beat.
+dancer's last word stands; the panel, a MIDI button or key K still change it).
 
 Dream announces the port over mDNS as `_dream-osc._udp` (only with --lan, when the port listens in the home network),
 with the system's own responder (`dns-sd` on macOS, `avahi-publish-service` on Linux); a device that does not find it
@@ -44,15 +42,14 @@ import time
 import paths
 
 PREFIX = "/dream/wear/"
-KINDS = ("sticks3", "matrix")
+KINDS = ("sticks3",)             # the kind a hello names (one today; the field leaves room for others)
 LOW_BATTERY = 15                 # % – the panel warns from here on
-NAMES = {"sticks3": "StickS3", "matrix": "ATOM Matrix"}
+NAMES = {"sticks3": "StickS3"}
 PAIR_WINDOW = 30.0               # seconds after "allow" the token is sent again (only to where the device was then)
 GONE = 3.0                       # seconds without a packet: the device is gone (it says hello every second)
 FORGET = 60.0                    # … and an unpaired device leaves the list after this long
 MAX_DEVICES = 8
 G = 9.80665                      # the device reports acceleration in g, the sensor input takes m/s²
-BEAT_EVERY = 0.08                # seconds: at most about twelve beats a second to a display
 SERVICE = "_dream-osc._udp"
 ID = re.compile(r"[0-9a-f]{12}")
 TOKEN = re.compile(r"[0-9a-f]{32}")
@@ -117,7 +114,6 @@ class Device:
         self.dev_t = None                # its clock (ms) in the last motion packet …
         self.offset = None               # … and how far behind the wall clock that is (s): the samples keep its spacing
         self.n, self.rate, self.since = 0, 0.0, now
-        self.beat_at = -1e9
 
     @property
     def name(self) -> str:
@@ -274,23 +270,10 @@ class Wearables:
             if self.live(dev, now):
                 self.tell(dev)
 
-    def beat(self, v, now: float | None = None) -> None:
-        """The stage heard a beat: the displays blink with it."""
-        if not _num(v) or v <= 0:
-            return
-        now = time.monotonic() if now is None else now
-        for dev in list(self.devices.values()):
-            if dev.kind == "matrix" and self.live(dev, now) and now - dev.beat_at >= BEAT_EVERY:
-                dev.beat_at = now
-                self.send(dev, "beat", float(min(1.0, v)))
-
     # ---------- what the panel shows ----------
     def live(self, dev: Device, now: float | None = None) -> bool:
         now = time.monotonic() if now is None else now
         return now - dev.at < GONE
-
-    def displays(self, now: float | None = None) -> int:
-        return sum(1 for d in self.devices.values() if d.kind == "matrix" and self.live(d, now))
 
     def sweep(self, now: float) -> None:
         for k in [k for k, d in self.devices.items() if k not in self.paired and now - d.at > FORGET]:
@@ -319,8 +302,7 @@ class Wearables:
 
     def msg(self, port: int, lan: bool, now: float | None = None) -> dict:
         """lan: whether the port listens in the home network at all (dream.sh --lan)."""
-        return {"wear": {"devices": self.listing(now), "port": port, "lan": bool(lan), "advert": advert["on"],
-                         "displays": self.displays(now)}}
+        return {"wear": {"devices": self.listing(now), "port": port, "lan": bool(lan), "advert": advert["on"]}}
 
 
 # ---------- mDNS: Dream's sensor port in the home network ----------

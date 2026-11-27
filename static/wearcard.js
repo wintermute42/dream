@@ -1,7 +1,6 @@
 /* Dream – the worn devices in the panel (#277): a StickS3 on the wrist (its motion goes into the sensor input, its
-   button is the dance's clutch) and an ATOM Matrix as a display (the clutch and the beat). One line per device – what
-   it is, whether it is there, how many values a second, its battery – and for a StickS3 the owner's word: "Allow the
-   clutch" (once; Dream gives the device a token it keeps) or "Revoke". Under the clutch's button a line says whether
+   button – optionally – is the dance's clutch). One line per device – what it is, whether it is there, how many values
+   a second, its battery, its last press – and the owner's word: "Allow the clutch" (once; Dream gives the device a token it keeps) or "Revoke". Under the clutch's button a line says whether
    the wrist can move the clutch right now, and that a device that is gone leaves the clutch as it was.
    Dream (wearables.py) does the rest; the page never learns a token or an address.
 
@@ -13,10 +12,6 @@
 (function (root) {
   'use strict';
   const T = (text, vars) => (root.I18N ? root.I18N.t(text, vars) : vars ? text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m)) : text);
-  // tables of words are Maps, read through `pick`: a word that came over the connection never reaches an object's own properties
-  const pick = (table, key, otherwise = '') => { const f = table.get(key); return typeof f === 'function' ? f() : otherwise; };
-  const ICONS = new Map([['sticks3', () => '⌚'], ['matrix', () => '▦']]);
-  const ROLES = new Map([['sticks3', () => T('on the wrist: motion and the clutch')], ['matrix', () => T('display: the clutch and the beat')]]);
   const clean = v => (Number.isFinite(+v) ? +v : 0);
 
   const battery = (b, low) => (Number.isFinite(b) && b >= 0 ? T('battery {p} %', { p: Math.round(b) }) + (low ? ' ⚠' : '') : '');   // low: Dream's word
@@ -29,31 +24,29 @@
     return T('Last press: {c}, {t} ago', { c: last.on ? T('engaged') : T('released'), t: s < 90 ? T('{n} s', { n: s }) : T('{n} min', { n: Math.round(s / 60) }) });
   }
 
-  // what each device's line says and offers: devices – the list of Dream (wearables.Wearables.listing)
+  // what each device's line says and offers: devices – the list of Dream (wearables.Wearables.listing); a kind the
+  // panel does not know is not shown
   function items(devices) {
-    return (Array.isArray(devices) ? devices : []).filter(d => d && typeof d.id === 'string').map(d => {
-      const stick = d.kind === 'sticks3', parts = [];
+    return (Array.isArray(devices) ? devices : []).filter(d => d && typeof d.id === 'string' && d.kind === 'sticks3').map(d => {
+      const parts = [];
       if (d.live) {
-        if (stick) parts.push(T('{n} values/s', { n: Math.round(clean(d.rate)) }));
+        parts.push(T('{n} values/s', { n: Math.round(clean(d.rate)) }));
         const b = battery(d.battery, d.low); if (b) parts.push(b);
       } else parts.push(ago(d.seen));
-      let note = '', action = null, warn = !!(d.live && d.low);
-      if (stick) {
-        if (!d.paired) {
-          action = d.live ? 'allow' : null;
-          note = d.refused > 0 ? T('Its button was pressed {n}× – not allowed yet, the clutch did not move.', { n: d.refused })
-            : T('Its motion counts; its button moves the clutch only once you allow it.');
-          warn = warn || d.refused > 0;
-        } else {
-          action = 'revoke';
-          note = !d.live ? T('Gone – the clutch stays as it was.') : d.ready ? T('Its button engages and releases the clutch.')
-            : d.waiting ? T('Allowed – waiting for the device to confirm …') : T('The device did not get its key – revoke and allow it again.');
-          warn = warn || (d.live && !d.ready && !d.waiting);
-          warn = warn || !d.live;
-        }
+      let note, action, warn = !!(d.live && d.low);
+      if (!d.paired) {
+        action = d.live ? 'allow' : null;
+        note = d.refused > 0 ? T('Its button was pressed {n}× – not allowed yet, the clutch did not move.', { n: d.refused })
+          : T('Its motion counts; its button moves the clutch only once you allow it.');
+        warn = warn || d.refused > 0;
+      } else {
+        action = 'revoke';
+        note = !d.live ? T('Gone – the clutch stays as it was.') : d.ready ? T('Its button engages and releases the clutch.')
+          : d.waiting ? T('Allowed – waiting for the device to confirm …') : T('The device did not get its key – revoke and allow it again.');
+        warn = warn || !d.live || (!d.ready && !d.waiting);
       }
-      return { id: d.id, kind: stick ? 'sticks3' : 'matrix', icon: pick(ICONS, d.kind, '•'), name: String(d.name || d.id).slice(0, 40),
-        role: pick(ROLES, d.kind), live: !!d.live, state: parts.join(' · '), note, action, warn, last: stick ? lastText(d.last) : '' };
+      return { id: d.id, kind: 'sticks3', icon: '⌚', name: String(d.name || d.id).slice(0, 40), role: T('on the wrist: motion and the clutch'),
+        live: !!d.live, state: parts.join(' · '), note, action, warn, last: lastText(d.last) };
     });
   }
 

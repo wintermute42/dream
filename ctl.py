@@ -141,8 +141,6 @@ async def ctl(sock: WebSocket):
                     continue                           # and none of a guest's allowance spent (#237: the second phone)
             if "led" in msg and kind == "stage":       # #212: the colour of what the audience sees, a beat, a flash
                 roomlight.take(msg["led"])
-                if isinstance(msg["led"], dict):       # #277: … and the beat blinks on the worn displays
-                    inputs.wear.beat(msg["led"].get("beat"))
                 if len(msg) == 1:                      # about a dozen times a second: nothing else to read in it
                     continue
             if msg.get("wled_find") is True and rights.can(hub.roles.get(sock), "control") and (   # #212: WLED devices

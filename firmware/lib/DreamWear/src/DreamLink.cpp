@@ -32,7 +32,7 @@ bool isHex(const char* s, size_t n) {
 }
 }  // namespace
 
-void Link::begin(const char* kind, bool setup, void (*showSetup)(const SetupInfo&), bool password) {
+void Link::begin(const char* kind, bool setup, void (*showSetup)(const SetupInfo&)) {
   kind_ = kind;
   uint64_t mac = ESP.getEfuseMac();
   for (int k = 0; k < 6; k++) snprintf(id_ + 2 * k, 3, "%02x", static_cast<unsigned>((mac >> (8 * k)) & 0xff));
@@ -51,9 +51,9 @@ void Link::begin(const char* kind, bool setup, void (*showSetup)(const SetupInfo
   wm.addParameter(hostParam);
   wm.setSaveParamsCallback(onSave);
   char ap[32], pass[12] = "";
-  snprintf(ap, sizeof(ap), "Dream-%s-%s", strcmp(kind, "matrix") == 0 ? "Matrix" : "StickS3", shortId());
+  snprintf(ap, sizeof(ap), "Dream-StickS3-%s", shortId());
   for (char* c = ap; *c; c++) *c = (*c >= 'a' && *c <= 'f') ? *c - 32 : *c;
-  if (password) snprintf(pass, sizeof(pass), "%08lu", static_cast<unsigned long>(esp_random() % 100000000UL));
+  snprintf(pass, sizeof(pass), "%08lu", static_cast<unsigned long>(esp_random() % 100000000UL));
   static SetupInfo info;
   info = {ap, pass, "192.168.4.1"};
   static void (*show)(const SetupInfo&) = nullptr;
@@ -65,7 +65,7 @@ void Link::begin(const char* kind, bool setup, void (*showSetup)(const SetupInfo
   bool ok = false;
   if (setup || !wm.getWiFiIsSaved()) {
     phase_ = Phase::Setup;
-    ok = wm.startConfigPortal(ap, password ? pass : nullptr);
+    ok = wm.startConfigPortal(ap, pass);
     setupUnfinished_ = !ok;
   } else {
     WiFi.begin();
@@ -156,9 +156,6 @@ void Link::receive(uint32_t now) {
         prefs.putString("token", token_);
       }
       helloAt_ = 0;                                          // tell Dream at once that it arrived
-    } else if (strcmp(what, "beat") == 0 && m.count >= 1) {
-      float b = dream_osc::number(m, 0);
-      if (b > beat_) beat_ = b > 1 ? 1 : b;
     }
   }
 }

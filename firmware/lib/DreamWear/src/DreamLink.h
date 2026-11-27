@@ -14,16 +14,16 @@ enum class Phase { Setup, WiFi, Looking, Linked };
 
 struct SetupInfo {          // what the device shows while its setup hotspot is open
   const char* ap;           // the hotspot's name
-  const char* password;     // its password ("" for an open hotspot)
+  const char* password;     // its password, made up at each start of the setup
   const char* address;      // where the setup page is
 };
 
 class Link {
  public:
-  // kind: "sticks3" | "matrix". setup: open the setup hotspot now (a button held at start). showSetup: called before
-  // the hotspot opens (it blocks until the setup is done or SETUP_SECONDS passed). password: true – the hotspot gets a
-  // random password the device shows; false – an open hotspot (a device without a display).
-  void begin(const char* kind, bool setup, void (*showSetup)(const SetupInfo&), bool password);
+  // kind: "sticks3" (what the hello says). setup: open the setup hotspot now (a button held at start). showSetup:
+  // called before the hotspot opens (it blocks until the setup is done or SETUP_SECONDS passed) – the hotspot has a
+  // random password the device shows there.
+  void begin(const char* kind, bool setup, void (*showSetup)(const SetupInfo&));
   void loop(uint32_t now);                    // call often: Wi-Fi, finding Dream, the answers
 
   Phase phase() const { return phase_; }
@@ -35,7 +35,6 @@ class Link {
   bool clutch() const { return clutch_; }
   bool paired() const { return paired_; }
   uint32_t acked() const { return ack_; }
-  float takeBeat() { float b = beat_; beat_ = 0; return b; }    // the strongest beat since the last call
 
   void battery(int percent) { battery_ = percent; }   // told in the hello the loop sends once a second (-1: unknown)
   void imu(uint32_t ms, float ax, float ay, float az, float gx, float gy, float gz);
@@ -65,7 +64,6 @@ class Link {
   int battery_ = -1;
   bool clutch_ = false, paired_ = false, setupUnfinished_ = false;
   uint32_t ack_ = 0;
-  float beat_ = 0;
   uint8_t out_[128];
   uint8_t in_[256];
 };
