@@ -1,7 +1,10 @@
 // Dream on the wrist (#277): an M5Stack StickS3 sends its motion sensor's raw values to Dream and is the dance's clutch.
 //
-// Nothing needs doing on the device: switched on, it connects to the known Wi-Fi and to Dream by itself and sends its
-// motion; after a drop it comes back by itself (it may sit in a band where nobody sees or presses it).
+// Nothing needs doing on the device: switched on, it finds its USB receiver on the Mac by radio (#278: ESP-NOW) – or,
+// when no receiver answers, the known Wi-Fi and Dream – by itself and sends its motion; after a drop it comes back by
+// itself (it may sit in a band where nobody sees or presses it).
+//   Pairing with a receiver (once): hold the receiver's button 2 s (its LED blinks white), then switch the stick on
+//     near it – two rising tones and "paired" on the screen.
 //   Button A (the big one on the front, optional): the clutch in or out – only once the owner allowed this device in
 //     Dream's panel. Heard: two rising tones = engaged, two falling = released, a low buzz = Dream did not confirm (or
 //     the device is not allowed). The screen shows what Dream confirmed, "?" while Dream has not answered.
@@ -32,7 +35,7 @@ const uint32_t IDLE_OFF_MS = 30UL * 60 * 1000;
 const uint8_t BRIGHT = 90, DIM = 12;
 
 uint32_t imuAt = 0, stillSince = 0, seq = 0, pressAt = 0, sentAt = 0, brightAt = 0, contactAt = 0, battAt = 0, drawnAt = 0;
-bool pending = false, want = false, refusedFlash = false;
+bool pending = false, want = false, refusedFlash = false, pairedTones = false;
 
 // the sounds of a press (the device is often worn where its screen is not seen)
 void beep(bool engaged) {                    // two rising tones: engaged; two falling: released
@@ -43,7 +46,7 @@ void beep(bool engaged) {                    // two rising tones: engaged; two f
 void buzz() { M5.Speaker.tone(196, 350); }   // low: Dream did not confirm, or this device is not allowed
 int battery = -1;
 
-enum class Shown { None, Setup, WiFi, Looking, Unknown, Engaged, Released, NotAllowed };
+enum class Shown { None, Setup, WiFi, Looking, Receiver, Unknown, Engaged, Released, NotAllowed };
 Shown shown = Shown::None;
 int shownBattery = -2;
 bool shownPending = false;
@@ -82,7 +85,9 @@ void drawBattery(int pct) {
 // the whole screen for a state: a big sign in the middle, a word under it, the link and the battery at the top
 void draw(Shown s, uint32_t now) {
   auto& d = M5.Display;
-  if (s != shown || pending != shownPending) {
+  static dream::Via shownVia = dream::Via::Radio;
+  if (s != shown || pending != shownPending || dreamLink.via() != shownVia) {
+    shownVia = dreamLink.via();
     shown = s;
     shownPending = pending;
     d.fillScreen(TFT_BLACK);
@@ -96,10 +101,11 @@ void draw(Shown s, uint32_t now) {
       case Shown::Unknown: c = rgb(255, 180, 84); word = "no answer"; break;
       case Shown::Looking: c = rgb(199, 139, 255); word = "looking for Dream"; break;
       case Shown::WiFi: c = rgb(255, 107, 125); word = "no Wi-Fi"; break;
+      case Shown::Receiver: c = rgb(199, 139, 255); word = "looking for receiver"; break;
       default: c = TFT_WHITE; word = ""; break;
     }
     d.setTextDatum(middle_center);
-    if (s == Shown::Unknown || s == Shown::Looking || s == Shown::WiFi) {
+    if (s == Shown::Unknown || s == Shown::Looking || s == Shown::WiFi || s == Shown::Receiver) {
       d.setFont(&fonts::Font4);
       d.setTextColor(c, TFT_BLACK);
       d.setTextSize(2);
@@ -115,6 +121,8 @@ void draw(Shown s, uint32_t now) {
     d.setTextDatum(middle_left);
     d.setTextColor(rgb(185, 177, 207), TFT_BLACK);
     d.drawString(dreamLink.shortId(), 20, 12);
+    // #278: which way the packets go – "radio" (the USB receiver) or "Wi-Fi"
+    d.drawString(dreamLink.via() == dream::Via::Radio ? "radio" : "Wi-Fi", 62, 12);
     shownBattery = -2;
     brightAt = now;
   }
@@ -126,6 +134,7 @@ Shown wanted(uint32_t now) {
     case dream::Phase::Setup: return Shown::Setup;
     case dream::Phase::WiFi: return Shown::WiFi;
     case dream::Phase::Looking: return Shown::Looking;
+    case dream::Phase::Receiver: return Shown::Receiver;
     default: break;
   }
   if (!dreamLink.fresh(now)) return Shown::Unknown;
@@ -150,10 +159,24 @@ void setup() {
   M5.Display.setBrightness(BRIGHT);
   M5.Display.fillScreen(TFT_BLACK);
   M5.Speaker.setVolume(160);
+  M5.Speaker.begin();                        // now, not lazily at the first tone: waking the codec swallowed the pairing tones
   M5.update();
+  M5.Display.setTextDatum(middle_center);    // the first seconds: the call for a receiver (#278), then the link
+  M5.Display.setFont(&fonts::Font2);
+  M5.Display.setTextColor(rgb(199, 139, 255), TFT_BLACK);
+  M5.Display.drawString("starting ...", M5.Display.width() / 2, M5.Display.height() / 2);
   bool setupNow = M5.BtnB.isPressed();       // B held while switching on: the Wi-Fi setup
   dreamLink.begin("sticks3", setupNow, showSetup);
   if (dreamLink.setupUnfinished()) M5.Power.powerOff();   // the setup timed out: off, the battery keeps
+  if (dreamLink.justPaired()) {              // #278: paired with a receiver just now – heard, and said on the screen
+    M5.Display.fillScreen(TFT_BLACK);
+    M5.Display.setTextDatum(middle_center);
+    M5.Display.setFont(&fonts::Font4);
+    M5.Display.setTextColor(rgb(127, 227, 160), TFT_BLACK);
+    M5.Display.drawString("paired", M5.Display.width() / 2, M5.Display.height() / 2);
+    pairedTones = true;                      // heard from the first loop on: in the setup they stayed silent
+    delay(900);
+  }
   contactAt = millis();
   seq = esp_random() & 0xffff;               // a press after a restart never looks like one Dream already took
 }
@@ -161,6 +184,7 @@ void setup() {
 void loop() {
   M5.update();
   const uint32_t now = millis();
+  if (pairedTones) { pairedTones = false; beep(true); }   // #278: the pairing, heard
   dreamLink.loop(now);
 
   if (now - battAt > 10000 || battAt == 0) {

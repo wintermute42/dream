@@ -2223,8 +2223,10 @@ Ein **M5Stack StickS3** am Handgelenk schickt die Rohdaten seines Bewegungssenso
 Handy. **Getragen braucht er keinen Handgriff:** Eingeschaltet verbindet er sich von selbst mit dem bekannten WLAN und
 mit Dream, sendet und kommt nach einem Abbruch von selbst wieder – er kann in einem einfachen Band stecken, wo man sein
 Display nicht sieht und seine Tasten nicht drückt. Wahlweise ist sein großer Knopf die **Kupplung** von Dream Dance,
-mit Tönen, die sagen, was Dream bestätigt hat. Die Firmware liegt in diesem Repository (`firmware/`); ein Befehl
-spielt sie auf den Stick.
+mit Tönen, die sagen, was Dream bestätigt hat. Mit einem **M5Stack AtomS3 Lite** am USB des Macs als Empfänger (#278)
+schickt der Stick **per Funk direkt an den Mac** (ESP-NOW) statt durchs WLAN – schnell und stabil auch bei vollem oder
+gestörtem WLAN; ohne Empfänger fällt er von selbst aufs WLAN zurück. Die Firmware beider liegt in diesem Repository
+(`firmware/`); ein Befehl spielt sie auf ein Gerät.
 
 ### Was du brauchst
 
@@ -2235,12 +2237,23 @@ spielt sie auf den Stick.
   Stick-Reihe. Es darf beim Schwingen des Arms nicht rutschen (mit Feuer: siehe den Sicherheitshinweis bei
   [Flowtrack](#flowtrack)).
 - Ein USB-C-**Datenkabel** zum Aufspielen vom Mac aus.
+- Wahlweise, für den Funk direkt zum Mac (#278): ein **M5Stack AtomS3 Lite** (ESP32-S3, ein Knopf, ein RGB-Licht,
+  USB-C, etwa 24 × 24 mm) – er bleibt am Mac angesteckt (direkt oder mit kurzem Kabel, am besten dort, wo er die
+  Tanzfläche „sieht“).
 
 ### Aufspielen (ein Befehl)
 
 ```bash
 firmware/flash.sh sticks3            # der StickS3 per USB-C angesteckt
+firmware/flash.sh atoms3-receiver    # der AtomS3 Lite, der USB-Empfänger (#278)
 ```
+
+**Einer nach dem anderen:** Beide sind ESP32-S3-Boards mit denselben USB-Kennungen, das Skript kann sie am USB nicht
+unterscheiden. Es braucht immer den Namen des Geräts, und sind zwei solche Boards angesteckt, spielt es nichts auf
+(Rückgabe 4, mit einer klaren Zeile), außer du nennst den Port mit `--port` (`firmware/flash.sh --list` zeigt sie). Also:
+nur das eine anstecken, aufspielen, dann das andere. Während es aufspielt, lässt ein laufendes Dream seine USB-Ports los
+(das Skript legt eine Notiz `flashing` in Dreams State-Ordner) – Dream muss nicht beendet werden und findet den Empfänger
+danach von selbst wieder.
 
 Das Skript macht alles selbst und fragt nichts: Es installiert [PlatformIO](https://platformio.org) mit
 `uv tool install platformio`, falls es fehlt, findet den Stick an seinen USB-Kennungen, baut die Firmware (jede
@@ -2249,14 +2262,17 @@ mit einer klaren Zeile – „Done: … has the new firmware.“ oder was schief
 bitten: „Spiel die Firmware auf den Stick.“
 
 - `firmware/flash.sh --list` zeigt die gerade angesteckten Boards (und welche Firmware zu welchem passt).
-- `firmware/flash.sh sticks3 --port /dev/cu.usbmodem1101` nimmt diesen Port, statt zu suchen (mehrere Sticks
+- `firmware/flash.sh sticks3 --port /dev/cu.usbmodem1101` nimmt diesen Port, statt zu suchen (mehrere Boards
   angesteckt).
-- Rückgabewerte: 0 fertig · 1 Bauen oder Aufspielen gescheitert (zweimal) · 2 falscher Aufruf · 3 kein Stick gefunden
-  · 4 mehrere gefunden (einen mit `--port` wählen) · 5 PlatformIO fehlt und ließ sich nicht installieren.
+- Rückgabewerte: 0 fertig · 1 Bauen oder Aufspielen gescheitert (zweimal) · 2 falscher Aufruf · 3 kein solches Board
+  gefunden · 4 mehrere gefunden (eins mit `--port` wählen) · 5 PlatformIO fehlt und ließ sich nicht installieren.
 
 Wird der Stick nicht gefunden oder scheitert das Aufspielen: seinen **Ein-/Aus-Knopf** (seitlich) etwa zwei Sekunden
-halten, bis das grüne Licht innen blinkt (Download-Modus), dann den Befehl wiederholen. `pio device monitor` zeigt, was
-der Stick beim Laufen schreibt.
+halten, bis das grüne Licht innen blinkt (Download-Modus), dann den Befehl wiederholen. Der AtomS3 Lite: seinen Knopf
+(die ganze Oberseite ist der Knopf) beim Anstecken halten. `pio device monitor` zeigt, was ein Board beim Laufen schreibt
+(beim Empfänger vorher Dream beenden: Solange Dream läuft, gehört sein Port Dream). Bei einem Funkproblem mit `PLATFORMIO_BUILD_FLAGS=-DDREAM_RADIO_LOG`
+vor dem Befehl flashen: Der Stick schreibt dann alle zwei Sekunden, was er gesendet und empfangen hat, der Empfänger eine
+Zeile `# radio …` mit dem, was bei ihm ankam (Dream übergeht diese Zeilen).
 
 ### WLAN einrichten (kein WLAN-Passwort im Code)
 
@@ -2289,6 +2305,63 @@ Die Bewegung eines StickS3 zählt sofort (wie jeder Sensor im Heimnetz, als Quel
    Sagt die Zeile, der Stick habe seinen Schlüssel nicht bekommen (er war eine halbe Minute nicht erreichbar):
    zurücknehmen und neu erlauben.
 3. **Zurücknehmen** nimmt es zurück (jederzeit wieder erlaubbar; ein neu bespielter Stick braucht die Erlaubnis neu).
+
+### Der USB-Empfänger: Funk direkt zum Mac (AtomS3 Lite, #278)
+
+Der AtomS3 Lite am USB des Macs nimmt die Pakete des Sticks per Funk an (**ESP-NOW**: vom Handgelenk direkt zum Mac,
+kein Router, kein WLAN dazwischen) und reicht sie über seine USB-Leitung an Dream weiter. Dream findet ihn von selbst
+(keine Einstellung, kein `--lan` nötig dafür) und gibt die Pakete in denselben Weg wie übers WLAN: dieselbe Bewegung,
+dieselbe Kupplung, dieselbe Zeile im Bedienfeld. Die **Verzögerung** steht in der Zeile („per Funk · 50 Werte/s ·
+≈ 3 ms“) – Ziel ist unter 10 ms; übers WLAN sind es oft 5–50 ms, und sie springt, wenn das WLAN voll ist.
+
+**Einrichten (einmal):**
+
+1. Beide aufspielen, nacheinander (oben): `firmware/flash.sh atoms3-receiver`, dann `firmware/flash.sh sticks3`.
+2. Den AtomS3 Lite an den Mac stecken und Dream starten (oder laufen lassen). Im Bedienfeld unter **Steuerung →
+   Getragene Geräte** erscheint eine Zeile „📡 AtomS3 receiver …“, sein Licht wird **rot** (noch kein Armband).
+3. **Koppeln** – blind, am Stick nichts zu drücken: den Knopf des Empfängers **2 Sekunden** halten (sein Licht blinkt
+   weiß; oder im Bedienfeld **Armband koppeln** klicken), dann den **StickS3 einschalten**, nahe am Empfänger, innerhalb
+   von 30 Sekunden. Bei jedem Start fragt der Stick zuerst auf allen Kanälen, ob ein Empfänger auf ihn wartet (etwa
+   zwei Sekunden); der Empfänger gibt ihm einen eigenen Schlüssel und blinkt **dreimal grün**, der Stick spielt zwei
+   steigende Töne und zeigt „paired“. Seine Bewegung zählt sofort, und weil du den Knopf des Empfängers gedrückt hast –
+   das Wort des Besitzers, wie das Erlauben im Bedienfeld –, ist sein Knopf sofort die Kupplung (**Zurücknehmen** im
+   Bedienfeld nimmt das zurück wie bei jedem Stick).
+4. Fertig: Ab jetzt findet der Stick seinen Empfänger bei jedem Start von selbst.
+
+**Das Licht des Empfängers:** **grün** = ein Armband ist per Funk da und die Kupplung **eingelegt** · **blau** = da,
+Kupplung **gelöst** · **rot** = kein Armband (per Funk) · **gelb** = Dream hört nicht zu (läuft nicht) · **weiß
+blinkend** = Koppeln (30 s). Dreimal grün geblitzt: gekoppelt; dreimal rot: alle vergessen.
+
+**Der Knopf des Empfängers:** kurz gedrückt schaltet er die **Kupplung** um – wie Taste K, ein MIDI-Knopf oder das
+Handy (ein kurzes weißes Blitzen sagt, dass es bei Dream ankam; zweimal gelb: Dream hört nicht zu, nichts geändert).
+Das Bedienfeld zeigt „📡 Kupplung am Empfänger eingelegt“. 2 s gehalten: Koppeln. 10 s gehalten: **alle gekoppelten
+Armbänder werden vergessen**.
+
+**Zurück aufs WLAN:** Bekommt der Stick keine Antwort von seinem Empfänger (abgesteckt, Mac schläft, außer Reichweite),
+sucht er ihn einmal auf allen Kanälen (etwa zwei Sekunden) und geht dann wie bisher ins WLAN (wenn eins eingerichtet
+ist) – die Zeile im Bedienfeld sagt „über WLAN“. Ist der Empfänger wieder da, sagt Dream es dem Stick übers WLAN, und er
+wechselt von selbst auf Funk (ein Stick, der ihn nicht erreicht, wartet eine Minute, bevor er es wieder versucht, nach
+jedem weiteren Fehlschlag doppelt so lange – so wird er nicht immer wieder aus dem WLAN geholt); ist er eine halbe
+Minute im WLAN ohne Dream, versucht er es auch selbst wieder beim Empfänger. Ein Stick, der seinen Empfänger kennt, aber kein WLAN, sucht einfach weiter den Empfänger. Zu drücken ist
+in keinem Fall etwas.
+
+**Der Kanal:** Der Empfänger ist nie in einem WLAN, er bleibt auf einem festen Funkkanal – **1**, außer du setzt
+`DREAM_ESPNOW_CHANNEL=6` (1 … 13) in `~/.config/dream/dream.env`; Dream sagt es dem Empfänger. Ein Stick auf Funk ist
+auch nicht im WLAN (ein Funkteil, ein Kanal zur Zeit), lernt den Kanal beim Koppeln und findet einen geänderten Kanal
+von selbst. Wähle einen abseits deines WLANs (die Einstellungen des Routers zeigen es; WLAN auf 1: nimm 6 oder 11, auf
+6: nimm 1 oder 11) – der Funk geht auf jedem, aber je weniger dort los ist, desto stabiler. **WLED** (#212) und die
+Hue-Lampen sind nicht betroffen: Sie bleiben im WLAN, Dream spricht mit ihnen wie bisher.
+
+**Sicherheit:** Gehört werden nur Sticks, die mit dem Empfänger gekoppelt sind – der Empfänger führt seine eigene Liste
+(höchstens sechs; ein siebter verdrängt den am längsten gekoppelten) und verwirft jedes andere Paket, Dream prüft es noch
+einmal und dass ein Paket den Stick nennt, von dem es kam. Alles zwischen einem Stick und dem Empfänger ist
+**verschlüsselt**, mit einem eigenen Schlüssel dieses Sticks (beim Koppeln zufällig erzeugt; er geht einmal, im
+30-Sekunden-Fenster, unverschlüsselt vom Empfänger zum Stick). Die Kupplung braucht weiterhin das Token des Sticks aus
+#277. Dem Empfänger selbst wird vertraut, weil er am USB des Macs steckt, wie Taste K.
+
+**Akku:** Auf Funk hört der Empfangsteil des Sticks ständig zu (ESP-NOW kann zwischen den Paketen nicht schlafen wie das
+WLAN im Modem-Schlaf), der Akku hält deshalb womöglich **kürzer als übers WLAN** – noch nicht gemessen; das Bedienfeld
+zeigt den Akku.
 
 ### Anlegen und benutzen
 
@@ -2335,11 +2408,16 @@ späterer Schritt.
 
 ### Das Protokoll (für eigene Geräte)
 
-OSC über UDP an den Sensor-Port, alles unter `/dream/wear/` (`wearables.py` beschreibt es vollständig): Ein Gerät
+OSC über UDP an den Sensor-Port – oder per Funk über den USB-Empfänger (#278: dieselben Pakete; `receiver.py` und
+`firmware/lib/DreamRadio/src/DreamRadio.h` beschreiben die Funkrahmen und die serielle Leitung des Empfängers) –, alles
+unter `/dream/wear/` (`wearables.py` beschreibt es vollständig): Ein Gerät
 schickt `hello` einmal pro Sekunde (Kennung, Art, sein Schlüssel, Akku, Firmware), `imu` 50–100-mal pro Sekunde
 (Kennung, seine Uhr in ms, Beschleunigung in g, Drehrate in °/s) und `clutch` bei einem Druck (Kennung, Schlüssel, der
 gewünschte Zustand, eine Nummer – wiederholt, bis Dream antwortet). Dream antwortet mit `state` (Kupplung, erlaubt, die
-übernommene Nummer) an die Adresse, von der es kam, und mit `pair` (dem Schlüssel), sobald du es erlaubt hast.
+übernommene Nummer) an die Adresse, von der es kam, und mit `pair` (dem Schlüssel), sobald du es erlaubt hast. #278:
+Dream schickt einmal pro Sekunde `ping` (eine Nummer), das Gerät antwortet sofort `pong` (Kennung, diese Nummer) – die
+Hälfte dieses Wegs ist die Verzögerung im Bedienfeld; an einen Stick im WLAN, dessen Empfänger angesteckt ist, `radio`
+(der Kanal).
 
 ### Wenn etwas nicht geht
 
@@ -2358,6 +2436,18 @@ gewünschte Zustand, eine Nummer – wiederholt, bis Dream antwortet). Dream ant
   einen mit `--port` nennen.
 - **Das Aufspielen scheitert zweimal (Rückgabe 1):** Ein anderes Programm hält den USB-Port (seriellen Monitor
   schließen), dann der Download-Modus oben.
+- **Zwei Boards angesteckt (Rückgabe 4, „the same ids“):** StickS3 und AtomS3 Lite sehen am USB gleich aus – das
+  abstecken, das nicht bespielt werden soll, oder den Port mit `--port` nennen.
+- **Der Empfänger erscheint nicht im Bedienfeld:** ein Datenkabel? Sein Licht **gelb** heißt: Dream hört ihm nicht zu –
+  Dream hört nach wenigen Sekunden zu, sobald eine Seite offen ist (sein Sensor-Teil startet mit dem ersten Bedienfeld
+  oder Dream Control); bleibt es gelb: neu anstecken. Ein anderes Programm, das seinen Port hält (ein serieller
+  Monitor), sperrt Dream aus.
+- **Das Licht des Empfängers bleibt rot, der Stick zeigt „looking for receiver“ oder läuft „über WLAN“:** nicht mit
+  diesem Empfänger gekoppelt (koppeln: Knopf 2 s halten, dann den Stick daneben einschalten), zu weit weg, oder gerade
+  wurde der Kanal geändert (der Stick findet ihn in Sekunden). Den Empfänger höher setzen (USB-Verlängerung) hilft durch
+  Körper und Wände.
+- **Die Verzögerung im Bedienfeld ist über Funk hoch** (deutlich über 10 ms): ein anderer Funk auf demselben Kanal –
+  mit `DREAM_ESPNOW_CHANNEL` einen anderen wählen.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2747,7 +2837,8 @@ darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlis
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
 `weight` einer Einstellung), ihre bewegten Zeichen und die Form des Bildcharakters `static/signs.js`. Die getragenen
-Geräte (#277) sind `wearables.py` (das Protokoll, das Koppeln, die Antworten) und `static/wearcard.js` (ihre Zeilen im
+Geräte (#277) sind `wearables.py` (das Protokoll, das Koppeln, die Antworten), `receiver.py` (#278: der USB-Empfänger –
+ihn finden, seine serielle Leitung, sein Licht) und `static/wearcard.js` (ihre Zeilen im
 Bedienfeld), ihre Firmware liegt in `firmware/`.
 
 **Getragene Geräte (#277):** `tests/test_wearables.py` spielt einen nachgebauten StickS3 – OSC-Pakete,
@@ -2765,9 +2856,20 @@ kein Gerät, kein Netz.
 `tests/test_firmware_osc.py` übersetzt das OSC der Firmware (`firmware/lib/DreamWear/src/DreamOsc.h`) für diesen
 Rechner und prüft es in beide Richtungen gegen python-osc (ohne C++-Compiler übersprungen). `node --test
 tests/js/wearcard.test.mjs` prüft die Zeilen im Bedienfeld, `tests/js/dancerec.test.mjs` und `tests/test_dancelab.py`
-die Rohdaten in den Sessions (#196). **Die Firmware** wird von Hand übersetzt, nicht in der CI (deren Minuten kosten,
-ein Build holt eine Toolchain): `cd firmware/sticks3 && pio run` muss mit „SUCCESS“ enden, bevor eine Änderung an
-`firmware/` gemergt wird.
+die Rohdaten in den Sessions (#196).
+**Der USB-Empfänger (#278):** `tests/test_receiver.py` spielt einen nachgebauten Empfänger an einem Pty – seine Zeilen im
+Test geschrieben, Dreams Zeilen zurückgelesen: wer er ist (seltsame Zeilen abgewiesen), die Bewegung eines gekoppelten
+Sticks im einen Weg der getragenen Geräte, ungekoppelte Sticks und ein Stick, der einen anderen nennt, abgewiesen, ein
+per Knopf gekoppelter Stick bei seinem ersten Hello erlaubt (und nur dann; zurückgenommen bleibt er zurückgenommen),
+die Kupplung von seinem Knopf, das Licht grün/blau/rot und nur, solange er antwortet, der Kanal, das Koppelfenster aus
+dem Bedienfeld, die Verzögerung (die Hälfte von hin und zurück, auch übers WLAN), der Hinweis zurück auf Funk und das
+Zurückfallen aufs WLAN, ein Port, der nichts sagt, nie beschrieben, Finden und Loslassen (abgesteckt, `flash.sh` läuft,
+ein Port von einem anderen gehalten). `tests/test_firmware_radio.py` übersetzt die serielle Leitung und die
+Kopplungsliste des Empfängers (`firmware/lib/DreamRadio/src/DreamRadio.h`) für diesen Rechner und prüft sie gegen
+`receiver.py`; `tests/test_flash.py` deckt `flash.sh atoms3-receiver` und zwei angesteckte ESP32-S3-Boards ab. **Die
+Firmware** wird von Hand übersetzt, nicht in der CI (deren Minuten kosten, ein Build holt eine Toolchain): `pio run` in
+`firmware/sticks3` und in `firmware/atoms3-receiver` muss mit „SUCCESS“ enden, bevor eine Änderung an `firmware/`
+gemergt wird.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 

@@ -82,6 +82,7 @@ if config.ROLE == "app":
     import rights
     import roomlight
     import scenes
+    import receiver
     import settings
     import voice
     import wearables
@@ -106,3 +107,4 @@ if config.ROLE == "app":
     _background("hue", hue.keep)                       # #272
     app.router.on_shutdown.append(hue.stop)            # #272: the Hue lamps get their previous state back
     app.router.on_shutdown.append(wearables.stop_advert)   # #277: the mDNS announcement of the sensor port ends
+    app.router.on_shutdown.append(receiver.stop)          # #278: the USB receivers' ports are let go

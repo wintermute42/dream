@@ -2,7 +2,10 @@
 sensor's raw data, and (optionally) its button as the dance's clutch. The firmware is in `firmware/` (PlatformIO,
 M5Unified).
 
-The protocol is OSC over UDP on the sensor port (DREAM_SENSOR_PORT, inputs.py), every address under /dream/wear/:
+The protocol is OSC, every address under /dream/wear/, by one of two ways – the messages are the same:
+  - over UDP on the sensor port (DREAM_SENSOR_PORT, inputs.py), through the home Wi-Fi (#277);
+  - by radio (#278: ESP-NOW) to the USB receiver on the Mac, which hands every packet over its serial line
+    (receiver.py) – `on_osc(..., via=<the receiver>)`; the answers go back the way the device's last packet came.
 
   device → Dream
     /dream/wear/hello  s id, s kind ("sticks3"), s token ("" until paired), i battery % (-1: unknown), s firmware
@@ -11,11 +14,17 @@ The protocol is OSC over UDP on the sensor port (DREAM_SENSOR_PORT, inputs.py), 
                        50–100 times a second
     /dream/wear/clutch s id, s token, i want (0 | 1), i seq – the button: "the clutch as I want it"; repeated with the
                        same seq until a state with that seq comes back (a lost packet changes nothing twice)
+    /dream/wear/pong   s id, i n – the answer to ping n, at once (#278: the delay the panel shows is half the way there
+                       and back; a firmware without it simply shows none)
   Dream → device (to the address and port the device sent from)
     /dream/wear/state  i clutch (0 | 1), i paired (0 | 1), i seq (the last clutch seq Dream took from that device)
     /dream/wear/pair   s token – once the owner allowed the device in the panel; the device keeps it (NVS)
+    /dream/wear/ping   i n – once a second (#278)
+    /dream/wear/radio  i channel – to a device on the Wi-Fi whose paired receiver is plugged in: "over to the radio, on
+                       this channel" (#278; the device goes back to the Wi-Fi by itself when the receiver does not answer)
 
-Rights: only senders in the home network are heard (inputs.py, net.home_address). The motion is taken from every such
+Rights: only senders in the home network are heard (inputs.py, net.home_address), and by radio only the sticks paired
+with the receiver (its own list; receiver.py checks it too, and that a packet names the stick that sent it). The motion is taken from every such
 sender, like any OSC sensor (it moves nothing by itself: the mode's table and the clutch decide). The clutch is taken
 only from a device the owner allowed in the panel (`allow`): Dream then gives the device a random token – sent only to
 the address the device had at that moment, and again only from there for PAIR_WINDOW seconds –, kept in the state
@@ -29,6 +38,7 @@ Dream announces the port over mDNS as `_dream-osc._udp` (only with --lan, when t
 with the system's own responder (`dns-sd` on macOS, `avahi-publish-service` on Linux); a device that does not find it
 takes the address entered in its setup."""
 import asyncio
+import collections
 import contextlib
 import json
 import math
@@ -46,6 +56,8 @@ KINDS = ("sticks3",)             # the kind a hello names (one today; the field 
 LOW_BATTERY = 15                 # % – the panel warns from here on
 NAMES = {"sticks3": "StickS3"}
 PAIR_WINDOW = 30.0               # seconds after "allow" the token is sent again (only to where the device was then)
+PING_EVERY = 1.0                 # #278: seconds between two pings of a device (its delay in the panel)
+PINGS_KEPT = 5                   # … the delay shown is the median of the last few
 GONE = 3.0                       # seconds without a packet: the device is gone (it says hello every second)
 FORGET = 60.0                    # … and an unpaired device leaves the list after this long
 MAX_DEVICES = 8
@@ -103,7 +115,8 @@ def osc(address: str, *args) -> bytes:
 class Device:
     def __init__(self, id_: str, kind: str, now: float):
         self.id, self.kind = id_, kind
-        self.addr = None                 # (ip, port) it sends from: where the answers go
+        self.addr = None                 # (ip, port) it sends from – or ("esp-now", id) by radio: where the answers go
+        self.via = None                  # #278: by radio, the receiver it came over (None: UDP, the sensor port)
         self.at = now                    # monotonic: its last packet
         self.battery, self.firmware = -1, ""
         self.token_ok = False            # its hello carries the token it was given
@@ -114,10 +127,20 @@ class Device:
         self.dev_t = None                # its clock (ms) in the last motion packet …
         self.offset = None               # … and how far behind the wall clock that is (s): the samples keep its spacing
         self.n, self.rate, self.since = 0, 0.0, now
+        self.ping_n, self.pinged, self.pings = 0, -1e9, {}      # #278: n → when it was sent (monotonic)
+        self.rtts: collections.deque = collections.deque(maxlen=PINGS_KEPT)
 
     @property
     def name(self) -> str:
         return f"{NAMES[self.kind]} {self.id[-4:].upper()}"
+
+    @property
+    def latency(self) -> float | None:
+        """#278: the delay of a packet from the device to Dream – half the way there and back (ms), the median of the last
+        few pings; None while none came back."""
+        if not self.rtts:
+            return None
+        return sorted(self.rtts)[len(self.rtts) // 2] * 500.0
 
 
 class Wearables:
@@ -132,10 +155,13 @@ class Wearables:
         self.transport = None            # the OSC server's UDP transport (inputs.sensor_loop): answers never wait
         self.events: list = []
         self.clutch = False              # what the devices are told (the setting, kept up to date by inputs.py)
+        self.radio_for = lambda id_: None   # #278: the channel of a plugged-in receiver this stick is paired with, or None
 
     # ---------- incoming ----------
-    def on_osc(self, address: str, args, client: tuple, now: float | None = None, wall: float | None = None) -> None:
-        """One packet of a device in the home network (the caller checked the address)."""
+    def on_osc(self, address: str, args, client: tuple, now: float | None = None, wall: float | None = None,
+               via=None) -> None:
+        """One packet of a device in the home network (the caller checked the address) – or (#278) by radio over a
+        receiver (`via`, with sendto like the UDP transport; the caller checked that the stick is paired with it)."""
         now = time.monotonic() if now is None else now
         wall = time.time() if wall is None else wall
         what = address[len(PREFIX):] if address.startswith(PREFIX) else ""
@@ -147,7 +173,7 @@ class Wearables:
             dev = self._device(id_, args[1], now)
             if dev is None:
                 return
-            dev.addr, dev.at = tuple(client[:2]), now
+            self._seen(dev, client, via, now)
             dev.battery = int(min(100, max(-1, args[3]))) if _num(args[3]) else -1
             dev.firmware = (_text(args[4], FIRMWARE) or "") if len(args) > 4 else ""
             token = args[2] if isinstance(args[2], str) else ""
@@ -161,7 +187,7 @@ class Wearables:
             dev = self._device(id_, "sticks3", now)
             if dev is None:
                 return
-            dev.addr, dev.at = tuple(client[:2]), now
+            self._seen(dev, client, via, now)
             t = self._clock(dev, int(args[1]), wall)
             if t is None:
                 return
@@ -172,11 +198,16 @@ class Wearables:
                 root = f"/sticks3/{id_[-6:]}/"
                 self.feed(root + "accelerometer", [a * G for a in args[2:5]], dev.name, t, 1.0)
                 self.feed(root + "gyroscope", list(args[5:8]), dev.name, t, math.radians(1))
+        elif what == "pong" and len(args) >= 2 and _num(args[1]):
+            dev = self.devices.get(id_)
+            sent = dev.pings.pop(int(args[1]), None) if dev is not None else None
+            if sent is not None and 0 <= now - sent < 5:
+                dev.rtts.append(now - sent)
         elif what == "clutch" and len(args) >= 4 and isinstance(args[1], str) and _num(args[2]) and _num(args[3]):
             dev = self.devices.get(id_)
             if dev is None or dev.kind != "sticks3":
                 return
-            dev.addr, dev.at = tuple(client[:2]), now
+            self._seen(dev, client, via, now)
             seq = int(args[3])
             if not self.allowed(id_, args[1]):
                 dev.refused += 1
@@ -188,6 +219,13 @@ class Wearables:
                 self.events.append(("clutch", bool(args[2]), id_))
             else:
                 self.tell(dev)
+
+    @staticmethod
+    def _seen(dev: Device, client, via, now: float) -> None:
+        if (via is None) != (dev.via is None) or (via is not None and via is not dev.via):
+            dev.rtts.clear()                 # another way: the delay of the old one says nothing
+            dev.pings.clear()
+        dev.addr, dev.via, dev.at = tuple(client[:2]), via, now
 
     def _device(self, id_: str, kind: str, now: float) -> Device | None:
         dev = self.devices.get(id_)
@@ -253,14 +291,34 @@ class Wearables:
 
     # ---------- outgoing: never awaited ----------
     def send(self, dev: Device, what: str, *args) -> None:
-        if self.transport is None or dev.addr is None:
+        to = dev.via if dev.via is not None else self.transport
+        if to is None or dev.addr is None:
             return
         with contextlib.suppress(OSError, RuntimeError):     # a closed transport, a full buffer: the next one comes
-            self.transport.sendto(osc(PREFIX + what, *args), dev.addr)
+            to.sendto(osc(PREFIX + what, *args), dev.addr)
 
     def tell(self, dev: Device) -> None:
         paired = int(dev.kind == "sticks3" and dev.id in self.paired)
         self.send(dev, "state", int(self.clutch), paired, dev.seq)
+        channel = self.radio_for(dev.id) if dev.via is None else None
+        if channel:                          # #278: on the Wi-Fi, but its receiver is plugged in: over to the radio
+            self.send(dev, "radio", int(channel))
+
+    def ping_all(self, now: float | None = None) -> None:
+        """#278: every device that is there gets a ping once a second (its pong gives the delay the panel shows)."""
+        now = time.monotonic() if now is None else now
+        for dev in list(self.devices.values()):
+            if self.live(dev, now) and now - dev.pinged >= PING_EVERY:
+                dev.pinged = now
+                dev.ping_n = (dev.ping_n + 1) & 0x7fffffff
+                dev.pings = {n: t for n, t in dev.pings.items() if now - t < 5}
+                dev.pings[dev.ping_n] = now
+                self.send(dev, "ping", dev.ping_n)
+
+    def via_live(self, via, now: float | None = None) -> list:
+        """#278: the devices that are there right now by radio over this receiver."""
+        now = time.monotonic() if now is None else now
+        return [d for d in self.devices.values() if d.via is via and self.live(d, now)]
 
     def tell_all(self, clutch: bool, now: float | None = None) -> None:
         """The clutch changed (whoever changed it): every device that is there hears it."""
@@ -297,7 +355,10 @@ class Wearables:
                         if dev and dev.last else None,
                         "paired": bool(p), "ready": bool(p) and bool(dev) and dev.token_ok,
                         "waiting": bool(p) and bool(dev) and not dev.token_ok and now < dev.pair_until,
-                        "refused": dev.refused if dev else 0, "firmware": dev.firmware if dev else ""})
+                        "refused": dev.refused if dev else 0, "firmware": dev.firmware if dev else "",
+                        # #278: which way its packets come, and their delay (ms, None: not measured)
+                        "link": ("radio" if dev.via is not None else "wifi" if dev.addr else None) if dev and live else None,
+                        "latency": round(dev.latency, 1) if dev and live and dev.latency is not None else None})
         return out
 
     def msg(self, port: int, lan: bool, now: float | None = None) -> dict:
