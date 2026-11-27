@@ -79,7 +79,7 @@
     const chev = el('span', 'ft-chev', '▸'); chev.setAttribute('aria-hidden', 'true');
     fold.append(chev, el('span', 'ft-name', T('🎚 Your base movements')), el('span', 'ft-adv', T('For the advanced')));
     title.append(fold); head.append(title);
-    const why = el('p', 'ft-why-own', T('Optional. The four built-in base movements – moving a lot, opening the arms, circling the hands, raising the arms – work right away, and “📏 Measure me …” fits them to you. A base movement of your own is only for a movement Dream does not know yet, e.g. upright ↔ deep in the knees or leaning left ↔ right: you show Dream its ends once, and between them it acts like a dimmer.'));
+    const why = el('p', 'ft-why-own', T('Optional. The four built-in base movements – moving a lot, opening the arms, circling the hands, raising the arms – work right away, and “📏 Measure me …” fits them to you. A base movement of your own is only for a movement Dream does not know yet, e.g. upright ↔ deep in the knees or leaning left ↔ right: you show Dream its two ends once – the further you move from one end towards the other, the stronger its effect.'));
     const teachBtn = btn(T('＋ Teach a base movement …'), T('Show Dream two or more states of your body – it learns a fader that goes between them'), 'ft-new');
     const state = el('div', 'mt-state'); state.setAttribute('role', 'status'); state.setAttribute('aria-live', 'polite');
     const opened = open => { body.hidden = !open; fold.setAttribute('aria-expanded', String(open)); box.classList.toggle('ft-open', open); };
