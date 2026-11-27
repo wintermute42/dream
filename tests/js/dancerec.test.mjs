@@ -251,3 +251,24 @@ test('the lab says what a feature is made of, why there are no fingers and where
   assert.deepEqual(L.lostSpans([fr(0, 1), fr(1, 0), fr(2, 0), fr(3, 1), fr(4, 1), fr(5, 0)]), [[1, 3], [5, 5]]);
   assert.deepEqual(L.lostSpans([fr(0, 1), fr(1, 1)]), []); assert.deepEqual(L.lostSpans([]), []);
 });
+
+// #196: the motion sensor's raw values go into the session with their times – a phone's or a StickS3's, frame by frame
+test('a session keeps the sensor raw values with their times, and gives them back on its own clock', () => {
+  const step = t => D.create().step({ t, hands: { l: null, r: null }, body: null });
+  const raw = [[-0.031, 0, 0.12345, -9.81, 0.5], [-0.011, 2, 1.5, 0, -0.25], [0.004, 2, 1, 2, 3],   // the last one: "after" the frame
+    [-0.01, 7, 1, 2, 3], [-0.01, 2, NaN, 0, 0], 'x'];                                                 // no kind 7, no NaN, no text
+  const f = R.pack(5, KEYS, step(5), { t: 5, hands: { l: null, r: null }, body: null }, null, {}, raw);
+  assert.deepEqual(f.i.r, [[-0.031, 0, 0.1235, -9.81, 0.5], [-0.011, 2, 1.5, 0, -0.25], [0, 2, 1, 2, 3]]);
+  const back = R.input({ ...f, t: 1.5 });                                          // in a recording its time starts at 0
+  assert.deepEqual(back.raw.map(v => v.map(x => Math.round(x * 1e4) / 1e4)), [[1.469, 0, 0.1235, -9.81, 0.5], [1.489, 2, 1.5, 0, -0.25], [1.5, 2, 1, 2, 3]]);
+  // no sensor: nothing extra in the frame (sessions stay as small as before)
+  const none = R.pack(5, KEYS, step(5), { t: 5, hands: { l: null, r: null }, body: null }, null, {});
+  assert.ok(!('r' in none.i)); assert.deepEqual(R.input(none).raw, []);
+  // a busy sender: the newest RAW_MAX
+  const many = Array.from({ length: 50 }, (_, i) => [-0.5 + i * 0.01, 2, i, 0, 0]);
+  const full = R.pack(5, KEYS, step(5), { t: 5, hands: { l: null, r: null }, body: null }, null, {}, many);
+  assert.equal(full.i.r.length, R.RAW_MAX); assert.equal(full.i.r[R.RAW_MAX - 1][2], 49);
+  // the session keeps them through stop()
+  const rec = R.recorder(KEYS, MAP, 16 / 9); rec.add(0, () => ({ ...f, t: 0 })); rec.add(0.04, t => ({ ...f, t }));
+  assert.deepEqual(rec.stop().frames[1].i.r, f.i.r);
+});

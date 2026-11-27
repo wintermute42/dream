@@ -62,6 +62,8 @@ jobs:
         run: node --test tests/js/dance.test.mjs tests/js/dancemap.test.mjs
       - name: Dance lab – sessions, playback, feedback moments, test files
         run: node --test tests/js/dancerec.test.mjs
+      - name: Worn devices in the panel (StickS3, ATOM Matrix)
+        run: node --test tests/js/wearcard.test.mjs
       - name: How much of a face shows (mostly only the eyes, never a nose)
         run: node --test tests/js/vis.test.mjs
       - name: Brushes of the style worlds

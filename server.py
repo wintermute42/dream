@@ -84,6 +84,7 @@ if config.ROLE == "app":
     import scenes
     import settings
     import voice
+    import wearables
     import windows
     import wled
 
@@ -104,3 +105,4 @@ if config.ROLE == "app":
     app.router.on_shutdown.append(wled.stop)           # #212: WLED back to its own program at once
     _background("hue", hue.keep)                       # #272
     app.router.on_shutdown.append(hue.stop)            # #272: the Hue lamps get their previous state back
+    app.router.on_shutdown.append(wearables.stop_advert)   # #277: the mDNS announcement of the sensor port ends

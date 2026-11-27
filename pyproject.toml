@@ -37,6 +37,7 @@ ci = [
     "python-multipart>=0.0.34",
     "qrcode>=8.2",
     "cryptography>=44",
+    "python-osc>=1.10.3",       # #277: the worn devices' protocol (wearables.py) and the sensor loop
     { include-group = "dev" },
 ]
 

@@ -486,6 +486,7 @@ ci = [
     { name = "pillow" },
     { name = "pytest" },
     { name = "python-multipart" },
+    { name = "python-osc" },
     { name = "qrcode" },
 ]
 dev = [
@@ -524,6 +525,7 @@ ci = [
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "pytest", specifier = ">=8" },
     { name = "python-multipart", specifier = ">=0.0.34" },
+    { name = "python-osc", specifier = ">=1.10.3" },
     { name = "qrcode", specifier = ">=8.2" },
 ]
 dev = [

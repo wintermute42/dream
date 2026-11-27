@@ -8,6 +8,7 @@
 //   light.on = true;          // the setting "wled"
 //   light.tick(now);          // every frame, after drawing: looks only every EVERY ms
 //   light.beat(0.8); light.flash(1);
+//   light.listen = true;      // #277: a worn display blinks on the beat – the beats are told without a room light too
 (function (root) {
   'use strict';
   const SIDE = 16;           // 256 points of the picture: enough for its average, nothing for the graphics card
@@ -25,11 +26,13 @@
   }
 
   function create({ pixels, send }) {
-    let at = -1e9, on = false, cost = 0, looks = 0;
+    let at = -1e9, on = false, listen = false, cost = 0, looks = 0;
     const round = v => Math.round(Math.min(1, Math.max(0, +v || 0)) * 1000) / 1000;
     return {
       get on() { return on; },
       set on(v) { on = !!v; },
+      get listen() { return listen; },
+      set listen(v) { listen = !!v; },
       // the time one look took on average (ms), for a measurement
       get cost() { return looks ? cost / looks : 0; },
       reset() { cost = 0; looks = 0; },
@@ -43,7 +46,7 @@
         send({ led: { rgb } });
         return true;
       },
-      beat(v) { if (on && +v > 0) send({ led: { beat: round(v) } }); },
+      beat(v) { if ((on || listen) && +v > 0) send({ led: { beat: round(v) } }); },
       flash(v = 1) { if (on && +v > 0) send({ led: { flash: round(v) } }); },
     };
   }
