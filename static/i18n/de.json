@@ -1923,5 +1923,18 @@
  "＋ A step in between": "＋ Zwischenstufe",
  "＋ Teach a base movement …": "＋ Grundbewegung anlernen …",
  "🎓 Teach again": "🎓 Nachlernen",
- "🎚 Your base movements": "🎚 Eigene Grundbewegungen"
+ "🎚 Your base movements": "🎚 Eigene Grundbewegungen",
+ "Room light: dimmed while calm": "Raumlicht: gedimmt, solange es ruhig ist",
+ "Room light: flash": "Raumlicht: Aufleuchten",
+ "Room light: running light": "Raumlicht: Lauflicht",
+ "Room light": "Raumlicht",
+ "Flash up": "Aufleuchten",
+ "Brightness": "Helligkeit",
+ "Running light": "Lauflicht",
+ "a light runs along the LEDs": "ein Licht läuft die LEDs entlang",
+ "the room light flashes up": "das Raumlicht blitzt auf",
+ "the room light grows brighter": "das Raumlicht wird heller",
+ "Belongs to the other lane: the flash and the running light to a gesture, the brightness to a base movement": "Gehört in die andere Spur: Aufleuchten und Lauflicht zu einer Geste, die Helligkeit zu einer Grundbewegung",
+ "The room light is off – switch on “Room light (WLED) dreams along” in the panel": "Das Raumlicht ist aus – schalte im Panel „Raumlicht (WLED) träumt mit“ ein",
+ "No LED device for the room light yet – enter it in the panel under “Room light (WLED) dreams along”": "Noch kein LED-Gerät fürs Raumlicht – trag es im Panel bei „Raumlicht (WLED) träumt mit“ ein"
 }

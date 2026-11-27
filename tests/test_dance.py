@@ -342,3 +342,38 @@ def test_the_midi_button_walks_through_the_sets_and_a_scene_can_choose_one(serve
     assert server.dance.tables["dance"] == dance.compile_slots(dance.SLOT_SETS["waves"])
     asyncio.run(server.hub.apply({"dance_set": "standard"}))
     assert "dance_set" in server.settings.DEFAULT_STATE                  # so a scene's settings may carry it (scenes.py)
+
+
+# ---------- #270: the room light's LED chain as effects of the sentences ----------
+def test_the_room_lights_effects_are_sentences_in_their_lane_and_in_no_group():
+    s = {"base": [{"src": "energy", "fx": "led.level", "amt": 1.0}, {"src": "open", "fx": "kaleido", "amt": 0.5}],
+         "accents": [{"src": "g.throw", "fx": "led.flash", "amt": 0.5, "tol": "normal"},
+                     {"src": "g.push", "fx": "led.chase", "amt": 0.0, "tol": "normal"},
+                     {"src": "g.wave", "fx": "mandala", "amt": 1.0, "tol": "normal"}, None], "hands": []}
+    kept = dance.clean_slots(s)
+    assert [x and x["fx"] for x in kept["base"]] == ["led.level", "kaleido"]
+    assert [x and x["fx"] for x in kept["accents"]] == ["led.flash", "led.chase", None, None]   # mandala: kaleido's group
+    # the flash and the pulse are an accent's, the brightness a base movement's: elsewhere they are dropped
+    wrong = dance.clean_slots({"base": [{"src": "energy", "fx": "led.flash", "amt": 1.0}],
+                               "accents": [{"src": "g.throw", "fx": "led.level", "amt": 1.0, "tol": "normal"}], "hands": ["paint"]})
+    assert wrong["base"] == [None, None] and wrong["accents"] == [None] * 4
+    assert dance.slot_conflict(kept, "base", 0, "led.chase") == "lane"
+    assert dance.slot_conflict(kept, "accents", 3, "led.flash") == "taken"
+    # the brightness in the base lane takes no group from an accent's effect – any picture effect fits beside it
+    assert all(dance.slot_conflict({"base": [kept["base"][0], None], "accents": [None] * 4}, "accents", 0, fx) is None
+               for fx in playlists.FX)
+
+
+def test_the_room_lights_sentences_compile_to_its_targets():
+    rows = {r["id"]: r for r in dance.compile_slots(dance.clean_slots({
+        "base": [{"src": "energy", "fx": "led.level", "amt": 0.5}, None],
+        "accents": [{"src": "g.throw", "fx": "led.flash", "amt": 1.0, "tol": "normal"},
+                    {"src": "g.push", "fx": "led.chase", "amt": 0.0, "tol": "loose"}, None, None], "hands": []}))}
+    assert dance.clean_rows(list(rows.values())) == list(rows.values())
+    # the brightness: dimmed by the sentence's strength while calm, none while wild – and none while nobody is seen
+    assert rows["base0"]["dst"] == "led.level" and rows["base0"]["out"] == [-dance.peak(0.5), 0.0]
+    # the flash and the pulse follow the gesture at once, as strong as the sentence says
+    assert (rows["accent0"]["dst"], rows["accent0"]["out"], rows["accent0"]["smooth"]) == ("led.flash", [0.0, 1.0], 0.0)
+    assert (rows["accent1"]["dst"], rows["accent1"]["out"][1]) == ("led.chase", dance.SLOT_MIN)
+    assert {"led.flash", "led.chase", "led.level"} <= set(dance.TARGETS)
+    assert not set(dance.LED_LANE) & set(dance.GROUP_OF)

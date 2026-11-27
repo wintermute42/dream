@@ -39,10 +39,12 @@ TABLE_MODES = ("mood", "flowtrack")                  # the tables changed row by
 # paint, stir, impulses, light in the dark, and whether movement shapes the effects) and the slow AI sliders (added on
 # top of the slider; "ai.prompt": the prompt between its calm and its wild words, "ai.react": speed and place of the
 # movement push transformation, zoom, rotation and colour drift; #236 "ai.piece": the piece of prompt a taught move
-# brings along, blended in by as much as the row says)
+# brings along, blended in by as much as the row says); #270: the room light's LED chain (wled.py): a flash of the
+# whole chain, a pulse running along it, how far it is dimmed – over the base colour, in none of the engine's groups
 TARGETS = (("fx.amt", "fx.pulse", "fx.spin", "fx.speed") + tuple("fx." + e for e in playlists.FX)
            + ("stage.calm", "touch.paint", "touch.warp", "touch.impulse", "touch.light", "touch.shape")
-           + ("ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue", "ai.prompt", "ai.react", "ai.piece"))
+           + ("ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue", "ai.prompt", "ai.react", "ai.piece")
+           + ("led.flash", "led.chase", "led.level"))
 SRC = re.compile(r"[a-z][a-z0-9_]{0,23}(\.[a-z0-9_]{1,24})?")
 ID = re.compile(r"[a-z0-9_-]{1,24}")
 
@@ -138,7 +140,10 @@ def clean_rows(rows) -> list:
 # a change is a draft (kept in memory, per set, until it is saved or thrown away – the stage plays it already), and a
 # draft of a built-in set is saved as a new set of the dancer's own under a name the dancer gives it. A set without any
 # sentence does not exist (it is Standard's then).
-SLOT_FX = playlists.FX
+# #270: the room light's three effects are sentences too: the flash and the running pulse for an accent, the brightness
+# for a base movement. They light the room, not the picture – no group, never in the budget of the picture's effects.
+LED_LANE = {"led.flash": "accents", "led.chase": "accents", "led.level": "base"}
+SLOT_FX = playlists.FX + tuple(LED_LANE)
 GROUPS = {"symmetry": ("kaleido", "mandala", "mirror"), "space": ("tunnel", "waves"), "afterglow": ("trails", "feedback"),
           "disturbance": ("rgb", "glitch", "pixel", "raster"), "colour": ("hue",)}
 GROUP_OF = {e: g for g, effects in GROUPS.items() for e in effects}
@@ -187,11 +192,14 @@ SET_LABELS = {"standard": "Standard", "waves": "Flowing", "fire": "Wild"}   # as
 def slot_conflict(slots: dict, where: str, i: int, fx: str) -> str | None:
     """Why this effect does not fit into this place beside the others (the page greys it out with the reason), or
     None. "taken": it is in another sentence already; "group": the other base movement is of its group (the two would
-    cancel out); "base": an accent of a base movement's group (it would only replace the base for a moment)."""
+    cancel out); "base": an accent of a base movement's group (it would only replace the base for a moment); "lane":
+    a room-light effect in the other lane (#270: the flash and the pulse are an accent's, the brightness a base's)."""
+    if fx in LED_LANE and LED_LANE[fx] != where:
+        return "lane"
     others = [(w, j, s) for w in ("base", "accents") for j, s in enumerate(slots.get(w) or []) if s and (w, j) != (where, i)]
     if any(s["fx"] == fx for _, _, s in others):
         return "taken"
-    base_groups = {GROUP_OF[s["fx"]] for w, _, s in others if w == "base"}
+    base_groups = {GROUP_OF[s["fx"]] for w, _, s in others if w == "base" and s["fx"] in GROUP_OF}
     if GROUP_OF.get(fx) in base_groups:
         return "group" if where == "base" else "base"
     return None
@@ -238,18 +246,29 @@ def peak(amt: float) -> float:
     return round(SLOT_MIN + (1 - SLOT_MIN) * step_of(amt), 4)
 
 
+def dst_of(fx: str) -> str:
+    """The target a sentence's effect is: "fx.<effect>" of the picture, or the room light's "led.…" itself (#270)."""
+    return fx if fx in LED_LANE else "fx." + fx
+
+
 def compile_slots(slots: dict) -> list:
     """The rows of the dance table a set stands for: one row per sentence (its strength above the engine's minimum;
     #236: an accent of a move of one's own also blends in the move's piece of prompt), the beat's push and turning as
-    Dream picks them, and the hands in the picture as switches."""
+    Dream picks them, and the hands in the picture as switches. #270: the room light's brightness is a dimming – from
+    the sentence's strength (calm) to none (wild), negative, so that nobody detected and a released clutch leave the
+    chain as bright as its base colour; its flash and pulse follow the gesture at once (the stage sends one per
+    gesture, wled.py lets them fade)."""
     rows = []
     for i, s in enumerate(slots["base"]):
         if s:
             lo, hi, curve, smooth = BASE_SHAPE.get(s["src"], FADER_SHAPE)
-            rows.append({**_row(f"base{i}", s["src"], "fx." + s["fx"], lo=lo, hi=hi, out=peak(s["amt"]), curve=curve, smooth=smooth), "origin": "slot"})
+            row = _row(f"base{i}", s["src"], dst_of(s["fx"]), lo=lo, hi=hi, out=peak(s["amt"]), curve=curve, smooth=smooth)
+            if s["fx"] == "led.level":
+                row["out"] = [-peak(s["amt"]), 0.0]
+            rows.append({**row, "origin": "slot"})
     for i, s in enumerate(slots["accents"]):
         if s:
-            rows.append({**_row(f"accent{i}", s["src"], "fx." + s["fx"], out=peak(s["amt"])), "origin": "slot"})
+            rows.append({**_row(f"accent{i}", s["src"], dst_of(s["fx"]), out=peak(s["amt"]), smooth=0.0 if s["fx"] in LED_LANE else 0.15), "origin": "slot"})
             if OWN_MOVE.fullmatch(s["src"]):
                 rows.append({**_row(f"piece{i}", s["src"], "ai.piece", out=peak(s["amt"])), "origin": "slot"})
     rows.append({**_row("pulse", "pulse", "fx.pulse", out=0.7, smooth=0.0), "origin": "slot"})

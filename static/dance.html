@@ -94,7 +94,7 @@
   // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
   const NEEDS = { calls: ['attach', 'detach', 'state', 'setClutch', 'setSet', 'setMode', 'setKind', 'setCam', 'lab.detect',
     'slots', 'slotsDo', 'live', 'probe', 'levels', 'movesChanged', 'profiles', 'profilesDo', 'setProfile', 'fadersChanged'],
-    state: ['mode', 'clutch', 'hold', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams', 'moves', 'faders', 'strength'] };
+    state: ['mode', 'clutch', 'hold', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams', 'moves', 'faders', 'strength', 'light'] };
   MovePage.link('dance', {
     needs: NEEDS,
     old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },
@@ -137,7 +137,7 @@
     let s = slots.slots();
     if (!s.accents.some(a => a && a.src === src)) {
       const want = fx || DanceSlots.EFFECTS.find(e => !DanceSlots.assign(s, 'accents', src, e).why), r = want ? DanceSlots.assign(s, 'accents', src, want) : null;
-      if (!r || r.why) { slots.hint(T('No effect fits beside the others – change an accent’s sentence, then choose the movement there.')); return; }
+      if (!r || r.why) { slots.hint(r && r.why === 'lane' ? DanceSlots.REASONS.lane() : T('No effect fits beside the others – change an accent’s sentence, then choose the movement there.')); return; }
       s = r.slots;
     }
     slots.change({ ...s, accents: s.accents.map(a => (a && a.src === src ? { ...a, tol } : a)) });

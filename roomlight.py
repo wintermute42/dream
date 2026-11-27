@@ -10,7 +10,13 @@ Here that becomes, at any moment an output asks:
 - fresh(now): whether the stage tells its colour right now (closed or hidden: the outputs let their devices go).
 
 The state moves with the time between two questions, so outputs that ask at different rates see the same light. An
-output multiplies its colour with master() (and a strength of its own) last."""
+output multiplies its colour with master() (and a strength of its own) last.
+
+#270: the dance's part for the LED chain comes the same way – with the colour how far the dance dims the chain
+({"led": {"rgb": …, "dim": 0…1}}), and the moment an accent comes a flash ({"led": {"dflash": 0…1}}) or a pulse that
+runs along the chain ({"led": {"chase": 0…1, "dir": -1 | 1}}). Here they are kept for the LED output (wled.py draws
+them): dim(now), dflash_of(now), pulses(now) – none of it reaches colour(), so slow lamps never flicker with the
+dance. A flash or a pulse sooner than DANCE_GAP after the last is not taken: never a stroboscope, whatever arrives."""
 import math
 import time
 
@@ -21,6 +27,12 @@ BEAT_DEPTH = 0.45                # between the beats the light sinks this far; o
 BEATING_FOR = 2.0                # seconds after the last beat the music still counts as beating
 SATURATE = 1.5                   # an average colour is greyer than the picture: its colourfulness is raised this much
 SILENT_AFTER = 3.0               # seconds without a colour from the stage: it counts as gone
+# #270: the dance on the LED chain
+DIM_TAU, DIM_FOR = 0.12, 0.5     # how softly the dimming follows; seconds without a word of it: it is gone
+DFLASH_TAU = 0.4                 # how softly the dance's flash fades
+DANCE_GAP = 0.25                 # at most one flash and one pulse in this many seconds
+CHASE_FOR = 1.2                  # seconds a pulse lives (it has run along the chain long before)
+MAX_PULSES = 4
 
 
 def _num(v) -> bool:
@@ -41,6 +53,9 @@ class Light:
         self.flash, self.flash_at = 0.0, -1e9
         self.glide = None               # the master as the light shows it
         self.master_to = 1.0
+        self.dim_to, self.dim_at, self.dimmed = 0.0, -1e9, 0.0   # #270: the dance's dimming (asked, when, shown)
+        self.dflash, self.dflash_at = 0.0, -1e9
+        self.chases: list = []          # [(amount, direction, when)], the newest last
 
     def take(self, msg, now: float) -> None:
         """A word of the stage: {"rgb": [r, g, b]}, {"beat": 0…1}, {"flash": 0…1}. Anything odd is not taken."""
@@ -55,6 +70,14 @@ class Light:
             self.beat, self.beat_at = max(self.pulse_of(now), min(1.0, float(msg["beat"]))), now
         if _num(msg.get("flash")) and msg["flash"] > 0:
             self.flash, self.flash_at = max(self.flash_of(now), min(1.0, float(msg["flash"]))), now
+        if _num(msg.get("dim")):
+            self.dim_to, self.dim_at = min(1.0, max(0.0, float(msg["dim"]))), now
+        if _num(msg.get("dflash")) and msg["dflash"] > 0 and now - self.dflash_at >= DANCE_GAP:
+            self.dflash, self.dflash_at = min(1.0, float(msg["dflash"])), now
+        if (_num(msg.get("chase")) and msg["chase"] > 0 and msg.get("dir") in (-1, 1) and not isinstance(msg["dir"], bool)
+                and (not self.chases or now - self.chases[-1][2] >= DANCE_GAP)):
+            self.chases = [c for c in self.chases if now - c[2] < CHASE_FOR][-(MAX_PULSES - 1):]
+            self.chases.append((min(1.0, float(msg["chase"])), int(msg["dir"]), now))
 
     def pulse_of(self, now: float) -> float:
         """What is left of the latest beat (0…1)."""
@@ -77,6 +100,8 @@ class Light:
         self.beating += max(-dt / 0.5, min(dt / 0.5, want - self.beating))
         if self.glide is not None:
             self.glide += max(-dt / MASTER_GLIDE, min(dt / MASTER_GLIDE, self.master_to - self.glide))
+        want = self.dim_to if now - self.dim_at < DIM_FOR else 0.0
+        self.dimmed += (want - self.dimmed) * (1 - math.exp(-dt / DIM_TAU))
 
     def colour(self, now: float) -> tuple:
         """The picture's colour, smoothed and a little more colourful (r, g, b floats 0–255) – black before the first."""
@@ -94,6 +119,23 @@ class Light:
         pulse = 1 - BEAT_DEPTH * self.beating * (1 - self.pulse_of(now))
         f = min(1.0, self.flash_of(now)) * 0.8
         return tuple((c + (255.0 - c) * f) * pulse for c in base)
+
+    def dim(self, now: float) -> float:
+        """#270: how far the dance dims the LED chain right now (0 none … 1 dark), gliding; gone soon after its word."""
+        self._move(now)
+        return self.dimmed if self.dimmed > 1e-3 else 0.0
+
+    def dflash_of(self, now: float) -> float:
+        """#270: what is left of the dance's latest flash (0…1)."""
+        return self.dflash * math.exp(-max(0.0, now - self.dflash_at) / DFLASH_TAU)
+
+    def pulses(self, now: float) -> list:
+        """#270: the pulses running along the chain: [(amount, direction, seconds since it set off)]."""
+        return [(a, d, now - at) for a, d, at in self.chases if 0 <= now - at < CHASE_FOR]
+
+    def dancing(self, now: float) -> bool:
+        """#270: whether the dance shows on the chain right now (otherwise the chain is one colour)."""
+        return self.dim(now) > 0 or self.dflash_of(now) > 0.004 or bool(self.pulses(now))
 
     def master(self, now: float, to: float) -> float:
         """The master fader (to: the setting, 0–1) as the light shows it: gliding like the stage's, a blackout is 0."""

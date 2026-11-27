@@ -398,3 +398,153 @@ def test_a_name_that_is_not_found_is_said_and_tried_again(server, wled, monkeypa
         finally:
             task.cancel()
     asyncio.run(go())
+
+
+# ---------- #270: the dance on the chain ----------
+def chain(w, rl, now, n=20, base=(200.0, 100.0, 0.0), level=1.0):
+    """The chain's LEDs at that moment with the dance's layer, as [(r, g, b)]."""
+    rgb = w.encode(base, w.compose(base, n, 1 / w.FPS, now), n, level)
+    return [tuple(rgb[i:i + 3]) for i in range(0, len(rgb), 3)]
+
+
+def say(rl, msg, t0, t1):
+    """The stage's word, as it comes with the colour: every 80 ms from t0 to t1."""
+    t = t0
+    while t <= t1 + 1e-9:
+        rl.light.take(msg, t)
+        t += 0.08
+
+
+@pytest.fixture
+def dancing(wled, rl):
+    wled.LAYERS.append(wled.Dance(rl.light))
+    return wled
+
+
+def test_the_dance_rests_the_chain_is_one_colour_and_not_drawn_led_by_led(dancing, rl):
+    assert dancing.compose((10.0, 20.0, 30.0), 20, 0.025, 0.0) is None
+    assert chain(dancing, rl, 0.0) == [(200, 100, 0)] * 20
+
+
+def test_the_brightness_dims_the_chain_glides_and_is_gone_without_its_word(dancing, rl):
+    rl.light.take({"dim": 0.5}, 0.0)
+    assert 100 < chain(dancing, rl, 0.04)[0][0] < 200            # glides …
+    say(rl, {"dim": 0.5}, 0.08, 1.0)
+    assert chain(dancing, rl, 1.0)[0] == (100, 50, 0)            # … there, and holds while the stage tells it
+    say(rl, {"dim": 1.0}, 1.0, 2.0)
+    r = chain(dancing, rl, 2.0)[0][0]
+    assert 0 < r == round(200 * dancing.DIM_FLOOR)                # never quite off
+    # the stage tells none (the clutch released, the stage closed): soon the base colour, at full
+    assert chain(dancing, rl, 2.0 + rl.DIM_FOR + 1.0) == [(200, 100, 0)] * 20
+    for bad in ({"dim": float("nan")}, {"dim": True}, {"dim": "1"}):
+        rl.light.take(bad, 5.0)
+    assert rl.light.dim(6.0) == 0
+
+
+def test_a_flash_lights_the_whole_chain_in_the_dream_colour_and_fades_softly(dancing, rl):
+    say(rl, {"dim": 0.8}, 0.0, 1.0)
+    rl.light.take({"dflash": 1.0}, 1.0)
+    lit = chain(dancing, rl, 1.0)
+    assert lit == [(255, 128, 0)] * 20                           # the dream's colour at its fullest – not white
+    fade, was = [], 1.0
+    for t in (0.1, 0.3, 0.6, 1.0, 2.0):
+        say(rl, {"dim": 0.8}, was, 1.0 + t)
+        was = 1.0 + t
+        fade.append(chain(dancing, rl, 1.0 + t)[0][0])
+    assert fade == sorted(fade, reverse=True) and fade[0] < 255 and fade[1] > fade[-1]
+    assert abs(fade[-1] - 200 * 0.2) <= 1                       # back to the dimmed chain
+    # the strength is the flash's height
+    say(rl, {"dim": 0.8}, 3.0, 5.0)
+    rl.light.take({"dflash": 0.35}, 5.0)
+    assert 60 < chain(dancing, rl, 5.0)[0][0] < 160
+
+
+def test_never_a_stroboscope_one_flash_and_one_pulse_per_gap_whatever_arrives(dancing, rl):
+    rl.light.take({"dflash": 1.0}, 0.0)
+    for k in range(1, 20):
+        rl.light.take({"dflash": 1.0, "chase": 1.0, "dir": 1}, k * 0.01)
+    assert rl.light.dflash_at == 0.0 and len(rl.light.pulses(0.2)) == 1
+    rl.light.take({"dflash": 1.0}, rl.DANCE_GAP)
+    assert rl.light.dflash_at == rl.DANCE_GAP
+
+
+def test_a_pulse_runs_along_the_chain_in_the_hands_direction(dancing, rl):
+    def head(dir_):
+        light = rl.Light()
+        light.take({"rgb": [0, 0, 200]}, 0.0)
+        dancing.LAYERS[:] = [dancing.Dance(light)]
+        light.take({"chase": 1.0, "dir": dir_}, 0.0)
+        out = []
+        for t in (0.15, 0.3, 0.45):
+            leds = chain(dancing, rl, t, n=40, base=(0.0, 0.0, 40.0))
+            out.append(max(range(40), key=lambda i: leds[i][2]))
+            assert leds[out[-1]][:2] == (0, 0) and leds[out[-1]][2] > 150     # the dream's colour, bright
+            assert sum(1 for p in leds if p[2] > 60) < 12                        # a pulse, not the whole chain
+        return out
+    right = head(1)
+    assert right == sorted(right) and right[0] < right[-1]
+    left = head(-1)
+    assert left == sorted(left, reverse=True) and left == [39 - i for i in right]
+    for bad in ({"chase": 1.0}, {"chase": 1.0, "dir": 0}, {"chase": 1.0, "dir": True}, {"chase": -1, "dir": 1}):
+        light = rl.Light()
+        light.take(bad, 0.0)
+        assert light.pulses(0.1) == []
+
+
+def test_master_and_blackout_rule_the_dance_too_and_slow_lamps_never_see_it(dancing, rl):
+    rl.light.take({"rgb": [200, 100, 0]}, 0.0)
+    calm = rl.light.colour(1.0)
+    rl.light.take({"dflash": 1.0, "chase": 1.0, "dir": 1, "dim": 0.5}, 1.0)
+    assert chain(dancing, rl, 1.0, level=0.0) == [(0, 0, 0)] * 20          # a blackout is black
+    assert max(c for p in chain(dancing, rl, 1.0, level=0.5) for c in p) <= 128
+    assert rl.light.colour(1.0) == calm                                    # the Hue lamps' colour (#272) knows nothing of it
+
+
+def test_the_stage_alone_tells_the_dance(server, wled, rl, saved_state):
+    saved_state.update(prompt="before")
+    ctl_session(server, "control", [{"led": {"dflash": 1, "dim": 0.5, "chase": 1, "dir": 1}}, {"set": {"prompt": "after"}}],
+                done=lambda: server.hub.state["prompt"] == "after")
+    assert rl.light.dflash == 0 and rl.light.dim_to == 0 and not rl.light.chases
+    with client(server, "local").websocket_connect(stage_url(server)) as stage:
+        stage.send_text(json.dumps({"led": {"rgb": [1, 2, 3], "dim": 0.5}}))
+        stage.send_text(json.dumps({"led": {"dflash": 0.7}}))
+        stage.send_text(json.dumps({"led": {"chase": 0.9, "dir": -1}}))
+        wait_until(lambda: rl.light.dflash == 0.7 and rl.light.dim_to == 0.5 and len(rl.light.chases) == 1)
+    assert rl.light.chases[0][:2] == (0.9, -1)
+
+
+def test_live_packets_show_the_flash_the_pulse_and_the_brightness(server, wled, rl, monkeypatch, saved_state):
+    """At a fake WLED receiver: the dimmed chain, a flash of all LEDs, a pulse that runs from the first LED on."""
+    saved_state.update(wled=True, wled_host="127.0.0.1", wled_amt=1.0, wled_beat=False, master=1.0)
+    wled.LAYERS.append(wled.Dance())
+
+    def leds(p):
+        return [tuple(p[10 + i * 3:13 + i * 3]) for i in range(30)]
+
+    async def go():
+        transport, rx, port = await receiver()
+        monkeypatch.setattr(wled, "PORT", port)
+        task = asyncio.create_task(wled.keep())
+        try:
+            for _ in range(10):                                        # the stage tells it every 80 ms
+                rl.take({"rgb": [0, 0, 200], "dim": 0.75})
+                await asyncio.sleep(0.08)
+            calm = leds(rx.packets[-1][1])
+            assert len(set(calm)) == 1 and 30 < calm[0][2] < 90       # dimmed, one colour
+            rl.take({"rgb": [0, 0, 200], "dim": 0.75, "dflash": 1.0})
+            n = len(rx.packets)
+            await until(lambda: len(rx.packets) > n + 1)
+            flash = leds(rx.packets[n + 1][1])
+            assert len(set(flash)) == 1 and flash[0][2] > 200          # the whole chain at once
+            for _ in range(18):
+                rl.take({"rgb": [0, 0, 200], "dim": 0.75})
+                await asyncio.sleep(0.08)
+            rl.take({"rgb": [0, 0, 200], "dim": 0.75, "chase": 1.0, "dir": 1})
+            n = len(rx.packets)
+            await asyncio.sleep(0.6)
+            heads = [max(range(30), key=lambda i: leds(p)[i][2]) for _, p in rx.packets[n + 2:]]
+            assert heads[0] < 15 and max(heads) > 20                  # it runs from the first LED towards the last
+        finally:
+            task.cancel()
+            transport.close()
+    asyncio.run(go())
