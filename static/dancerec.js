@@ -11,6 +11,8 @@
 //
 //   {format: "dream-dance", version: 1, kind: "session" | "feedback", rate, aspect, seconds, keys: [feature names],
 //    frames: [{t, v: [per key], c: [per key], g, gc, s, b, o: {target: value}, i: {…input}, p: {b, l, r}}],
+//    #196: i.r – the motion sensor's raw values that came since the frame before: [[seconds before t (≤ 0), kind, x, y, z]],
+//    kind 0 acceleration with gravity, 1 without (m/s²), 2 rotation rate (rad/s), 3 orientation (degrees); RAW_MAX a frame
 //    marks: [{t, mark: "good" | "bad", by, secs}], map: [rows]}
 (function (root) {
   'use strict';
@@ -24,14 +26,16 @@
   const TIPS = [4, 8, 12, 16, 20];
   const SRC = ['pose', 'marker', 'light', 'pose+marker'];
   const r3 = x => Math.round(x * 1000) / 1000, r4 = x => Math.round(x * 10000) / 10000, r5 = x => Math.round(x * 100000) / 100000;
+  const RAW_MAX = 32;                                  // #196: raw sensor values kept in one frame at most (the newest)
   const SHARE = 0.3;                                   // a gesture is "the" gesture of a stretch when it was on for this share of it
   const flat = (pts, fx = 1) => pts.flatMap(p => [r4(p[0] * fx), r4(p[1])]);
   const pairs = (a, fx = 1) => { const out = []; for (let i = 0; i + 1 < a.length; i += 2) out.push([a[i] * fx, a[i + 1]]); return out; };
 
   // One frame as a session keeps it. rec: the feature stream's record; input: what the detector was fed (dance.js
   // `step`); landmarks: the pose model's 33 points (or null); out: what the mapping asked of the targets; t: seconds
-  // since the session began.
-  function pack(t, keys, rec, input, landmarks, out) {
+  // since the session began. raw (#196): the sensor's raw values since the frame before – [[seconds before now, kind,
+  // x, y, z]] – kept with their time relative to the frame, so the session's own clock places them.
+  function pack(t, keys, rec, input, landmarks, out, raw) {
     // a candidate that says when it was measured keeps how old it was (seconds) – so a session fed to a detector again
     // knows a repeated measurement as the live stream did
     const age = c => (Number.isFinite(c.at) && input && Number.isFinite(input.t) ? [r4(Math.max(0, input.t - c.at))] : []);
@@ -43,13 +47,17 @@
     const arm = h => { const a = input && input.arms && input.arms[h]; return a && Array.isArray(a.g) ? a.g.map(r3) : null; };
     const arms = arm('l') || arm('r') ? { m: { l: arm('l'), r: arm('r') } } : {};
     const o = {}; for (const k of Object.keys(out || {})) if (Math.abs(out[k]) >= 0.005) o[k] = r3(out[k]);
+    const r = rawPack(raw);
     return { t: r5(t), v: keys.map(k => r4(rec.v[k] || 0)), c: keys.map(k => r3(rec.c[k] || 0)), g: rec.gesture || null, gc: r3(rec.gc || 0), s: r3(rec.size || 0), b: rec.bpm || 0, o,
       i: { h: { l: hand('l'), r: hand('r') }, b: b ? [r4(b.x), r4(b.y), r4(b.s), r3(b.c)] : null, s: s && s.g ? s.g.map(r3) : null,
-        f: { l: fing('l') ? r3(fing('l').c) : 0, r: fing('r') ? r3(fing('r').c) : 0 }, d: input && input.dark ? 1 : 0, a: r4(asp), ...arms },
+        f: { l: fing('l') ? r3(fing('l').c) : 0, r: fing('r') ? r3(fing('r').c) : 0 }, d: input && input.dark ? 1 : 0, a: r4(asp), ...arms, ...(r.length ? { r } : {}) },
       // the points to draw: all in the picture's 0…1 (the hands' x back from picture heights)
       p: { b: landmarks && landmarks.length >= 29 ? BODY.flatMap(i => [r4(landmarks[i].x), r4(landmarks[i].y)]) : null,
         l: fing('l') ? flat(fing('l').pts, 1 / asp) : null, r: fing('r') ? flat(fing('r').pts, 1 / asp) : null } };
   }
+  // #196: raw sensor values as a frame keeps them – only well-formed ones, the newest RAW_MAX, their time never after the frame
+  const rawOk = v => Array.isArray(v) && v.length === 5 && v.every(Number.isFinite) && v[1] >= 0 && v[1] <= 3;
+  const rawPack = raw => (Array.isArray(raw) ? raw.filter(rawOk).slice(-RAW_MAX).map(v => [r4(Math.min(0, v[0])), Math.round(v[1]), r4(v[2]), r4(v[3]), r4(v[4])]) : []);
   // … and back: the record a kept frame was made from (as far as the lab and the mapping read it)
   function unpack(frame, keys) {
     const v = {}, c = {}, src = {};
@@ -65,7 +73,8 @@
     const fing = h => (frame.p[h] && i.f[h] ? { pts: pairs(frame.p[h], asp), c: i.f[h] } : null);
     return { t: frame.t, hands: { l: hand('l'), r: hand('r') }, body: i.b ? { x: i.b[0], y: i.b[1], s: i.b[2], c: i.b[3] } : null,
       fingers: { l: fing('l'), r: fing('r') }, sensor: i.s ? { g: i.s, age: 0 } : null, dark: !!i.d, aspect: asp,
-      arms: i.m ? { l: i.m.l ? { g: i.m.l, age: 0 } : null, r: i.m.r ? { g: i.m.r, age: 0 } : null } : null };
+      arms: i.m ? { l: i.m.l ? { g: i.m.l, age: 0 } : null, r: i.m.r ? { g: i.m.r, age: 0 } : null } : null,
+      raw: Array.isArray(i.r) ? i.r.map(v => [frame.t + v[0], ...v.slice(1)]) : [] };   // #196: on the session's clock
   }
   const body = frame => (frame.p.b ? pairs(frame.p.b) : null);
   const hand21 = (frame, h) => (frame.p[h] ? pairs(frame.p[h]) : null);
@@ -216,7 +225,7 @@
     };
   }
 
-  const api = { FORMAT, VERSION, RATE, MAX_SECONDS, BODY, BONES, HAND_BONES, TIPS, WRIST, SRC, pack, unpack, input, body, hand21, wrist, session, good, ring, moment,
+  const api = { FORMAT, VERSION, RATE, MAX_SECONDS, RAW_MAX, rawPack, BODY, BONES, HAND_BONES, TIPS, WRIST, SRC, pack, unpack, input, body, hand21, wrist, session, good, ring, moment,
     recorder, player, gestures, review, poses, testFile, check, verdict, clutch, WORDS };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamDanceRec = api;

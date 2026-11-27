@@ -244,6 +244,25 @@
   .huelamp { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text); font-size: .9em; min-height: 28px; }
   .huelamp small { margin-left: auto; }
   #huepair.on { background: var(--accent); color: #140b1f; border-color: transparent; }
+  /* #277: the worn devices – a StickS3 on the wrist (wearcard.js) */
+  .wearlist { display: grid; gap: 6px; margin-top: 4px; }
+  .wearitem { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 2px 8px; padding: 6px 8px;
+    border: 1px solid var(--line); border-radius: 10px; }
+  .wearitem.gone { border-style: dashed; }
+  .wearitem.warn { border-color: var(--warn); }
+  .wearicon { font-size: 1.5em; line-height: 1; display: inline-block; grid-row: 1 / span 2; }
+  .wearitem.gone .wearicon { opacity: .45; }
+  .weartext { min-width: 0; font-size: .9em; line-height: 1.35; overflow-wrap: anywhere; }
+  .wearrole { font-size: .92em; }
+  .wearhead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .weardot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); opacity: .5; flex: 0 0 auto; }
+  .wearitem.live .weardot { background: var(--ok); opacity: 1; }
+  .wearnote { margin-top: 2px; }
+  .wearlast { margin-top: 2px; font-size: .92em; }
+  .wearitem .btn { grid-column: 2; justify-self: start; margin-top: 4px; max-width: 100%; }
+  .wearitem .btn.on { background: var(--accent); color: #140b1f; border-color: transparent; }
+  .clutchwear { font-size: .85em; margin-top: 4px; color: var(--muted); }
+  .clutchwear.warn { color: var(--warn); }
   .labbtns { margin-top: 6px; }
   #prompt.resting { opacity: .7; filter: grayscale(1); }
   .patauto.pale { filter: grayscale(1); opacity: .74; }
@@ -604,6 +623,7 @@
           <div class="movelight" id="movelight"></div>
           <button type="button" class="btn clutchbtn" id="clutchbtn" aria-pressed="false" title="The clutch: engaged, your dance acts on top of what the sliders and the controllers set; released, only they do. Key K, a MIDI button or Dream Control.">Clutch: released</button>
           <div class="clutchnote" id="clutchnote" role="status" aria-live="polite">Released: your dance does nothing yet – engage the clutch to let it steer.</div>
+          <div class="clutchwear" id="clutchwear" role="status" aria-live="polite" hidden></div>
           <input type="checkbox" id="clutch" hidden aria-hidden="true">
           <select id="dance_set" aria-label="Movement set" title="A movement set: the sentences that say what your movements do. Choose one here, with a MIDI button or in a playlist scene; change them and keep your own on the page (“Page ↗”)."><option value="standard">Set: Standard</option></select>
           <!-- #241: while the lab is open on its page, recording is at hand here too ("good"/"bad" live in the learning assistant on the page since #265, and on a MIDI button) -->
@@ -691,6 +711,12 @@
     </div>
     <label style="margin-top:4px">Hit sensitivity <span class="val" id="v-senssens"></span></label>
     <input type="range" id="senssens" min="0.2" max="3" step="0.1" value="1">
+  </div>
+  <!-- #277: devices worn on the body – a StickS3 on the wrist (its motion, its button the clutch) (wearables.py, wearcard.js) -->
+  <div class="row" id="wearrow">
+    <label>Worn devices (StickS3 on the wrist)</label>
+    <div id="wearlist" class="wearlist" role="list" aria-label="Worn devices" hidden></div>
+    <div id="wearstat" class="muted ledstat" role="status"></div>
   </div>
 
   </details>
@@ -876,6 +902,7 @@
 <script src="/static/soft.js"></script>
 <script src="/static/roomlight.js"></script>
 <script src="/static/huecard.js"></script>
+<script src="/static/wearcard.js"></script>
 <script src="/static/dreamface.js" data-detect defer></script><!-- #214: where the painted faces have their eyes and mouth, for the dream windows: found here once per face, in a worker, when Dream asks -->
 <script>
   // #132: the page in the chosen language (the markup is English; I18N.apply translates it once, T() the rest)
@@ -1848,7 +1875,17 @@
     danceFrame = danceDet.step(danceInput);
     danceAt = now;
   }
+  // #196: the sensor's raw values as they came (inputs.sensor_dance: "r", each [seconds ago, kind, x, y, z]), numbered
+  // and timed on this page's clock – the dance lab's sessions take the ones that are new since their last frame
+  const sensTape = [];
+  let sensTapeN = 0;
+  function tapeRaw(r) {
+    const now = performance.now() / 1000;
+    for (const v of Array.isArray(r) ? r : []) if (Array.isArray(v) && v.length === 5 && v.every(Number.isFinite)) sensTape.push([++sensTapeN, now - v[0], v[1], v[2], v[3], v[4]]);
+    while (sensTape.length && now - sensTape[0][1] > 3) sensTape.shift();
+  }
   function danceSensor(m) {                            // the sensor's movement, ~30 times a second (inputs.sensor_dance)
+    tapeRaw(m.r);
     danceSens = m; danceSensAt = performance.now();
     if (danceOn() && danceSensAt - moAt > 100) danceStep(null);   // no camera frame lately: the sensor keeps the stream going
   }
@@ -2170,6 +2207,16 @@
   $('wled_amt').addEventListener('input', () => ledShow());
   // #272: the Hue lamps – the bridge, pairing, the rooms and lamps that dream along
   const hueCard = HueCard.mount({ el: $, send: sendCtl });
+  // ---------- #277: the worn devices (wearables.py): a StickS3 on the wrist ----------
+  const wearCard = WearCard.mount({ list: $('wearlist'), stat: $('wearstat'), clutch: $('clutchwear'), send: sendCtl });
+  let wearNow = { devices: [] };
+  function wearShow(w) {
+    wearNow = w; wearCard.show(w);
+  }
+  function wearPressed(on) {
+    wearCard.pressed();
+    status(on ? T('⌚ Clutch engaged on the wrist') : T('⌚ Clutch released on the wrist'));
+  }
   $('hue_lamps').addEventListener('change', lightOn);
   const readEl = (k, el) => el.type === 'checkbox' ? el.checked : (NUM.has(k) ? +el.value : el.value);
   const timers = {};
@@ -3124,6 +3171,9 @@
     if (+$('master').value < 0.05) c.push(['warn', '■ Blackout']); else if (+$('master').value < 0.98) c.push(['', 'Master ' + Math.round($('master').value * 100) + ' %']);
     if (midiPorts) c.push(['ok', '🎛 MIDI']);   // #179: by the state, not by a (German) text
     if (sensLive) c.push(['ok', '📡 Sensor']);
+    for (const d of wearNow.devices || []) if (d.kind === 'sticks3' && d.paired) {   // #277: connected, gone, battery low
+      c.push(!d.live ? ['warn', T('⌚ {d} gone', { d: d.name })] : d.low ? ['warn', T('⌚ {d}: battery {p} %', { d: d.name, p: d.battery })] : ['ok', '⌚ ' + d.name]);
+    }
     if (typeof rel !== 'undefined' && rel.undo.length && !rel.busy) c.push(['', T('🐢 relieved: {s}', { s: rel.done.map(n => REL_NAMES()[n]).join(', ') })]);
     if (feedsNow.cam) c.push([performance.now() - devAt < 2000 ? 'ok' : 'warn', feedsNow.cam.by === 'Dreamy Eyes' ? T('👀 Live camera: Dreamy Eyes') : T('📱 Live camera: Dream Control')]);   // #146/#156: who sends
     if (feedsNow.motion) c.push(glowChip(feedsNow.motion, T('📱 Motion: Dream Control')));
@@ -3501,7 +3551,8 @@
   // what a mode's page asks of the lab (the camera with the tracks, the curves, the sessions)
   const labOpts = { keys: DreamDance.SOURCES, fxNames: FX_NAMES, fxIcons: FX_ICON, targets: DreamDanceMap.targets(DreamFx.ALL),
       video: tracker.video, snapshot: (c, w, h) => view.snapshot(c, w, h),
-      live: () => (danceOn() && danceFrame && performance.now() - danceAt < 300 ? { rec: danceFrame, input: danceInput, landmarks: tracker.frame.landmarks, out: danceOut } : null),
+      live: () => (danceOn() && danceFrame && performance.now() - danceAt < 300 ? { rec: danceFrame, input: danceInput, landmarks: tracker.frame.landmarks, out: danceOut,
+        raw: { now: performance.now() / 1000, tape: sensTape } } : null),   // #196: the sensor's raw values (tapeRaw)
       rows: tableRows,                                 // the lab's row to tune: flowtrack's on its page (the dance's are sentences)
       setRows: rows => { const m = tableMode(); if (!m) return; moveTables[m] = rows; dancePanel.map(rows); clearTimeout(danceMapTimer); danceMapTimer = setTimeout(() => { danceMapTimer = 0; sendCtl({ dance_map: moveTables[m], mode: m }); }, 200); },
       play: rec => { dancePlay = rec; },
@@ -4026,6 +4077,8 @@
       if (m.cloud) showCloud(m.cloud);                 // #176: pushed by the server
       if (m.wled) { ledShow(m.wled); if (m.wled.found) ledFound(m.wled.found); }   // #212
       if (m.hue) { hueCard.show(m.hue); if (m.hue.found) hueCard.found(m.hue.found); }   // #272
+      if (m.wear) wearShow(m.wear);                    // #277: the worn devices
+      if (m.set && 'clutch' in m.set && m.by === 'wear') wearPressed(m.set.clutch);   // … the clutch moved on the wrist
       if (m.eyes_cfg) $('trancefreqm').value = String(m.eyes_cfg.trance_every);
       if (m.gallery) renderGallery(m.gallery);
       if (m.schema) sliders.schema(m.schema);          // #216

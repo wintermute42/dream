@@ -243,11 +243,12 @@ def test_the_stage_gets_the_sensor_only_while_a_mode_listens_to_it(server, monke
         sent.append((msg, only))
     monkeypatch.setattr(server.hub, "broadcast", broadcast)
     monkeypatch.setattr(server.inputs.sens, "motion", lambda now=None: {"g": [1.0, 2.0, 3.0], "age": 0.01})
+    monkeypatch.setattr(server.inputs.sens, "take_raw", lambda now=None: [[0.01, 2, 1.0, 2.0, 3.0]])   # #196
     monkeypatch.setattr(server.inputs.sens, "source", "192.0.2.7")                              # a wristband over OSC
     monkeypatch.setitem(server.hub.state, "move_off", "")
     monkeypatch.setitem(server.hub.state, "move_mode", "dance")
     asyncio.run(server.inputs.sensor_dance())
-    assert sent == [({"sensors": {"dance": {"g": [1.0, 2.0, 3.0], "age": 0.01}}}, "stage")]     # the stage only
+    assert sent == [({"sensors": {"dance": {"g": [1.0, 2.0, 3.0], "age": 0.01, "r": [[0.01, 2, 1.0, 2.0, 3.0]]}}}, "stage")]   # the stage only
     monkeypatch.setitem(server.hub.state, "move_mode", "off")                                   # #249: no mode, no movement
     asyncio.run(server.inputs.sensor_dance())
     assert len(sent) == 1

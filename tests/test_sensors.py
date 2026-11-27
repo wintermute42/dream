@@ -1,6 +1,9 @@
 """Motion sensors over OSC (sensors.py): channels, impulses, learning – with the time handed in, no OSC port."""
 import json
+import math
 import os
+
+import pytest
 
 import midi
 import sensors
@@ -236,3 +239,19 @@ def test_strikes_are_counted_once_per_message_from_dream_control():
     phone(s, 1.0, 0.0, strike=25.0)
     phone(s, 1.5, 0.0, strike=25.0)
     assert s.strikes == 2 and s.live()["strikes"] == 2
+
+
+def test_raw_values_of_the_leading_sender_with_their_age_once():
+    """#196: what the dance lab's sessions keep – the leading sender's raw values in the sensor input's units."""
+    s = sensors.Sensors()
+    s.on_osc("/device/gyroscope", [90.0, 0.0, 0.0], "Dream Control", now=10.00, gyro_unit=math.radians(1))
+    s.on_osc("/device/accelerometer", [0.0, 9.8, 0.0], "Dream Control", now=10.01)
+    s.on_osc("/other/gyroscope", [1.0, 1.0, 1.0], "192.168.1.9", now=10.02)     # a second sender: not the leading one
+    s.on_osc("/device/orientation", [10.0, 20.0, 30.0], "Dream Control", now=10.03)
+    s.on_osc("/device/light", [1.0, 2.0, 3.0], "Dream Control", now=10.03)       # no motion: not kept
+    raw = s.take_raw(now=10.05)
+    assert raw == [[0.05, 2, pytest.approx(1.5708, abs=1e-4), 0.0, 0.0], [0.04, 0, 0.0, 9.8, 0.0], [0.02, 3, 10.0, 20.0, 30.0]]
+    assert s.take_raw(now=10.1) == []
+    for i in range(100):
+        s.on_osc("/device/gyroscope", [i, 0, 0], "Dream Control", now=11 + i * 0.001)
+    assert len(s.take_raw(now=12)) == sensors.RAW_MAX

@@ -95,6 +95,7 @@ async def ctl(sock: WebSocket):
     if rights.can(role, "control"):                # #212: the room light's status (after the state: the page knows the switch)
         outbox.post(sock, json.dumps(wled.msg()))
         outbox.post(sock, json.dumps(hue.msg(), ensure_ascii=False))   # #272: the Hue lamps' (never the bridge's key)
+        outbox.post(sock, json.dumps(inputs.wear_msg()))   # #277: the worn devices (never a token)
     await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
     try:
@@ -153,6 +154,8 @@ async def ctl(sock: WebSocket):
                     hub.live["hue_pair"] = asyncio.create_task(hue.pair())
                 if msg.get("hue_unpair") is True:
                     hue.unpair()
+                if "wear" in msg:                      # #277: allow a StickS3's button to move the clutch, or not
+                    inputs.wear_op(msg["wear"])
             if "glow" in msg:                          # #237: the phone that lends its motion glows as a light marker
                 await glow_set(sock, msg["glow"])
             if rights.can(hub.roles.get(sock), "control"):    # #172: Dream Control sends the eyes into trance / sets how often

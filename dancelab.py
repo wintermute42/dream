@@ -1,7 +1,8 @@
 """The dance lab's sessions (#243): what the lab records of a dance, kept on this Mac.
 
 A session is trajectories, never pictures: per frame the features the stage detected, what its sources saw of the
-hands and the body (points and confidences) and the points of the skeleton – with marks ("good"/"bad") and the mapping
+hands and the body (points and confidences), the points of the skeleton and (#196) the motion sensor's raw values with
+their times – with marks ("good"/"bad") and the mapping
 table that was in use (the format: static/dancerec.js). A feedback moment is a short session of its own: the last
 seconds before a "good" or a "bad". They live in `~/.local/state/dream/dance/` (never in the repository), only this Mac
 and Dream Control may list, read, add or delete them (rights.CONTROL_ONLY), and nothing here ever leaves the Mac.
@@ -81,6 +82,15 @@ def _mark(m) -> dict:
 FRAME_KEYS = frozenset({"t", "v", "c", "g", "gc", "s", "b", "o", "i", "p"})
 
 
+RAW_MAX = 32                               # #196: raw sensor values in one frame at most (static/dancerec.js)
+
+
+def raw_ok(r) -> bool:
+    """#196: a frame's raw sensor values – none, or [[seconds before the frame (≤ 0), kind 0…3, x, y, z], …]."""
+    return r is None or (isinstance(r, list) and len(r) <= RAW_MAX and all(
+        isinstance(v, list) and len(v) == 5 and all(_number(x) for x in v) and v[0] <= 0 and v[1] in (0, 1, 2, 3) for v in r))
+
+
 def clean_frames(frames: list, keys: list, more: frozenset = frozenset()) -> list | None:
     """The frames of a session as they are kept – numbers, short names and structure alone –, or None when one of
     them is no frame. `more`: further keys a frame may have (#236: a taught move's frames)."""
@@ -101,6 +111,8 @@ def clean_frames(frames: list, keys: list, more: frozenset = frozenset()) -> lis
         if not isinstance(i.get("h"), dict) or not all(isinstance(i["h"].get(h), list) for h in ("l", "r")):
             return None
         if not all(p.get(k) is None or (isinstance(p[k], list) and all(_number(x) for x in p[k])) for k in ("b", "l", "r")):
+            return None
+        if not raw_ok(i.get("r")):
             return None
         out.append(f)
     return out

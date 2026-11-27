@@ -5,3 +5,5 @@ compile-cache/
 # real dance recordings never belong in this repository – only synthetic test files do (README "Tests")
 tests/js/dance-sessions/*
 !tests/js/dance-sessions/synthetic*.json
+# #277: PlatformIO builds of the firmware
+firmware/*/.pio/
