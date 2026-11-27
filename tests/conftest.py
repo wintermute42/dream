@@ -15,7 +15,8 @@ sys.path.insert(0, ROOT)
 
 FOLDERS = {"DREAM_STATE_DIR": "state", "DREAM_CONFIG_DIR": "config", "DREAM_SAVE_DIR": "saved"}
 _session = {}
-SERVER_ENV = ("DREAM_ROLE", "DREAM_LAN", "DREAM_CLOUD_CMD", "DREAM_OLLAMA", "DREAM_PORT", "DREAM_HTTPS_PORT", "DREAM_NOTIFY")
+SERVER_ENV = ("DREAM_ROLE", "DREAM_LAN", "DREAM_CLOUD_CMD", "DREAM_OLLAMA", "DREAM_PORT", "DREAM_HTTPS_PORT", "DREAM_NOTIFY",
+              "DREAM_RECEIVER")
 
 
 def _sandbox_env(base: str) -> dict:
@@ -44,6 +45,7 @@ def pytest_configure(config):
     _session["base"], _session["env"] = base, {k: os.environ.get(k) for k in ("HOME", *FOLDERS, *SERVER_ENV)}
     os.environ.update(_sandbox_env(base))
     os.environ["DREAM_NOTIFY"] = "0"                    # #238: no test ever shows a notification of macOS
+    os.environ["DREAM_RECEIVER"] = "off"                # #278: no test ever opens a USB port (a test names its own pty)
     for k in ("DREAM_PRELOAD", "DREAM_ENV"):
         os.environ.pop(k, None)
     fake_torch()

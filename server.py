@@ -83,6 +83,7 @@ if config.ROLE == "app":
     import net
     import output
     import pages
+    import receiver
     import recording
     import rights
     import roomlight
@@ -112,3 +113,4 @@ if config.ROLE == "app":
     app.router.on_shutdown.append(hue.stop)            # #272: the Hue lamps get their previous state back
     _background("recording", recording.keep)           # #276: the time left, the room left, a stage that went away
     app.router.on_shutdown.append(wearables.stop_advert)   # #277: the mDNS announcement of the sensor port ends
+    app.router.on_shutdown.append(receiver.stop)          # #278: the USB receivers' ports are let go

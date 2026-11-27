@@ -17,6 +17,7 @@ import movement
 import outbox
 import paths
 import playlists
+import receiver
 import recording
 import rights
 import scenes
@@ -114,6 +115,7 @@ sens = sensors.Sensors()
 wear = wearables.Wearables(feed=lambda address, values, source, t, unit: sens.on_osc(address, values, source, now=t, gyro_unit=unit))
 wear.clutch = bool(hub.state["clutch"])
 hub.on_change("clutch", lambda: wear.tell_all(hub.state["clutch"]))   # whoever moved the clutch: the devices hear it
+wear.radio_for = receiver.channel_for     # #278: a stick on the Wi-Fi whose USB receiver is plugged in moves to the radio
 
 
 def sensor_setting(msg: dict):
@@ -172,10 +174,14 @@ async def sensor_loop():
             await wearables.advertise(SENSOR_PORT)
     except OSError as e:                           # the port is taken: Dream Control's own sensors still come over /ctl
         print(f"Sensor port {SENSOR_PORT} not available: {e}", flush=True)
+    # #278: the USB receiver – the sticks by radio; a stick's second button is an ordinary sensor button there too
+    hub.live["receiver"] = asyncio.create_task(receiver.watch(wear, other=lambda address, args, src: sens.on_osc(address, args, src)))
     shown_at, told_at, sent = 0.0, 0.0, {}
     while True:
         await asyncio.sleep(1 / 30)
         await sensor_dance()
+        wear.ping_all()                            # #278: the delay of every worn device, once a second each
+        receiver.tick(bool(hub.state["clutch"]))   # … and the receiver's LED
         if time.monotonic() - told_at > 0.25:      # #249: the register of sources, four times a second
             told_at = time.monotonic()
             await sources_tell()
@@ -240,19 +246,24 @@ async def sensor_dance():
 
 async def wear_events():
     """#277: a StickS3's button – the clutch as the dancer wants it, like a MIDI button or key K (hub.apply; the devices
-    hear the result through the watcher of "clutch", the one that pressed too when nothing changed)."""
+    hear the result through the watcher of "clutch", the one that pressed too when nothing changed). #278: the USB
+    receiver's button says no state – it turns the clutch the other way (on None)."""
     while wear.events:
         _, on, id_ = wear.events.pop(0)
+        if on is None:
+            on = not hub.state["clutch"]
         if hub.state["clutch"] != on:
             wear_told["msg"] = None                # the panel learns of the press before the clutch moves
             wear_tell()
-            await hub.apply({"clutch": on}, by="wear")
+            await hub.apply({"clutch": on}, by="receiver" if id_.startswith("receiver:") else "wear")
         else:
             wear.tell_all(on)
 
 
 def wear_msg() -> dict:
-    return wear.msg(SENSOR_PORT, config.LAN)
+    msg = wear.msg(SENSOR_PORT, config.LAN)
+    msg["wear"]["receivers"] = receiver.listing()      # #278: the USB receivers (never a port's path or a key)
+    return msg
 
 
 wear_told: dict = {"msg": None}
@@ -271,9 +282,13 @@ def wear_tell() -> None:
 
 
 def wear_op(op) -> None:
-    """#277: {"op": "allow" | "revoke", "id": …} – only from the panel or Dream Control (ctl.py checks the role)."""
-    if isinstance(op, dict) and op.get("op") in ("allow", "revoke"):
-        (wear.allow if op["op"] == "allow" else wear.revoke)(op.get("id"))
+    """#277: {"op": "allow" | "revoke", "id": …} – only from the panel or Dream Control (ctl.py checks the role).
+    #278: {"op": "pairing", "id": <a receiver's id>} – that receiver opens its pairing window."""
+    if isinstance(op, dict) and op.get("op") in ("allow", "revoke", "pairing"):
+        if op["op"] == "pairing":
+            receiver.open_pairing(op.get("id"))
+        else:
+            (wear.allow if op["op"] == "allow" else wear.revoke)(op.get("id"))
         wear_told["msg"] = None
         wear_tell()
 

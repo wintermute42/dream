@@ -263,6 +263,15 @@
   .wearitem .btn { grid-column: 2; justify-self: start; margin-top: 4px; max-width: 100%; }
   .wearitem .btn.on { background: var(--accent); color: #140b1f; border-color: transparent; }
   .clutchwear { font-size: .85em; margin-top: 4px; color: var(--muted); }
+  /* #278: the USB receiver's light, as it glows on the Mac – blinking white while it waits for a wristband */
+  .wearled { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; margin-left: 2px; background: var(--warn); box-shadow: 0 0 6px 1px var(--warn); }
+  .wearled[data-led="g"] { background: var(--ok); box-shadow: 0 0 6px 1px var(--ok); }
+  .wearled[data-led="b"] { background: rgb(80,190,255); box-shadow: 0 0 6px 1px rgb(80,190,255); }
+  .wearitem.gone .wearled { opacity: .35; box-shadow: none; }
+  .wearitem.pairing .wearled { background: #fff; box-shadow: 0 0 8px 2px #fff; animation: wearblink .25s steps(2, jump-none) infinite alternate; }
+  .wearitem .btn[aria-disabled="true"] { opacity: .6; cursor: default; }
+  @keyframes wearblink { from { opacity: 1; } to { opacity: .15; } }
+  @media (prefers-reduced-motion: reduce) { .wearitem.pairing .wearled { animation: none; } }
   .clutchwear.warn { color: var(--warn); }
   .labbtns { margin-top: 6px; }
   #prompt.resting { opacity: .7; filter: grayscale(1); }
@@ -720,7 +729,7 @@
   </div>
   <!-- #277: devices worn on the body – a StickS3 on the wrist (its motion, its button the clutch) (wearables.py, wearcard.js) -->
   <div class="row" id="wearrow">
-    <label>Worn devices (StickS3 on the wrist)</label>
+    <label>Worn devices (StickS3 on the wrist, USB receiver)</label>
     <div id="wearlist" class="wearlist" role="list" aria-label="Worn devices" hidden></div>
     <div id="wearstat" class="muted ledstat" role="status"></div>
   </div>
@@ -2252,9 +2261,10 @@
   function wearShow(w) {
     wearNow = w; wearCard.show(w);
   }
-  function wearPressed(on) {
-    wearCard.pressed();
-    status(on ? T('⌚ Clutch engaged on the wrist') : T('⌚ Clutch released on the wrist'));
+  function wearPressed(on, by) {
+    wearCard.pressed(by === 'receiver' ? 'receiver' : 'sticks3');
+    if (by === 'receiver') status(on ? T('📡 Clutch engaged on the receiver') : T('📡 Clutch released on the receiver'));   // #278
+    else status(on ? T('⌚ Clutch engaged on the wrist') : T('⌚ Clutch released on the wrist'));
   }
   $('hue_lamps').addEventListener('change', lightOn);
   const readEl = (k, el) => el.type === 'checkbox' ? el.checked : (NUM.has(k) ? +el.value : el.value);
@@ -4234,7 +4244,7 @@
       if (m.hue) { hueCard.show(m.hue); if (m.hue.found) hueCard.found(m.hue.found); }   // #272
       if (m.rec) recCard.show(m.rec);                  // #276
       if (m.wear) wearShow(m.wear);                    // #277: the worn devices
-      if (m.set && 'clutch' in m.set && m.by === 'wear') wearPressed(m.set.clutch);   // … the clutch moved on the wrist
+      if (m.set && 'clutch' in m.set && (m.by === 'wear' || m.by === 'receiver')) wearPressed(m.set.clutch, m.by);   // … the clutch moved on the wrist or the receiver
       if (m.eyes_cfg) $('trancefreqm').value = String(m.eyes_cfg.trance_every);
       if (m.gallery) renderGallery(m.gallery);
       if (m.schema) sliders.schema(m.schema);          // #216

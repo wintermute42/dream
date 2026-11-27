@@ -2310,7 +2310,10 @@ An **M5Stack StickS3** worn on the wrist sends its motion sensor's raw values to
 **It needs nothing done on it while worn:** switched on, it connects to the known Wi-Fi and to Dream by itself, sends,
 and comes back by itself after a drop – it can sit in a plain band where its screen is not seen and its buttons are
 not pressed. Optionally its big button is the **clutch** of Dream Dance, with sounds that say what Dream confirmed.
-The firmware is in this repository (`firmware/`); one command puts it on the stick.
+With an **M5Stack AtomS3 Lite** on the Mac's USB as a receiver (#278), the stick sends **by radio straight to the
+Mac** (ESP-NOW) instead of through the Wi-Fi – fast and steady also in a full or disturbed Wi-Fi; without the receiver
+it falls back to the Wi-Fi by itself. The firmware of both is in this repository (`firmware/`); one command puts it on
+a device.
 
 ### What to buy
 
@@ -2320,12 +2323,22 @@ The firmware is in this repository (`firmware/`); one command puts it on the sti
 - A **band** for it: a plain neoprene band, a sports wristband with a pocket, or an M5Stack watch strap for the Stick
   series. It must not slip when the arm swings (with fire: see the safety note in [Flowtrack](#flowtrack)).
 - A USB-C **data** cable to flash it from the Mac.
+- Optional, for the radio straight to the Mac (#278): an **M5Stack AtomS3 Lite** (ESP32-S3, one button, one RGB light,
+  USB-C, about 24 × 24 mm) – it stays plugged into the Mac (directly or by a short cable, best where it “sees” the
+  dancing area).
 
 ### Flashing (one command)
 
 ```bash
 firmware/flash.sh sticks3            # the StickS3 plugged in by USB-C
+firmware/flash.sh atoms3-receiver    # the AtomS3 Lite, the USB receiver (#278)
 ```
+
+**One at a time:** both are ESP32-S3 boards with the same USB ids, so the script cannot tell them apart by USB. It
+always needs the device's name, and with two such boards plugged in it flashes nothing (exit 4, with a clear line)
+unless you name the port with `--port` (`firmware/flash.sh --list` shows them). So: plug in only the one to flash,
+flash it, then the other. While it flashes, a running Dream lets go of its USB ports (the script leaves a note
+`flashing` in Dream's state folder) – Dream need not be stopped; it finds the receiver again afterwards by itself.
 
 The script does everything by itself and asks nothing: it installs [PlatformIO](https://platformio.org) with
 `uv tool install platformio` if it is missing, finds the stick by its USB ids, builds the firmware (every version is
@@ -2333,13 +2346,14 @@ pinned in `platformio.ini`), uploads it, tries once more if that fails, and ends
 new firmware.” or what went wrong. So you can also simply ask Claude: “flash the stick”.
 
 - `firmware/flash.sh --list` shows the boards plugged in right now (and which firmware fits each).
-- `firmware/flash.sh sticks3 --port /dev/cu.usbmodem1101` takes this port instead of looking (several sticks plugged in).
-- Exit codes: 0 done · 1 build or upload failed (twice) · 2 wrong call · 3 no stick found · 4 several found (choose
-  one with `--port`) · 5 PlatformIO missing and not installable.
+- `firmware/flash.sh sticks3 --port /dev/cu.usbmodem1101` takes this port instead of looking (several boards plugged in).
+- Exit codes: 0 done · 1 build or upload failed (twice) · 2 wrong call · 3 no such board found · 4 several found
+  (choose one with `--port`) · 5 PlatformIO missing and not installable.
 
 If the stick is not found or the upload fails: hold its **power button** (on the side) for about two seconds until the
-green light inside blinks (download mode), then run the command again. `pio device monitor` shows what the stick writes
-while it runs.
+green light inside blinks (download mode), then run the command again. The AtomS3 Lite: hold its button (the whole top
+is the button) while plugging it in. `pio device monitor` shows what a board writes while it runs (stop Dream first for
+the receiver: its port is Dream's while it runs).
 
 ### Wi-Fi setup (no Wi-Fi password in the code)
 
@@ -2369,6 +2383,60 @@ card). **Its button moves the clutch only once you allow it** – so a stray pac
    clutch. From now on the button is a clutch like key K or a MIDI button – also after a restart of either.
    If the line says the stick did not get its key (it was out of reach for half a minute), revoke and allow again.
 3. **Revoke** takes it back (allow it again at any time; a reflashed stick needs allowing again).
+
+### The USB receiver: radio straight to the Mac (AtomS3 Lite, #278)
+
+The AtomS3 Lite on the Mac's USB takes the stick's packets by radio (**ESP-NOW**: from the wrist straight to the Mac,
+no router, no Wi-Fi in between) and hands them to Dream over its USB line. Dream finds it by itself (no setting, no
+`--lan` needed for it) and feeds the packets into the same path as over the Wi-Fi: the same motion, the same clutch,
+the same line in the panel. The **delay** is shown in the panel's line (“by radio · 50 values/s · ≈ 3 ms”) – the goal
+is under 10 ms; over the Wi-Fi it is often 5–50 ms and jumps when the Wi-Fi is busy.
+
+**Setting up (once):**
+
+1. Flash both, one at a time (above): `firmware/flash.sh atoms3-receiver`, then `firmware/flash.sh sticks3`.
+2. Plug the AtomS3 Lite into the Mac and start Dream (or leave it running). In the panel under **Control → Worn
+   devices** a line “📡 AtomS3 receiver …” appears, its light turns **red** (no wristband yet).
+3. **Pair** – blind, nothing to press on the stick: hold the receiver's button for **2 seconds** (its light blinks
+   white; or click **Pair a wristband** in the panel), then **switch the StickS3 on** near the receiver within 30
+   seconds. At every start the stick first asks on all channels whether a receiver is waiting for it (about two seconds);
+   the receiver gives it a key of its own and blinks **green three times**, the stick plays two rising tones and shows
+   “paired”. Its motion counts at once, and since you pressed the receiver's button – the owner's word, like allowing it
+   in the panel – its button is the clutch at once (**Revoke** in the panel takes that back as for any stick).
+4. Done: from now on the stick finds its receiver by itself at every start.
+
+**The receiver's light:** **green** = a wristband is there by radio and the clutch is **engaged** · **blue** = there,
+clutch **released** · **red** = no wristband (by radio) · **yellow** = Dream is not listening (not running) · **blinking
+white** = pairing (30 s). Three green flashes: paired; three red: all forgotten.
+
+**The receiver's button:** pressed briefly, it turns the **clutch** the other way – like key K, a MIDI button or the
+phone (a short white flash says it went to Dream; a yellow double flash: Dream is not listening, nothing changed). The
+panel shows “📡 Clutch engaged on the receiver”. Held 2 s: pairing. Held 10 s: **every paired wristband is forgotten**.
+
+**Falling back to the Wi-Fi:** when the stick gets no answer from its receiver (unplugged, the Mac asleep, out of
+reach) it looks for it on every channel once (about two seconds) and then goes into the Wi-Fi as before (if a Wi-Fi is
+set up) – the panel's line says “over the Wi-Fi”. When the receiver is back, Dream tells the stick over the Wi-Fi and it
+moves to the radio by itself (a stick that does not reach it waits a minute before it tries again, twice as long after
+every further miss, so it is not taken off the Wi-Fi again and again); on the Wi-Fi without Dream for half a minute it
+tries the receiver again too. A stick that
+knows its receiver but no Wi-Fi simply keeps looking for the receiver. Nothing to press either way.
+
+**The channel:** the receiver never joins a Wi-Fi, so it stays on one fixed radio channel – **1** unless you set
+`DREAM_ESPNOW_CHANNEL=6` (1 … 13) in `~/.config/dream/dream.env`; Dream tells the receiver. A stick on the radio is not
+on the Wi-Fi either (one radio, one channel at a time), learns the channel at the pairing and finds a changed channel by
+itself. Choose one away from your home Wi-Fi's (the router's settings show it; for a Wi-Fi on 1 take 6 or 11, for one on
+6 take 1 or 11) – the radio works on any, but the less traffic on it, the steadier. **WLED** (#212) and the Hue lamps
+are not affected: they stay in the Wi-Fi, Dream talks to them as before.
+
+**Security:** only sticks paired with the receiver are heard – the receiver keeps its own list (at most six; a seventh
+pushes out the longest paired) and drops every other packet, Dream checks it again and that a packet names the stick it
+came from. Everything between a stick and the receiver is **encrypted** with a key of that stick's own (made at random
+at the pairing; it travels once, during the 30-second window, unencrypted from the receiver to the stick). The clutch
+still needs the stick's token of #277. The receiver itself is trusted because it is on the Mac's USB, like key K.
+
+**Battery:** on the radio the stick's receiver part listens all the time (ESP-NOW cannot sleep between packets like the
+Wi-Fi's modem sleep), so the battery may last **shorter than over the Wi-Fi** – not measured yet; the panel shows the
+battery.
 
 ### Wearing and using it
 
@@ -2412,11 +2480,15 @@ sensor input itself (so learned sliders and strikes act during a playback) is a 
 
 ### The protocol (for your own devices)
 
-OSC over UDP to the sensor port, everything under `/dream/wear/` (`wearables.py` describes it in full): a device sends
+OSC over UDP to the sensor port – or by radio through the USB receiver (#278: the same packets; `receiver.py` and
+`firmware/lib/DreamRadio/src/DreamRadio.h` describe the radio frames and the receiver's serial line) –, everything under
+`/dream/wear/` (`wearables.py` describes it in full): a device sends
 `hello` once a second (id, kind, its key, battery, firmware), `imu` 50–100 times a second (id, its clock in ms,
 acceleration in g, rotation rate in °/s) and `clutch` on a press (id, key, the wished state, a number – repeated until
 Dream answers). Dream answers `state` (clutch, allowed, the number it took) to the address it came from, and `pair`
-(the key) once you allowed it.
+(the key) once you allowed it. #278: Dream sends `ping` (a number) once a second and the device answers `pong` (id,
+that number) at once – half that way is the delay in the panel; to a stick on the Wi-Fi whose receiver is plugged in,
+`radio` (the channel).
 
 ### If something does not work
 
@@ -2434,6 +2506,16 @@ Dream answers). Dream answers `state` (clutch, allowed, the number it took) to t
   put it into download mode (above). **Several found (exit 4):** unplug the others or name one with `--port`.
 - **The upload fails twice (exit 1):** another program holds the USB port (close a serial monitor), then the download
   mode above.
+- **Two boards plugged in (exit 4, “the same ids”):** the StickS3 and the AtomS3 Lite look alike over USB – unplug the
+  one you do not mean to flash, or name the port with `--port`.
+- **The receiver does not appear in the panel:** a data cable? Its light **yellow** means Dream does not listen to it
+  – Dream starts listening within a few seconds once a page is open (its sensor part starts with the first panel or
+  Dream Control); still yellow: plug it in again. Another program holding its port (a serial monitor) keeps Dream out.
+- **The receiver's light stays red, the stick says “looking for receiver” or runs “over the Wi-Fi”:** not paired with
+  this receiver (pair it: hold the button 2 s, then switch the stick on next to it), too far away, or a channel changed
+  just now (the stick finds it within seconds). Moving the receiver up (a USB extension) helps through bodies and walls.
+- **The delay in the panel is high over the radio** (well over 10 ms): another radio on the same channel – choose
+  another with `DREAM_ESPNOW_CHANNEL`.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -2805,7 +2887,8 @@ outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), th
 `net.py`). The pages are in `static/`; what they share is in `static/common.js`, the sliders of the panel and of Dream
 Control in `static/sliders.js` (drawn from the settings table: default, range and `weight` of a setting), their moving
 signs and the shape of the picture's character in `static/signs.js`. The worn devices (#277) are `wearables.py` (the
-protocol, pairing, the answers) and `static/wearcard.js` (their lines in the panel); their firmware is in `firmware/`.
+protocol, pairing, the answers), `receiver.py` (#278: the USB receiver – finding it, its serial line, its light) and
+`static/wearcard.js` (their lines in the panel); their firmware is in `firmware/`.
 
 **Worn devices (#277):** `tests/test_wearables.py` plays a fake StickS3 – OSC packets built in the test,
 the answers caught, and once the real sensor loop on a free port of 127.0.0.1 with a fake device's socket: the hello and
@@ -2820,9 +2903,18 @@ USB ids among other ports, none or several (exit 3, 4), `--port`, `--list`, a fa
 `tests/test_firmware_osc.py` compiles the firmware's OSC (`firmware/lib/DreamWear/src/DreamOsc.h`) for this computer
 and checks it against python-osc in both directions (skipped without a C++ compiler). `node --test
 tests/js/wearcard.test.mjs` tests the panel's lines; `tests/js/dancerec.test.mjs` and `tests/test_dancelab.py` the raw
-values in the sessions (#196). **The firmware** is compiled by hand, not in the CI (its minutes are paid, a build
-fetches a toolchain): `cd firmware/sticks3 && pio run` must end with “SUCCESS” before a change to `firmware/` is
-merged.
+values in the sessions (#196).
+**The USB receiver (#278):** `tests/test_receiver.py` plays a fake receiver on a pty – its lines written in the test,
+Dream's lines read back: who it is (odd lines refused), a paired stick's motion in the one path of the worn devices,
+unpaired sticks and a stick naming another refused, a stick paired by the button allowed at its first hello (and only
+then; revoked it stays revoked), the clutch from its button, the light green/blue/red and only while it answers, the
+channel, the panel's pairing window, the delay (half the way there and back, also over the Wi-Fi), the hint back to
+the radio and the fallback to the Wi-Fi, a port that says nothing never written to, finding and letting go (unplugged,
+`flash.sh` running, a port held by another). `tests/test_firmware_radio.py` compiles the receiver's serial line and
+peer table (`firmware/lib/DreamRadio/src/DreamRadio.h`) for this computer and checks them against `receiver.py`;
+`tests/test_flash.py` covers `flash.sh atoms3-receiver` and two ESP32-S3 boards plugged in. **The firmware** is compiled
+by hand, not in the CI (its minutes are paid, a build fetches a toolchain): `pio run` in `firmware/sticks3` and in
+`firmware/atoms3-receiver` must end with “SUCCESS” before a change to `firmware/` is merged.
 
 <sub>[↑ Contents](#contents)</sub>
 
