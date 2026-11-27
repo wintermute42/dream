@@ -441,9 +441,10 @@ def test_the_stage_gets_each_glowing_phones_motion_by_its_hand(server, monkeypat
     sens.on_osc("/device2/gyroscope", [0.0, 2.0, 0.0], "Dream Control 2", now=49.99)
     asyncio.run(server.inputs.sensor_dance())
     assert "arms" not in sent[-1][0]["sensors"]["dance"]                         # nobody glows: the sensor as ever
+    assert sent[-1][0]["sensors"]["dance"]["r"] == [[0.02, 2, 1.0, 0.0, 0.0]]     # #196: the leading phone's raw values
     glows.wish(server.hub.state, "Dream Control 2", "cyan")
     asyncio.run(server.inputs.sensor_dance())
-    assert sent[-1] == ({"sensors": {"dance": {"g": [1.0, 0.0, 0.0], "age": 0.02, "arms": {"l": {"g": [0.0, 2.0, 0.0], "age": 0.01}}}}}, "stage")
+    assert sent[-1] == ({"sensors": {"dance": {"g": [1.0, 0.0, 0.0], "age": 0.02, "r": [], "arms": {"l": {"g": [0.0, 2.0, 0.0], "age": 0.01}}}}}, "stage")
     glows.wish(server.hub.state, "Dream Control", "magenta")
     asyncio.run(server.inputs.sensor_dance())
     assert set(sent[-1][0]["sensors"]["dance"]["arms"]) == {"l", "r"}

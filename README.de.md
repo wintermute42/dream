@@ -61,6 +61,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
+- [Getragene Geräte (StickS3 am Handgelenk)](#getragene-geräte-sticks3-am-handgelenk)
 
 **Cloud-GPU**
 
@@ -1933,12 +1934,14 @@ einem Ruck – so wechselst du nahtlos zwischen Tanzen und Bedienen. Vier Wege, 
 - Taste **K** auf der Bühne oder auf der Seite (im Modus Dream Dance),
 - ein MIDI-Knopf: „**Taste: Kupplung ein/aus**“ anlernen (siehe [MIDI-Controller](#midi-controller)),
 - der Knopf in Dream Control (Karte „Dream Dance“) – das Handy in der Tasche.
+- der große Knopf eines StickS3 am Handgelenk, sobald du ihn im Bedienfeld erlaubt hast (siehe [Getragene Geräte](#getragene-geräte-sticks3-am-handgelenk)).
 
 Der Balken unter dem Knopf auf der Seite zeigt, wie weit der Tanz drin ist. **Nach jedem Start ist die Kupplung
 gelöst**: Dein Tanz bewirkt nichts, bis du sie bewusst einlegst – eine eingelegte Kupplung merkt sich Dream nicht
 über einen Neustart hinweg (den Modus und das Bewegungs-Set schon). Gelöst ist deutlich zu sehen: Der Knopf ist leer
 mit gestricheltem rotem Rand und zeigt „Kupplung: gelöst“, und die Zeile darunter sagt, dass dein Tanz noch nichts
-bewirkt – in der Karte Bewegung, auf der Seite und in Dream Control gleich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
+bewirkt – in der Karte Bewegung, auf der Seite und in Dream Control gleich. Die Taste eines Armbands über OSC bleibt das „gut/schlecht“ des Labors, ebenso
+die Seitentaste des StickS3.
 
 **Bewegungs-Sets** sagen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines Auftritts, jedes ein paar
 Sätze (siehe [Die Sätze](#die-sätze--was-dein-tanz-bewirkt)). Eingebaut: **Standard**, **Fließend** und **Wild**.
@@ -2362,7 +2365,155 @@ Werten/s („· Schläge 3“): blitzt die Bühne ohne Schlag, zeigt die Zahl, o
 steht im Bedienfeld. Die Werte laufen über dasselbe weiche Gleiten wie beim MIDI-Controller.
 
 Ideen: Armhöhe → Zoom-Sog oder Master-Helligkeit, Handgelenk drehen (Rollen) → Drehung, Kippen → Farbdrift,
-Schlag → Blitz. Das geplante Armband und der Finger-Handschuh (Tickets #38, #39) senden in dasselbe Format.
+Schlag → Blitz. Ein StickS3 am Handgelenk sendet genauso, mit seinem Knopf als Kupplung – siehe
+[Getragene Geräte](#getragene-geräte-sticks3-am-handgelenk); der geplante Finger-Handschuh
+(Ticket #39) ebenso.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+---
+
+## Getragene Geräte (StickS3 am Handgelenk)
+
+Ein **M5Stack StickS3** am Handgelenk schickt die Rohdaten seines Bewegungssensors per WLAN an Dream – ganz ohne
+Handy. **Getragen braucht er keinen Handgriff:** Eingeschaltet verbindet er sich von selbst mit dem bekannten WLAN und
+mit Dream, sendet und kommt nach einem Abbruch von selbst wieder – er kann in einem einfachen Band stecken, wo man sein
+Display nicht sieht und seine Tasten nicht drückt. Wahlweise ist sein großer Knopf die **Kupplung** von Dream Dance,
+mit Tönen, die sagen, was Dream bestätigt hat. Die Firmware liegt in diesem Repository (`firmware/`); ein Befehl
+spielt sie auf den Stick.
+
+### Was du brauchst
+
+- **M5Stack StickS3** (ESP32-S3, Bewegungssensor BMI270, zwei Tasten, 1,14″-Display, Lautsprecher, 250-mAh-Akku,
+  USB-C). Der Akku hält mit Dream **etwa drei Stunden** (eine Schätzung: Das WLAN schickt 50 Werte pro Sekunde; miss
+  selbst nach – das Bedienfeld zeigt den Akku).
+- Ein **Band** dafür: ein einfaches Neoprenband, ein Sport-Armband mit Tasche oder ein M5Stack-Uhrenarmband für die
+  Stick-Reihe. Es darf beim Schwingen des Arms nicht rutschen (mit Feuer: siehe den Sicherheitshinweis bei
+  [Flowtrack](#flowtrack)).
+- Ein USB-C-**Datenkabel** zum Aufspielen vom Mac aus.
+
+### Aufspielen (ein Befehl)
+
+```bash
+firmware/flash.sh sticks3            # der StickS3 per USB-C angesteckt
+```
+
+Das Skript macht alles selbst und fragt nichts: Es installiert [PlatformIO](https://platformio.org) mit
+`uv tool install platformio`, falls es fehlt, findet den Stick an seinen USB-Kennungen, baut die Firmware (jede
+Version ist in `platformio.ini` festgeschrieben), spielt sie auf, versucht es bei einem Fehler noch einmal und endet
+mit einer klaren Zeile – „Done: … has the new firmware.“ oder was schiefging. Du kannst also auch einfach Claude
+bitten: „Spiel die Firmware auf den Stick.“
+
+- `firmware/flash.sh --list` zeigt die gerade angesteckten Boards (und welche Firmware zu welchem passt).
+- `firmware/flash.sh sticks3 --port /dev/cu.usbmodem1101` nimmt diesen Port, statt zu suchen (mehrere Sticks
+  angesteckt).
+- Rückgabewerte: 0 fertig · 1 Bauen oder Aufspielen gescheitert (zweimal) · 2 falscher Aufruf · 3 kein Stick gefunden
+  · 4 mehrere gefunden (einen mit `--port` wählen) · 5 PlatformIO fehlt und ließ sich nicht installieren.
+
+Wird der Stick nicht gefunden oder scheitert das Aufspielen: seinen **Ein-/Aus-Knopf** (seitlich) etwa zwei Sekunden
+halten, bis das grüne Licht innen blinkt (Download-Modus), dann den Befehl wiederholen. `pio device monitor` zeigt, was
+der Stick beim Laufen schreibt.
+
+### WLAN einrichten (kein WLAN-Passwort im Code)
+
+Einmal, bevor der StickS3 ins Band kommt. Der erste Start (oder ein Start mit **gehaltener Taste B**) öffnet fünf
+Minuten lang einen Einrichtungs-Hotspot – kennt der Stick sein WLAN, öffnet er ihn nie von selbst und wartet auf
+niemanden:
+
+1. Das Display zeigt den Namen des Hotspots (`Dream-StickS3-…`) und ein eben ausgedachtes **Passwort**.
+2. Mit Handy oder Mac in diesen Hotspot gehen; die Einrichtungsseite öffnet sich von selbst (sonst http://192.168.4.1).
+3. Dein WLAN wählen und sein Passwort eingeben. Das Feld **„Dream: address of the Mac“** bleibt leer – Dream wird von
+   selbst gefunden. Nur wenn das nicht klappt (ein Netz, das mDNS sperrt): die Adresse des Macs eintragen
+   (`ipconfig getifaddr en0`), mit `:Port`, falls Dreams Sensor-Port nicht 7020 ist.
+4. Speichern. Der Stick behält das WLAN in seinem eigenen Speicher und verbindet sich ab jetzt von selbst – bei jedem
+   Start und wieder, wann immer das WLAN eine Weile weg war.
+
+Dream muss mit `./dream.sh --lan` laufen (sonst hört es nur auf diesem Mac); dann kündigt es seinen Sensor-Port im
+WLAN an (mDNS `_dream-osc._udp`, mit dem Bonjour von macOS). Das Bedienfeld sagt unter **Steuerung → Getragene Geräte**,
+welcher Port das ist.
+
+### Koppeln: den Knopf des StickS3 erlauben
+
+Die Bewegung eines StickS3 zählt sofort (wie jeder Sensor im Heimnetz, als Quelle **Armband** in der Karte Bewegung).
+**Sein Knopf bewegt die Kupplung erst, wenn du es erlaubst** – so legt ein verirrtes Paket im WLAN nie deinen Tanz ein:
+
+1. StickS3 einschalten. Im Bedienfeld unter **Steuerung → Getragene Geräte** erscheint er („StickS3 E5F6 – da · 50
+   Werte/s · Akku 80 %“).
+2. **Kupplung erlauben** klicken. Dream gibt dem Stick einen eigenen Schlüssel; sein Display wechselt von „allow in
+   Dream“ zur Kupplung. Ab jetzt ist der Knopf eine Kupplung wie Taste K oder ein MIDI-Knopf – auch nach einem
+   Neustart von Dream oder Stick.
+   Sagt die Zeile, der Stick habe seinen Schlüssel nicht bekommen (er war eine halbe Minute nicht erreichbar):
+   zurücknehmen und neu erlauben.
+3. **Zurücknehmen** nimmt es zurück (jederzeit wieder erlaubbar; ein neu bespielter Stick braucht die Erlaubnis neu).
+
+### Anlegen und benutzen
+
+StickS3 einschalten, ins Band an Unterarm oder Handgelenk stecken – das ist alles: Er sendet seine Bewegung, sobald er
+Dream gefunden hat, und das Bedienfeld zeigt ihn (unten). **Die Kupplung** kommt wie bisher aus dem Bedienfeld, von
+Taste K, einem MIDI-Knopf oder aus Dream Control (das Handy in der Tasche) – dafür braucht der Stick keine Hand.
+
+**Taste A** (die große vorne) ist wahlweise eine eigene Kupplung, sobald erlaubt (oben). Weil man das Display oft
+nicht sieht, **sagt** der Stick, was Dream bestätigt hat: **zwei steigende Töne** = eingelegt, **zwei fallende Töne** =
+gelöst, **ein tiefes Brummen** = Dream hat nicht bestätigt (keine Verbindung oder der Stick ist nicht erlaubt) – dann
+hat sich nichts geändert. Das Display zeigt, wo man es sieht, dasselbe: eine volle grüne Scheibe „IN“ (eingelegt),
+einen Ring „OUT“ (gelöst) und ein **„?“**, solange Dream einen Moment nicht geantwortet hat (es zeigt nie einen Zustand,
+den es nur vermutet; ein Druck, während „?“ steht, bewirkt nichts). Die Zeile unter dem Kupplungsknopf im Bedienfeld
+sagt „der Knopf am Handgelenk legt ein und löst“, und beim Drücken erscheint kurz „⌚ Kupplung am Handgelenk
+eingelegt“. **Taste B** (die kleinere – nicht der Ein-/Aus-Knopf) gibt dem [Tanz-Labor](#tanz-labor) sein Feedback:
+einmal „gut“, zweimal schnell „schlecht“.
+
+Seine Bewegung geht in den [Sensor-Eingang](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband) als
+`/sticks3/<id>/accelerometer` und `/sticks3/<id>/gyroscope` – lernbar auf Regler, Schläge, Schwung und die
+Tanz-Erkennung, genau wie ein Handy am Arm – und, mit ihren eigenen Zeitstempeln, in die Sessions des Tanz-Labors
+(unten).
+
+**Was das Bedienfeld von ihm zeigt** (Steuerung → Getragene Geräte und ein Abzeichen in der Statuszeile): ob der Stick
+da ist (Werte pro Sekunde) oder weg (seit wann), seinen Akku – ab 15 % als Warnung, Zeile und Abzeichen rot – und
+seinen letzten Druck („Zuletzt gedrückt: eingelegt, vor 12 s“).
+
+**Wenn der Stick weg ist** (Akku leer, aus dem WLAN): Dream merkt es nach drei Sekunden; das Bedienfeld zeigt ihn als
+weg, und in der Statuszeile steht ein rotes „⌚ StickS3 … weg“. **Die Kupplung bleibt, wie sie war** – dein letztes
+Wort gilt; der Kupplungsknopf im Bedienfeld, Taste K oder ein MIDI-Knopf ändern sie weiterhin. (Löste sie sich von
+selbst, spränge das Bild mitten im Stück, weil ein Akku leer ist.)
+
+**Akku:** Das Funkteil schläft zwischen den Paketen, das Display wird nach vier Sekunden ohne Änderung dunkler, ruht
+der Arm 20 Sekunden, schickt der StickS3 zehn statt 50 Werte pro Sekunde, und nach einer halben Stunde ohne Dream
+schaltet er sich selbst aus. Laden per USB-C; der Ein-/Aus-Knopf seitlich: einmal klicken an, doppelt klicken aus.
+
+### Sessions behalten die Rohdaten des Sensors (#196)
+
+Eine Session des [Tanz-Labors](#tanz-labor) behält jetzt auch die **Rohdaten des Bewegungssensors mit ihren Zeiten** –
+Beschleunigung (mit und ohne Schwerkraft), Drehrate und Ausrichtung des führenden Sensors (ein StickS3, ein Handy, das
+seine Bewegung leiht, jeder OSC-Sensor), jeden Wert, wie er kam, nicht nur einen je Bild. Eine Testdatei aus einer
+Session trägt sie mit. Das Abspielen einer Session gibt dem Traum wie bisher die aufgenommenen Merkmale; die Rohdaten
+beim Abspielen wieder in den Sensor-Eingang selbst zu speisen (damit gelernte Regler und Schläge dabei wirken), ist ein
+späterer Schritt.
+
+### Das Protokoll (für eigene Geräte)
+
+OSC über UDP an den Sensor-Port, alles unter `/dream/wear/` (`wearables.py` beschreibt es vollständig): Ein Gerät
+schickt `hello` einmal pro Sekunde (Kennung, Art, sein Schlüssel, Akku, Firmware), `imu` 50–100-mal pro Sekunde
+(Kennung, seine Uhr in ms, Beschleunigung in g, Drehrate in °/s) und `clutch` bei einem Druck (Kennung, Schlüssel, der
+gewünschte Zustand, eine Nummer – wiederholt, bis Dream antwortet). Dream antwortet mit `state` (Kupplung, erlaubt, die
+übernommene Nummer) an die Adresse, von der es kam, und mit `pair` (dem Schlüssel), sobald du es erlaubt hast.
+
+### Wenn etwas nicht geht
+
+- **Der Stick erscheint nicht im Bedienfeld:** Läuft Dream mit `--lan`? Stick und Mac im selben WLAN (kein Gastnetz,
+  das Geräte trennt)? Zeigt der StickS3 lange „looking for Dream“: die Adresse des Macs in der Einrichtung eintragen
+  (beim Einschalten B halten). Eine Firewall auf dem Mac muss Dream (Python) empfangen lassen.
+- **Der StickS3 zeigt „no Wi-Fi“:** Das WLAN hat sich geändert – beim Einschalten B halten und neu einrichten.
+- **Ein tiefes Brummen nach Taste A:** Dream hat nicht bestätigt – noch nicht erlaubt (Bedienfeld: **Kupplung
+  erlauben**) oder keine Verbindung; die Kupplung hat sich nicht geändert.
+- **„?“ auf dem Display:** Dream antwortet nicht – Dream beendet, der Mac schläft, oder Dream hat eine neue Adresse
+  (der Stick sucht es nach zehn Sekunden neu).
+- **„allow in Dream“ auf dem Display, die Kupplung bewegt sich nicht:** im Bedienfeld **Kupplung erlauben** klicken
+  (die Zeile dort zählt die abgewiesenen Drücke).
+- **`flash.sh` findet keinen Stick (Rückgabe 3):** ein reines Ladekabel oder der Stick ist aus – ein Datenkabel nehmen,
+  einschalten oder in den Download-Modus bringen (oben). **Mehrere gefunden (Rückgabe 4):** die anderen abstecken oder
+  einen mit `--port` nennen.
+- **Das Aufspielen scheitert zweimal (Rückgabe 1):** Ein anderes Programm hält den USB-Port (seriellen Monitor
+  schließen), dann der Download-Modus oben.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2765,7 +2916,28 @@ darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlis
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
-`weight` einer Einstellung), ihre bewegten Zeichen und die Form des Bildcharakters `static/signs.js`.
+`weight` einer Einstellung), ihre bewegten Zeichen und die Form des Bildcharakters `static/signs.js`. Die getragenen
+Geräte (#277) sind `wearables.py` (das Protokoll, das Koppeln, die Antworten) und `static/wearcard.js` (ihre Zeilen im
+Bedienfeld), ihre Firmware liegt in `firmware/`.
+
+**Getragene Geräte (#277):** `tests/test_wearables.py` spielt einen nachgebauten StickS3 – OSC-Pakete,
+im Test gebaut, die Antworten aufgefangen, und einmal die echte Sensor-Schleife auf einem freien Port von 127.0.0.1 mit
+dem Socket eines nachgebauten Geräts: das Hello und seine Antwort, die Rohbewegung in den Einheiten des Sensor-Eingangs
+mit dem eigenen Takt des Geräts (verspätete Pakete verworfen, ein Neustart), das Gerät als Quelle Armband, der Knopf
+abgewiesen ohne Erlaubnis, mit geratenem Schlüssel oder der Kennung eines anderen Geräts, ein Druck einmal übernommen,
+wie oft er auch wiederholt wird, Erlauben und Zurücknehmen (der Schlüssel nur im State-Ordner, Modus 0600, nie an eine
+Seite), die Kupplung bewegt wie auf jedem anderen Weg und jedes Gerät benachrichtigt, ein Gerät, das weg ist (die
+Kupplung bleibt), der Schlüssel nie an eine andere Adresse, nur das Heimnetz, und dass Gäste und Dreamy Eyes nichts
+erlauben. `tests/test_flash.py` lässt `firmware/flash.sh` gegen ein nachgebautes `pio` (und `uv`) laufen: der Stick an
+seinen USB-Kennungen zwischen anderen Ports gefunden, keiner oder mehrere (Rückgabe 3, 4), `--port`, `--list`, ein
+gescheitertes Aufspielen noch einmal versucht, falsche Aufrufe (Rückgabe 2) und PlatformIO installiert, wenn es fehlt –
+kein Gerät, kein Netz.
+`tests/test_firmware_osc.py` übersetzt das OSC der Firmware (`firmware/lib/DreamWear/src/DreamOsc.h`) für diesen
+Rechner und prüft es in beide Richtungen gegen python-osc (ohne C++-Compiler übersprungen). `node --test
+tests/js/wearcard.test.mjs` prüft die Zeilen im Bedienfeld, `tests/js/dancerec.test.mjs` und `tests/test_dancelab.py`
+die Rohdaten in den Sessions (#196). **Die Firmware** wird von Hand übersetzt, nicht in der CI (deren Minuten kosten,
+ein Build holt eine Toolchain): `cd firmware/sticks3 && pio run` muss mit „SUCCESS“ enden, bevor eine Änderung an
+`firmware/` gemergt wird.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2795,6 +2967,7 @@ Gebrauch herunter, und jedes hat seine eigene Lizenz:
 
 Die Python-Bibliotheken (PyTorch, diffusers, transformers, FastAPI, uvicorn, Pillow, NumPy, cryptography, qrcode,
 python-osc, mido, python-rtmidi, syphon-python, mlx-whisper, psutil, …) stehen unter freizügigen Lizenzen (BSD, MIT,
-Apache 2.0, MIT-CMU, Unlicense). Diese Liste ist eine Orientierung, keine Rechtsberatung; maßgeblich sind die Modellkarten.
+Apache 2.0, MIT-CMU, Unlicense). Die Firmware der getragenen Geräte (`firmware/`, AGPL wie der Rest) baut auf dem
+Arduino-Kern für den ESP32 (LGPL 2.1) und den Bibliotheken M5Unified, M5GFX und WiFiManager (alle drei unter der MIT-Lizenz). Diese Liste ist eine Orientierung, keine Rechtsberatung; maßgeblich sind die Modellkarten.
 
 <sub>[↑ Inhalt](#inhalt)</sub>

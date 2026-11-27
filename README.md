@@ -65,6 +65,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Dance lab](#dance-lab)
 - [MIDI controller](#midi-controller)
 - [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
+- [Worn devices (StickS3 on the wrist)](#worn-devices-sticks3-on-the-wrist)
 
 **Cloud GPU**
 
@@ -1826,12 +1827,14 @@ dancing and working the controls without a break. Four ways to it, all the same 
 - key **K** on the stage or on the page (in the mode Dream Dance),
 - a MIDI button: learn “**Button: clutch in/out**” (see [MIDI controller](#midi-controller)),
 - the button in Dream Control (card “Dream Dance”) – the phone in your pocket.
+- the big button of a StickS3 on the wrist, once you allowed it in the panel (see [Worn devices](#worn-devices-sticks3-on-the-wrist)).
 
 The bar under the button on the page shows how far the dance is in. **After every start the clutch is released**:
 your dance does nothing until you engage it on purpose – Dream does not remember an engaged clutch across a restart
 (the mode and the movement set it does remember). Released shows plainly: the button is empty with a dashed red
 edge and reads “Clutch: released”, and the line below it says that your dance does nothing yet – in the Movement
-card, on the page and in Dream Control alike. A wristband's button stays the lab's “good/bad” for now.
+card, on the page and in Dream Control alike. A wristband's button over OSC stays the lab's “good/bad”; so does the
+StickS3's side button.
 
 **Movement sets** say what your movements do – one per piece or mood of a show, each a few sentences (see
 [The sentences](#the-sentences--what-your-dance-does)). Built in: **Standard**, **Flowing** and **Wild**. Choose one
@@ -2230,7 +2233,143 @@ from the sensor. **Swing** (how
 fast the wrist turns) shows in the panel. The values run through the same soft gliding as with the MIDI controller.
 
 Ideas: arm height → zoom pull or master brightness, turning the wrist (roll) → rotation, tilting → colour drift,
-hit → flash. A planned wristband and finger glove send in the same format.
+hit → flash. A StickS3 on the wrist sends in the same way, with its button as the clutch – see
+[Worn devices](#worn-devices-sticks3-on-the-wrist); a planned finger glove will too.
+
+<sub>[↑ Contents](#contents)</sub>
+
+---
+
+## Worn devices (StickS3 on the wrist)
+
+An **M5Stack StickS3** worn on the wrist sends its motion sensor's raw values to Dream over Wi-Fi – no phone needed.
+**It needs nothing done on it while worn:** switched on, it connects to the known Wi-Fi and to Dream by itself, sends,
+and comes back by itself after a drop – it can sit in a plain band where its screen is not seen and its buttons are
+not pressed. Optionally its big button is the **clutch** of Dream Dance, with sounds that say what Dream confirmed.
+The firmware is in this repository (`firmware/`); one command puts it on the stick.
+
+### What to buy
+
+- **M5Stack StickS3** (ESP32-S3, motion sensor BMI270, two buttons, a 1.14″ screen, a speaker, 250 mAh battery,
+  USB-C). Its battery lasts **about three hours** with Dream (an estimate: Wi-Fi sends 50 values a second; measure your
+  own – the panel shows the battery).
+- A **band** for it: a plain neoprene band, a sports wristband with a pocket, or an M5Stack watch strap for the Stick
+  series. It must not slip when the arm swings (with fire: see the safety note in [Flowtrack](#flowtrack)).
+- A USB-C **data** cable to flash it from the Mac.
+
+### Flashing (one command)
+
+```bash
+firmware/flash.sh sticks3            # the StickS3 plugged in by USB-C
+```
+
+The script does everything by itself and asks nothing: it installs [PlatformIO](https://platformio.org) with
+`uv tool install platformio` if it is missing, finds the stick by its USB ids, builds the firmware (every version is
+pinned in `platformio.ini`), uploads it, tries once more if that fails, and ends with a clear line – “Done: … has the
+new firmware.” or what went wrong. So you can also simply ask Claude: “flash the stick”.
+
+- `firmware/flash.sh --list` shows the boards plugged in right now (and which firmware fits each).
+- `firmware/flash.sh sticks3 --port /dev/cu.usbmodem1101` takes this port instead of looking (several sticks plugged in).
+- Exit codes: 0 done · 1 build or upload failed (twice) · 2 wrong call · 3 no stick found · 4 several found (choose
+  one with `--port`) · 5 PlatformIO missing and not installable.
+
+If the stick is not found or the upload fails: hold its **power button** (on the side) for about two seconds until the
+green light inside blinks (download mode), then run the command again. `pio device monitor` shows what the stick writes
+while it runs.
+
+### Wi-Fi setup (no Wi-Fi password in the code)
+
+Once, before the StickS3 goes into its band. The first start (or a start with **button B held**) opens a setup hotspot
+for five minutes – with a Wi-Fi known, the stick never opens it by itself and never waits for anyone:
+
+1. Its screen shows the hotspot's name (`Dream-StickS3-…`) and a **password** made up just now.
+2. Join that hotspot with a phone or the Mac; the setup page opens by itself (otherwise http://192.168.4.1).
+3. Choose your Wi-Fi and enter its password. The field **“Dream: address of the Mac”** stays empty – Dream is found by
+   itself. Only if that does not work (a network that blocks mDNS): enter the Mac's address (`ipconfig getifaddr en0`),
+   with `:port` if Dream's sensor port is not 7020.
+4. Save. The stick keeps the Wi-Fi in its own memory and connects by itself from now on – at every start, and again
+   whenever the Wi-Fi was gone for a while.
+
+Dream must run with `./dream.sh --lan` (otherwise it listens only on this Mac); it then announces its sensor port in
+the Wi-Fi (mDNS `_dream-osc._udp`, with macOS's own Bonjour). The panel says under **Control → Worn devices** which
+port that is.
+
+### Pairing: allowing the StickS3's button
+
+The motion of a StickS3 counts at once (like any sensor in the home network, as a **Wristband** source in the Movement
+card). **Its button moves the clutch only once you allow it** – so a stray packet in the Wi-Fi never engages your dance:
+
+1. Switch the StickS3 on. In the panel under **Control → Worn devices** it appears (“StickS3 E5F6 – there · 50
+   values/s · battery 80 %”).
+2. Click **Allow the clutch**. Dream gives the stick a key of its own; its screen changes from “allow in Dream” to the
+   clutch. From now on the button is a clutch like key K or a MIDI button – also after a restart of either.
+   If the line says the stick did not get its key (it was out of reach for half a minute), revoke and allow again.
+3. **Revoke** takes it back (allow it again at any time; a reflashed stick needs allowing again).
+
+### Wearing and using it
+
+Switch the StickS3 on, put it into its band on the forearm or wrist – that is all: it sends its motion as soon as it
+has found Dream, and the panel shows it (below). **The clutch** comes, as before, from the panel, key K, a MIDI button
+or Dream Control (the phone in your pocket) – the stick needs no hand for that.
+
+**Button A** (the big one on the front) is an optional clutch of its own, once allowed (above). Since the screen is
+often not in sight, the stick **says** what Dream confirmed: **two rising tones** = engaged, **two falling tones** =
+released, **a low buzz** = Dream did not confirm (no connection, or the stick is not allowed) – then nothing changed.
+The screen, where it is seen, shows the same: a full green disc “IN” (engaged), a ring “OUT” (released), and a **“?”**
+while Dream has not answered for a moment (it never shows a state it only assumes; a press while it shows “?” does
+nothing). The line under the clutch's button in the panel says “the button on the wrist engages and releases”, and
+a short note “⌚ Clutch engaged on the wrist” appears when it does. **Button B** (the smaller key – not the power
+button) gives the [dance lab](#dance-lab) its feedback: one press “good”, two quickly “bad”.
+
+Its motion goes into the [sensor input](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband) as
+`/sticks3/<id>/accelerometer` and `/sticks3/<id>/gyroscope` – learnable onto sliders, strikes, swing, and the dance
+detection, exactly like a phone on the arm – and, with its own timestamps, into the dance lab's sessions (below).
+
+**What the panel shows of it** (Control → Worn devices, and a badge in the status line): whether the stick is there
+(values a second) or gone (for how long), its battery – from 15 % on as a warning, line and badge in red – and its last
+press (“Last press: engaged, 12 s ago”).
+
+**When the stick is gone** (battery empty, out of the Wi-Fi): Dream notices within three seconds; the panel shows it as
+gone, and a red badge “⌚ StickS3 … gone” stands in the status line. **The clutch stays as it was** – your last word
+stands; the panel's clutch button, key K or a MIDI button still change it. (Releasing it by itself would make the
+picture jump in the middle of a piece because a battery ran out.)
+
+**Battery:** the radio sleeps between packets, the screen dims after four seconds without a change, while the arm rests
+for 20 seconds the StickS3 sends ten values a second instead of 50, and it switches itself off after half an hour
+without Dream. Charge it by USB-C; the power button on the side: one click on, a double click off.
+
+### Sessions keep the sensor's raw values (#196)
+
+A [dance lab](#dance-lab) session now also keeps the motion sensor's **raw values with their times** – acceleration
+(with and without gravity), rotation rate and orientation of the leading sensor (a StickS3, a phone lending its motion,
+any OSC sensor), every value as it came, not only one per frame. A test file made of a session carries them too.
+Playing a session back feeds the recorded features to the dream as before; feeding the raw values back into the
+sensor input itself (so learned sliders and strikes act during a playback) is a later step.
+
+### The protocol (for your own devices)
+
+OSC over UDP to the sensor port, everything under `/dream/wear/` (`wearables.py` describes it in full): a device sends
+`hello` once a second (id, kind, its key, battery, firmware), `imu` 50–100 times a second (id, its clock in ms,
+acceleration in g, rotation rate in °/s) and `clutch` on a press (id, key, the wished state, a number – repeated until
+Dream answers). Dream answers `state` (clutch, allowed, the number it took) to the address it came from, and `pair`
+(the key) once you allowed it.
+
+### If something does not work
+
+- **The stick does not appear in the panel:** Dream running with `--lan`? Stick and Mac in the same Wi-Fi (not a
+  guest network that keeps devices apart)? The StickS3 shows “looking for Dream” for long: enter the Mac's address in
+  the setup (hold B while switching on). A firewall on the Mac must let Dream (Python) receive.
+- **The StickS3 shows “no Wi-Fi”:** the Wi-Fi changed – hold B while switching it on and set it up again.
+- **A low buzz after pressing button A:** Dream did not confirm – not allowed yet (panel: **Allow the clutch**), or no
+  connection; the clutch did not change.
+- **“?” on the screen:** Dream does not answer – Dream stopped, the Mac asleep, or Dream got a new address (the stick
+  looks for it again after ten seconds).
+- **“allow in Dream” on the screen, the clutch does not move:** click **Allow the clutch** in the panel (the line there
+  counts the refused presses).
+- **`flash.sh` finds no stick (exit 3):** a charge-only cable, or the stick is off – use a data cable, switch it on or
+  put it into download mode (above). **Several found (exit 4):** unplug the others or name one with `--port`.
+- **The upload fails twice (exit 1):** another program holds the USB port (close a serial monitor), then the download
+  mode above.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -2589,7 +2728,25 @@ outputs (`output.py`), Dreamy Eyes (`eyes.py`), dream windows (`windows.py`), th
 (`measure.py`), uploads and the gallery (`media.py`), voice (`voice.py`), and the pages with their links (`pages.py`,
 `net.py`). The pages are in `static/`; what they share is in `static/common.js`, the sliders of the panel and of Dream
 Control in `static/sliders.js` (drawn from the settings table: default, range and `weight` of a setting), their moving
-signs and the shape of the picture's character in `static/signs.js`.
+signs and the shape of the picture's character in `static/signs.js`. The worn devices (#277) are `wearables.py` (the
+protocol, pairing, the answers) and `static/wearcard.js` (their lines in the panel); their firmware is in `firmware/`.
+
+**Worn devices (#277):** `tests/test_wearables.py` plays a fake StickS3 – OSC packets built in the test,
+the answers caught, and once the real sensor loop on a free port of 127.0.0.1 with a fake device's socket: the hello and
+its answer, the raw motion in the sensor input's units with the device's own spacing (late packets dropped, a
+restart), the device as a wristband source, the button refused without allowing, with a guessed key or another
+device's id, a press taken once however often it is repeated, allowing and revoking (the key only in the state folder,
+mode 0600, never to a page), the clutch moved like every other way and every device told, a device that is gone (the
+clutch stays), the token never to another address, the home network only, and that guests and Dreamy Eyes allow
+nothing. `tests/test_flash.py` runs `firmware/flash.sh` against a fake `pio` (and a fake `uv`): the stick found by its
+USB ids among other ports, none or several (exit 3, 4), `--port`, `--list`, a failed upload tried once more, wrong calls
+(exit 2), and PlatformIO installed when it is missing – no device, no network.
+`tests/test_firmware_osc.py` compiles the firmware's OSC (`firmware/lib/DreamWear/src/DreamOsc.h`) for this computer
+and checks it against python-osc in both directions (skipped without a C++ compiler). `node --test
+tests/js/wearcard.test.mjs` tests the panel's lines; `tests/js/dancerec.test.mjs` and `tests/test_dancelab.py` the raw
+values in the sessions (#196). **The firmware** is compiled by hand, not in the CI (its minutes are paid, a build
+fetches a toolchain): `cd firmware/sticks3 && pio run` must end with “SUCCESS” before a change to `firmware/` is
+merged.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -2628,6 +2785,7 @@ use, and each comes with its own licence:
 
 The Python libraries (PyTorch, diffusers, transformers, FastAPI, uvicorn, Pillow, NumPy, cryptography, qrcode,
 python-osc, mido, python-rtmidi, syphon-python, mlx-whisper, psutil, …) are under permissive licences (BSD, MIT,
-Apache 2.0, MIT-CMU, Unlicense). This list is a guide, not legal advice; the model cards are what counts.
+Apache 2.0, MIT-CMU, Unlicense). The firmware of the worn devices (`firmware/`, AGPL like the rest) builds on the
+Arduino core for the ESP32 (LGPL 2.1) and the libraries M5Unified, M5GFX and WiFiManager (all three under the MIT licence). This list is a guide, not legal advice; the model cards are what counts.
 
 <sub>[↑ Contents](#contents)</sub>

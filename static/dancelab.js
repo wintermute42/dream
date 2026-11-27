@@ -540,6 +540,17 @@
       try { frame(now); } catch (e) { console.error('[dance lab]', e); if (player) { live(); say(T('This session cannot be played.')); } }
       if (active()) raf = requestAnimationFrame(tick);
     }
+    // #196: the sensor's raw values that came since the last frame, timed on this window's clock (tape: the stage's
+    // numbered values on its own clock, raw.now that clock – the lab's window counts its time from elsewhere). The
+    // recording keeps those of the frames it leaves out (it keeps at most RATE a second) for the next one it keeps.
+    let rawN = 0, recRaw = [];
+    function newRaw(raw, at) {
+      if (!raw || !Array.isArray(raw.tape) || !raw.tape.length) return [];
+      const out = raw.tape.filter(v => v[0] > rawN).map(v => [at + v[1] - raw.now, v[2], v[3], v[4], v[5]]);
+      rawN = raw.tape[raw.tape.length - 1][0];
+      return out;
+    }
+    const rawAt = (list, at) => list.map(v => [v[0] - at, v[1], v[2], v[3], v[4]]);
     function frame(now) {
       const dt = Math.min(0.25, (now - lastT) / 1000); lastT = now;
       const due = press.due(now / 1000); if (due) feedback(due, 'button');
@@ -554,8 +565,15 @@
       } else {
         const s = opts.live();
         if (s && now - lastPack >= 1000 / R.RATE - 2) {
-          lastPack = now; liveSrc = s.rec.src; const f = R.pack(now / 1000, keys, s.rec, s.input, s.landmarks, s.out); rng.push(f);
-          if (rec && !rec.add(now / 1000, t => ({ ...f, t: Math.round(t * 1e5) / 1e5 }))) { record(false); say(T('The recording is full ({t}) – it was kept.', { t: clock(R.MAX_SECONDS) })); }
+          const at = now / 1000, raw = newRaw(s.raw, at);
+          lastPack = now; liveSrc = s.rec.src; const f = R.pack(at, keys, s.rec, s.input, s.landmarks, s.out, rawAt(raw, at)); rng.push(f);
+          if (rec) {
+            recRaw = recRaw.concat(raw);
+            const kept = rec.frames, keep = t => { const r = R.rawPack(rawAt(recRaw, at)), i = { ...f.i }; delete i.r; return { ...f, t: Math.round(t * 1e5) / 1e5, i: r.length ? { ...i, r } : i }; };
+            if (!rec.add(at, keep)) { record(false); say(T('The recording is full ({t}) – it was kept.', { t: clock(R.MAX_SECONDS) })); }
+            if (rec && rec.frames > kept) recRaw = [];
+            else if (recRaw.length > 4 * R.RAW_MAX) recRaw = recRaw.slice(-R.RAW_MAX);
+          } else recRaw = [];
         }
         frames = shown = rng.tail(WINDOW); t1 = now / 1000;     // time runs on: when nothing comes, the curves end and the gap grows
       }
