@@ -2252,8 +2252,10 @@ Hinkommen, und solange Dream dich nicht sieht, wartet der Schritt:
 
 Neben den vier eingebauten Grundbewegungen (viel bewegen, die Arme öffnen, mit den Händen kreisen, die Arme heben) kannst du Dream
 eigene Grundbewegungen beibringen: einen **Regler** zwischen Zuständen deines Körpers, die du vormachst und benennst –
-z. B. „aufrecht“ ↔ „tief in den Knien“ oder „nach links gelehnt“ ↔ „nach rechts gelehnt“. Unter den eigenen Bewegungen
-steht **🎚 Eigene Grundbewegungen**; starten mit **＋ Grundbewegung anlernen …** dort, mit **＋ Eigene Grundbewegung …**
+z. B. „aufrecht“ ↔ „tief in den Knien“ oder „nach links gelehnt“ ↔ „nach rechts gelehnt“. Unten auf der Seite
+steht **🎚 Eigene Grundbewegungen**, zugeklappt und als **Für Fortgeschrittene** markiert – die eingebauten
+Grundbewegungen brauchen nichts davon; der Titel klappt es auf, und es öffnet sich von selbst, wenn das Anlernen
+beginnt. Starten mit **＋ Grundbewegung anlernen …** dort, mit **＋ Eigene Grundbewegung …**
 bei den Grundbewegungen oder in der Bewegungswahl eines Grundbewegungs-Satzes (dann wird sie die Bewegung dieses
 Satzes).
 

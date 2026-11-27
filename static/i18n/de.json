@@ -2089,5 +2089,12 @@
  "📡 Clutch engaged on the receiver": "📡 Kupplung am Empfänger eingelegt",
  "📡 Clutch released on the receiver": "📡 Kupplung am Empfänger gelöst",
  "Worn devices (StickS3 on the wrist, USB receiver)": "Am Körper getragen (StickS3 am Handgelenk, USB-Empfänger)",
- "blinking white: waiting for a wristband": "blinkt weiß: wartet auf ein Armband"
+ "blinking white: waiting for a wristband": "blinkt weiß: wartet auf ein Armband",
+ "Output (master brightness, format, projector, Syphon, room light)": "Ausgabe (Master-Helligkeit, Format, Beamer, Syphon, Raumlicht)",
+ "Turning": "Drehung",
+ "Running curves of energy, tempo, phase, opening, turning, height and stillness; a gap where a value is not known": "Laufende Kurven von Energie, Tempo, Phase, Öffnung, Drehung, Höhe und Ruhe; eine Lücke, wo ein Wert nicht bekannt ist",
+ "turn around": "mich drehe",
+ "Show or hide your base movements of your own": "Eigene Grundbewegungen zeigen oder verbergen",
+ "For the advanced": "Für Fortgeschrittene",
+ "Optional. The four built-in base movements – moving a lot, opening the arms, circling the hands, raising the arms – work right away, and “📏 Measure me …” fits them to you. A base movement of your own is only for a movement Dream does not know yet, e.g. upright ↔ deep in the knees or leaning left ↔ right: you show Dream its ends once, and between them it acts like a dimmer.": "Optional. Die vier eingebauten Grundbewegungen – viel bewegen, Arme öffnen, Hände kreisen, Arme heben – wirken sofort, und „📏 Mich einmessen …“ passt sie an dich an. Eine eigene Grundbewegung brauchst du nur für eine Bewegung, die Dream noch nicht kennt, z. B. aufrecht ↔ tief in den Knien oder links ↔ rechts lehnen: Du zeigst Dream einmal ihre Enden, und dazwischen wirkt sie wie ein Dimmer."
 }

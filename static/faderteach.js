@@ -12,7 +12,8 @@
       [Again] shows the states once more.
    The list shows every base movement of one's own with its pictogram, its name (change it there), its states, a live
    level of what the stage reads right now, [Teach again] (the same name and sentences, new states) and the button to
-   delete it (its sentences go with it).
+   delete it (its sentences go with it). The part is folded under its title, "for the advanced" – the four built-in base
+   movements need none of it; it says so when opened and opens by itself when teaching starts.
 
    `stateValues`, `nameProblem` and `fileOf` are pure (tests/js/faderteach.test.mjs). Looks: moveteach.css – only
    transform and opacity move. A global `FaderTeach`. */
@@ -70,10 +71,19 @@
     const list0 = () => { try { return opts.faders() || []; } catch (e) { return []; } };
 
     box.classList.add('mt', 'ft'); box.setAttribute('role', 'region'); box.setAttribute('aria-label', T('Your base movements')); box.textContent = '';
-    const head = el('header', 'mt-head'), title = el('h2', '', T('🎚 Your base movements'));
+    // folded by default – for the advanced (the four built-in base movements need none of it); it opens by its title
+    // and by itself when teaching starts (e.g. from "＋ A base movement of your own …" in a sentence)
+    const head = el('header', 'mt-head'), title = el('h2', 'ft-title'), fold = btn('', T('Show or hide your base movements of your own'), 'ft-fold');
+    const body = el('div', 'ft-body'); body.id = 'ft-body'; body.hidden = true;
+    fold.setAttribute('aria-expanded', 'false'); fold.setAttribute('aria-controls', body.id);
+    const chev = el('span', 'ft-chev', '▸'); chev.setAttribute('aria-hidden', 'true');
+    fold.append(chev, el('span', 'ft-name', T('🎚 Your base movements')), el('span', 'ft-adv', T('For the advanced')));
+    title.append(fold); head.append(title);
+    const why = el('p', 'ft-why-own', T('Optional. The four built-in base movements – moving a lot, opening the arms, circling the hands, raising the arms – work right away, and “📏 Measure me …” fits them to you. A base movement of your own is only for a movement Dream does not know yet, e.g. upright ↔ deep in the knees or leaning left ↔ right: you show Dream its ends once, and between them it acts like a dimmer.'));
     const teachBtn = btn(T('＋ Teach a base movement …'), T('Show Dream two or more states of your body – it learns a fader that goes between them'), 'ft-new');
     const state = el('div', 'mt-state'); state.setAttribute('role', 'status'); state.setAttribute('aria-live', 'polite');
-    head.append(title, teachBtn);
+    const opened = open => { body.hidden = !open; fold.setAttribute('aria-expanded', String(open)); box.classList.toggle('ft-open', open); };
+    fold.onclick = () => opened(body.hidden);
     const wiz = el('div', 'mt-wiz'); wiz.hidden = true; wiz.setAttribute('role', 'region'); wiz.setAttribute('aria-label', T('Teach a base movement'));
     const stepBar = el('ol', 'mt-steps'); [T('1 · Name it'), T('2 · Show the states'), T('3 · Try it')].forEach(t => stepBar.append(el('li', '', t)));
     const big = el('div', 'mt-big'), small = el('div', 'mt-say'), bar = el('div', 'mt-bar'), barFill = el('i');
@@ -83,7 +93,8 @@
     wiz.append(closeBtn, stepBar, big, small, bar, pane, btns);
     const list = el('ul', 'mt-list ft-list'); list.setAttribute('aria-label', T('The base movements you taught'));
     const hint = el('div', 'hint', T('A base movement of your own is a fader between states of your body you show (e.g. upright ↔ deep in the knees, leaning left ↔ leaning right). Dream keeps it as a few numbers on this Mac – never a camera picture – and reads it from your skeleton like the built-in base movements. It becomes a base sentence: “When I go towards “…” → …”. Best with “Hands (AI)”, the whole body in the picture.'));
-    box.append(head, state, wiz, list, hint);
+    const row = el('div', 'btns ft-row'); row.append(teachBtn);
+    body.append(why, row, state, wiz, list, hint); box.append(head, body);
 
     // ---------- the wizard ----------
     let w = null, phase = 'idle', raf = 0, lastAt = 0, lastDraw = 0, listKey = '', busy = false;
@@ -99,6 +110,7 @@
     }
     // o: {id – teach this one again, fx, i – the effect and the base sentence it was asked for}
     function wizard(o = {}) {
+      opened(true);
       if (phase !== 'idle' || busy) { wiz.scrollIntoView({ block: 'nearest' }); return; }
       const was = o.id ? list0().find(f => f.id === o.id) : null;
       if (!was && list0().length >= MAX) { say(T('Too many base movements are kept – delete one first.')); return; }
