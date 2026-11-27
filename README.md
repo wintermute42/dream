@@ -1955,8 +1955,9 @@ sentence by showing) takes three repetitions and puts the move on an accent at o
 
 Besides the four built-in base movements (moving a lot, opening the arms, turning, raising the arms) you can teach
 Dream base movements of your own: a **fader** between states of your body that you show and name – e.g. “upright” ↔
-“deep in the knees”, or “leaning left” ↔ “leaning right”. Below the moves of your own is **🎚 Your base movements**;
-start with **＋ Teach a base movement …** there, with **＋ A base movement of your own …** in the base movements, or
+“deep in the knees”, or “leaning left” ↔ “leaning right”. At the bottom of the page is **🎚 Your base movements**,
+folded and marked **For the advanced** – the built-in base movements need none of it; its title opens it, and it opens
+by itself when teaching starts. Start with **＋ Teach a base movement …** there, with **＋ A base movement of your own …** in the base movements, or
 in the choice of a base sentence's movement (then it becomes that sentence's movement).
 
 1. **Name it** and name its states: the one at **0** and the one at **1**, and if you like up to three **steps in

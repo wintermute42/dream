@@ -109,3 +109,15 @@
 .ft-small .ft-mark::before { top: -11px; height: 8px; }
 .ft-sub { display: grid; color: var(--muted); font-size: .84em; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { .ft-staterow.ft-in { animation: none; } }
+/* #267: your base movements, folded – for the advanced; the title opens it */
+.ft .ft-title { margin: 0; font-size: 1.05em; }
+.ft .btn.ft-fold { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 44px; padding: 4px 8px 4px 2px; background: none;
+  border-color: transparent; color: var(--text); font: inherit; font-weight: 700; text-align: left; }
+.ft .btn.ft-fold:hover { background-color: rgba(255,255,255,.06); }
+.ft-chev { display: inline-block; width: 1em; text-align: center; color: var(--flow); }
+.ft-open .ft-chev { transform: rotate(90deg); }
+.ft-adv { font-size: .78em; font-weight: 600; color: var(--flow); border: 1px solid var(--flow); border-radius: 999px; padding: 1px 9px; }
+.ft-body { display: grid; gap: 8px; }
+.ft-body[hidden] { display: none; }
+.ft-why-own { margin: 0; color: var(--text); font-size: .92em; max-width: 60em; }
+@media (prefers-reduced-motion: no-preference) { .ft-chev { transition: transform .15s ease-out; } }
