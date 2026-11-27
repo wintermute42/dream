@@ -86,7 +86,15 @@ command line for now, #231) via `dream-cloud`.
   version (the dance's own table, table-based sets) is migrated into sets once (`dance.migrate`, version 3; a broken or
   unknown file: the built-in sets act). Teaching a
   movement (#236 moves of one's own, the wizard with counter-check and 👍/👎 per hit, the tolerance it chooses) is
-  `static/moveteach.js` on `dancemoves.py`/`static/dancemoves.js`; an own move is an accent. The hand model runs exactly
+  `static/moveteach.js` on `dancemoves.py`/`static/dancemoves.js`; an own move is an accent. A dancer's own measures
+  (#266: their calm and wild per base movement, measured by `static/dancecal.js`, kept per person by `danceprofiles.py`,
+  the one in use the setting `dance_profile`) act in the engine: the dance's frame is read through them before its
+  rows (`DreamDanceMap.calibrate`, only the four base movements, only in the dance) – never on the page alone. The base
+  movement "turn" is the hands running in circles (shown as "hands circling"), not a rotation of the body. A base movement of one's
+  own (#267: a fader between states of the body the dancer shows and names) is `static/faderteach.js` on
+  `static/dancefaders.js` (a small, explainable regression on body values normalised to the body – the stream reads it
+  as the continuous source `f.<id>`, a base sentence; the measures of #266 do not touch it: it is the dancer's own
+  already) and `dancefaders.py` (the regression and the names, never a frame or a picture). The hand model runs exactly
   while Dream Dance detects with "Hands (AI)" (never in Flowtrack; `fingersOn` in the stage).
   Flowtrack's automatic (#252, `static/flowauto.js`: pure, tested on painted camera pictures –
   `tests/js/flowauto.test.mjs`) chooses the kind of detection and the exposure, holds the one performer and watches the
@@ -110,6 +118,9 @@ command line for now, #231) via `dream-cloud`.
   key (Dream Remote) may only change `settings.GUEST_KEYS` and send `rights.GUEST_CMDS`; the Dream Control key has full
   rights; the Dreamy Eyes key (#156) may only GET its page and lend its front camera (`EYES_PATHS`, the `/ctl` filter); of what
   the stage tells its output windows it hears only the beat, as one number (#218: the capability `beat`, `output.beat_of`).
+  #266: the names of movement sets and of measured dancers reach only this Mac and Dream Control (the capability
+  `names`): every message to a control line goes through `rights.scrub` (hub.broadcast, the greeting) – a guest and every
+  output never hear one (`tests/test_danceprofiles.py`); a new message that carries such a name is listed there.
   Rights are checked in the server (`rights.py`: the roles table, the middleware with `CONTROL_ONLY`/`LOCAL_ONLY`; the
   `/ctl` filter in `ctl.py`), never only in the page: a
   new route or setting that costs money, changes the owner's files or uses the Mac's camera stays Control-only.

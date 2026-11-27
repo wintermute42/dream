@@ -75,6 +75,11 @@ HTTP = {
     ("GET", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("POST", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("DELETE", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
+    # #267: the base movements the dancer taught – what the body showed, as a regression: this Mac and Dream Control only
+    ("GET", "/dance/faders"): ("/dance/faders", LC),
+    ("POST", "/dance/faders"): ("/dance/faders", LC),
+    ("POST", "/dance/faders/{fid}"): ("/dance/faders/f0a1b2c3d", LC),
+    ("DELETE", "/dance/faders/{fid}"): ("/dance/faders/f0a1b2c3d", LC),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [
@@ -92,9 +97,9 @@ WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW,
       "/facemarks": {"local"}}                         # #214: only the stage on this Mac says where a painted face has its eyes
 # what each role may do (rights.ROLES), written down by hand too: the pages are told it with their role
 CAN = {
-    "local": ["beat", "control", "ctl", "eyes", "faces", "feed", "render", "set:all", "stage", "state", "view"],
-    "control": ["beat", "control", "ctl", "eyes", "faces", "feed", "pair_eyes", "render", "set:all", "state", "take_over",
-                "view"],
+    "local": ["beat", "control", "ctl", "eyes", "faces", "feed", "names", "render", "set:all", "stage", "state", "view"],
+    "control": ["beat", "control", "ctl", "eyes", "faces", "feed", "names", "pair_eyes", "render", "set:all", "state",
+                "take_over", "view"],
     "guest": ["ctl", "set:guest", "state", "view"],
     "eyes": ["beat", "ctl", "eyes", "eyes_only", "faces", "feed", "view"],
     "window": ["faces", "view"],

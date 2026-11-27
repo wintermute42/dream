@@ -60,6 +60,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Dream Dance: the page, the clutch, the sets](#dream-dance-the-page-the-clutch-the-sets)
   - [The sentences – what your dance does](#the-sentences--what-your-dance-does)
   - [Moves of your own – teaching a movement](#moves-of-your-own--teaching-a-movement)
+  - [Base movements of your own – a fader by showing](#base-movements-of-your-own--a-fader-by-showing)
   - [Dance lab](#dance-lab)
 - [MIDI controller](#midi-controller)
 - [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
@@ -1391,7 +1392,8 @@ interaction”):
   - **Flowtrack:** what Dream detects right now – the kind, values a second, whether someone is there –,
     **Automatic: ON/OFF** and what the automatic chose and why (see [Flowtrack](#flowtrack)).
   - **Dream Dance:** the recognised gesture with how sure Dream is and your tempo, the **traffic light** (what blocks
-    the dance), the **clutch**, the **movement set** and the slider **Strength** – all effects of the dance together
+    the dance), the **clutch**, the **movement set**, **whose measures** the dance reads with (see
+    [Your measures](#your-measures--calm-and-wild)) and the slider **Strength** – all effects of the dance together
     (see [Dream Dance](#dream-dance-the-page-the-clutch-the-sets)).
 - **Page ↗** opens the page of the mode in a window of its own, for a second screen: Flowtrack and Dream Dance have
   one, the mood needs none.
@@ -1639,7 +1641,7 @@ that was loaded before an update of Dream). On it:
   the **dashed frame** where Dream's picture lies in the camera picture (the calibration; the page also says how much
   of the projection is taken out while “Subtract the projection” is on) and the **green circle** around the one
   person; the output beside it; and the curves of energy, tempo, opening (the distance of the props or hands),
-  turning, height and stillness.
+  hands circling, height and stillness.
 - **Sessions** – **● Record** keeps a session in the dance lab's format (numbers only, never a camera picture; see
   [Dance lab](#dance-lab)) to play back, loop and export – the ground for a performer's profile later.
 
@@ -1677,7 +1679,7 @@ delivers pictures, measured on the dancer's own body – where you stand in the 
 | Energy | how much and how hard you move |
 | Tempo, phase, own beat | the tempo of your own repetition and where in it you are – a **movement clock** beside the music's beat clock |
 | Opening | how far apart the hands are |
-| Turning | a hand running in circles, and which way |
+| Hands circling | a hand running in circles, and which way (not a rotation of the body) |
 | Height | hands down … up |
 | Stillness | you stand still |
 
@@ -1755,7 +1757,8 @@ written to Dream directly), so open it from the panel, not by its address.
 If the stage is reloaded, the page finds it again by itself. If the browser blocks the window, allow pop-ups for
 Dream. On the page: the clutch, the detection, the beat, below them the sentences with the sets
 (see [The sentences](#the-sentences--what-your-dance-does)), your own moves
-(see [Moves of your own](#moves-of-your-own--teaching-a-movement)) and the dance lab.
+(see [Moves of your own](#moves-of-your-own--teaching-a-movement)), your measures
+(see [Your measures](#your-measures--calm-and-wild)) and the dance lab.
 
 **The clutch** decides whether your dance acts. What the sliders, the panel and a MIDI controller set is the **base**;
 the dance acts **on top of it** – an effect at 30 % by hand and 40 % by the dance shows at 70 %, and a fader moved
@@ -1816,7 +1819,9 @@ are on hover (and for screen readers).
 
 **Sentences in three lanes.** Every sentence says one thing, e.g. **“When I [throw my arms up] → [trails follow]”**:
 - **Base movement** (warm yellow, *as long as you move*) – 2 sentences. A continuous movement (moving a lot, opening
-  the arms, turning, raising the arms) sets one effect: “When I move a lot → the waves grow stronger”.
+  the arms, circling the hands, raising the arms) or a base movement of your own (see
+  [Base movements of your own](#base-movements-of-your-own--a-fader-by-showing)) sets one effect: “When I move a lot →
+  the waves grow stronger”.
 - **Accents** (cold blue, *a short moment*) – 4 sentences. A gesture (throwing the arms up, the accordion, pushing,
   drawing a circle, a wave) or a move of your own sets off one effect: “When I draw a circle → a mandala blooms”.
 - **Hands in the picture** (green, *where your hands are*) – one sentence of switches: “My hands [paint trails of
@@ -1873,7 +1878,7 @@ Control and in a playlist scene's `dance_set`. Your sets (at most 24) and the on
 sets that were such tables. On the first start after the update Dream turns them into sets of sentences, as well as
 they go: your own dance table (if it was not one of the built-in sets) becomes the set **“My table”**, and each set of
 your own a set of the same name (with a number after it if a built-in set is called so already). A row of a
-continuous movement (energy, opening, turning, height) becomes a base movement, a gesture or a move of your own an
+continuous movement (energy, opening, hands circling, height) becomes a base movement, a gesture or a move of your own an
 accent with the strength nearest to the row's, and the hands in the picture stay switched on as they were (at most two); what a
 sentence cannot say (finger values, the AI sliders, effects that would cancel each other out) is left out, and the
 strongest rows go first when a lane is full. The set that was in use stays in use. Have a look at them on the page
@@ -1948,6 +1953,87 @@ sentence by showing) takes three repetitions and puts the move on an accent at o
   `~/.local/state/dream/dance/moves/` on this Mac; only this Mac and Dream Control can read or change them, and
   nothing of them leaves the Mac.
 
+### Your measures – calm and wild
+
+The base movements (energy, opening, hands circling, height) reach the sentences through ranges Dream picks for an average
+dancer – one dancer's calm is another's warm-up. **📏 Your measures** (below your moves) measures you, so that **your
+calm is 0 %** and **your wild is 100 %** for every sentence. Start it with **📏 Measure me …** (in the section, beside
+“🎓 Teach a movement …”, or key **M**). After a countdown of three seconds Dream says in big words what to do; each
+step has a bar, the first second and a half is for getting there, and while Dream does not see you the step waits:
+
+1. **Calm** (10 s): stand still, arms hanging loosely – your calm of energy, height and the hands' circling.
+2. **Wild** (10 s): dance as wild as you do in a show – the top of your energy.
+3. **Arms closed** (5 s): hands together in front of you – 4. **Arms open** (5 s): wide open – your range of opening.
+5. **Arms up** (5 s): as high as they go – the top of your height.
+6. **Hands circle** (8 s): circle your hands as big and as fast as you do in your dance – the top of their circling.
+   (This base movement is the hands running in circles, not a rotation of your body.)
+7. **Result:** per base movement one bar with the standard range (grey) and yours (violet), a green dot where you are
+   right now and “now … %” between your calm and your wild – move and watch it. A base movement Dream did not see well
+   enough, or whose calm and wild lie too close together, keeps the standard range (it says so). Give it a **name**
+   (e.g. your first name; the same rules as a set's name) and **Keep** – your measures are in use from now on. A name
+   that exists already is measured anew (the field says so). **Measure again**, **Throw away**, **✕** or **Esc**
+   change nothing.
+
+- **Choosing.** The chips above the bars – **Standard measures** and every measured dancer – choose whose measures
+  the dance reads; **Standard measures** brings the built-in ranges back at any time. The panel has the same choice
+  under the movement set (“Measures: Kim”), and a playlist scene can carry it (the setting `dance_profile`). **🗑**
+  beside the one in use deletes it after asking once more on the button (the standard measures act then).
+- **What it does.** The engine on the stage reads the dance through the measures in use before any row of the dance
+  table: your calm lies where the standard calm lies and your wild where the standard wild lies – so a gentle dancer
+  reaches the full effect, and a restless one does not set everything off while standing. Only the four base
+  movements are read so (gestures, hands, the beat stay as they are), only in Dream Dance (the mood and Flowtrack read
+  the movement as it is), and the rules stay: one effect per group, at most three groups, the minimum.
+- **What is kept:** per dancer a name and four pairs of numbers, in `~/.config/dream/dance-profiles.json` on this Mac
+  – never a camera picture. Only this Mac and Dream Control may keep or delete measures; a guest changes nothing.
+  The names of dancers and of movement sets are told to this Mac and Dream Control only – never to a guest's phone and
+  never to an output (output window, Dreamy Eyes, dream windows); a guest works without them. A
+  broken file is ignored: the standard measures act.
+- **Limits.** The standard ranges are the built-in ones, not yet learned from real sessions. Measure with the detection
+  you dance with (hands by AI or LED markers) and in the place you dance in.
+
+### Base movements of your own – a fader by showing
+
+Besides the four built-in base movements (moving a lot, opening the arms, circling the hands, raising the arms) you can teach
+Dream base movements of your own: a **fader** between states of your body that you show and name – e.g. “upright” ↔
+“deep in the knees”, or “leaning left” ↔ “leaning right”. Below the moves of your own is **🎚 Your base movements**;
+start with **＋ Teach a base movement …** there, with **＋ A base movement of your own …** in the base movements, or
+in the choice of a base sentence's movement (then it becomes that sentence's movement).
+
+1. **Name it** and name its states: the one at **0** and the one at **1**, and if you like up to three **steps in
+   between** (**＋ A step in between**; they are spread evenly, e.g. 0 · 0.5 · 1). Names: letters, digits, spaces and
+   `. + -`, at most 32 characters; no two states with the same name.
+2. **Show the states.** For each state Dream counts down three seconds (take the position), then you **hold it** for
+   two and a half seconds – swaying a little is good, Dream learns it the steadier. The chips show which states are
+   done. If Dream did not see you through a state, it says so and you show that one again.
+3. **Try it.** A **live level** follows you between the states, with the states marked on it, and a line says what
+   Dream reads the fader from (e.g. “feet ↕ 62 % · knees ↕ 36 %”). **Keep** keeps it on this Mac and makes it a base
+   sentence (with the effect of the sentence you started from, or the first effect that fits; when both base sentences
+   are taken it replaces the second one and says so – the set is “● changed”, as always). **Again** shows the states
+   once more. If the states look alike to Dream or run into each other, it is not made and Dream says why – show them
+   again, more different, or change the states.
+
+- **Learning** is a small regression, as Wekinator does it, kept small enough to be explained. What the body shows is
+  a handful of numbers measured on your own body (each point of the skeleton in shoulder widths from the middle of
+  your shoulders, how far one shoulder is above the other, and your hands) – so where you stand in the picture and how
+  near does not matter. Dream takes the values that change between the states, weights each by how steady it was while
+  you held a state (so the fader stays still while you hold still), and fits their sum so that every state comes out
+  at its own value; the fader is held to 0 … 1 and glides a little (about a tenth of a second).
+- **Detection.** Best with **Hands (AI)** and your whole body in the picture: the skeleton is what it is read from.
+  With LED markers alone a base movement is read from your hands only (e.g. “arms down” ↔ “arms up”). Teach it with
+  the detection you will dance it with. If what it is read from is out of sight (e.g. the feet leave the picture),
+  the fader is not known and its sentence rests.
+- **What it does** is a base sentence: “When I go towards “deep in the knees” → the waves grow stronger” – acting as
+  long as you are there, only while the clutch is engaged, under the same rules as every sentence (one effect per
+  group, at most three groups at once, the minimum). Its pictogram is a figure beside a fader.
+- **In the list** each base movement shows its name (a text field: saved when you leave it), its states, what it is
+  read from and a live level of what the stage reads right now. **🎓 Teach again** shows the states anew (name and
+  sentences stay); **🗑** deletes after asking once more on the button – its sentences (in your sets and in changes not
+  saved yet) are empty then. At most 12 are kept.
+- **What is kept:** the regression – per body value its middle, its weight and its share – the names of the base
+  movement and its states and where each state came out. **Numbers and names only, never a camera picture, not even
+  the frames shown.** They are in `~/.local/state/dream/dance/faders/` on this Mac; only this Mac and Dream Control can
+  read or change them, and nothing of them leaves the Mac.
+
 ### Dance lab
 
 The **🧪 Dance lab** is the lower part of the page of Dream Dance. It shows live what Dream makes of your dance, so
@@ -1968,7 +2054,7 @@ dancing:
   view shows whether the hand model runs (it does by itself with Dream Dance and “Hands (AI)”). An empty view says
   why: fingers need the detection “Hands (AI)” in Dream Dance, the hand model is still loading (once, about 8 MB), or
   there is no hand in the picture.
-- **Feature stream:** energy, tempo, phase, opening, turning, height and stillness as running curves over the last 12
+- **Feature stream:** energy, tempo, phase, opening, hands circling, height and stillness as running curves over the last 12
   seconds, the recognised gesture as a band above them, and – once a hand was seen – the finger values per hand. Where
   a value is not known (a hand lost, no rhythm) the curve has a **gap**, marked by a dashed red line: that is where
   the limits of distance, light and tempo show. Where the **skeleton was lost**, a pale red band runs through all
@@ -2384,6 +2470,20 @@ waving, talking hands and the like (none), the built-in gestures beside the taug
 the ends of the tolerance, and how a take is cut into its repetitions. `node --test tests/js/moveteach.test.mjs` tests
 the teaching card's parts without a page (a take, the file that is kept, the row of the table, the clutch);
 `tests/test_dancemoves.py` what Dream keeps of a move, who may reach it and that deleting one removes its rows.
+`node --test tests/js/dancecal.test.mjs` (#266) measures the simulated dancer (calm, wild, arms closed and open, arms
+up, turning) and checks the bounds that come out, that what was not seen or lies too close keeps the standard, and that
+the engine reads the dance through the measures – a gentle dancer reaches the full effect, only in Dream Dance, with
+the groups still in force; `tests/test_danceprofiles.py` what a profile may say, a broken file (the standard measures
+act), choosing, keeping and deleting, and that only this Mac and Dream Control may.
+`node --test tests/js/dancefaders.test.mjs` (#267) tests the base movements of one's own (`static/dancefaders.js`,
+read in `static/dance.js`) on a simulated body: a fader learned from two shown states (upright ↔ deep in the knees) is
+read from the legs and goes evenly between them – further away, nearer, elsewhere in the picture; holding a state
+under the pose model's jitter, the stream keeps it still; three states with a step between (leaning), two faders that
+keep out of each other, markers alone (the hands), a fader that cannot be one says why, a skeleton out of sight is no
+value, a session plays it back, and a broken model is refused. `node --test tests/js/faderteach.test.mjs` tests the
+teaching card's parts without a page and the sentence of a base movement of one's own;
+`tests/test_dancefaders.py` what Dream keeps of it (numbers and names only), who may reach it, a broken file, and that
+deleting one empties its base sentences.
 `node --test tests/js/dancerec.test.mjs` (#243) tests the dance lab's sessions (`static/dancerec.js`): a recorded
 simulated dance plays back the very features it was made from and holds nothing but numbers, feeding its inputs to a
 fresh detector gives the same gestures, a feedback keeps exactly its seconds, playback (pause, slow motion, jumps, a

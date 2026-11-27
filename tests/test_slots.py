@@ -108,6 +108,21 @@ def test_an_accent_has_its_tolerance_and_may_be_a_move_of_ones_own():
     assert "const TOL = { tight: 0.75, normal: ON, loose: 0.45 };" in js and list(dance.TOLERANCES) == ["tight", "normal", "loose"]
 
 
+def test_a_base_movement_may_be_one_of_ones_own_and_is_read_as_it_is():
+    """#267: a taught base movement ("f.<its id>") is a base sentence like a built-in one – never an accent, and an own
+    move never a base movement."""
+    got = dance.clean_slots({"base": [{"src": "f.f0a1b2c3d", "fx": "waves", "amt": 1}, {"src": "g.m0a1b2c3d", "fx": "trails"}],
+                             "accents": [{"src": "f.f0a1b2c3d", "fx": "rgb"}, {"src": "f.fNOPE", "fx": "hue"}]})
+    assert got["base"] == [{"src": "f.f0a1b2c3d", "fx": "waves", "amt": 1.0}, None] and got["accents"] == [None] * 4
+    assert dance.clean_slots({"base": [{"src": "f.f0a1b2c3d", "fx": "waves"}, {"src": "f.f0a1b2c3e", "fx": "trails"}]})["base"][1]["src"] == "f.f0a1b2c3e"
+    row = next(r for r in dance.compile_slots(got) if r["id"] == "base0")
+    # it is 0 … 1 already: Dream takes it straight, a little smoothed, its strength above the engine's minimum
+    assert row == {"id": "base0", "on": True, "src": "f.f0a1b2c3d", "dst": "fx.waves", "curve": "lin", "in": [0.0, 1.0], "out": [0.0, 1.0],
+                   "smooth": 0.2, "origin": "slot"}
+    assert dance.clean_row(row) == row                                           # a row the table may hold
+    assert dance.rows_to_slots([{**row, "id": "x"}])["base"][0]["src"] == "f.f0a1b2c3d"   # and the way back
+
+
 def test_a_change_is_a_draft_and_a_built_in_set_is_saved_as_a_new_set(slots):
     before = slots.builtin_slots()
     changed = {**before["waves"], "hands": ["light"]}
@@ -154,6 +169,17 @@ def test_a_deleted_move_leaves_the_accents(slots):
     assert slots.drop_source("g.m0a1b2c3d") is True
     assert slots.all_slots()["Mine"]["accents"][0] is None and slots.slot_drafts["standard"]["accents"][0] is None
     assert slots.all_slots()["Mine"]["accents"][1]["src"] == "g.throw" and slots.drop_source("g.m0a1b2c3d") is False
+
+
+def test_a_deleted_base_movement_leaves_the_base_sentences(slots):
+    """#267: deleting a taught base movement empties the sentences that had it – in every own set and every draft."""
+    own = {"base": [{"src": "f.f0a1b2c3d", "fx": "waves"}, {"src": "energy", "fx": "trails"}], "accents": [{"src": "g.throw", "fx": "rgb"}]}
+    assert slots.save_slots_as("Mine", own, "standard") and slots.draft_slots("fire", own)
+    assert any(r["src"] == "f.f0a1b2c3d" for r in slots.tables["dance"])
+    assert slots.drop_source("f.f0a1b2c3d") is True
+    for s in (slots.all_slots()["Mine"], slots.load_slots()[0]["Mine"]["slots"], slots.slot_drafts["fire"]):
+        assert s["base"][0] is None and s["base"][1]["src"] == "energy" and s["accents"][0]["src"] == "g.throw"
+    assert not any(r["src"] == "f.f0a1b2c3d" for r in slots.tables["dance"]) and slots.drop_source("f.f0a1b2c3d") is False
 
 
 def test_slots_in_a_broken_file_are_no_slots(slots):

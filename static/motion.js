@@ -313,6 +313,7 @@
       const fresh = hands21.on && now - hands21.at < 200;
       st.dance = { hands, body: kind === 'hand' && person ? DreamDance.bodyFrom(person, video.videoWidth / Math.max(1, video.videoHeight)) : null,
         fingers: { l: fresh ? hands21.l : null, r: fresh ? hands21.r : null }, dark: lum < 0.12,
+        pose: kind === 'hand' && person ? person : null,   // #267: the skeleton's points – base movements of one's own read them
         aspect: video.videoWidth / Math.max(1, video.videoHeight) };
     }
     // bright spots (fire, LEDs): threshold above the room's own brightness, so it works in the dark and in a lit hall

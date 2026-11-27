@@ -11,11 +11,12 @@
 <link rel="stylesheet" href="/static/dancelab.css">
 <link rel="stylesheet" href="/static/danceslots.css">
 <link rel="stylesheet" href="/static/moveteach.css">
+<link rel="stylesheet" href="/static/dancecal.css">
 </head>
 <body class="mp-body">
 <!-- #251: the page of the mode Dream Dance – on this Mac only, in a window of its own beside the stage. Everything
      that steers the show is in the panel too (the clutch, the set); here is the room to watch, to say in sentences what
-     the movements do (#265) and to teach (#236: moves of one's own). -->
+     the movements do (#265) and to teach (#236: moves of one's own; #267: base movements of one's own). -->
 <header class="mp-head">
   <h1>Dream Dance</h1>
   <div class="mp-status" id="pagestate" role="status"></div>
@@ -63,6 +64,8 @@
   </section>
   <section id="slots" aria-label="What your movements do: the sentences"></section>
   <section id="moveteach"></section>
+  <section id="faderteach"></section>
+  <section id="dancecal"></section>
   <section id="dancelab" hidden></section>
 </main>
 <script src="/static/i18n.js"></script>
@@ -73,6 +76,9 @@
 <script src="/static/danceslots.js"></script>
 <script src="/static/dancemoves.js"></script>
 <script src="/static/moveteach.js"></script>
+<script src="/static/dancecal.js"></script>
+<script src="/static/dancefaders.js"></script>
+<script src="/static/faderteach.js"></script>
 <script src="/static/danceintro.js"></script>
 <script src="/static/movecard.js"></script>
 <script src="/static/movepage.js"></script>
@@ -80,15 +86,15 @@
 (() => {
   const T = I18N.t, $ = id => document.getElementById(id);
   I18N.apply();
-  let bridge = null, lab = null, slots = null, teach = null, shown = {}, namesKey = '';
+  let bridge = null, lab = null, slots = null, teach = null, cal = null, fteach = null, shown = {}, namesKey = '';
   const say = (id, text) => { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } };
   const intro = DanceIntro.mount($('help'));          // #265: the introduction – the first time, and with "?"
 
   // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
   // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
   const NEEDS = { calls: ['attach', 'detach', 'state', 'setClutch', 'setSet', 'setMode', 'setKind', 'setCam', 'lab.detect',
-    'slots', 'slotsDo', 'live', 'probe', 'levels', 'movesChanged'],
-    state: ['mode', 'clutch', 'hold', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams', 'moves', 'strength'] };
+    'slots', 'slotsDo', 'live', 'probe', 'levels', 'movesChanged', 'profiles', 'profilesDo', 'setProfile', 'fadersChanged'],
+    state: ['mode', 'clutch', 'hold', 'move', 'music', 'camera', 'kind', 'tracking', 'cam', 'cams', 'moves', 'faders', 'strength'] };
   MovePage.link('dance', {
     needs: NEEDS,
     old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },
@@ -99,16 +105,24 @@
       lab = DanceLab.mount($('dancelab'), Object.assign({}, b.lab, { feedback: false, tune: false })); lab.show(true); b.attach(lab);
       const moves = () => { try { return b.state().moves || []; } catch (e) { return []; } };
       const names = () => Object.fromEntries(moves().map(m => [m.id, m.name]));
+      // #267: the base movements the dancer taught – by id: the name, and the state the fader goes towards
+      const faderList = () => { try { return b.state().faders || []; } catch (e) { return []; } };
+      const faders = () => Object.fromEntries(faderList().map(f => [f.id, { name: f.name, to: (f.states[f.states.length - 1] || {}).name }]));
       // #265: the sentences, with the live figure – the hands in their marker colours, glowing in the colour of their effect
       const HAND_COL = { cyan: '#35e6f0', magenta: '#f040dc', green: '#59e06a', blue: '#5b8cff' };
       slots = DanceSlots.mount($('slots'), { bridge: b, fxNames: b.lab.fxNames, fxIcons: b.lab.fxIcons, label: n => DancePanel.label(n, b.lab.fxNames), setLabel: MoveCard.setLabel, names,
-        learn: o => teach && teach.wizard(o),
+        learn: o => teach && teach.wizard(o), measure: () => cal && cal.start(), faders, learnBase: o => fteach && fteach.wizard(o),
         frame: () => { try { const l = b.lab.live(); return l ? DreamDanceRec.pack(performance.now() / 1000, b.lab.keys, l.rec, l.input, l.landmarks, l.out) : null; } catch (e) { return null; } },
         figure: (c, w, h, f, glow) => DanceLab.drawFigure(c, w, h, f, { text: '#f2eefb', glow, handCol: hd => HAND_COL[(b.lab.colours() || {})[hd]] || (hd === 'l' ? HAND_COL.cyan : HAND_COL.magenta) }) });
       // #236, #265: teaching a movement – a built-in one more exactly, or one of your own, which becomes an accent
       teach = MoveTeach.mount($('moveteach'), { keys: b.lab.keys, fxNames: b.lab.fxNames, live: b.lab.live, sure: () => b.live(), colours: b.lab.colours, moves,
         clutch: () => { try { return b.state().clutch; } catch (e) { return false; } }, changed: () => { try { b.movesChanged(); } catch (e) { /* the stage is reloading */ } },
         levels: () => b.levels(), probe: name => b.probe(name), gestures: DanceSlots.ACCENTS.map(g => g.slice(2)), pictogram: DanceSlots.pictogram, keep: taught });
+      // #266: measuring the dancer – their calm and their wild per base movement, kept as their own measures
+      cal = DanceCal.mount($('dancecal'), { bridge: b, label: n => DancePanel.label(n, b.lab.fxNames), pictogram: DanceSlots.pictogram });
+      // #267: teaching a base movement of one's own – it becomes a base sentence
+      fteach = FaderTeach.mount($('faderteach'), { live: b.lab.live, sure: () => b.live(), faders: faderList, pictogram: DanceSlots.pictogram, keep: taughtBase,
+        changed: () => { try { b.fadersChanged(); } catch (e) { /* the stage is reloading */ } } });
       slots.draw();
       setTimeout(() => intro.start(), 400);            // once the page has its size
     },
@@ -129,6 +143,20 @@
     slots.change({ ...s, accents: s.accents.map(a => (a && a.src === src ? { ...a, tol } : a)) });
   }
 
+  // #267: a new base movement of one's own becomes a base sentence – in the sentence it was asked for (its movement is
+  // the new one, the effect stays), else in a free place with the first effect that fits; what it takes the place of is
+  // said
+  function taughtBase({ src, i, fresh }) {
+    if (!slots || !fresh) return;
+    const s = slots.slots();
+    if (s.base.some(a => a && a.src === src)) return;
+    if (Number.isInteger(i) && s.base[i]) { slots.change(DanceSlots.place(s, { where: 'base', i, slot: { ...s.base[i], src } })); return; }
+    const want = DanceSlots.EFFECTS.find(e => !DanceSlots.assign(s, 'base', src, e).why), r = want ? DanceSlots.assign(s, 'base', src, want) : null;
+    if (!r) { slots.hint(T('No effect fits beside the others – change a base sentence, then choose the movement there.')); return; }
+    slots.change(r.slots);
+    if (r.replaced) slots.hint(T('It takes the place of “{m} → {e}”.', { m: slots.label(r.replaced.src), e: bridge.lab.fxNames[r.replaced.fx] || r.replaced.fx }));
+  }
+
   $('clutchbtn').onclick = () => bridge && bridge.setClutch($('clutchbtn').getAttribute('aria-pressed') !== 'true');
   $('stagereload').onclick = () => { if (MovePage.reloadStage()) say('pagestate', T('The stage is loading anew …')); };
   $('tomode').onclick = () => bridge && bridge.setMode('dance');
@@ -140,6 +168,7 @@
     if (k === 'k') $('clutchbtn').click();
     else if (lab && k === 'r') lab.record();
     else if (teach && k === 't' && teach.phase === 'idle') teach.wizard({});
+    else if (cal && k === 'm' && cal.phase === 'idle') cal.start();
   });
 
   // what the stage is at, with every frame: the clutch, how far the dance is in, the detection, the sentences, the two beats

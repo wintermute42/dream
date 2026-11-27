@@ -50,6 +50,8 @@ CAPABILITIES = {
     "pair_eyes": "gets the links and QR codes that pair Dreamy Eyes and dream windows",
     "take_over": "may take Dream Control over from another device (one at a time); while it stands by as the second "
                  "phone it may lend its motion sensors and glow as a light marker, nothing else (#237, ctl.slot_for)",
+    "names": "learns the names of the movement sets and of the dancers whose measures are kept (#266) – people's names, "
+             "for this Mac and Dream Control only (`scrub`)",
 }
 
 # #175: everything a guest (Dream Remote, the output window on a second device) may ask over HTTP; the rest is for
@@ -77,9 +79,9 @@ def _get(paths_: re.Pattern) -> re.Pattern:
 
 ROLES: dict[str, Role] = {
     "local": Role(frozenset({"stage", "control", "render", "ctl", "view", "state", "set:all", "feed", "eyes", "faces",
-                             "beat"})),
+                             "beat", "names"})),
     "control": Role(frozenset({"control", "render", "ctl", "view", "state", "set:all", "feed", "eyes", "faces", "beat",
-                               "pair_eyes", "take_over"}), key="control-token"),
+                               "pair_eyes", "take_over", "names"}), key="control-token"),
     "guest": Role(frozenset({"ctl", "view", "state", "set:guest"}), key="remote-token", http=GUEST_HTTP),
     "eyes": Role(frozenset({"ctl", "view", "feed", "eyes", "eyes_only", "faces", "beat"}), key="eyes-token",
                  http=_get(EYES_PATHS), cookie="dream_e", pairs=True),
@@ -91,6 +93,33 @@ assert all(r.can <= set(CAPABILITIES) for r in ROLES.values())
 def can(role: str | None, capability: str) -> bool:
     """May this role do that? No role (None) may nothing."""
     return role in ROLES and capability in ROLES[role].can
+
+
+# ---------- #266: names only for this Mac and Dream Control ----------
+# The names of movement sets and of measured dancers (often a first name) are the owner's: a guest's phone and every
+# output (the output window, Dreamy Eyes, dream windows – those never hear the shared state at all) never learn them.
+# Where they travel: the settings that hold one (in a change, "set", and in the snapshot, "state") and the dance's
+# message (its sets with their sentences, the dancers' measures, #267: the base movements they taught and named). Every
+# message to a control line goes through `scrub`.
+NAMED_SETTINGS = ("dance_set", "dance_profile")
+NAMED_DANCE = ("slots", "profiles", "faders")         # #267: the base movements the dancer taught, by name
+
+
+def scrub(role: str | None, msg):
+    """The message as this role may hear it: whole for a role with "names", else without the names (fail closed: an
+    unknown role or None hears none). None when nothing is left to tell."""
+    if can(role, "names") or not isinstance(msg, dict):
+        return msg
+    out = dict(msg)
+    for key, private in (("set", NAMED_SETTINGS), ("state", NAMED_SETTINGS), ("dance", NAMED_DANCE)):
+        part = out.get(key)
+        if isinstance(part, dict) and any(k in part for k in private):
+            part = {k: v for k, v in part.items() if k not in private}
+            if part or key == "state":
+                out[key] = part
+            else:
+                del out[key]
+    return out or None
 
 
 def roles_with(capability: str) -> set:
@@ -149,7 +178,9 @@ CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r
                 # #243: the dance lab's sessions (trajectories of the owner's dance, kept on this Mac)
                 ("GET", r"/dance/sessions(/[^/]+)?"), ("POST", r"/dance/sessions(/[^/]+/export)?"), ("DELETE", r"/dance/sessions/[^/]+"),
                 # #236: the dance moves the dancer taught (trajectories too, kept on this Mac)
-                ("GET", r"/dance/moves(/[^/]+)?"), ("POST", r"/dance/moves(/[^/]+)?"), ("DELETE", r"/dance/moves/[^/]+")]
+                ("GET", r"/dance/moves(/[^/]+)?"), ("POST", r"/dance/moves(/[^/]+)?"), ("DELETE", r"/dance/moves/[^/]+"),
+                # #267: the base movements the dancer taught (what the body showed, as a regression, kept on this Mac)
+                ("GET", r"/dance/faders"), ("POST", r"/dance/faders(/[^/]+)?"), ("DELETE", r"/dance/faders/[^/]+")]
 # #251, #252: the pages of Dream Dance and Flowtrack are this Mac's (they steer the stage in the window that opened them)
 LOCAL_ONLY = [("POST", r"/gallery"), ("GET", r"/dance"), ("GET", r"/flowtrack")]
 

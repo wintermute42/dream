@@ -41,6 +41,18 @@
     if (select.value !== cur && document.activeElement !== select) select.value = cur;
   }
 
+  // #266: whose measures the dance reads with: "" – the standard measures, else a dancer's name; rebuilt only when
+  // something changed, so an open list is not torn away
+  function fillProfiles(select, names, current) {
+    const cur = current == null ? '' : String(current), want = [''].concat(names || [], cur && !(names || []).includes(cur) ? [cur] : []);
+    const key = want.join('\n');
+    if (select.dataset.filled !== key) {
+      select.dataset.filled = key; select.textContent = '';
+      for (const n of want) { const o = document.createElement('option'); o.value = n; o.textContent = n ? T('Measures: {n}', { n }) : T('Measures: Standard'); select.append(o); }
+    }
+    if (select.value !== cur && document.activeElement !== select) select.value = cur;
+  }
+
   // #265: the traffic light of Dream Dance – what blocks the dance. st: {mode, clutch}; live: what the stage sees right
   // now ({seen, markers, markerWanted}). → {green, clutch, person, marker}: each 'ok' | 'block' | 'none' (does not apply)
   function light(st, live) {
@@ -205,7 +217,7 @@
     };
   }
 
-  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets, light, lamp };
+  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets, fillProfiles, light, lamp };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MoveCard = api;
 })(typeof window !== 'undefined' ? window : globalThis);

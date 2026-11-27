@@ -198,6 +198,9 @@ SETTINGS: dict[str, Setting] = {
     # (#265: its sentences are the dance's table, dance.py)
     "clutch": flag(False),
     "dance_set": text("standard", clean=_set_name),
+    # #266: whose measures the dance reads its base movements with – a profile's name (danceprofiles.py), "": the
+    # standard measures
+    "dance_profile": text("", clean=_set_name),
     "flow_auto": flag(True),                                    # #252: flowtrack's automatic chooses kind and exposure, holds the one person
     # … and what it detects for Dream Dance: a mode is a preset, so the dance keeps its own choice – light chosen for
     # flowtrack never becomes the dance's detection (a bright window would stand in for the hands)
