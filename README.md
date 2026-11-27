@@ -1955,8 +1955,8 @@ sentence by showing) takes three repetitions and puts the move on an accent at o
 The base movements (energy, opening, hands circling, height) reach the sentences through ranges Dream picks for an average
 dancer – one dancer's calm is another's warm-up. **📏 Your measures** (below your moves) measures you, so that **your
 calm is 0 %** and **your wild is 100 %** for every sentence. Start it with **📏 Measure me …** (in the section, beside
-“🎓 Teach a movement …”, or key **M**). After a countdown of three seconds Dream says in big words what to do; each
-step has a bar, the first second and a half is for getting there, and while Dream does not see you the step waits:
+“🎓 Teach a movement …”, or key **M**). After a countdown of three seconds Dream says in big words what to do, and a small
+skeleton beside them shows it (it stands still, with arrows, when your system reduces motion); each step has a bar, the first second and a half is for getting there, and while Dream does not see you the step waits:
 
 1. **Calm** (10 s): stand still, arms hanging loosely – your calm of energy, height and the hands' circling.
 2. **Wild** (10 s): dance as wild as you do in a show – the top of your energy.

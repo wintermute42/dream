@@ -9,13 +9,14 @@
    3. arms closed and 4. arms wide open (the range of your opening),
    5. arms up high (the top of your height),
    6. circling the hands (the top of their circling).
+   Beside the big words of each step a small skeleton shows what is meant – the countdown already shows the first.
    While Dream does not see the dancer, the step waits. The result shows per base movement the standard range and
    yours on one bar, with a dot where you are right now and how far that is between your calm (0 %) and your wild
    (100 %); [Keep] keeps it under the dancer's name (danceprofiles.py – numbers only), in use from now on. The profiles
    are a row of chips above: "Standard measures" brings the built-in ranges back at any time. The engine reads the
    dance through the profile in use (dancemap.js `calibrate`), on the stage – not only on this page.
 
-   `STEPS`, `take`, `quantile`, `bounds`, `percent` and `nameProblem` are pure (tests/js/dancecal.test.mjs). Looks: the
+   `STEPS`, `figure`, `take`, `quantile`, `bounds`, `percent` and `nameProblem` are pure (tests/js/dancecal.test.mjs). Looks: the
    learning assistant's (moveteach.css) and dancecal.css – only transform and opacity move. A global `DanceCal`. */
 (function (root) {
   'use strict';
@@ -43,6 +44,21 @@
       takes: [['turn', 'hi', 0.9]] },
   ];
   const r3 = x => Math.round(x * 1000) / 1000;
+
+  // ---------- the demo figure: a small skeleton that shows each step (dancecal.css moves it) ----------
+  // Its arms are an upper arm and a forearm hanging from the shoulder; the right one is the left one mirrored, so one
+  // rotation per pose serves both. The signs (arrows, motion lines) show the movement when motion is reduced.
+  const SIGNS = { wild: 'M-24 -26 l-5 -4 M24 -26 l5 -4 M-26 8 h-6 M26 8 h6', closed: 'M-26 6 h7 M-22 3 l3 3 l-3 3 M26 6 h-7 M22 3 l-3 3 l3 3',
+    open: 'M-33 -16 l-3 4 l3 4 M33 -16 l3 4 l-3 4', up: 'M-14 -37 v-5 M-17 -39 l3 -3 l3 3 M14 -37 v-5 M11 -39 l3 -3 l3 3',
+    turn: 'M-11.5 -11.5 a11 11 0 1 0 0.1 0 M11.5 -11.5 a11 11 0 1 1 -0.1 0' };
+  function figure(k) {
+    if (!STEPS.some(s => s.k === k)) return '';
+    const arm = '<g class="dcf-up"><path d="M0 0 V11"/><g transform="translate(0 11)"><g class="dcf-fore"><path d="M0 0 V11"/></g></g></g>';
+    return `<svg viewBox="-36 -46 72 90" aria-hidden="true" focusable="false"><g transform="translate(0 37)"><ellipse class="dcf-ground" rx="13" ry="2.2"/></g>`
+      + `<g class="dcf-body"><circle cx="0" cy="-24" r="7"/><path d="M0 -17 V12 M-6 -10 H6 M0 12 L-9 34 M0 12 L9 34"/>`
+      + `<g transform="translate(-6 -10)">${arm}</g><g class="dcf-r" transform="translate(6 -10) scale(-1 1)">${arm}</g></g>`
+      + (SIGNS[k] ? `<path class="dcf-sign" d="${SIGNS[k]}"/>` : '') + '</svg>';
+  }
 
   // ---------- a measure in the making ----------
   // add(step, t, live): what the stream says right now (the bridge's live(): {v, c, seen}) joins the step `step` at its
@@ -118,7 +134,10 @@
     bar.setAttribute('aria-hidden', 'true'); bar.append(barFill); small.setAttribute('aria-live', 'polite');
     const pane = el('div', 'mt-pane'), btns = el('div', 'btns mt-btns'), closeBtn = btn('✕', T('Stop measuring (Esc) – your measures stay as they were'), 'mt-x mt-close');
     closeBtn.setAttribute('aria-label', T('Stop measuring'));
-    wiz.append(closeBtn, stepBar, big, small, bar, pane, btns);
+    // the demo figure beside the big words: what the step means, shown (only while counting down and measuring)
+    const fig = el('div', 'dc-fig'), words = el('div', 'dc-words'), showRow = el('div', 'dc-show');
+    fig.setAttribute('aria-hidden', 'true'); fig.hidden = true; words.append(big, small); showRow.append(fig, words);
+    wiz.append(closeBtn, stepBar, showRow, bar, pane, btns);
     // ---- the ranges: the standard's and yours, per base movement, with where you are now ----
     const ranges = el('div', 'dc-ranges'), legend = el('div', 'hint dc-legend');
     for (const [cls, text] of [['dc-std', T('standard')], ['dc-you', T('yours')], ['dc-dot', T('you now')]]) { const i = el('i', cls); i.setAttribute('aria-hidden', 'true'); legend.append(i, el('span', '', text)); }
@@ -196,6 +215,9 @@
       phase = p; wiz.hidden = p === 'idle';
       [...stepBar.children].forEach((li, k) => { li.className = k === step ? 'cur' : k < step ? 'done' : ''; if (k === step) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current'); });
       big.textContent = bigText || ''; small.textContent = smallText || ''; pane.textContent = ''; btns.textContent = '';
+      const k = p === 'count' || p === 'step' ? STEPS[step].k : '';   // the countdown already shows the first step
+      if (fig.dataset.k !== k) { fig.dataset.k = k; fig.innerHTML = figure(k); }
+      fig.hidden = !k;
       bar.hidden = !(p === 'count' || p === 'step'); barFill.style.transform = 'scaleX(0)';
       box.classList.toggle('mt-taking', p === 'step');
       big.classList.toggle('mt-huge', p === 'count');   // read from where the dancer stands
@@ -278,7 +300,7 @@
     return { start, get phase() { return phase; }, cancel: () => { if (phase !== 'idle') stop(T('Measuring stopped – your measures stay as they were.')); }, stop: () => cancelAnimationFrame(raf) };
   }
 
-  const api = { mount, take, quantile, bounds, percent, nameProblem, STEPS, FEATURES, SETTLE, MIN_N, SURE, RATE };
+  const api = { mount, figure, take, quantile, bounds, percent, nameProblem, STEPS, FEATURES, SETTLE, MIN_N, SURE, RATE };
   if (node) module.exports = api;
   else root.DanceCal = api;
 })(typeof window !== 'undefined' ? window : globalThis);
