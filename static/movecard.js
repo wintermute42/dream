@@ -40,6 +40,19 @@
     }
     if (select.value !== cur && document.activeElement !== select) select.value = cur;
   }
+  // #253: the choices of the performer's select: "no profile", then every profile by the name its user gave it; an id
+  // not in the list yet (Dream has not said so) stands as it is. Rebuilt only when something changed.
+  function fillProfiles(select, profiles, current) {
+    const list = (Array.isArray(profiles) ? profiles : []).filter(p => p && typeof p.id === 'string').map(p => [p.id, String(p.name || p.id)]);
+    const cur = current == null ? '' : String(current);
+    if (cur && !list.some(p => p[0] === cur)) list.push([cur, '…']);
+    const key = JSON.stringify(list);
+    if (select.dataset.filled !== key) {
+      select.dataset.filled = key; select.textContent = '';
+      for (const [id, name] of [['', ''], ...list]) { const o = document.createElement('option'); o.value = id; o.textContent = id ? T('Performer: {n}', { n: name }) : T('Performer: no profile'); select.append(o); }
+    }
+    if (select.value !== cur && document.activeElement !== select) select.value = cur;
+  }
 
   // #266: whose measures the dance reads with: "" – the standard measures, else a dancer's name; rebuilt only when
   // something changed, so an open list is not torn away

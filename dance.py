@@ -28,7 +28,9 @@ import playlists
 import settings
 
 MAP_FILE = os.path.join(paths.config_dir(), "dance.json")
-VERSION = 3                                          # #265: the dance's table is its sets; the old table became a set
+# of the file: 2 – a table per mode (#249), 3 – the dance's table is its sets, the old table became a set (#265),
+# 4 – flowtrack's table has the rows of a performer's profile (#253)
+VERSION = 4
 MAX_ROWS = 64
 CURVES = ("lin", "soft", "hard", "s", "v")            # #265: "v" – a source that goes both ways acts by how far it goes
 ORIGINS = ("fixed", "own", "taught", "learned", "slot")
@@ -83,6 +85,13 @@ BAND_ROWS = [
     _row("armspeed", "energy", "fx.speed", lo=0.1, hi=0.8, out=0.6, smooth=0.3),
     {**_row("armspin", "spin", "fx.spin", lo=-1.0, hi=1.0, smooth=0.25), "out": [-0.8, 0.8]},
     _row("armforce", "force", "fx.hue", lo=0.1, hi=0.9, out=0.8, curve="soft", smooth=0.4),
+]
+# #253: what a performer's profile adds to flowtrack (static/flowprofile.js) – one of the person's own figures is being
+# made ("figure", as large as they make it), and how round the prop's path is ("round": a circle seen face-on … a
+# line; it waits to be switched on). The rows rest while no profile is chosen (their sources are not known then).
+PROFILE_ROWS = [
+    _row("figure", "figure", "fx.mandala", out=0.8, smooth=0.2),
+    _row("round", "round", "fx.tunnel", lo=0.3, hi=0.9, out=0.6, curve="s", smooth=0.3, on=False),
 ]
 MAX_SETS = 24
 
@@ -300,7 +309,7 @@ def builtin_slots() -> dict:
 
 def default_tables() -> dict:
     """The built-in tables: the mood's and flowtrack's rows, and the dance's compiled from the set Standard."""
-    return {"mood": [dict(r) for r in MOOD_ROWS], "flowtrack": [dict(r) for r in TOUCH_ROWS + BAND_ROWS],
+    return {"mood": [dict(r) for r in MOOD_ROWS], "flowtrack": [dict(r) for r in TOUCH_ROWS + BAND_ROWS + PROFILE_ROWS],
             "dance": compile_slots(SLOT_SETS["standard"])}
 
 
@@ -474,11 +483,14 @@ def load() -> tuple:
     if isinstance(data.get("tables"), dict):
         out.update({m: clean_rows(data["tables"][m]) for m in TABLE_MODES if isinstance(data["tables"].get(m), list)})
     own, use = _own_slots(data.get("slots"))
-    old = data.get("version", 1) < VERSION
-    if old:
+    version = data.get("version", 1)
+    if version < 3:
         own, was = migrate(data, own)
         use = use if use not in (None, "standard") else was or use   # a set chosen among the sentences already stays
-    return out, own, use or "standard", old
+    if version < 4:                                  # #253: kept before the profiles – their rows join flowtrack's table, once
+        have = {r["id"] for r in out["flowtrack"]}
+        out["flowtrack"] = (out["flowtrack"] + [dict(r) for r in PROFILE_ROWS if r["id"] not in have])[:MAX_ROWS]
+    return out, own, use or "standard", version < VERSION
 
 
 def load_tables() -> dict:

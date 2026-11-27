@@ -57,6 +57,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Keep outlines (ControlNet)](#keep-outlines-controlnet)
   - [Pose shapes the figure (ControlNet)](#pose-shapes-the-figure-controlnet)
 - [Flowtrack](#flowtrack)
+  - [Performers: a profile per person](#performers-a-profile-per-person)
 - [Dance](#dance)
   - [Dream Dance: the page, the clutch, the sets](#dream-dance-the-page-the-clutch-the-sets)
   - [The sentences – what your dance does](#the-sentences--what-your-dance-does)
@@ -1701,9 +1702,12 @@ that was loaded before an update of Dream). On it:
   person; the output beside it; and the curves of energy, tempo, opening (the distance of the props or hands),
   hands circling, height and stillness.
 - **Sessions** – **● Record** keeps a session in the dance lab's format (numbers only, never a camera picture; see
-  [Dance lab](#dance-lab)) to play back, loop and export – the ground for a performer's profile later.
+  [Dance lab](#dance-lab)) to play back, loop and export – and to learn a performer's profile from (below).
+- **Performers** – learn what one person's movement is like, and fit Flowtrack to them: see
+  [Performers: a profile per person](#performers-a-profile-per-person).
 
-In the panel: **Automatic: ON/OFF** and the line below it that says what was detected and why.
+In the panel: **Automatic: ON/OFF**, the line below it that says what was detected and why, and **Performer: …** –
+the profile Flowtrack is fitted to.
 
 **The rules** of the Movement section (“Fire on”, “Fire off”, “Fast” → scene changes) apply in this mode as before.
 
@@ -1723,6 +1727,66 @@ near the flame: wear it on the upper arm or under a sleeve of natural fibre rath
 Keep fuel well away from everything electrical – the Mac, the projector, cables, chargers – and from where the
 audience stands; a phone that got fuel on it is cleaned and aired before it is used again. Dream only watches: it
 does not replace a spotter, a fire blanket or the rules of the venue.
+
+### Performers: a profile per person
+
+Two people do not move alike: one spins poi fast and wide, another moves small and slowly. Without a profile Flowtrack
+measures everyone on the same fixed scales – the fast one has the effects at full strength all the time, the gentle
+one hardly reaches them. A **profile** is what Dream learned of **one** person's way of moving; with it chosen,
+Flowtrack answers that person: their calm is calm, their wild is wild.
+
+**Learn one** (page of Flowtrack, card **Performers**): give it a name – for example “Anna – Poi”; letters, digits,
+spaces and . + - –, at most 32 characters, as for a movement set –, choose what to learn from and press **Learn**.
+- **live** – Dream takes what the camera sees from now on. Let the performer play as in a show, calm and wild, for a
+  minute or two (at least 15 seconds of movement; it stops by itself after three minutes), then press the button
+  again. The take stays in the page's memory and is gone after learning – it is not kept as a session.
+- **a session** – one that **● Record** of the page kept before (at least 15 seconds long).
+
+What is learned, and shown in the list as a line of words with the energy curve of the session beside it:
+
+| Learned | Used for |
+|---|---|
+| **speed** – how fast the hands or props go, up to this person's top speed | the energy: it is full at **their** top speed, not at a fixed one |
+| **size** – how wide the hands are apart and how high, in their own range | “Opening” and “Height” run from their smallest to their widest |
+| **turning** – how fast, which way, how much of the time | “Turning” is full at their fastest turn |
+| **tempo** – the tempo range of their repetition | “Tempo” covers their range; the smoothing of the effects follows it (a quick person gets a quicker answer, between 0.6 and 1.25 times the table's smoothing) |
+| **planes** – circles seen face-on (wall plane), upright or lying lines (a plane seen edge-on) | shown in the list; live, the new source **Roundness of the path** says how round the prop's path is right now |
+| **figures** – up to three repeated figures the person comes back to (found and recognised with the code of the [moves of your own](#moves-of-your-own--teaching-a-movement)) | the new source **A figure of the performer**: as large as the figure is made, while it is made |
+| **the view** – how far they reach in the camera picture, how long they drop out of sight, the kind of detection they were learned with | the automatic (below) |
+| **the prop** – poi, staff, hoop, fans, hands or something else: Dream proposes one, you say what it is | a staff's turning is read from the line between its two ends; with poi and a hoop (often behind the body) the automatic waits half as long again |
+
+**Choose it** in the Movement card of the panel (**Performer: …**, below the automatic) or on the page (“Flowtrack is
+fitted to”, or **Use** in the list). Below the choice the page says in sentences what the profile changes. “Performer:
+no profile” is Flowtrack as before. The choice is a setting of Dream: it survives a restart, and it only acts in the
+mode Flowtrack – Dream Dance and the mood never read it.
+
+**The effect** stays a row of the flowtrack table like everything a movement does. Two rows are new: “A figure of the
+performer → Mandala” (on) and “Roundness of the path → Tunnel” (off until you switch it on); they rest while no
+profile is chosen, and a flowtrack table you changed before this version gets the two rows once.
+
+**The automatic with a profile** follows the person more steadily: it takes what is within **their** reach for the
+performer, waits as long as **they** are typically out of sight (at least 2.5, at most 8 seconds) before someone else
+can become the performer, and treats the kind of detection they were learned with as expected – it switches to it
+after one second instead of three and leaves it only after eight (the reason then ends with “As learned for …”).
+Every choice stays yours to take over, and with the automatic off a profile changes nothing of the detection.
+
+**Rename, change the prop, delete** in the list (🗑 asks once more). Deleting the profile in use leaves Flowtrack
+without one.
+
+**Privacy.** A profile is personal data: the name you typed and numbers measured from one person's movement – no
+camera picture, no skeleton, no recording (the figures are 24 points each of the hands' way through one repetition).
+It is kept in `~/.local/state/dream/dance/profiles/` on this Mac; only this Mac and Dream Control can list or change
+profiles, a guest, Dreamy Eyes and a dream window never see them, and nothing is sent anywhere. The name reaches only
+this Mac and Dream Control: the choice (the setting `flow_profile`), which every phone with Dream Remote hears, is the
+profile's number, never its name. **⬇** writes a copy to
+`~/.local/state/dream/dance/exports/flow-profile-<id>.json` and nowhere else – to carry a profile to another Mac,
+take that file in there with **Take in a profile file …**. **Real profiles never go into Dream's code folder or a
+public repository** (this one holds invented test performers only); keep an export in a private place.
+
+**Limits.** A profile fits the setup it was learned in best: with fire and LEDs Dream has no body to measure against
+and takes the reach of the lights as the size, so “how far they reach” assumes about the same distance to the camera.
+Learn again when the person changes the prop. A minute of calm **and** wild movement gives better ranges than fifteen
+seconds; a profile learned from calm movement only makes everything look wild. Up to 48 profiles are kept.
 
 <sub>[↑ Contents](#contents)</sub>
 
@@ -2640,6 +2704,18 @@ pictures: fire, LEDs and markers in a dark room and a bright one, each kind with
 before the kind changes; the exposure (also that a short exposure does not make the automatic take a bright room for
 a dark one); the one person followed to the edge while spectators there are ignored; and the calibration – the same
 view in other light is the same view, a turned camera is not, a dark room claims nothing.
+`node --test tests/js/flowprofile.test.mjs` (#253) tests the performers' profiles (`static/flowprofile.js`) on synthetic
+performers – invented people with a way of moving of their own (`tests/js/flow-sim.mjs`; nobody real): a profile is
+learned from one performance and used on another one of the same person (another place in the picture, another size,
+other noise). Measured: the effect follows a large, fast mover and a small, gentle one in at least 90 % of the frames
+with their profile and in at most 60 % without; what is learned (speed, turning, planes, tempo, the energy curve, the
+view, a guess at the prop); a figure the person comes back to is answered in at least 90 % of its frames and other
+movement is not taken for it; a profile holds numbers and the chosen name only; what is no profile is refused.
+`tests/js/flowprofiles.test.mjs` tests what the page says of a profile and that its part reaches nothing but the
+profiles and the lab's sessions; `tests/js/flowauto.test.mjs` also that an automatic tuned to a performer waits for
+them and keeps their kind of detection; `tests/test_flowprofiles.py` what Dream keeps of a profile, who may reach it,
+where an export goes, that a deleted profile is no longer in use and that a guest hears the choice only as a number,
+never the person's name.
 `node --test tests/js/movepage.test.mjs` (#251) tests what the pages of the modes share (`static/movepage.js`): the
 page finds the stage that opened it and notices when it is reloaded, who gives the beat when the dancer's clock and
 the music's are compared, and that the page of Dream Dance opens no socket and no camera of its own;

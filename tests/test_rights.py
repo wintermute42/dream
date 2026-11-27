@@ -86,6 +86,12 @@ HTTP = {
     ("POST", "/rec/chunk/{rid}"): ("/rec/chunk/0123456789abcdef", {"local"}),
     ("POST", "/rec/end/{rid}"): ("/rec/end/0123456789abcdef", {"local"}),
     ("POST", "/rec/reveal"): ("/rec/reveal", {"local"}),
+    # #253: Flowtrack's performers – what was learned of a person: this Mac and Dream Control only
+    ("GET", "/flow/profiles"): ("/flow/profiles", LC),
+    ("POST", "/flow/profiles"): ("/flow/profiles", LC),
+    ("POST", "/flow/profiles/{pid}"): ("/flow/profiles/p0a1b2c3d", LC),
+    ("POST", "/flow/profiles/{pid}/export"): ("/flow/profiles/p0a1b2c3d/export", LC),
+    ("DELETE", "/flow/profiles/{pid}"): ("/flow/profiles/p0a1b2c3d", LC),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [

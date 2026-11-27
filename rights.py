@@ -180,7 +180,9 @@ CONTROL_ONLY = [("POST", r"/cloud/(start|stop)"), ("GET", r"/cloud"), ("POST", r
                 # #236: the dance moves the dancer taught (trajectories too, kept on this Mac)
                 ("GET", r"/dance/moves(/[^/]+)?"), ("POST", r"/dance/moves(/[^/]+)?"), ("DELETE", r"/dance/moves/[^/]+"),
                 # #267: the base movements the dancer taught (what the body showed, as a regression, kept on this Mac)
-                ("GET", r"/dance/faders"), ("POST", r"/dance/faders(/[^/]+)?"), ("DELETE", r"/dance/faders/[^/]+")]
+                ("GET", r"/dance/faders"), ("POST", r"/dance/faders(/[^/]+)?"), ("DELETE", r"/dance/faders/[^/]+"),
+                # #253: Flowtrack's performers (what was learned of a person's way of moving, kept on this Mac)
+                ("GET", r"/flow/profiles"), ("POST", r"/flow/profiles(/[^/]+(/export)?)?"), ("DELETE", r"/flow/profiles/[^/]+")]
 # #251, #252: the pages of Dream Dance and Flowtrack are this Mac's (they steer the stage in the window that opened them)
 # #276: recording the output – the stage on this Mac hands its video in and shows the file in the Finder
 LOCAL_ONLY = [("POST", r"/gallery"), ("GET", r"/dance"), ("GET", r"/flowtrack"),
