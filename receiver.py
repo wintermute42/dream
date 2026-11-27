@@ -47,6 +47,7 @@ import wearables
 PROTO = "1"
 PROBE_WAIT = 2.5                 # seconds a new port is listened to for an H line
 WATCH_EVERY = 2.0                # seconds between two looks at the USB ports
+SKIP_FOR = 10.0                  # seconds a port that is no receiver is left alone (a board swapped on it is seen then)
 SILENT = 6.0                     # no line of the receiver this long: it is not working (the panel says so)
 LED_EVERY = 1.0                  # the LED is said at least this often (the receiver's sign that Dream listens)
 PAUSE_MAX = 600.0                # a note of flash.sh older than this is left over (a killed run) and ignored
@@ -329,7 +330,7 @@ class Receiver:
 
 # ---------- the receivers plugged in ----------
 links: dict = {}                         # path → Receiver
-skip: set = set()                        # ports that are no receiver (left alone until they are unplugged)
+skip: dict = {}                          # ports that are no receiver: when they were found so (left alone SKIP_FOR)
 
 
 def channel_for(id_: str, now: float | None = None) -> int | None:
@@ -371,15 +372,16 @@ async def look(wear, other=None) -> None:
     if paused():
         stop()
         return
-    present = set(candidates())
-    skip.intersection_update(present)
+    present, now = set(candidates()), time.monotonic()
+    for path in [p for p, at in skip.items() if p not in present or now - at >= SKIP_FOR]:
+        del skip[path]                                # unplugged, or a while ago: another board may be there now
     for path in [p for p in links if p not in present]:
         links[path].close()
     loop = asyncio.get_running_loop()
-    for path in sorted(present - set(links) - skip):
+    for path in sorted(present - set(links) - set(skip)):
         found = await asyncio.to_thread(probe, path)
         if found is False:
-            skip.add(path)
+            skip[path] = time.monotonic()
         if isinstance(found, bool):
             continue
         if paused() or path in links:                 # flash.sh began meanwhile

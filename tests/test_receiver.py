@@ -309,7 +309,7 @@ def test_a_port_that_says_nothing_is_closed_and_never_written_to(fake):
 def test_looking_finds_the_receiver_listens_and_lets_go_when_it_is_unplugged(fake, wear, monkeypatch):
     monkeypatch.setenv("DREAM_RECEIVER", fake.path)
     monkeypatch.setattr(receiver, "links", {})
-    monkeypatch.setattr(receiver, "skip", set())
+    monkeypatch.setattr(receiver, "skip", {})
 
     async def run():
         fake.say(hline(f"{STICK}*"))
@@ -334,7 +334,7 @@ def test_looking_finds_the_receiver_listens_and_lets_go_when_it_is_unplugged(fak
 def test_while_flash_sh_runs_dream_holds_no_port(fake, wear, monkeypatch, sandbox):
     monkeypatch.setenv("DREAM_RECEIVER", fake.path)
     monkeypatch.setattr(receiver, "links", {})
-    monkeypatch.setattr(receiver, "skip", set())
+    monkeypatch.setattr(receiver, "skip", {})
     os.makedirs(sandbox["DREAM_STATE_DIR"], exist_ok=True)
     note = receiver.pause_file()
     assert note.startswith(sandbox["DREAM_STATE_DIR"])
@@ -385,3 +385,25 @@ def test_which_ports_are_looked_at(monkeypatch):
     monkeypatch.setattr(receiver.glob, "glob", lambda pattern: {"/dev/cu.usbmodem*": ["/dev/cu.usbmodem1101"],
                                                                 "/dev/ttyACM*": ["/dev/ttyACM0"]}[pattern])
     assert receiver.candidates() == ["/dev/cu.usbmodem1101", "/dev/ttyACM0"]
+
+
+def test_a_port_that_was_no_receiver_is_looked_at_again_when_a_receiver_is_swapped_onto_it(fake, wear, monkeypatch):
+    # the StickS3 on the port first (it says nothing Dream knows), then quickly the AtomS3 on the same port: the port
+    # never went away, yet the receiver is found once SKIP_FOR has passed
+    monkeypatch.setenv("DREAM_RECEIVER", fake.path)
+    monkeypatch.setattr(receiver, "links", {})
+    monkeypatch.setattr(receiver, "skip", {})
+    monkeypatch.setattr(receiver, "PROBE_WAIT", 0.3)
+
+    async def run():
+        await receiver.look(wear)
+        assert receiver.links == {} and fake.path in receiver.skip
+        fake.say(hline())
+        await receiver.look(wear)
+        assert receiver.links == {}                                  # left alone for a while
+        receiver.skip[fake.path] -= receiver.SKIP_FOR                # a while later
+        fake.say(hline())
+        await receiver.look(wear)
+        assert list(receiver.links) == [fake.path] and receiver.skip == {}
+        receiver.stop()
+    asyncio.run(run())
