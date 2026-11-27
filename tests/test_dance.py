@@ -175,7 +175,7 @@ def test_only_control_and_this_mac_change_the_table(server, table, saved_state, 
         ws.send_text(json.dumps({"set": {"prompt": "after the table"}}))   # a marker both a guest and Control may send
         if role != "eyes":
             wait_until(lambda: server.hub.state["prompt"] == "after the table")
-            for _ in range(12):                                             # everything the device was told on the way
+            for _ in range(20):                                             # everything the device was told on the way
                 m = ws.receive_json()
                 seen.append(m)
                 if m.get("dance", {}).get("tables", {}).get("mood") == [{**GOOD, "out": [0.0, 0.8]}] or (not may and "dance" in m):
