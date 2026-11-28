@@ -268,3 +268,15 @@ def test_feedback_is_a_midi_action_and_not_a_guests_command(server):
     assert not {"dance_fb", "dance_rec", "dance_lab"} & server.rights.GUEST_CMDS
     assert "dance_fb_secs" not in server.settings.GUEST_KEYS
     assert server.settings.coerce("dance_fb_secs", 99) == 15.0 and server.settings.DEFAULT_STATE["dance_fb_secs"] == 4.0
+
+
+# ---------- #196: the motion sensor's raw values with their times ----------
+def test_a_session_keeps_the_sensor_raw_values_and_refuses_odd_ones(lab):
+    s = session()
+    s["frames"][5]["i"]["r"] = [[-0.02, 2, 1.25, -0.5, 0.0], [-0.001, 0, 0.1, 9.8, 0.2]]
+    kept = lab.clean(s)
+    assert kept["frames"][5]["i"]["r"] == [[-0.02, 2, 1.25, -0.5, 0.0], [-0.001, 0, 0.1, 9.8, 0.2]]
+    for odd in ([[-0.02, 9, 0, 0, 0]], [[0.5, 2, 0, 0, 0]], [[-0.02, 2, 0, 0]], [[-0.02, 2, 0, 0, "x"]], "r",
+                [[-0.01, 2, 0, 0, 0]] * (lab.RAW_MAX + 1)):
+        s["frames"][5]["i"]["r"] = odd
+        assert lab.clean(s) is None, odd

@@ -40,6 +40,31 @@
     }
     if (select.value !== cur && document.activeElement !== select) select.value = cur;
   }
+  // #253: the choices of the performer's select: "no profile", then every profile by the name its user gave it; an id
+  // not in the list yet (Dream has not said so) stands as it is. Rebuilt only when something changed.
+  function fillProfiles(select, profiles, current) {
+    const list = (Array.isArray(profiles) ? profiles : []).filter(p => p && typeof p.id === 'string').map(p => [p.id, String(p.name || p.id)]);
+    const cur = current == null ? '' : String(current);
+    if (cur && !list.some(p => p[0] === cur)) list.push([cur, '…']);
+    const key = JSON.stringify(list);
+    if (select.dataset.filled !== key) {
+      select.dataset.filled = key; select.textContent = '';
+      for (const [id, name] of [['', ''], ...list]) { const o = document.createElement('option'); o.value = id; o.textContent = id ? T('Performer: {n}', { n: name }) : T('Performer: no profile'); select.append(o); }
+    }
+    if (select.value !== cur && document.activeElement !== select) select.value = cur;
+  }
+
+  // #266: whose measures the dance reads with: "" – the standard measures, else a dancer's name; rebuilt only when
+  // something changed, so an open list is not torn away
+  function fillProfiles(select, names, current) {
+    const cur = current == null ? '' : String(current), want = [''].concat(names || [], cur && !(names || []).includes(cur) ? [cur] : []);
+    const key = want.join('\n');
+    if (select.dataset.filled !== key) {
+      select.dataset.filled = key; select.textContent = '';
+      for (const n of want) { const o = document.createElement('option'); o.value = n; o.textContent = n ? T('Measures: {n}', { n }) : T('Measures: Standard'); select.append(o); }
+    }
+    if (select.value !== cur && document.activeElement !== select) select.value = cur;
+  }
 
   // #265: the traffic light of Dream Dance – what blocks the dance. st: {mode, clutch}; live: what the stage sees right
   // now ({seen, markers, markerWanted}). → {green, clutch, person, marker}: each 'ok' | 'block' | 'none' (does not apply)
@@ -205,7 +230,7 @@
     };
   }
 
-  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets, light, lamp };
+  const api = { mount, words, chips, info, MODES, name, clutchText, clutchNote, clutchShow, setLabel, fillSets, fillProfiles, light, lamp };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.MoveCard = api;
 })(typeof window !== 'undefined' ? window : globalThis);

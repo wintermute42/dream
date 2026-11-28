@@ -11,6 +11,7 @@ Mappings in ~/.config/dream/sensors.json (never in the repository):
 "lo"/"hi" (#240): the range the channel moved through while it was learned – that movement is the whole slider, so a
 resting sensor stays where it is instead of its shrinking auto-range blowing its noise up to the full slider.
 """
+import collections
 import json
 import math
 import os
@@ -29,6 +30,11 @@ ANGLE_HINTS = ("orient", "euler", "attitude")
 STRIKE_FLOOR = 3.0          # m/s² a strike must stand above the running level, at any sensitivity
 STEER_SMOOTH = 0.3          # how quickly a steered value follows its channel, per sensor tick (~30 a second)
 STEER_DEAD = 0.03           # … and starts to move only once that moved more than this share of the slider
+# #196: the kinds of raw values a session keeps, by the number it stores them with (the units as the sensor input
+# reads them: m/s² with and without gravity, rad/s, degrees)
+RAW_KINDS = ("accelerometer", "linear_acceleration", "gyroscope", "orientation")
+TAPE = 512                  # raw values kept until the stage takes them (about two seconds of a busy sender)
+RAW_MAX = 32                # … and at most this many in one take (a frame of a session: 1/30 s)
 
 
 def min_span(key: str) -> float:
@@ -50,6 +56,19 @@ def is_rate(key: str) -> bool:
 
 def is_angle(key: str) -> bool:
     return any(h in key.lower() for h in ANGLE_HINTS)
+
+
+def raw_kind(address: str) -> int | None:
+    """#196: which of RAW_KINDS an address carries (lower case), or None."""
+    if "linear" in address:
+        return 1
+    if "accel" in address:
+        return 0
+    if "gyro" in address or "rotation_rate" in address or "rotationrate" in address:
+        return 2
+    if any(h in address for h in ANGLE_HINTS):
+        return 3
+    return None
 
 
 def load_map() -> dict:
@@ -112,6 +131,9 @@ class Sensors:
         self.buttons: dict = {}             # address → pressed (a wristband's buttons: the clutch)
         self.by: dict = {}                  # #249: sender → [when, energy 0…1 of its swing] (the register of sources)
         self.force, self.force_at = 0.0, -1e9   # #252: the arm's acceleration without gravity (m/s²), smoothed
+        # #196: the raw values as they came – (number, when, sender, kind, x, y, z) – for the dance lab's sessions
+        self.tape: collections.deque = collections.deque(maxlen=TAPE)
+        self.tape_n, self.tape_taken = 0, 0
 
     # ---------- incoming ----------
     def on_osc(self, address: str, args, source: str = "", now: float | None = None, gyro_unit: float = 1.0):
@@ -141,6 +163,11 @@ class Sensors:
             else:
                 c.update(v)
         mag = math.sqrt(sum(v * v for v in nums[:3]))
+        kind = raw_kind(low)
+        if kind is not None and len(nums) >= 3:
+            unit = gyro_unit if kind == 2 else 1.0
+            self.tape_n += 1
+            self.tape.append((self.tape_n, now, source, kind, *(round(v * unit, 4) for v in nums[:3])))
         if "gyro" in low or "rotation_rate" in low or "rotationrate" in low:
             c = self.ch.setdefault("swing", Channel(0.0))
             c.update(mag, alpha=0.3)
@@ -267,6 +294,16 @@ class Sensors:
         if not self.gyro or not 0 <= age < 0.33:
             return None
         return {"g": list(self.gyro), "age": round(age, 3), **({"a": round(self.force, 2)} if 0 <= now - self.force_at < 0.33 else {})}
+
+    def take_raw(self, now: float | None = None) -> list:
+        """#196: the raw values of the leading sender (the one whose motion the dance takes, `motion`) that came since
+        the last call – [[seconds ago, kind (RAW_KINDS), x, y, z], …], oldest first, at most RAW_MAX (the newest)."""
+        now = time.time() if now is None else now
+        # taken by the order they came, not by their time: a device's sample may be dated before the last take
+        since, self.tape_taken = self.tape_taken, self.tape_n
+        out = [[round(max(0.0, now - t), 4), k, x, y, z] for n, t, src, k, x, y, z in self.tape
+               if n > since and src == self.gyro_by]
+        return out[-RAW_MAX:]
 
     def arm(self, sender: str, now: float | None = None) -> dict | None:
         """#237: one sender's own gyroscope and how old it is (as `motion` gives the leading sender's) – None once it

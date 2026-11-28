@@ -92,7 +92,7 @@ def test_the_table_is_kept_in_one_file_and_comes_back(table):
     assert table.load_tables() == built_in                              # no file: the built-in tables
     assert table.set_rows([GOOD, {"id": "bad", "src": "energy", "dst": "nowhere"}], "flowtrack") == [{**GOOD, "out": [0.0, 0.8]}]
     with open(table.MAP_FILE) as f:     # #265: the dance's table is not kept – it is its set's
-        assert json.load(f) == {"version": 3, "tables": {"mood": built_in["mood"], "flowtrack": [{**GOOD, "out": [0.0, 0.8]}]}}
+        assert json.load(f) == {"version": 4, "tables": {"mood": built_in["mood"], "flowtrack": [{**GOOD, "out": [0.0, 0.8]}]}}
     assert table.load_tables()["flowtrack"] == [{**GOOD, "out": [0.0, 0.8]}]
     assert table.set_rows([], "flowtrack") == [] and table.load_tables()["flowtrack"] == []   # an empty table is a table: nothing steers
     assert table.set_rows("reset", "flowtrack") == built_in["flowtrack"] and not os.path.exists(table.MAP_FILE)
@@ -130,7 +130,7 @@ def test_the_presets_are_what_the_modes_are_for():
     touch = {"touch.paint", "touch.warp", "touch.impulse", "touch.light", "touch.shape"}
     for mode in ("flowtrack", "dance"):
         assert touch | {"ai.prompt", "ai.react"} <= {r["dst"] for r in t[mode]}
-        off = {r["dst"] for r in t[mode] if not r["on"]}
+        off = {r["dst"] for r in t[mode] if not r["on"] and r not in dance.PROFILE_ROWS}   # (#253: a profile's rows are their own)
         assert off == {"touch.light", "ai.react"} | ({"touch.impulse"} if mode == "dance" else set()), "as the old cards were set (the dance: as its set Standard)"
     assert {"g.throw", "g.push", "g.circle", "g.wave"} <= {r["src"] for r in t["dance"]}   # Standard's four accents
     assert not any(r["src"].startswith("g.") for r in t["flowtrack"] + t["mood"])
@@ -175,7 +175,7 @@ def test_only_control_and_this_mac_change_the_table(server, table, saved_state, 
         ws.send_text(json.dumps({"set": {"prompt": "after the table"}}))   # a marker both a guest and Control may send
         if role != "eyes":
             wait_until(lambda: server.hub.state["prompt"] == "after the table")
-            for _ in range(12):                                             # everything the device was told on the way
+            for _ in range(20):                                             # everything the device was told on the way
                 m = ws.receive_json()
                 seen.append(m)
                 if m.get("dance", {}).get("tables", {}).get("mood") == [{**GOOD, "out": [0.0, 0.8]}] or (not may and "dance" in m):
@@ -243,11 +243,12 @@ def test_the_stage_gets_the_sensor_only_while_a_mode_listens_to_it(server, monke
         sent.append((msg, only))
     monkeypatch.setattr(server.hub, "broadcast", broadcast)
     monkeypatch.setattr(server.inputs.sens, "motion", lambda now=None: {"g": [1.0, 2.0, 3.0], "age": 0.01})
+    monkeypatch.setattr(server.inputs.sens, "take_raw", lambda now=None: [[0.01, 2, 1.0, 2.0, 3.0]])   # #196
     monkeypatch.setattr(server.inputs.sens, "source", "192.0.2.7")                              # a wristband over OSC
     monkeypatch.setitem(server.hub.state, "move_off", "")
     monkeypatch.setitem(server.hub.state, "move_mode", "dance")
     asyncio.run(server.inputs.sensor_dance())
-    assert sent == [({"sensors": {"dance": {"g": [1.0, 2.0, 3.0], "age": 0.01}}}, "stage")]     # the stage only
+    assert sent == [({"sensors": {"dance": {"g": [1.0, 2.0, 3.0], "age": 0.01, "r": [[0.01, 2, 1.0, 2.0, 3.0]]}}}, "stage")]   # the stage only
     monkeypatch.setitem(server.hub.state, "move_mode", "off")                                   # #249: no mode, no movement
     asyncio.run(server.inputs.sensor_dance())
     assert len(sent) == 1
@@ -342,3 +343,38 @@ def test_the_midi_button_walks_through_the_sets_and_a_scene_can_choose_one(serve
     assert server.dance.tables["dance"] == dance.compile_slots(dance.SLOT_SETS["waves"])
     asyncio.run(server.hub.apply({"dance_set": "standard"}))
     assert "dance_set" in server.settings.DEFAULT_STATE                  # so a scene's settings may carry it (scenes.py)
+
+
+# ---------- #270: the room light's LED chain as effects of the sentences ----------
+def test_the_room_lights_effects_are_sentences_in_their_lane_and_in_no_group():
+    s = {"base": [{"src": "energy", "fx": "led.level", "amt": 1.0}, {"src": "open", "fx": "kaleido", "amt": 0.5}],
+         "accents": [{"src": "g.throw", "fx": "led.flash", "amt": 0.5, "tol": "normal"},
+                     {"src": "g.push", "fx": "led.chase", "amt": 0.0, "tol": "normal"},
+                     {"src": "g.wave", "fx": "mandala", "amt": 1.0, "tol": "normal"}, None], "hands": []}
+    kept = dance.clean_slots(s)
+    assert [x and x["fx"] for x in kept["base"]] == ["led.level", "kaleido"]
+    assert [x and x["fx"] for x in kept["accents"]] == ["led.flash", "led.chase", None, None]   # mandala: kaleido's group
+    # the flash and the pulse are an accent's, the brightness a base movement's: elsewhere they are dropped
+    wrong = dance.clean_slots({"base": [{"src": "energy", "fx": "led.flash", "amt": 1.0}],
+                               "accents": [{"src": "g.throw", "fx": "led.level", "amt": 1.0, "tol": "normal"}], "hands": ["paint"]})
+    assert wrong["base"] == [None, None] and wrong["accents"] == [None] * 4
+    assert dance.slot_conflict(kept, "base", 0, "led.chase") == "lane"
+    assert dance.slot_conflict(kept, "accents", 3, "led.flash") == "taken"
+    # the brightness in the base lane takes no group from an accent's effect – any picture effect fits beside it
+    assert all(dance.slot_conflict({"base": [kept["base"][0], None], "accents": [None] * 4}, "accents", 0, fx) is None
+               for fx in playlists.FX)
+
+
+def test_the_room_lights_sentences_compile_to_its_targets():
+    rows = {r["id"]: r for r in dance.compile_slots(dance.clean_slots({
+        "base": [{"src": "energy", "fx": "led.level", "amt": 0.5}, None],
+        "accents": [{"src": "g.throw", "fx": "led.flash", "amt": 1.0, "tol": "normal"},
+                    {"src": "g.push", "fx": "led.chase", "amt": 0.0, "tol": "loose"}, None, None], "hands": []}))}
+    assert dance.clean_rows(list(rows.values())) == list(rows.values())
+    # the brightness: dimmed by the sentence's strength while calm, none while wild – and none while nobody is seen
+    assert rows["base0"]["dst"] == "led.level" and rows["base0"]["out"] == [-dance.peak(0.5), 0.0]
+    # the flash and the pulse follow the gesture at once, as strong as the sentence says
+    assert (rows["accent0"]["dst"], rows["accent0"]["out"], rows["accent0"]["smooth"]) == ("led.flash", [0.0, 1.0], 0.0)
+    assert (rows["accent1"]["dst"], rows["accent1"]["out"][1]) == ("led.chase", dance.SLOT_MIN)
+    assert {"led.flash", "led.chase", "led.level"} <= set(dance.TARGETS)
+    assert not set(dance.LED_LANE) & set(dance.GROUP_OF)

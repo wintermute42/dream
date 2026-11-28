@@ -157,3 +157,51 @@ test('the calibration: the same view in other light is the same view, a moved ca
   assert.deepEqual([auto.view(was, was).code, auto.view(was, was).hint], ['calibOk', false]);
   assert.equal(A.create().view(was, flat).code, 'calibDark');
 });
+
+// #253: a performer's profile tunes the automatic (flowprofile.js `auto`) – it holds that person more steadily
+test('tuned to a performer: out of sight for longer, nobody steps in; a narrow reach leaves the neighbour out', () => {
+  const poi = (x, y) => [{ x: x - 0.06, y, w: 1 }, { x: x + 0.06, y: y + 0.03, w: 1 }], other = { x: 0.3, y: 0.5, w: 2 };   // someone who walks through the middle
+  // the prop is behind the body for four seconds while someone else is in the picture
+  const held = tuned => {
+    const auto = A.create(); if (tuned) auto.tune(tuned);
+    let p; for (let t = 0; t < 2; t += 0.1) p = auto.person(poi(0.7, 0.5), t);
+    const mine = p.centre.slice(); let stolen = false;
+    for (let t = 2; t < 6; t += 0.1) { p = auto.person([other], t); if (p.keep.length) stolen = true; }
+    p = auto.person([...poi(0.7, 0.5), other], 6);
+    return { stolen, back: p.keep.join() === '0,1', moved: Math.hypot(p.centre[0] - mine[0], p.centre[1] - mine[1]) };
+  };
+  const plain = held(null), known = held({ hold: 6 });
+  assert.ok(plain.stolen && !plain.back, 'without a profile the other one becomes the performer after 2.5 s');
+  assert.ok(!known.stolen && known.back && known.moved < 0.02, 'with it the performer is waited for and found again');
+  // the reach: what belongs to the person
+  const wide = A.create(), narrow = A.create(); narrow.tune({ reach: 0.2 });
+  assert.equal(wide.reach, A.REACH); assert.equal(narrow.reach, 0.2); assert.equal(wide.hold, A.HOLD);
+  const near = [...poi(0.5, 0.5), { x: 0.75, y: 0.5, w: 1 }];
+  wide.person(near, 0); narrow.person(near, 0);
+  assert.deepEqual(wide.person(near, 0.1).keep, [0, 1, 2]); assert.deepEqual(narrow.person(near, 0.1).keep, [0, 1]);
+  // what is no number is the built-in value, and the limits hold; `reset` forgets the scene, not the performer
+  const odd = A.create(); odd.tune({ reach: 'far', hold: NaN, kind: 'sword' });
+  assert.deepEqual([odd.reach, odd.hold], [A.REACH, A.HOLD]);
+  odd.tune({ reach: 9, hold: 99 }); assert.deepEqual([odd.reach, odd.hold], [0.5, 10]);
+  odd.reset(); assert.equal(odd.reach, 0.5);
+  odd.tune(null); assert.deepEqual([odd.reach, odd.hold], [A.REACH, A.HOLD]);
+});
+
+test('tuned to a performer: the kind of detection they were learned with is taken at once and not given up for a passing light', () => {
+  const room = scene({ room: 110 }), fire = scene({ room: 12, spots: [{ x: 0.5, y: 0.5, r: 4, rgb: FIRE }] });
+  const phones = scene({ room: 12, spots: [{ x: 0.5, y: 0.5, r: 4, rgb: FIRE }, { x: 0.2, y: 0.7, r: 3, rgb: CYAN }, { x: 0.8, y: 0.7, r: 3, rgb: MAGENTA }] });
+  // the light goes out and the torch is lit: with the profile the automatic is there after a second
+  const plain = A.create(), known = A.create(); known.tune({ kind: 'on' });
+  let a = watch(plain, room, 2), b = watch(known, room, 2);
+  assert.equal(b.kind.value, 'hand'); assert.equal(b.known, false); assert.equal(a.known, false);
+  a = watch(plain, fire, 1.5, a.t + 0.5, a.now); b = watch(known, fire, 1.5, b.t + 0.5, b.now);
+  assert.equal(a.kind.value, 'hand'); assert.equal(b.kind.value, 'on'); assert.equal(b.known, true);
+  // two phones of the audience glow in marker colours for five seconds: without the profile the fire is dropped for them
+  a = watch(plain, fire, A.SETTLE + 1, a.t + 0.5, a.now);
+  assert.equal(a.kind.value, 'on');
+  a = watch(plain, phones, 5, a.t + 0.5, a.now); b = watch(known, phones, 5, b.t + 0.5, b.now);
+  assert.equal(a.kind.value, 'marker'); assert.equal(b.kind.value, 'on', 'the performer’s kind stays');
+  // … but it is no lock: markers that stay are taken
+  b = watch(known, phones, A.SETTLE_AWAY, b.t + 0.5, b.now);
+  assert.equal(b.kind.value, 'marker'); assert.equal(b.known, false);
+});

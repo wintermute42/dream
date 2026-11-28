@@ -1,7 +1,7 @@
 /* Dream – the dance card (#235): what Dream sees of the dance, and the table that says what a movement does.
 
    Two parts, mounted into the panel (index.html):
-   - the display: the feature stream of dance.js as bars – energy, tempo, phase, opening, turning, height, stillness,
+   - the display: the feature stream of dance.js as bars – energy, tempo, phase, opening, hands circling, height, stillness,
      each with the source it came from and paler the less sure it is –, the recognised gesture with its confidence,
      the movement's own tempo and a dot that beats with it; with the fingers switched on, their values per hand.
    - the mapping: one row per "source → target" with its switch and its strength; rows can be added, removed, and
@@ -16,8 +16,9 @@
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   const SRC = {
     energy: () => T('Energy'), tempo: () => T('Tempo'), phase: () => T('Phase'), pulse: () => T('Own beat'), open: () => T('Opening'),
-    turn: () => T('Turning'), height: () => T('Height'), still: () => T('Stillness'), impulse: () => T('Strike (sensor)'), present: () => T('Someone is there'),
+    turn: () => T('Hands circling'), height: () => T('Height'), still: () => T('Stillness'), impulse: () => T('Strike (sensor)'), present: () => T('Someone is there'),
     spin: () => T('Arm rotation (sensor)'), force: () => T('Pull on the arm (sensor)'),
+    figure: () => T('A figure of the performer (profile)'), round: () => T('Roundness of the path (profile)'),
     'g.throw': () => T('Throwing up'), 'g.accordion': () => T('Accordion'), 'g.push': () => T('Pushing'), 'g.circle': () => T('Circling'), 'g.wave': () => T('Arm wave'),
     palm: () => T('fist ↔ open hand'), spread: () => T('fingers spread'), pinch: () => T('pinch'), snap: () => T('snap'),
   };
@@ -28,6 +29,7 @@
     'touch.light': () => T('Light in the dark'), 'touch.shape': () => T('Movement shapes the effects'),
     'ai.prompt': () => T('Content by energy (calm ↔ wild)'), 'ai.react': () => T('Movement pushes the AI sliders'), 'ai.piece': () => T('Prompt piece of the move'),
     'ai.strength': () => T('Transformation'), 'ai.mix': () => T('Dream share'), 'ai.zoom': () => T('Zoom pull'), 'ai.rot': () => T('Rotation'), 'ai.hue': () => T('Colour drift'),
+    'led.flash': () => T('Room light: flash'), 'led.chase': () => T('Room light: running light'), 'led.level': () => T('Room light: dimmed while calm'),   // #270
   };
   const HAND = { l: () => T('Left hand'), r: () => T('Right hand') };
   const FROM = { pose: () => T('camera'), marker: () => T('marker'), light: () => T('light'), sensor: () => T('sensor'), hand: () => T('hand AI'), camera: () => T('camera'), eyes: () => 'Dreamy Eyes' };

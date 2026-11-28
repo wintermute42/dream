@@ -262,3 +262,22 @@ test('a mode has its own detection: light chosen for flowtrack never becomes the
   assert.equal(M.camKind('dance', { flow: 'on', dance: 'on' }), 'hand', 'the dance never runs on light');
   assert.equal(M.camKind('dance', {}), 'hand'); assert.equal(M.camKind('flowtrack', { flow: '__proto__' }), 'hand');
 });
+
+test('#270: the room light’s targets stay outside the groups and the budget, and the clutch lets none of them through', () => {
+  const rows = [
+    ...['kaleido', 'tunnel', 'trails', 'rgb'].map((e, i) => ({ id: 'b' + i, on: true, src: 'energy', dst: 'fx.' + e, curve: 'lin', in: [0, 1], out: [0, 1], smooth: 0, origin: 'slot' })),
+    { id: 'f', on: true, src: 'energy', dst: 'led.flash', curve: 'lin', in: [0, 1], out: [0, 1], smooth: 0, origin: 'slot' },
+    { id: 'l', on: true, src: 'energy', dst: 'led.level', curve: 'lin', in: [0, 1], out: [-0.675, 0], smooth: 0, origin: 'slot' }];
+  assert.equal(Map_.groupOf('led.flash'), null);
+  assert.equal(Map_.targets([])['led.chase'], 'instant');
+  const rec = e => ({ t: 0, v: { energy: e }, c: { energy: 1 }, src: { energy: 'camera' }, bpm: 0, gesture: null, gc: 0, size: 0, g: {}, hands: { l: null, r: null }, events: [] });
+  const m = M.create({ maps: Map_ });
+  let out;
+  for (let i = 0; i < 120; i++) out = m.step({ mode: 'dance', tables: { dance: rows }, rec: rec(1), clutch: true, dt: 1 / 60 });
+  assert.ok(out['led.flash'] > 0.99, 'four strong groups do not hold the light back');
+  assert.ok(Math.abs(out['led.level'] || 0) < 1e-6, 'wild: not dimmed');
+  for (let i = 0; i < 120; i++) out = m.step({ mode: 'dance', tables: { dance: rows }, rec: rec(0.05), clutch: true, dt: 1 / 60 });
+  assert.ok(out['led.level'] < -0.6, 'calm: dimmed by the sentence’s strength');
+  for (let i = 0; i < 60; i++) out = m.step({ mode: 'dance', tables: { dance: rows }, rec: rec(1), clutch: false, dt: 1 / 60 });
+  assert.ok(!out['led.flash'] && !out['led.level'], 'released: only the base colour');
+});

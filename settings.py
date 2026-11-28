@@ -104,6 +104,11 @@ def _set_name(v: str) -> str:
     return v if SET_NAME.fullmatch(v) else ""
 
 
+def _profile(v: str) -> str:
+    """#253: the id of a performer's profile (flowprofiles.py), or none."""
+    return v if re.fullmatch(r"p[0-9a-f]{8}", v) else ""
+
+
 def _sources(v: str) -> str:
     """Only known kinds of movement sources, each once."""
     return "+".join(dict.fromkeys(k for k in v.split("+") if k in MOVE_SOURCES))
@@ -198,7 +203,11 @@ SETTINGS: dict[str, Setting] = {
     # (#265: its sentences are the dance's table, dance.py)
     "clutch": flag(False),
     "dance_set": text("standard", clean=_set_name),
+    # #266: whose measures the dance reads its base movements with – a profile's name (danceprofiles.py), "": the
+    # standard measures
+    "dance_profile": text("", clean=_set_name),
     "flow_auto": flag(True),                                    # #252: flowtrack's automatic chooses kind and exposure, holds the one person
+    "flow_profile": text("", clean=_profile),                   # #253: the performer Flowtrack is fitted to (a profile's id), or none
     # … and what it detects for Dream Dance: a mode is a preset, so the dance keeps its own choice – light chosen for
     # flowtrack never becomes the dance's detection (a bright window would stand in for the hands)
     "dance_kind": text("hand", choices=("hand", "marker")),

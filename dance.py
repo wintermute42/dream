@@ -28,7 +28,9 @@ import playlists
 import settings
 
 MAP_FILE = os.path.join(paths.config_dir(), "dance.json")
-VERSION = 3                                          # #265: the dance's table is its sets; the old table became a set
+# of the file: 2 – a table per mode (#249), 3 – the dance's table is its sets, the old table became a set (#265),
+# 4 – flowtrack's table has the rows of a performer's profile (#253)
+VERSION = 4
 MAX_ROWS = 64
 CURVES = ("lin", "soft", "hard", "s", "v")            # #265: "v" – a source that goes both ways acts by how far it goes
 ORIGINS = ("fixed", "own", "taught", "learned", "slot")
@@ -39,10 +41,12 @@ TABLE_MODES = ("mood", "flowtrack")                  # the tables changed row by
 # paint, stir, impulses, light in the dark, and whether movement shapes the effects) and the slow AI sliders (added on
 # top of the slider; "ai.prompt": the prompt between its calm and its wild words, "ai.react": speed and place of the
 # movement push transformation, zoom, rotation and colour drift; #236 "ai.piece": the piece of prompt a taught move
-# brings along, blended in by as much as the row says)
+# brings along, blended in by as much as the row says); #270: the room light's LED chain (wled.py): a flash of the
+# whole chain, a pulse running along it, how far it is dimmed – over the base colour, in none of the engine's groups
 TARGETS = (("fx.amt", "fx.pulse", "fx.spin", "fx.speed") + tuple("fx." + e for e in playlists.FX)
            + ("stage.calm", "touch.paint", "touch.warp", "touch.impulse", "touch.light", "touch.shape")
-           + ("ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue", "ai.prompt", "ai.react", "ai.piece"))
+           + ("ai.strength", "ai.mix", "ai.zoom", "ai.rot", "ai.hue", "ai.prompt", "ai.react", "ai.piece")
+           + ("led.flash", "led.chase", "led.level"))
 SRC = re.compile(r"[a-z][a-z0-9_]{0,23}(\.[a-z0-9_]{1,24})?")
 ID = re.compile(r"[a-z0-9_-]{1,24}")
 
@@ -81,6 +85,13 @@ BAND_ROWS = [
     _row("armspeed", "energy", "fx.speed", lo=0.1, hi=0.8, out=0.6, smooth=0.3),
     {**_row("armspin", "spin", "fx.spin", lo=-1.0, hi=1.0, smooth=0.25), "out": [-0.8, 0.8]},
     _row("armforce", "force", "fx.hue", lo=0.1, hi=0.9, out=0.8, curve="soft", smooth=0.4),
+]
+# #253: what a performer's profile adds to flowtrack (static/flowprofile.js) – one of the person's own figures is being
+# made ("figure", as large as they make it), and how round the prop's path is ("round": a circle seen face-on … a
+# line; it waits to be switched on). The rows rest while no profile is chosen (their sources are not known then).
+PROFILE_ROWS = [
+    _row("figure", "figure", "fx.mandala", out=0.8, smooth=0.2),
+    _row("round", "round", "fx.tunnel", lo=0.3, hi=0.9, out=0.6, curve="s", smooth=0.3, on=False),
 ]
 MAX_SETS = 24
 
@@ -131,19 +142,24 @@ def clean_rows(rows) -> list:
 #
 # – a sentence is a movement and one effect with one of three strengths (light, medium, strong), or null: empty; an
 # accent also has its tolerance (tight, normal, loose: how sure the detection must be). Dream picks curve, ranges and
-# smoothing. An accent's movement is a built-in gesture or a move the dancer taught (#236: "g.<its id>", dancemoves.py).
+# smoothing. An accent's movement is a built-in gesture or a move the dancer taught (#236: "g.<its id>", dancemoves.py);
+# a base movement is a built-in one or one the dancer taught by showing its states (#267: "f.<its id>", dancefaders.py).
 # The groups below are the engine's (static/dancemap.js GROUPS: one effect per group acts strongly, at most three
 # groups at once, every sentence at least visibly – tests/js/dancemap.test.mjs). The built-in sets are never changed:
 # a change is a draft (kept in memory, per set, until it is saved or thrown away – the stage plays it already), and a
 # draft of a built-in set is saved as a new set of the dancer's own under a name the dancer gives it. A set without any
 # sentence does not exist (it is Standard's then).
-SLOT_FX = playlists.FX
+# #270: the room light's three effects are sentences too: the flash and the running pulse for an accent, the brightness
+# for a base movement. They light the room, not the picture – no group, never in the budget of the picture's effects.
+LED_LANE = {"led.flash": "accents", "led.chase": "accents", "led.level": "base"}
+SLOT_FX = playlists.FX + tuple(LED_LANE)
 GROUPS = {"symmetry": ("kaleido", "mandala", "mirror"), "space": ("tunnel", "waves"), "afterglow": ("trails", "feedback"),
           "disturbance": ("rgb", "glitch", "pixel", "raster"), "colour": ("hue",)}
 GROUP_OF = {e: g for g, effects in GROUPS.items() for e in effects}
 BASE_SOURCES = ("energy", "open", "turn", "height")
 ACCENT_SOURCES = ("g.throw", "g.accordion", "g.push", "g.circle", "g.wave")
 OWN_MOVE = re.compile(r"g\.m[0-9a-f]{8}")             # #236: a taught move (dancemoves.ID)
+OWN_FADER = re.compile(r"f\.f[0-9a-f]{8}")            # #267: a taught base movement (dancefaders.ID)
 HANDS = ("paint", "warp", "impulse", "light")
 BASE_SLOTS, ACCENT_SLOTS, MAX_HANDS = 2, 4, 2
 SLOT_MIN = 0.35                                      # the engine's minimum (dancemap.js RULES.MIN): "light" is still seen
@@ -152,6 +168,7 @@ TOLERANCES = ("tight", "normal", "loose")             # how sure an accent's det
 # what Dream picks for a continuous movement: from where to where it counts, its curve, its smoothing
 BASE_SHAPE = {"energy": (0.1, 0.8, "soft", 0.25), "open": (0.45, 0.95, "s", 0.3), "turn": (-1.0, 1.0, "v", 0.3),
               "height": (0.55, 1.0, "hard", 0.2)}
+FADER_SHAPE = (0.0, 1.0, "lin", 0.2)                 # #267: a taught base movement is 0 … 1 already, its states evenly
 
 
 def step_of(amt) -> float:
@@ -184,11 +201,14 @@ SET_LABELS = {"standard": "Standard", "waves": "Flowing", "fire": "Wild"}   # as
 def slot_conflict(slots: dict, where: str, i: int, fx: str) -> str | None:
     """Why this effect does not fit into this place beside the others (the page greys it out with the reason), or
     None. "taken": it is in another sentence already; "group": the other base movement is of its group (the two would
-    cancel out); "base": an accent of a base movement's group (it would only replace the base for a moment)."""
+    cancel out); "base": an accent of a base movement's group (it would only replace the base for a moment); "lane":
+    a room-light effect in the other lane (#270: the flash and the pulse are an accent's, the brightness a base's)."""
+    if fx in LED_LANE and LED_LANE[fx] != where:
+        return "lane"
     others = [(w, j, s) for w in ("base", "accents") for j, s in enumerate(slots.get(w) or []) if s and (w, j) != (where, i)]
     if any(s["fx"] == fx for _, _, s in others):
         return "taken"
-    base_groups = {GROUP_OF[s["fx"]] for w, _, s in others if w == "base"}
+    base_groups = {GROUP_OF[s["fx"]] for w, _, s in others if w == "base" and s["fx"] in GROUP_OF}
     if GROUP_OF.get(fx) in base_groups:
         return "group" if where == "base" else "base"
     return None
@@ -198,6 +218,11 @@ def _accent_source(src) -> bool:
     return src in ACCENT_SOURCES or (isinstance(src, str) and OWN_MOVE.fullmatch(src) is not None)
 
 
+def _base_source(src) -> bool:
+    """#267: a built-in base movement or one the dancer taught ("f.<its id>")."""
+    return src in BASE_SOURCES or (isinstance(src, str) and OWN_FADER.fullmatch(src) is not None)
+
+
 def clean_slots(data) -> dict | None:
     """A set as Dream keeps it, or None when it is no set. What does not fit is left empty (fail closed: a sentence
     that breaks a rule is dropped, never forced); a strength is one of the three steps, an accent's tolerance one of
@@ -205,7 +230,7 @@ def clean_slots(data) -> dict | None:
     if not isinstance(data, dict):
         return None
     out = {"base": [None] * BASE_SLOTS, "accents": [None] * ACCENT_SLOTS, "hands": []}
-    for where, n, known in (("base", BASE_SLOTS, BASE_SOURCES.__contains__), ("accents", ACCENT_SLOTS, _accent_source)):
+    for where, n, known in (("base", BASE_SLOTS, _base_source), ("accents", ACCENT_SLOTS, _accent_source)):
         got = data.get(where)
         for i, s in enumerate(got[:n] if isinstance(got, list) else ()):
             if not isinstance(s, dict) or not known(s.get("src")) or s.get("fx") not in SLOT_FX:
@@ -230,18 +255,29 @@ def peak(amt: float) -> float:
     return round(SLOT_MIN + (1 - SLOT_MIN) * step_of(amt), 4)
 
 
+def dst_of(fx: str) -> str:
+    """The target a sentence's effect is: "fx.<effect>" of the picture, or the room light's "led.…" itself (#270)."""
+    return fx if fx in LED_LANE else "fx." + fx
+
+
 def compile_slots(slots: dict) -> list:
     """The rows of the dance table a set stands for: one row per sentence (its strength above the engine's minimum;
     #236: an accent of a move of one's own also blends in the move's piece of prompt), the beat's push and turning as
-    Dream picks them, and the hands in the picture as switches."""
+    Dream picks them, and the hands in the picture as switches. #270: the room light's brightness is a dimming – from
+    the sentence's strength (calm) to none (wild), negative, so that nobody detected and a released clutch leave the
+    chain as bright as its base colour; its flash and pulse follow the gesture at once (the stage sends one per
+    gesture, wled.py lets them fade)."""
     rows = []
     for i, s in enumerate(slots["base"]):
         if s:
-            lo, hi, curve, smooth = BASE_SHAPE[s["src"]]
-            rows.append({**_row(f"base{i}", s["src"], "fx." + s["fx"], lo=lo, hi=hi, out=peak(s["amt"]), curve=curve, smooth=smooth), "origin": "slot"})
+            lo, hi, curve, smooth = BASE_SHAPE.get(s["src"], FADER_SHAPE)
+            row = _row(f"base{i}", s["src"], dst_of(s["fx"]), lo=lo, hi=hi, out=peak(s["amt"]), curve=curve, smooth=smooth)
+            if s["fx"] == "led.level":
+                row["out"] = [-peak(s["amt"]), 0.0]
+            rows.append({**row, "origin": "slot"})
     for i, s in enumerate(slots["accents"]):
         if s:
-            rows.append({**_row(f"accent{i}", s["src"], "fx." + s["fx"], out=peak(s["amt"])), "origin": "slot"})
+            rows.append({**_row(f"accent{i}", s["src"], dst_of(s["fx"]), out=peak(s["amt"]), smooth=0.0 if s["fx"] in LED_LANE else 0.15), "origin": "slot"})
             if OWN_MOVE.fullmatch(s["src"]):
                 rows.append({**_row(f"piece{i}", s["src"], "ai.piece", out=peak(s["amt"])), "origin": "slot"})
     rows.append({**_row("pulse", "pulse", "fx.pulse", out=0.7, smooth=0.0), "origin": "slot"})
@@ -273,7 +309,7 @@ def builtin_slots() -> dict:
 
 def default_tables() -> dict:
     """The built-in tables: the mood's and flowtrack's rows, and the dance's compiled from the set Standard."""
-    return {"mood": [dict(r) for r in MOOD_ROWS], "flowtrack": [dict(r) for r in TOUCH_ROWS + BAND_ROWS],
+    return {"mood": [dict(r) for r in MOOD_ROWS], "flowtrack": [dict(r) for r in TOUCH_ROWS + BAND_ROWS + PROFILE_ROWS],
             "dance": compile_slots(SLOT_SETS["standard"])}
 
 
@@ -332,7 +368,7 @@ def rows_to_slots(rows) -> dict | None:
             hands.append((p, r["dst"][6:]))
             continue
         fx = r["dst"][3:] if r["dst"].startswith("fx.") else None
-        where = "base" if r["src"] in BASE_SOURCES else "accents" if _accent_source(r["src"]) else None
+        where = "base" if _base_source(r["src"]) else "accents" if _accent_source(r["src"]) else None
         if fx in SLOT_FX and where:
             found.append((p, where, r["src"], fx))
     out = {"base": [None] * BASE_SLOTS, "accents": [None] * ACCENT_SLOTS, "hands": []}
@@ -447,11 +483,14 @@ def load() -> tuple:
     if isinstance(data.get("tables"), dict):
         out.update({m: clean_rows(data["tables"][m]) for m in TABLE_MODES if isinstance(data["tables"].get(m), list)})
     own, use = _own_slots(data.get("slots"))
-    old = data.get("version", 1) < VERSION
-    if old:
+    version = data.get("version", 1)
+    if version < 3:
         own, was = migrate(data, own)
         use = use if use not in (None, "standard") else was or use   # a set chosen among the sentences already stays
-    return out, own, use or "standard", old
+    if version < 4:                                  # #253: kept before the profiles – their rows join flowtrack's table, once
+        have = {r["id"] for r in out["flowtrack"]}
+        out["flowtrack"] = (out["flowtrack"] + [dict(r) for r in PROFILE_ROWS if r["id"] not in have])[:MAX_ROWS]
+    return out, own, use or "standard", version < VERSION
 
 
 def load_tables() -> dict:
@@ -537,8 +576,8 @@ def set_rows(new, mode: str) -> list:
 
 
 def drop_source(src: str) -> bool:
-    """#236: a source is gone for good (a taught move was deleted) – the rows that had it leave the tables, and the
-    accents that had it leave every own set and every draft. Whether anything changed."""
+    """#236: a source is gone for good (a taught move or, #267, base movement was deleted) – the rows that had it leave
+    the tables, and the sentences that had it leave every own set and every draft. Whether anything changed."""
     slots_changed = drop_slot_source(src)
     new_tables = {m: [r for r in tables[m] if r["src"] != src] for m in TABLE_MODES}
     if all(new_tables[m] == tables[m] for m in TABLE_MODES):
@@ -675,13 +714,15 @@ def delete_slots(name) -> bool:
 
 
 def drop_slot_source(src: str) -> bool:
-    """#236: a taught move is gone – the accents that had it are empty in every own set and every draft."""
+    """#236: a taught move is gone – the accents that had it are empty in every own set and every draft; #267: a taught
+    base movement – the same with its base sentences."""
     changed = False
     for slots in [v["slots"] for v in slot_sets.values()] + list(slot_drafts.values()):
-        for i, s in enumerate(slots["accents"]):
-            if s and s["src"] == src:
-                slots["accents"][i] = None
-                changed = True
+        for where in ("base", "accents"):
+            for i, s in enumerate(slots[where]):
+                if s and s["src"] == src:
+                    slots[where][i] = None
+                    changed = True
     if changed:
         _act()
         keep()

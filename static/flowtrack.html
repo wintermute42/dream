@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/static/movepage.css">
 <link rel="stylesheet" href="/static/movecard.css">
 <link rel="stylesheet" href="/static/dancelab.css">
+<link rel="stylesheet" href="/static/flowprofiles.css">
 </head>
 <body class="mp-body">
 <!-- #252: the page of the mode Flowtrack – on this Mac only, in a window of its own beside the stage. An automatic
@@ -66,33 +67,40 @@
       <div class="mp-effects" id="effects"></div>
     </div>
   </section>
+  <!-- #253: the performers – learn one person's way of moving, and fit Flowtrack to them -->
+  <section class="mp-card" id="profiles"></section>
   <section id="dancelab" hidden></section>
 </main>
 <script src="/static/i18n.js"></script>
 <script src="/static/dancemap.js"></script>
 <script src="/static/dancepanel.js"></script>
 <script src="/static/dancerec.js"></script>
+<script src="/static/dancemoves.js"></script>
+<script src="/static/dance.js"></script>
+<script src="/static/flowprofile.js"></script>
 <script src="/static/dancelab.js"></script>
 <script src="/static/movecard.js"></script>
 <script src="/static/movepage.js"></script>
+<script src="/static/flowprofiles.js"></script>
 <script>
 (() => {
   const T = I18N.t, $ = id => document.getElementById(id);
   I18N.apply();
-  let bridge = null, lab = null, shown = {}, drawn = '';
+  let bridge = null, lab = null, performers = null, shown = {}, drawn = '';
   const say = (id, text) => { if (shown[id] !== text) { shown[id] = text; $(id).textContent = text; } };
   const KIND = { on: T('Fire/LED'), marker: T('LED markers'), hand: T('Hands (AI)') };
 
   // what this page calls and reads of the stage's bridge – a stage loaded before Dream was updated lacks some of it,
   // and is asked to reload instead of being shown half (tests/js/movepage.test.mjs keeps the list complete)
-  const NEEDS = { calls: ['attach', 'detach', 'state', 'setAuto', 'setMode', 'setKind', 'setShort', 'setPerson', 'release', 'calibrate', 'setUnproject', 'setRows'],
-    state: ['mode', 'auto', 'kind', 'short', 'person', 'calib', 'rows', 'held', 'camera', 'status', 'rate', 'present'] };
+  const NEEDS = { calls: ['attach', 'detach', 'state', 'setAuto', 'setMode', 'setKind', 'setShort', 'setPerson', 'release', 'calibrate', 'setUnproject', 'setRows', 'setProfile', 'profilesChanged', 'lab.live'],
+    state: ['mode', 'auto', 'kind', 'short', 'person', 'calib', 'rows', 'held', 'camera', 'status', 'rate', 'present', 'profile', 'profiles'] };
   MovePage.link('flowtrack', {
     needs: NEEDS,
     old() { $('nostage').hidden = true; $('page').hidden = true; $('oldstage').hidden = false; say('pagestate', T('The stage window is older than this page.')); },
     on(b) {
       bridge = b; $('nostage').hidden = true; $('oldstage').hidden = true; $('page').hidden = false;
       lab = DanceLab.mount($('dancelab'), b.lab); lab.show(true); b.attach(lab);
+      performers = FlowProfiles.mount($('profiles'), { live: () => b.lab.live(), keys: b.lab.keys, state: () => b.state(), setProfile: id => b.setProfile(id), changed: () => b.profilesChanged() });
     },
     lost() { bridge = null; $('nostage').hidden = false; $('oldstage').hidden = true; $('page').hidden = true; say('pagestate', T('The stage is gone – waiting for it …')); },
   });
@@ -164,6 +172,7 @@
     $('unproject').disabled = !st.calib.on; if (document.activeElement !== $('unproject')) $('unproject').checked = st.calib.unproject;
     say('unproject-state', st.calib.unproject && st.calib.amount != null ? T('({p} % of the picture taken out)', { p: Math.round(st.calib.amount * 100) }) : '');
     effects(st.rows);
+    if (performers) performers.tick();
     for (const r of st.rows) { const dot = $('effects').querySelector(`[data-id="${r.id}"] i`); if (dot) dot.style.opacity = Math.min(1, Math.abs(st.held(r.id)) * 1.5).toFixed(2); }
     $('nomode').hidden = flowing;
     if (!flowing) say('nomode-text', T('The movement mode is “{m}” – this page steers the mode Flowtrack.', { m: MoveCard.name(st.mode) }));

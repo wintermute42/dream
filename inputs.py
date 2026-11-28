@@ -9,15 +9,21 @@ import time
 
 import config
 import dance
+import danceprofiles
 import hub
 import i18n
 import midi
 import movement
+import outbox
 import paths
 import playlists
+import receiver
+import recording
+import rights
 import scenes
 import sensors
 import settings
+import wearables
 
 
 async def on_presence(word: str):
@@ -66,6 +72,8 @@ async def midi_loop():
                 await scenes.next_scene(force=True)
             elif a == "blackout":
                 await hub.blackout()
+            elif a == "rec":                           # #276: recording the output – the stage starts or stops it
+                await recording.command("toggle", by="midi")
             elif a == "reseed":
                 await hub.apply({"seed": secrets.randbelow(99999) + 1})
             elif a == "restart":
@@ -102,6 +110,12 @@ async def midi_loop():
 # ---------- motion sensors on the body (phone app, wristband, glove) over OSC, port DREAM_SENSOR_PORT ----------
 SENSOR_PORT = int(os.environ.get("DREAM_SENSOR_PORT", "7020"))
 sens = sensors.Sensors()
+# #277: the devices worn on the body that speak Dream's own protocol (a StickS3): their motion goes into the
+# sensor input like any OSC sender's, their button is the clutch
+wear = wearables.Wearables(feed=lambda address, values, source, t, unit: sens.on_osc(address, values, source, now=t, gyro_unit=unit))
+wear.clutch = bool(hub.state["clutch"])
+hub.on_change("clutch", lambda: wear.tell_all(hub.state["clutch"]))   # whoever moved the clutch: the devices hear it
+wear.radio_for = receiver.channel_for     # #278: a stick on the Wi-Fi whose USB receiver is plugged in moves to the radio
 
 
 def sensor_setting(msg: dict):
@@ -133,6 +147,12 @@ def _private(host: str) -> bool:
         return False
 
 
+def wear_packet(client, address, *args):
+    """#277: a packet of a StickS3 – only from the home network (and this Mac), like every sensor."""
+    if _private(client[0]):
+        wear.on_osc(address, args, client)
+
+
 async def sensor_loop():
     """Receives sensor OSC (any address with numbers); ~30 times a second hands mapped values to the
     controller glide (shared with MIDI) and turns whips into impulses."""
@@ -144,17 +164,24 @@ async def sensor_loop():
             sens.on_osc(address, args, client[0])
 
     disp = Dispatcher()
+    disp.map(wearables.PREFIX + "*", wear_packet, needs_reply_address=True)
     disp.set_default_handler(on_any, needs_reply_address=True)
     host = "0.0.0.0" if config.LAN else "127.0.0.1"       # a phone on the arm needs dream.sh --lan
     try:
-        await AsyncIOOSCUDPServer((host, SENSOR_PORT), disp, asyncio.get_running_loop()).create_serve_endpoint()
+        wear.transport, _ = await AsyncIOOSCUDPServer((host, SENSOR_PORT), disp, asyncio.get_running_loop()).create_serve_endpoint()
         print(f"Sensors over OSC on {host}:{SENSOR_PORT}", flush=True)
+        if config.LAN:                             # #277: the worn devices find the port over mDNS
+            await wearables.advertise(SENSOR_PORT)
     except OSError as e:                           # the port is taken: Dream Control's own sensors still come over /ctl
         print(f"Sensor port {SENSOR_PORT} not available: {e}", flush=True)
+    # #278: the USB receiver – the sticks by radio; a stick's second button is an ordinary sensor button there too
+    hub.live["receiver"] = asyncio.create_task(receiver.watch(wear, other=lambda address, args, src: sens.on_osc(address, args, src)))
     shown_at, told_at, sent = 0.0, 0.0, {}
     while True:
         await asyncio.sleep(1 / 30)
         await sensor_dance()
+        wear.ping_all()                            # #278: the delay of every worn device, once a second each
+        receiver.tick(bool(hub.state["clutch"]))   # … and the receiver's LED
         if time.monotonic() - told_at > 0.25:      # #249: the register of sources, four times a second
             told_at = time.monotonic()
             await sources_tell()
@@ -177,6 +204,7 @@ async def sensor_loop():
                 await hub.broadcast({"sensors": {"button": ev[1]}}, only="stage")
             elif ev[0] == "learned":
                 await hub.broadcast({"sensors": {"map": sens.mapping, "learned": {"key": ev[1], "target": ev[2]}}})
+        await wear_events()
         if time.time() - shown_at > 0.5 and sens.ch:
             shown_at = time.time()
             await hub.broadcast({"sensors": sens.live()})
@@ -209,9 +237,60 @@ async def sensor_dance():
     mode listens to that kind of source and something was sent): the camera and the sensor on the arm confirm each
     other there."""
     m = sens.motion() if movement.uses(hub.state, sensor_kind(sens.source)) else None
+    raw = sens.take_raw()                          # #196: the raw values since the last step, for the lab's sessions
     if m:
+        m["r"] = raw
         arms = glow_arms() if movement.uses(hub.state, "phone") else {}
         await hub.broadcast({"sensors": {"dance": {**m, **({"arms": arms} if arms else {})}}}, only="stage")
+
+
+async def wear_events():
+    """#277: a StickS3's button – the clutch as the dancer wants it, like a MIDI button or key K (hub.apply; the devices
+    hear the result through the watcher of "clutch", the one that pressed too when nothing changed). #278: the USB
+    receiver's button says no state – it turns the clutch the other way (on None)."""
+    while wear.events:
+        _, on, id_ = wear.events.pop(0)
+        if on is None:
+            on = not hub.state["clutch"]
+        if hub.state["clutch"] != on:
+            wear_told["msg"] = None                # the panel learns of the press before the clutch moves
+            wear_tell()
+            await hub.apply({"clutch": on}, by="receiver" if id_.startswith("receiver:") else "wear")
+        else:
+            wear.tell_all(on)
+
+
+def wear_msg() -> dict:
+    msg = wear.msg(SENSOR_PORT, config.LAN)
+    msg["wear"]["receivers"] = receiver.listing()      # #278: the USB receivers (never a port's path or a key)
+    return msg
+
+
+wear_told: dict = {"msg": None}
+
+
+def wear_tell() -> None:
+    """#277: the worn devices to the pages that may allow them (the panel, Dream Control) – when something changed."""
+    msg = wear_msg()
+    if msg == wear_told["msg"]:
+        return
+    wear_told["msg"] = msg
+    text = json.dumps(msg)
+    for c, r in list(hub.roles.items()):
+        if rights.can(r, "control"):
+            outbox.post(c, text)
+
+
+def wear_op(op) -> None:
+    """#277: {"op": "allow" | "revoke", "id": …} – only from the panel or Dream Control (ctl.py checks the role).
+    #278: {"op": "pairing", "id": <a receiver's id>} – that receiver opens its pairing window."""
+    if isinstance(op, dict) and op.get("op") in ("allow", "revoke", "pairing"):
+        if op["op"] == "pairing":
+            receiver.open_pairing(op.get("id"))
+        else:
+            (wear.allow if op["op"] == "allow" else wear.revoke)(op.get("id"))
+        wear_told["msg"] = None
+        wear_tell()
 
 
 sources_told: dict = {"msg": None}
@@ -226,6 +305,7 @@ async def sources_tell():
             movement.sources.report(f"{kind}:{sender}", kind, sender or "OSC", energy, 0.9, now)
         elif wall - at > movement.GONE:
             sens.forget(sender)
+    wear_tell()
     msg = movement.msg(hub.state, now)
     if msg != sources_told["msg"]:
         sources_told["msg"] = msg
@@ -278,6 +358,33 @@ def dance_slots(op) -> dict:
         if hub.state.get("dance_set") != dance.slot_use:
             hub.state["dance_set"] = dance.slot_use
     return {**dance.msg(), "set": {"dance_set": dance.slot_use}}
+
+
+def _profile_chosen() -> None:
+    """#266: whose measures the dance reads with – chosen in the panel, on the page of Dream Dance or in a playlist
+    scene; every page is told. A name that is no profile changes nothing (the setting says the one in use again)."""
+    if not danceprofiles.choose(hub.state["dance_profile"]):
+        hub.state["dance_profile"] = danceprofiles.use
+    try:
+        asyncio.get_running_loop().create_task(hub.broadcast({**danceprofiles.msg(), "set": {"dance_profile": danceprofiles.use}}))
+    except RuntimeError:                           # no loop (a script, a test): the next page that connects is told
+        pass
+
+
+hub.on_change("dance_profile", _profile_chosen)
+
+
+def dance_profiles(op) -> dict:
+    """#266: this Mac or Dream Control keeps a dancer's measures: {"op": "save", "name", "bounds"} (a new profile, or
+    the same dancer measured anew – in use from now on), {"op": "delete", "name"}. The profile in use is the setting
+    dance_profile too."""
+    if isinstance(op, dict):
+        if op.get("op") == "save":
+            danceprofiles.save(op.get("name"), op.get("bounds"))
+        elif op.get("op") == "delete":
+            danceprofiles.delete(op.get("name"))
+        hub.state["dance_profile"] = danceprofiles.use
+    return {**danceprofiles.msg(), "set": {"dance_profile": danceprofiles.use}}
 
 
 def dance_map(new, mode: str) -> dict:

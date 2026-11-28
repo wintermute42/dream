@@ -2,6 +2,7 @@
 guests' message allowance. The server runs with --lan in the test sandbox; the requests come from invented home-network
 addresses."""
 import asyncio
+import contextlib
 import itertools
 import json
 import time
@@ -75,6 +76,22 @@ HTTP = {
     ("GET", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("POST", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("DELETE", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
+    # #267: the base movements the dancer taught – what the body showed, as a regression: this Mac and Dream Control only
+    ("GET", "/dance/faders"): ("/dance/faders", LC),
+    ("POST", "/dance/faders"): ("/dance/faders", LC),
+    ("POST", "/dance/faders/{fid}"): ("/dance/faders/f0a1b2c3d", LC),
+    ("DELETE", "/dance/faders/{fid}"): ("/dance/faders/f0a1b2c3d", LC),
+    # #276: recording the output – only the stage on this Mac hands its video in and shows the file in the Finder
+    ("POST", "/rec/start"): ("/rec/start", {"local"}),
+    ("POST", "/rec/chunk/{rid}"): ("/rec/chunk/0123456789abcdef", {"local"}),
+    ("POST", "/rec/end/{rid}"): ("/rec/end/0123456789abcdef", {"local"}),
+    ("POST", "/rec/reveal"): ("/rec/reveal", {"local"}),
+    # #253: Flowtrack's performers – what was learned of a person: this Mac and Dream Control only
+    ("GET", "/flow/profiles"): ("/flow/profiles", LC),
+    ("POST", "/flow/profiles"): ("/flow/profiles", LC),
+    ("POST", "/flow/profiles/{pid}"): ("/flow/profiles/p0a1b2c3d", LC),
+    ("POST", "/flow/profiles/{pid}/export"): ("/flow/profiles/p0a1b2c3d/export", LC),
+    ("DELETE", "/flow/profiles/{pid}"): ("/flow/profiles/p0a1b2c3d", LC),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [
@@ -92,9 +109,9 @@ WS = {"/ws": LC, "/make": LC, "/ctl": LCGE, "/out": {"local"}, "/view": LCGEW,
       "/facemarks": {"local"}}                         # #214: only the stage on this Mac says where a painted face has its eyes
 # what each role may do (rights.ROLES), written down by hand too: the pages are told it with their role
 CAN = {
-    "local": ["beat", "control", "ctl", "eyes", "faces", "feed", "render", "set:all", "stage", "state", "view"],
-    "control": ["beat", "control", "ctl", "eyes", "faces", "feed", "pair_eyes", "render", "set:all", "state", "take_over",
-                "view"],
+    "local": ["beat", "control", "ctl", "eyes", "faces", "feed", "names", "render", "set:all", "stage", "state", "view"],
+    "control": ["beat", "control", "ctl", "eyes", "faces", "feed", "names", "pair_eyes", "render", "set:all", "state",
+                "take_over", "view"],
     "guest": ["ctl", "set:guest", "state", "view"],
     "eyes": ["beat", "ctl", "eyes", "eyes_only", "faces", "feed", "view"],
     "window": ["faces", "view"],
@@ -542,6 +559,27 @@ def test_ctl_second_control_is_a_guest_until_it_takes_over(server):
             two.send_text(json.dumps({"take_control": True}))
             assert next_with(two, "role") == {"role": "control", "can_take": False, "can": CAN["control"]}
             assert next_with(one, "taken") == {"role": "guest", "can_take": True, "can": CAN["guest"], "taken": True}
+
+
+@pytest.mark.parametrize("gone", [WebSocketDisconnect(1001), OSError("gallery folder unreadable")])
+def test_ctl_device_that_leaves_while_greeted_leaves_no_control_behind(server, monkeypatch, gone):
+    """#193: a Dream Control that is gone before its greeting is out (or whose greeting fails) is no longer registered –
+    the next Dream Control is Dream Control, not a guest."""
+    gallery, greeted = server.ctl.media.gallery_list, []
+
+    def leaving():                                                  # a step of the greeting, after the registration
+        greeted.append(1)
+        if len(greeted) == 1:
+            raise gone
+        return gallery()
+    monkeypatch.setattr(server.ctl.media, "gallery_list", leaving)
+    c, url = client(server, "control"), ws_url(server, "/ctl", "control")
+    with contextlib.suppress(Exception), c.websocket_connect(url):    # its greeting never reaches it: nothing to read
+        pass
+    wait_until(lambda: not server.hub.roles)
+    assert not server.hub.clients and not server.hub.key_roles
+    with c.websocket_connect(url) as ws:
+        assert ws.receive_json()["role"] == "control"
 
 
 def next_with(ws, key: str) -> dict:

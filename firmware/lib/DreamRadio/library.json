@@ -1,0 +1,8 @@
+{
+  "name": "DreamRadio",
+  "version": "1.0.0",
+  "description": "Dream's worn devices: the ESP-NOW frames, the pairing and the receiver's serial line (#278)",
+  "license": "AGPL-3.0-or-later",
+  "frameworks": "arduino",
+  "platforms": "espressif32"
+}

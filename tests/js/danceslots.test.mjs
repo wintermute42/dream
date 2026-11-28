@@ -132,6 +132,9 @@ test('every movement has its pictogram – a small figure, no text in it', () =>
     assert.match(svg, /^<svg class="ds-pict"[^>]*aria-hidden="true"/); assert.ok(!/<text/.test(svg), src);
   }
   assert.notEqual(S.pictogram('g.throw'), S.pictogram('g.push'));
+  // each its own: no movement falls back to another's figure
+  const all = [...S.BASE, ...S.ACCENTS, 'g.m0a1b2c3d', 'f.f0a1b2c3d', 'hands'].map(S.pictogram);
+  assert.equal(new Set(all).size, all.length);
 });
 
 test('the introduction goes the signal’s way, one sentence a step, and stays off once switched off', () => {
@@ -150,4 +153,38 @@ test('the sentences live on the page of Dream Dance only – nothing of them on 
   const css = readFileSync(new URL('../../static/danceslots.css', import.meta.url), 'utf8');
   for (const m of css.matchAll(/transition:([^;}]+)/g)) for (const part of m[1].split(',')) assert.match(part.trim(), /^(transform|opacity|none)\b/);
   for (const m of css.matchAll(/@keyframes[^{]+\{((?:[^{}]*\{[^{}]*\})+)/g)) for (const p of m[1].matchAll(/([a-z-]+)\s*:/g)) assert.ok(['opacity', 'transform'].includes(p[1]), p[1]);
+});
+
+// ---------- #270: the room light's LED chain as effects ----------
+test('the room light’s effects: their lane, only while the light is there, and in none of the picture’s groups', () => {
+  const s = { base: [slot('energy', 'led.level'), slot('open', 'kaleido')], accents: [slot('g.throw', 'led.flash'), null, null, null], hands: [] };
+  assert.equal(S.fits(s, 'base', 0, 'led.flash'), 'lane');
+  assert.equal(S.fits(s, 'accents', 1, 'led.level'), 'lane');
+  assert.equal(S.fits(s, 'accents', 1, 'led.chase', 'on'), null);
+  assert.equal(S.fits(s, 'accents', 1, 'led.chase', 'off'), 'off');
+  assert.equal(S.fits(s, 'accents', 1, 'led.chase', 'nohost'), 'nohost');
+  assert.equal(S.fits(s, 'accents', 1, 'led.flash', 'on'), 'taken');
+  assert.equal(S.fits(s, 'accents', 1, 'tunnel', 'off'), null, 'the picture’s effects do not ask for the light');
+  // the brightness as a base movement takes no group from the accents: every picture effect fits beside it
+  const only = { base: [slot('energy', 'led.level'), null], accents: [null, null, null, null], hands: [] };
+  for (const fx of S.EFFECTS) assert.equal(S.fits(only, 'accents', 0, fx), null, fx);
+  for (const r of ['lane', 'off', 'nohost']) assert.ok(S.REASONS[r](), r);
+  assert.ok(readFileSync(new URL('../../dance.py', import.meta.url), 'utf8').includes('"lane"'));
+  assert.deepEqual(Object.keys(S.LIGHT).map(S.dstOf), ['led.flash', 'led.chase', 'led.level']);
+  assert.equal(S.dstOf('tunnel'), 'fx.tunnel');
+  assert.deepEqual(S.place(s, { where: 'accents', i: 1, slot: slot('g.push', 'led.chase', 0) }).accents[1], { ...slot('g.push', 'led.chase', 0), tol: 'normal' });
+});
+
+test('the brightness sentence shows how bright the movement makes the chain – nothing while nobody is seen or the clutch is out', () => {
+  const peak = S.peakOf(0.5), live = held => ({ seen: true, held: () => held, out: {} });
+  assert.equal(S.level(live(-peak), 'base0', 'led.level', peak), 0, 'calm: dimmed');
+  assert.equal(S.level(live(0), 'base0', 'led.level', peak), 1, 'wild: as bright as the base colour');
+  assert.ok(Math.abs(S.level(live(-peak / 2), 'base0', 'led.level', peak) - 0.5) < 1e-9);
+  assert.equal(S.level(live(0), 'base0', 'led.level', peak, 0), 0, 'the clutch released');
+  assert.equal(S.level({ ...live(0), seen: false }, 'base0', 'led.level', peak), 0);
+  // the hands do not glow with the chain's brightness, they do with its flash
+  const s = { base: [slot('energy', 'led.level'), null], accents: [slot('g.throw', 'led.flash'), null, null, null], hands: [] };
+  assert.equal(S.glow(s, { seen: true, held: id => (id === 'base0' ? 0 : 0), out: {} }), null);
+  const g = S.glow(s, { seen: true, held: id => (id === 'accent0' ? 0.9 : 0), out: { 'led.flash': 0.9 } });
+  assert.equal(g.l.col, S.COLOURS.light);
 });

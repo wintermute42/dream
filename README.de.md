@@ -31,6 +31,7 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
 - [Playlists und Autostart](#playlists-und-autostart)
 - [Ausgabe auf Beamer oder zweitem Monitor (16:9)](#ausgabe-auf-beamer-oder-zweitem-monitor-169)
 - [Als Quelle in Resolume (Syphon)](#als-quelle-in-resolume-syphon)
+- [Aufnehmen, was das Publikum sieht](#aufnehmen-was-das-publikum-sieht)
 - [Raumlicht (WLED)](#raumlicht-wled)
 - [Hue-Lampen träumen mit](#hue-lampen-träumen-mit)
 
@@ -52,13 +53,16 @@ verwandelt jedes Bild ins nächste. Es läuft auf einem Mac mit Apple Silicon im
   - [Umrisse erhalten (ControlNet, #113)](#umrisse-erhalten-controlnet-113)
   - [Pose formt die Figur (ControlNet)](#pose-formt-die-figur-controlnet)
 - [Flowtrack](#flowtrack)
+  - [Personen: ein Profil je Person](#personen-ein-profil-je-person)
 - [Tanz](#tanz)
   - [Dream Dance: die Seite, die Kupplung, die Sets](#dream-dance-die-seite-die-kupplung-die-sets)
   - [Die Sätze – was dein Tanz bewirkt](#die-sätze--was-dein-tanz-bewirkt)
   - [Eigene Bewegungen – eine Bewegung lernen](#eigene-bewegungen--eine-bewegung-lernen)
+  - [Eigene Grundbewegungen – ein Regler durch Vormachen](#eigene-grundbewegungen--ein-regler-durch-vormachen)
   - [Tanz-Labor](#tanz-labor)
 - [MIDI-Controller](#midi-controller)
 - [Sensor-Eingang (Bewegung im Dunkeln: Handy am Arm, später Armband)](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband)
+- [Getragene Geräte (StickS3 am Handgelenk)](#getragene-geräte-sticks3-am-handgelenk)
 
 **Cloud-GPU**
 
@@ -673,6 +677,42 @@ dafür offen sein (sie liefert die Bilder). Ohne Resolume einfach aus lassen.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
+## Aufnehmen, was das Publikum sieht
+
+Bedienfeld → Karte **Ausgabe** → **● Aufnehmen** (oder derselbe Knopf in der Karte „Ausgabe“ von Dream Control, oder
+ein MIDI-Knopf – Ziel „Knopf: Ausgabe aufnehmen an/aus“) nimmt genau das Bild auf, das das Publikum sieht: die
+KI-Bilder mit ihrem Morph, die Glättung, die Effekte, die Touch-Ebenen, den Zoom-Puls, die **Master-Helligkeit und den
+Blackout**. Vom Bedienfeld und von der Aufnahme selbst ist nie etwas im Bild. Noch einmal drücken stoppt sie.
+
+- **Während der Aufnahme** ist der Knopf rot und zeigt, wie lange sie schon läuft: **● 02:14**. Eine Aufnahme dauert
+  höchstens **15 Minuten**; in der letzten Minute **blinkt** der Knopf (mit „Bewegung reduzieren“ in macOS wird er
+  stattdessen gelb), dann **stoppt sie von selbst**. Eine längere Show wird in mehreren Aufnahmen aufgenommen.
+- **Danach** steht in der Karte „Gespeichert: dream-rec-20261126-221530.mp4 (412 MB, 08:03)“ – oder „Nach 15 Minuten
+  von selbst gestoppt – gespeichert: …“ – mit **Im Finder zeigen** (nur am Mac). Die Datei liegt im Speicherordner von
+  Dream (`DREAM_SAVE_DIR`, Standard `~/Pictures/Dream`), mit Datum und Uhrzeit im Namen.
+- **Bild:** MP4 mit H.264, wenn der Browser es kann (Chrome am Mac: ja, kodiert von der Media-Engine des Macs), sonst
+  WebM (VP9/VP8). 30 Bilder pro Sekunde, im Format des Bildes so groß, wie es in **1920 × 1080** passt (quadratisch:
+  1080 × 1080; WebM, das der Prozessor kodiert, höchstens 1280 × 720), etwa **8 Mbit/s** bei 1080p. Die Aufnahme ist
+  so scharf wie das Bild auf der Bühne – ein KI-Bild mit 512 px wird auf diese Größe gebracht, nicht feiner gemacht.
+- **Ton:** hört Dream Musik (Mikrofon oder Musikdatei, Karte „Musik“), kommt ihr Ton mit – ohne zweite
+  Freigabe-Abfrage; sonst ist das Video stumm. Einzustellen gibt es nichts.
+- **Sicher gegen Abstürze:** die Bühne gibt das Video etwa einmal pro Sekunde an Dream, und Dream schreibt es sofort in
+  die Datei. Ein geschlossener Tab, ein abgestürzter Browser oder eine verlorene Verbindung kostet höchstens die
+  letzte Sekunde oder zwei; was da ist, spielt (nach 15 s ohne Nachricht schließt Dream die Datei, und die Karte sagt
+  „Die Bühne ist während der Aufnahme weggefallen …“). Eine sauber gestoppte Datei räumt ffmpeg einmal auf (ohne neu
+  zu kodieren: Dauer und Index für jeden Player).
+- **Platte:** mit weniger als etwa 1,3 GB frei startet Dream gar nicht erst, und es stoppt von selbst, bevor die Platte
+  voll ist; die Karte sagt es nur, wenn es passiert.
+- **Wer:** das Bedienfeld an diesem Mac und Dream Control starten und stoppen; Gäste nicht (und sie sehen es auch
+  nicht). Aufgenommen wird auf der Bühne am Mac – sie muss offen sein, und ihr Fenster sollte sichtbar bleiben (ein
+  verdecktes oder minimiertes Browserfenster zeichnet seltener).
+- **Last:** das Kopieren des Bildes und der Encoder (die Media-Engine des Macs) kosten die KI wenig – mit 📏 Messen
+  (sd-turbo, 512 px, quadratisch, Retina, Mac mit M-Chip; vier Paare à 40 s, abwechselnd) machte die KI mit einer
+  1080p-Aufnahme 2,72 Bilder/s und ohne 2,80: etwa 3 % weniger, so viel, wie Läufe untereinander streuen. Die Bühne
+  zeichnete weiter jedes Bild, und die Dateien hatten genau 30 Bilder pro Sekunde.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
 ## Raumlicht (WLED)
 
 Der Raum träumt mit: eine LED-Kette leuchtet in der Farbe des Traums – dem geglätteten Durchschnitt dessen, was das
@@ -746,6 +786,30 @@ Panel → Karte **Ausgabe** → **„Raumlicht (WLED) träumt mit“**:
   Bühne …“ (die Bühne zeichnet nicht – sie muss offen und sichtbar sein), „… das Gerät antwortet nicht“ (Dream sendet,
   aber WLED antwortet nicht unter der Adresse), „im Netz nicht zu finden“, „liegt nicht im Heimnetz“.
 - Gäste (Dream Remote) können nichts davon ändern; die Einstellung bleibt nach einem Neustart, wie sie war.
+
+### Die LEDs tanzen mit (Dream Dance)
+
+Solange das Raumlicht an ist und ein Gerät eingetragen ist, bietet Dream Dance neben den Wirkungen im Bild eine
+eigene Gruppe an, **Raumlicht** (siehe [die Sätze](#die-sätze--was-dein-tanz-bewirkt)):
+
+- **Aufleuchten** (ein Akzent): die Geste lässt die ganze Kette in der Traumfarbe voll aufblitzen, sie klingt weich ab –
+  auf dem Höhepunkt der Geste, so stark, wie der Satz sagt; solange die Geste weitergeht (immer wieder hochwerfen),
+  etwa alle 0,7 s ein weiteres, nie ein Stroboskop (höchstens vier pro Sekunde, egal was ankommt).
+- **Lauflicht** (ein Akzent): die Geste schickt einen Lichtpuls die Kette entlang. Er läuft in die Richtung, in die
+  deine Hände kurz vorher gingen – so, wie die Kamera es sieht: zur letzten LED der Kette, wenn sie im Bild nach rechts
+  gingen, zur ersten, wenn sie nach links gingen. Ein Kreis, immer wieder gezogen, schickt ein Licht nach dem anderen.
+  Läuft er für deinen Raum falsch herum, häng die Kette andersherum
+  auf.
+- **Helligkeit** (eine Grundbewegung, z. B. „Wenn ich mich viel bewege“): ruhig dimmt die Kette, wild leuchtet sie so
+  hell wie ihre Grundfarbe. Niemand erkannt: volle Grundfarbe.
+
+Stärke **leicht · mittel · stark** wie bei jedem Satz: wie hoch Aufleuchten und Lauflicht gehen, wie weit es in Ruhe
+dunkel wird. Alle drei liegen über der Farbe des Raumlichts (mit dem Takt-Puls); sie leuchten den Raum aus, nicht das
+Bild, zählen also zu keiner Gruppe der Bild-Wirkungen und nicht zu deren Budget von drei. **Lichtstärke**, **Master**
+und **Blackout** gelten auch für sie; bei **gelöster Kupplung** zeigt die Kette nur ihre Farbe. Hue-Lampen (unten)
+machen nicht mit – sie bleiben eine ruhige Stimmung. Ist das Raumlicht aus (oder kein Gerät eingetragen), sind die drei
+ausgegraut, und auf der Karte steht, warum; Sätze, die sie schon nutzen, bleiben und warten (ihre Wirkungs-Hälfte ist
+gestrichelt).
 
 ### Wenn etwas nicht geht
 
@@ -1475,7 +1539,8 @@ Interaktion“):
   - **Flowtrack:** was Dream gerade erkennt – die Art, Werte pro Sekunde, ob jemand da ist –, **Automatik: AN/AUS**
     und was die Automatik gewählt hat und warum (siehe [Flowtrack](#flowtrack)).
   - **Dream Dance:** die erkannte Geste mit Dreams Sicherheit und dein Tempo, die **Ampel** (was den Tanz blockiert),
-    die **Kupplung**, das **Bewegungs-Set** und der Regler **Stärke** – alle Wirkungen des Tanzes zusammen
+    die **Kupplung**, das **Bewegungs-Set**, **wessen Maße** der Tanz liest (siehe
+    [Deine Maße](#deine-maße--ruhig-und-wild)) und der Regler **Stärke** – alle Wirkungen des Tanzes zusammen
     (siehe [Dream Dance](#dream-dance-die-seite-die-kupplung-die-sets)).
 - **Seite ↗** öffnet die Seite des Modus in einem eigenen Fenster, für einen zweiten Bildschirm: Flowtrack und Dream
   Dance haben eine, die Stimmung braucht keine.
@@ -1734,13 +1799,16 @@ diese bittet sie, ein Bühnenfenster neu zu laden, das vor einem Update von Drea
 - **Bewegungsmuster** – das Kamerabild mit den Spuren der Hände bzw. Props (ausklingende Bahnen, Mehrfachbelichtung),
   dem **gestrichelten Rahmen**, wo Dreams Bild im Kamerabild liegt (die Kalibrierung; die Seite sagt auch, wie viel
   der Projektion herausgerechnet wird, solange „Projektion abziehen“ an ist), und dem **grünen Kreis** um die eine
-  Person; daneben die Ausgabe; und die Kurven von Energie, Tempo, Öffnung (der Abstand der Props bzw. Hände), Drehung,
-  Höhe und Ruhe.
+  Person; daneben die Ausgabe; und die Kurven von Energie, Tempo, Öffnung (der Abstand der Props bzw. Hände), Hände
+  kreisen, Höhe und Ruhe.
 - **Sessions** – **● Aufnehmen** speichert eine Session im Format des Tanz-Labors (nur Zahlen, nie ein Kamerabild;
-  siehe [Tanz-Labor](#tanz-labor)) zum Abspielen, Wiederholen und Exportieren – die Grundlage für spätere Profile einer
-  Person.
+  siehe [Tanz-Labor](#tanz-labor)) zum Abspielen, Wiederholen und Exportieren – und um daraus das Profil einer
+  Person zu lernen (unten).
+- **Personen** – lernen, wie sich eine Person bewegt, und Flowtrack auf sie abstimmen: siehe
+  [Personen: ein Profil je Person](#personen-ein-profil-je-person).
 
-Im Bedienfeld: **Automatik: AN/AUS** und die Zeile darunter, die sagt, was erkannt wurde und warum.
+Im Bedienfeld: **Automatik: AN/AUS**, die Zeile darunter, die sagt, was erkannt wurde und warum, und **Person: …** –
+das Profil, auf das Flowtrack abgestimmt ist.
 
 **Die Regeln** aus dem Abschnitt Bewegung („Feuer an“, „Feuer aus“, „Schnell“ → Szenenwechsel) gelten in diesem Modus
 wie bisher.
@@ -1764,6 +1832,73 @@ Kabel, Ladegeräte – und von dort, wo das Publikum steht; ein Handy, das Brenn
 gelüftet, bevor es wieder benutzt wird. Dream schaut nur zu: Es ersetzt keine Aufsicht, keine Löschdecke und nicht
 die Regeln des Veranstaltungsorts.
 
+### Personen: ein Profil je Person
+
+Zwei Menschen bewegen sich nicht gleich: Die eine dreht Poi schnell und weit, der andere bewegt sich klein und
+langsam. Ohne Profil misst Flowtrack alle an denselben festen Maßstäben – bei der Schnellen stehen die Effekte
+dauernd auf voller Stärke, der Sanfte erreicht sie kaum. Ein **Profil** ist, was Dream über die Art **einer** Person,
+sich zu bewegen, gelernt hat; ist es gewählt, reagiert Flowtrack auf diese Person: Ihr Ruhig ist ruhig, ihr Wild ist
+wild.
+
+**Eines lernen** (Seite von Flowtrack, Karte **Personen**): Gib ihm einen Namen – zum Beispiel „Anna – Poi“;
+Buchstaben, Ziffern, Leerzeichen und . + - –, höchstens 32 Zeichen, wie bei einem Bewegungs-Set –, wähle, woraus
+gelernt wird, und drücke **Lernen**.
+- **live** – Dream nimmt auf, was die Kamera ab jetzt sieht. Lass die Person spielen wie im Auftritt, ruhig und wild,
+  ein bis zwei Minuten (mindestens 15 Sekunden Bewegung; nach drei Minuten stoppt es von selbst), dann drücke den
+  Knopf noch einmal. Die Aufnahme bleibt im Speicher der Seite und ist nach dem Lernen weg – sie wird nicht als
+  Session gespeichert.
+- **eine Session** – eine, die **● Aufnehmen** der Seite vorher gespeichert hat (mindestens 15 Sekunden lang).
+
+Was gelernt wird und in der Liste als Zeile aus Worten steht, daneben die Energiekurve der Session:
+
+| Gelernt | Wofür |
+|---|---|
+| **Geschwindigkeit** – wie schnell Hände oder Props sind, bis zur Spitzengeschwindigkeit dieser Person | die Energie: Sie ist voll bei **ihrer** Spitzengeschwindigkeit, nicht bei einer festen |
+| **Größe** – wie weit die Hände auseinander und wie hoch sie sind, in ihrem eigenen Bereich | „Öffnung“ und „Höhe“ laufen von ihrem Kleinsten bis zu ihrem Weitesten |
+| **Drehung** – wie schnell, in welche Richtung, wie viel der Zeit | „Drehung“ ist voll bei ihrer schnellsten Drehung |
+| **Tempo** – der Tempobereich ihrer Wiederholung | „Tempo“ deckt ihren Bereich ab; die Glättung der Effekte folgt ihm (eine schnelle Person bekommt eine schnellere Antwort, zwischen dem 0,6- und dem 1,25-Fachen der Glättung der Tabelle) |
+| **Ebenen** – Kreise von vorn gesehen (Wandebene), aufrechte oder liegende Linien (eine Ebene von der Kante gesehen) | steht in der Liste; live sagt die neue Quelle **Rundheit der Bahn**, wie rund die Bahn des Props gerade ist |
+| **Figuren** – bis zu drei wiederholte Figuren, zu denen die Person zurückkommt (gefunden und erkannt mit dem Code der [eigenen Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)) | die neue Quelle **Eine Figur der Person**: so groß, wie die Figur gemacht wird, solange sie gemacht wird |
+| **der Blick** – wie weit sie im Kamerabild reicht, wie lange sie aus dem Blick gerät, mit welcher Art der Erkennung sie gelernt wurde | die Automatik (unten) |
+| **das Prop** – Poi, Stab, Hoop, Fächer, Hände oder etwas anderes: Dream schlägt eines vor, du sagst, was es ist | die Drehung eines Stabs wird aus der Linie zwischen seinen zwei Enden gelesen; bei Poi und Hoop (oft hinter dem Körper) wartet die Automatik anderthalbmal so lang |
+
+**Wählen** in der Karte Bewegung des Bedienfelds (**Person: …**, unter der Automatik) oder auf der Seite („Flowtrack
+ist abgestimmt auf“ oder **Verwenden** in der Liste). Unter der Wahl sagt die Seite in Sätzen, was das Profil ändert.
+„Person: kein Profil“ ist Flowtrack wie bisher. Die Wahl ist eine Einstellung von Dream: Sie übersteht einen
+Neustart, und sie wirkt nur im Modus Flowtrack – Dream Dance und die Stimmung lesen sie nie.
+
+**Die Wirkung** bleibt eine Zeile der Flowtrack-Tabelle wie alles, was eine Bewegung bewirkt. Zwei Zeilen sind neu:
+„Eine Figur der Person → Mandala“ (an) und „Rundheit der Bahn → Tunnel“ (aus, bis du sie einschaltest); sie ruhen,
+solange kein Profil gewählt ist, und eine Flowtrack-Tabelle, die du vor dieser Version geändert hast, bekommt die zwei
+Zeilen einmal dazu.
+
+**Die Automatik mit Profil** folgt der Person ruhiger: Sie zählt zur Person, was in **ihrer** Reichweite liegt, wartet
+so lange, wie **sie** typischerweise aus dem Blick gerät (mindestens 2,5, höchstens 8 Sekunden), bevor jemand anderes
+die Person werden kann, und behandelt die Art der Erkennung, mit der sie gelernt wurde, als erwartet – sie wechselt
+nach einer Sekunde dorthin statt nach drei und verlässt sie erst nach acht (die Begründung endet dann mit „Wie für …
+gelernt“). Jede Wahl kannst du weiter selbst übernehmen, und bei ausgeschalteter Automatik ändert ein Profil nichts
+an der Erkennung.
+
+**Umbenennen, Prop ändern, löschen** in der Liste (🗑 fragt noch einmal nach). Wird das Profil in Gebrauch gelöscht,
+läuft Flowtrack ohne Profil weiter.
+
+**Datenschutz.** Ein Profil sind persönliche Daten: der Name, den du eingetippt hast, und Zahlen, gemessen an der
+Bewegung einer Person – kein Kamerabild, kein Skelett, keine Aufnahme (die Figuren sind je 24 Punkte des Wegs der
+Hände durch eine Wiederholung). Es liegt in `~/.local/state/dream/dance/profiles/` auf diesem Mac; nur dieser Mac und
+Dream Control können Profile auflisten oder ändern, ein Gast, Dreamy Eyes und ein Traumfenster sehen sie nie, und
+nichts wird irgendwohin gesendet. Der Name erreicht nur diesen Mac und Dream Control: Die Wahl (die Einstellung
+`flow_profile`), die jedes Handy mit Dream Remote hört, ist die Nummer des Profils, nie sein Name. **⬇** schreibt eine Kopie nach
+`~/.local/state/dream/dance/exports/flow-profile-<id>.json` und nirgendwohin sonst – um ein Profil auf einen anderen
+Mac mitzunehmen, lies diese Datei dort mit **Profil-Datei einlesen …** ein. **Echte Profile kommen nie in Dreams
+Code-Ordner oder ein öffentliches Repository** (dieses enthält nur erfundene Test-Personen); bewahre einen Export an
+einem privaten Ort auf.
+
+**Grenzen.** Ein Profil passt am besten zu dem Aufbau, in dem es gelernt wurde: Bei Feuer und LEDs hat Dream keinen
+Körper als Maß und nimmt die Reichweite der Lichter als Größe, „wie weit sie reicht“ setzt also etwa denselben Abstand
+zur Kamera voraus. Lerne neu, wenn die Person das Prop wechselt. Eine Minute ruhige **und** wilde Bewegung gibt
+bessere Bereiche als fünfzehn Sekunden; ein Profil, das nur aus ruhiger Bewegung gelernt wurde, lässt alles wild
+aussehen. Bis zu 48 Profile werden gespeichert.
+
 <sub>[↑ Inhalt](#inhalt)</sub>
 
 ## Tanz
@@ -1778,7 +1913,7 @@ spielt keine Rolle:
 | Energie | wie viel und wie heftig du dich bewegst |
 | Tempo, Phase, eigener Schlag | das Tempo deiner eigenen Wiederholung und die Stelle darin – eine **Bewegungsuhr** neben der Schlaguhr der Musik |
 | Öffnung | wie weit die Hände auseinander sind |
-| Drehung | eine Hand läuft im Kreis, und wie herum |
+| Hände kreisen | eine Hand läuft im Kreis, und wie herum (keine Drehung des Körpers) |
 | Höhe | Hände unten … oben |
 | Ruhe | du stehst still |
 
@@ -1859,7 +1994,8 @@ Kamera (nur die Sessions des Labors gehen direkt an Dream und zurück) – öffn
 ihre Adresse. Wird die Bühne neu geladen, findet die Seite sie
 selbst wieder. Blockiert der Browser das Fenster, erlaube Pop-ups für Dream. Auf der Seite: die Kupplung, die
 Erkennung, der Takt, darunter die Sätze mit den Sets (siehe [Die Sätze](#die-sätze--was-dein-tanz-bewirkt)), deine
-eigenen Bewegungen (siehe [Eigene Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)) und das Tanz-Labor.
+eigenen Bewegungen (siehe [Eigene Bewegungen](#eigene-bewegungen--eine-bewegung-lernen)), deine Maße
+(siehe [Deine Maße](#deine-maße--ruhig-und-wild)) und das Tanz-Labor.
 
 **Die Kupplung** entscheidet, ob dein Tanz wirkt. Was Regler, Bedienfeld und ein MIDI-Controller einstellen, ist die
 **Grundlage**; der Tanz wirkt **obendrauf** – ein Effekt mit 30 % von Hand und 40 % vom Tanz zeigt sich mit 70 %, und
@@ -1870,12 +2006,14 @@ einem Ruck – so wechselst du nahtlos zwischen Tanzen und Bedienen. Vier Wege, 
 - Taste **K** auf der Bühne oder auf der Seite (im Modus Dream Dance),
 - ein MIDI-Knopf: „**Taste: Kupplung ein/aus**“ anlernen (siehe [MIDI-Controller](#midi-controller)),
 - der Knopf in Dream Control (Karte „Dream Dance“) – das Handy in der Tasche.
+- der große Knopf eines StickS3 am Handgelenk, sobald du ihn im Bedienfeld erlaubt hast (siehe [Getragene Geräte](#getragene-geräte-sticks3-am-handgelenk)).
 
 Der Balken unter dem Knopf auf der Seite zeigt, wie weit der Tanz drin ist. **Nach jedem Start ist die Kupplung
 gelöst**: Dein Tanz bewirkt nichts, bis du sie bewusst einlegst – eine eingelegte Kupplung merkt sich Dream nicht
 über einen Neustart hinweg (den Modus und das Bewegungs-Set schon). Gelöst ist deutlich zu sehen: Der Knopf ist leer
 mit gestricheltem rotem Rand und zeigt „Kupplung: gelöst“, und die Zeile darunter sagt, dass dein Tanz noch nichts
-bewirkt – in der Karte Bewegung, auf der Seite und in Dream Control gleich. Die Taste eines Armbands bleibt vorerst das „gut/schlecht“ des Labors.
+bewirkt – in der Karte Bewegung, auf der Seite und in Dream Control gleich. Die Taste eines Armbands über OSC bleibt das „gut/schlecht“ des Labors, ebenso
+die Seitentaste des StickS3.
 
 **Bewegungs-Sets** sagen, was deine Bewegungen bewirken – eines je Stück oder Stimmung eines Auftritts, jedes ein paar
 Sätze (siehe [Die Sätze](#die-sätze--was-dein-tanz-bewirkt)). Eingebaut: **Standard**, **Fließend** und **Wild**.
@@ -1922,17 +2060,23 @@ keiner ist zu sehen. Die Worte dazu stehen beim Darüberfahren (und für Screenr
 
 **Sätze in drei Spuren.** Jeder Satz sagt eine Sache, z. B. **„Wenn ich [die Arme hochwerfe] → [ziehen Spuren nach]“**:
 - **Grundbewegung** (warmes Gelb, *solange du dich bewegst*) – 2 Sätze. Eine fließende Bewegung (viel bewegen, die
-  Arme öffnen, drehen, die Arme heben) steuert eine Wirkung: „Wenn ich mich viel bewege → werden die Wellen stärker“.
+  Arme öffnen, mit den Händen kreisen, die Arme heben) oder eine eigene Grundbewegung (siehe
+  [Eigene Grundbewegungen](#eigene-grundbewegungen--ein-regler-durch-vormachen)) steuert eine Wirkung: „Wenn ich mich
+  viel bewege → werden die Wellen stärker“.
 - **Akzente** (kaltes Blau, *ein kurzer Moment*) – 4 Sätze. Eine Geste (die Arme hochwerfen, Akkordeon spielen, nach
   vorn schieben, einen Kreis ziehen, eine Welle machen) oder eine eigene Bewegung löst eine Wirkung aus: „Wenn ich
   einen Kreis ziehe → blüht ein Mandala auf“.
 - **Hände im Bild** (grün, *wo deine Hände sind*) – ein Satz aus Schaltern: „Meine Hände [malen Lichtspuren]
   [rühren das Bild um] [senden Impulse] [machen das Dunkel hell]“, höchstens zwei gleichzeitig.
 
+Ist das Raumlicht an, hat die Auswahl der Wirkungen auch die Gruppe **Raumlicht** (#270): **Aufleuchten** und
+**Lauflicht** für einen Akzent, **Helligkeit** für eine Grundbewegung – die LED-Kette tanzt mit, siehe
+[Raumlicht (WLED)](#die-leds-tanzen-mit-dream-dance).
+
 Die magentafarbene Hälfte eines Satzes ist deine Bewegung, die andere (in der Farbe ihrer Effekt-Gruppe umrandet) ist
 das, was im Bild passiert. **Klick auf eine Hälfte ändert sie:** Die Bewegung öffnet eine Auswahl der Bewegungen
 dieser Spur, jede mit einer kleinen Figur; die Wirkung öffnet eine Auswahl der Wirkungen nach Gruppen – was nicht passt,
-ist ausgegraut, beim Darüberfahren steht, warum (steht schon in einem anderen Satz, dieselbe Gruppe wie die andere
+ist ausgegraut, und auf der Karte steht, warum (schon in „Wenn ich …“ – welcher Satz sie hat, dieselbe Gruppe wie die andere
 Grundbewegung, dieselbe Gruppe wie eine Grundbewegung). Esc schließt ohne Änderung. **✕** entfernt einen Satz (mit
 „Rückgängig“), **＋ Satz** fügt einen hinzu, solange die Spur nicht voll ist. Jeder Satz beginnt mit einer kleinen Figur
 seiner Bewegung.
@@ -1983,7 +2127,7 @@ mit `dance_set` in einer Playlist-Szene. Deine Sets (höchstens 24) und das akti
 änderte, und Bewegungs-Sets, die solche Tabellen waren. Beim ersten Start nach dem Update macht Dream daraus Sets aus
 Sätzen, so gut es geht: Deine eigene Tanz-Tabelle (wenn sie keines der eingebauten Sets war) wird das Set **„Meine
 Tabelle“** (in der Sprache des Systems), jedes eigene Set ein Set gleichen Namens (mit einer Zahl dahinter, wenn ein
-eingebautes schon so heißt). Eine Zeile einer fließenden Bewegung (Energie, Öffnung, Drehen, Höhe) wird eine
+eingebautes schon so heißt). Eine Zeile einer fließenden Bewegung (Energie, Öffnung, Hände kreisen, Höhe) wird eine
 Grundbewegung, eine Geste oder eigene Bewegung ein Akzent mit der Stärke, die der der Zeile am nächsten ist, und die
 Hände im Bild bleiben so eingeschaltet, wie sie waren (höchstens zwei); was ein Satz nicht sagen kann (Fingerwerte, die
 KI-Regler, Wirkungen, die sich gegenseitig aufheben würden), fällt weg, und ist eine Spur voll, gehen die stärksten
@@ -2064,6 +2208,95 @@ Akzent.
   liegen in `~/.local/state/dream/dance/moves/` auf diesem Mac; nur dieser Mac und Dream Control können sie lesen oder
   ändern, und nichts davon verlässt den Mac.
 
+### Deine Maße – Ruhig und Wild
+
+Die Grundbewegungen (Energie, Öffnung, Hände kreisen, Höhe) erreichen die Sätze über Bereiche, die Dream für Tanzende im
+Durchschnitt wählt – das Ruhig der einen ist das Aufwärmen der anderen. **📏 Deine Maße** (unter den eigenen
+Bewegungen) misst dich ein, sodass **dein Ruhig 0 %** und **dein Wild 100 %** für jeden Satz ist. Starten mit
+**📏 Mich einmessen …** (im Abschnitt, neben „🎓 Bewegung lernen …“, oder Taste **M**). Nach drei Sekunden Countdown
+sagt Dream in großen Worten, was zu tun ist, und eine kleine Skelettfigur daneben macht es vor (bei reduzierter
+Bewegung im System steht sie still, mit Pfeilen); jeder Schritt hat einen Balken, die ersten anderthalb Sekunden sind zum
+Hinkommen, und solange Dream dich nicht sieht, wartet der Schritt:
+
+1. **Ruhig** (10 s): still stehen, Arme hängen locker – dein Ruhig von Energie, Höhe und dem Kreisen der Hände.
+2. **Wild** (10 s): so wild tanzen wie in einer Show – das Oberste deiner Energie.
+3. **Arme zu** (5 s): Hände vor dir zusammen – 4. **Arme auf** (5 s): weit auf – dein Bereich der Öffnung.
+5. **Arme hoch** (5 s): so hoch sie reichen – das Oberste deiner Höhe.
+6. **Hände kreisen** (8 s): lass die Hände so groß und so schnell kreisen wie in deinem Tanz – das Oberste ihres
+   Kreisens. (Diese Grundbewegung ist das Kreisen der Hände, keine Drehung des Körpers.)
+7. **Ergebnis:** je Grundbewegung ein Balken mit dem Standardbereich (grau) und deinem (violett), ein grüner Punkt, wo
+   du gerade bist, und „jetzt … %“ zwischen deinem Ruhig und deinem Wild – beweg dich und schau hin. Eine
+   Grundbewegung, die Dream nicht gut genug gesehen hat oder deren Ruhig und Wild zu nah beieinander liegen, behält den
+   Standardbereich (es steht dabei). Gib einen **Namen** (z. B. deinen Vornamen; dieselben Regeln wie beim Namen eines
+   Sets) und **Behalten** – deine Maße gelten ab jetzt. Ein Name, den es schon gibt, wird neu eingemessen (das Feld
+   sagt es). **Noch einmal messen**, **Verwerfen**, **✕** oder **Esc** ändern nichts.
+
+- **Wählen.** Die Chips über den Balken – **Standard-Maße** und alle eingemessenen Tanzenden – wählen, mit wessen
+  Maßen der Tanz liest; **Standard-Maße** holt jederzeit die eingebauten Bereiche zurück. Das Panel hat dieselbe Wahl
+  unter dem Bewegungs-Set („Maße: Kim“), und eine Playlist-Szene kann sie mitbringen (die Einstellung
+  `dance_profile`). **🗑** neben den Maßen in Gebrauch löscht sie nach einer Rückfrage am Knopf selbst (dann gelten die
+  Standard-Maße).
+- **Was es bewirkt.** Die Engine auf der Bühne liest den Tanz durch die Maße in Gebrauch, bevor irgendeine Zeile der
+  Tanz-Tabelle wirkt: dein Ruhig liegt, wo das Standard-Ruhig liegt, und dein Wild, wo das Standard-Wild liegt – so
+  erreicht eine sanfte Tänzerin die volle Wirkung, und ein unruhiger Tänzer löst im Stehen nicht alles aus. Nur die vier
+  Grundbewegungen werden so gelesen (Gesten, Hände, der Takt bleiben, wie sie sind), nur in Dream Dance (Stimmung und
+  Flowtrack lesen die Bewegung, wie sie ist), und die Regeln bleiben: ein Effekt je Gruppe, höchstens drei Gruppen,
+  die Mindestwirkung.
+- **Was gespeichert wird:** je Person ein Name und vier Zahlenpaare, in `~/.config/dream/dance-profiles.json` auf
+  diesem Mac – nie ein Kamerabild. Nur dieser Mac und Dream Control dürfen Maße behalten oder löschen; ein Gast ändert
+  nichts. Die Namen der Tanzenden und der Bewegungs-Sets erfahren nur dieser Mac und Dream Control – nie das Handy
+  eines Gasts und nie eine Ausgabe (Ausgabefenster, Dreamy Eyes, Traumfenster); ein Gast kommt ohne sie aus. Eine kaputte Datei wird übergangen: dann gelten die Standard-Maße.
+- **Grenzen.** Die Standardbereiche sind die eingebauten, noch nicht aus echten Sessions gelernt. Miss dich mit der
+  Erkennung ein, mit der du tanzt (Hände per KI oder LED-Marker), und an dem Ort, an dem du tanzt.
+
+### Eigene Grundbewegungen – ein Regler durch Vormachen
+
+Neben den vier eingebauten Grundbewegungen (viel bewegen, die Arme öffnen, mit den Händen kreisen, die Arme heben) kannst du Dream
+eigene Grundbewegungen beibringen: einen **Regler** zwischen Zuständen deines Körpers, die du vormachst und benennst –
+z. B. „aufrecht“ ↔ „tief in den Knien“ oder „nach links gelehnt“ ↔ „nach rechts gelehnt“. Unten auf der Seite
+steht **🎚 Eigene Grundbewegungen**, zugeklappt und als **Für Fortgeschrittene** markiert – die eingebauten
+Grundbewegungen brauchen nichts davon; der Titel klappt es auf, und es öffnet sich von selbst, wenn das Anlernen
+beginnt. Starten mit **＋ Grundbewegung anlernen …** dort, mit **＋ Eigene Grundbewegung …**
+bei den Grundbewegungen oder in der Bewegungswahl eines Grundbewegungs-Satzes (dann wird sie die Bewegung dieses
+Satzes).
+
+1. **Benennen:** die Grundbewegung und ihre Zustände – den bei **0** und den bei **1**, wenn du magst bis zu drei
+   **Zwischenstufen** (**＋ Zwischenstufe**; sie liegen gleichmäßig, z. B. 0 · 0,5 · 1). Namen: Buchstaben, Ziffern,
+   Leerzeichen und `. + -`, höchstens 32 Zeichen; keine zwei Zustände mit demselben Namen.
+2. **Zustände zeigen.** Für jeden Zustand zählt Dream drei Sekunden herunter (Haltung einnehmen), dann **hältst** du
+   ihn zweieinhalb Sekunden – ein wenig wiegen ist gut, dann lernt Dream ihn stabiler. Die Chips zeigen, welche
+   Zustände fertig sind. Hat Dream dich in einem Zustand nicht gesehen, sagt es das, und du zeigst diesen nochmal.
+3. **Ausprobieren.** Ein **Live-Pegel** folgt dir zwischen den Zuständen, die Zustände sind darauf markiert, und eine
+   Zeile sagt, woraus Dream den Regler liest (z. B. „Füße ↕ 62 % · Knie ↕ 36 %“). **Behalten** speichert ihn auf diesem
+   Mac und macht ihn zu einem Grundbewegungs-Satz (mit der Wirkung des Satzes, aus dem du gestartet bist, oder der
+   ersten passenden Wirkung; sind beide Grundbewegungs-Sätze belegt, ersetzt er den zweiten und sagt das – das Set ist
+   wie immer „● geändert“). **Nochmal** zeigt die Zustände noch einmal. Sehen die Zustände für Dream gleich aus oder
+   laufen sie ineinander, entsteht kein Regler, und Dream sagt warum – zeig sie nochmal, unterschiedlicher, oder ändere
+   die Zustände.
+
+- **Lernen** ist eine kleine Regression wie bei Wekinator, so klein, dass sie sich erklären lässt. Was der Körper
+  zeigt, sind ein paar Zahlen, gemessen an deinem eigenen Körper (jeder Punkt des Skeletts in Schulterbreiten von der
+  Mitte der Schultern, wie weit eine Schulter über der anderen steht, und deine Hände) – wo du im Bild stehst und wie
+  nah, spielt also keine Rolle. Dream nimmt die Werte, die sich zwischen den Zuständen ändern, gewichtet jeden danach,
+  wie ruhig er war, während du einen Zustand gehalten hast (so steht der Regler still, wenn du stillhältst), und passt
+  ihre Summe so an, dass jeder Zustand bei seinem Wert herauskommt; der Regler bleibt zwischen 0 und 1 und gleitet ein
+  wenig (etwa eine Zehntelsekunde).
+- **Erkennung.** Am besten mit **Hände (KI)** und dem ganzen Körper im Bild: Aus dem Skelett wird er gelesen. Mit
+  LED-Markern allein liest Dream eine Grundbewegung nur aus deinen Händen (z. B. „Arme unten“ ↔ „Arme oben“). Lern sie
+  mit der Erkennung an, mit der du sie tanzen wirst. Ist außer Sicht, woraus er gelesen wird (z. B. die Füße verlassen
+  das Bild), ist der Regler unbekannt und sein Satz ruht.
+- **Was sie bewirkt**, ist ein Grundbewegungs-Satz: „Wenn ich Richtung „tief in den Knien“ gehe → werden die Wellen
+  stärker“ – er wirkt, solange du da bist, nur bei eingelegter Kupplung und nach denselben Regeln wie jeder Satz (eine
+  Wirkung je Gruppe, höchstens drei Gruppen zugleich, das Minimum). Ihr Piktogramm ist eine Figur neben einem Regler.
+- **In der Liste** zeigt jede Grundbewegung ihren Namen (ein Textfeld: gespeichert, wenn du es verlässt), ihre
+  Zustände, woraus sie gelesen wird, und einen Live-Pegel dessen, was die Bühne gerade liest. **🎓 Nachlernen** zeigt
+  die Zustände neu (Name und Sätze bleiben); **🗑** löscht nach einer Rückfrage auf dem Knopf selbst – ihre Sätze (in
+  deinen Sets und in noch nicht gespeicherten Änderungen) sind dann leer. Höchstens 12 werden gespeichert.
+- **Was gespeichert wird:** die Regression – je Körperwert seine Mitte, sein Gewicht und sein Anteil –, die Namen der
+  Grundbewegung und ihrer Zustände und wo jeder Zustand herauskam. **Nur Zahlen und Namen, nie ein Kamerabild, nicht
+  einmal die gezeigten Frames.** Sie liegen in `~/.local/state/dream/dance/faders/` auf diesem Mac; nur dieser Mac und
+  Dream Control können sie lesen oder ändern, und nichts davon verlässt den Mac.
+
 ### Tanz-Labor
 
 Das **🧪 Tanz-Labor** ist der untere Teil der Seite von Dream Dance. Es zeigt live, was Dream aus deinem Tanz macht,
@@ -2084,7 +2317,7 @@ beim Tanzen abstimmen lässt:
   **Finger (Hand-KI)** unter der Ansicht zeigt, ob das Handmodell läuft (von selbst bei Dream Dance mit „Hände (KI)“).
   Eine leere Ansicht sagt, warum: Finger brauchen die Erkennung „Hände (KI)“ bei Dream Dance, das Hand-Modell lädt noch
   (einmal, ca. 8 MB), oder es ist keine Hand im Bild.
-- **Merkmal-Strom:** Energie, Tempo, Phase, Öffnung, Drehung, Höhe und Ruhe als laufende Kurven über die letzten
+- **Merkmal-Strom:** Energie, Tempo, Phase, Öffnung, Hände kreisen, Höhe und Ruhe als laufende Kurven über die letzten
   12 Sekunden, die erkannte Geste als Band darüber und – sobald eine Hand gesehen wurde – die Fingerwerte je Hand. Wo
   ein Wert nicht bekannt ist (Hand verloren, kein Rhythmus), hat die Kurve eine **Lücke**, markiert mit einer
   gestrichelten roten Linie: Dort zeigen sich die Grenzen bei Abstand, Licht und Tempo. Wo das **Skelett verloren**
@@ -2151,7 +2384,8 @@ ein Preset wählen und dabei bleiben.
   die Überblendung zwischen zwei Stilwelten (#224).
 - **Tasten-Ziele:** Pause/Start, nächste Szene, Neu, neuer Seed, **Blackout an/aus** (Master auf 0 und zurück),
   Tap-Tempo, Muster weiter, nächste Stilwelt (#221; #224: die nach der Welt, die am meisten zu sehen ist), jeder der zwölf Effekte an/aus, Effekte neu würfeln, Effekte aus,
-  „gut“ und „schlecht“ des Tanz-Labors, die **Kupplung** von Dream Dance ein/aus und das nächste Bewegungs-Set (#251).
+  „gut“ und „schlecht“ des Tanz-Labors, die **Kupplung** von Dream Dance ein/aus, das nächste Bewegungs-Set (#251) und
+  **Ausgabe aufnehmen** an/aus (#276).
 - Regler gleiten weich zum neuen Wert (keine Sprünge) und bewegen sich im Bedienfeld und am Handy mit.
   Endlos-Drehregler (die nur „mehr/weniger“ senden) erkennt Dream nach wenigen Rasten selbst.
 - Vorschlag für 8 Fader + Master: Verwandlung, Traum-Anteil, Zoom-Sog, Drehung, Farbdrift, Drift, Musik-Reaktion,
@@ -2206,7 +2440,245 @@ Werten/s („· Schläge 3“): blitzt die Bühne ohne Schlag, zeigt die Zahl, o
 steht im Bedienfeld. Die Werte laufen über dasselbe weiche Gleiten wie beim MIDI-Controller.
 
 Ideen: Armhöhe → Zoom-Sog oder Master-Helligkeit, Handgelenk drehen (Rollen) → Drehung, Kippen → Farbdrift,
-Schlag → Blitz. Das geplante Armband und der Finger-Handschuh (Tickets #38, #39) senden in dasselbe Format.
+Schlag → Blitz. Ein StickS3 am Handgelenk sendet genauso, mit seinem Knopf als Kupplung – siehe
+[Getragene Geräte](#getragene-geräte-sticks3-am-handgelenk); der geplante Finger-Handschuh
+(Ticket #39) ebenso.
+
+<sub>[↑ Inhalt](#inhalt)</sub>
+
+---
+
+## Getragene Geräte (StickS3 am Handgelenk)
+
+Ein **M5Stack StickS3** am Handgelenk schickt die Rohdaten seines Bewegungssensors per WLAN an Dream – ganz ohne
+Handy. **Getragen braucht er keinen Handgriff:** Eingeschaltet verbindet er sich von selbst mit dem bekannten WLAN und
+mit Dream, sendet und kommt nach einem Abbruch von selbst wieder – er kann in einem einfachen Band stecken, wo man sein
+Display nicht sieht und seine Tasten nicht drückt. Wahlweise ist sein großer Knopf die **Kupplung** von Dream Dance,
+mit Tönen, die sagen, was Dream bestätigt hat. Mit einem **M5Stack AtomS3 Lite** am USB des Macs als Empfänger (#278)
+schickt der Stick **per Funk direkt an den Mac** (ESP-NOW) statt durchs WLAN – schnell und stabil auch bei vollem oder
+gestörtem WLAN; ohne Empfänger fällt er von selbst aufs WLAN zurück. Die Firmware beider liegt in diesem Repository
+(`firmware/`); ein Befehl spielt sie auf ein Gerät.
+
+### Was du brauchst
+
+- **M5Stack StickS3** (ESP32-S3, Bewegungssensor BMI270, zwei Tasten, 1,14″-Display, Lautsprecher, 250-mAh-Akku,
+  USB-C). Der Akku hält mit Dream **etwa drei Stunden** (eine Schätzung: Das WLAN schickt 50 Werte pro Sekunde; miss
+  selbst nach – das Bedienfeld zeigt den Akku).
+- Ein **Band** dafür: ein einfaches Neoprenband, ein Sport-Armband mit Tasche oder ein M5Stack-Uhrenarmband für die
+  Stick-Reihe. Es darf beim Schwingen des Arms nicht rutschen (mit Feuer: siehe den Sicherheitshinweis bei
+  [Flowtrack](#flowtrack)).
+- Ein USB-C-**Datenkabel** zum Aufspielen vom Mac aus.
+- Wahlweise, für den Funk direkt zum Mac (#278): ein **M5Stack AtomS3 Lite** (ESP32-S3, ein Knopf, ein RGB-Licht,
+  USB-C, etwa 24 × 24 mm) – er bleibt am Mac angesteckt (direkt oder mit kurzem Kabel, am besten dort, wo er die
+  Tanzfläche „sieht“).
+
+### Aufspielen (ein Befehl)
+
+```bash
+firmware/flash.sh sticks3            # der StickS3 per USB-C angesteckt
+firmware/flash.sh atoms3-receiver    # der AtomS3 Lite, der USB-Empfänger (#278)
+```
+
+**Einer nach dem anderen:** Beide sind ESP32-S3-Boards mit denselben USB-Kennungen, das Skript kann sie am USB nicht
+unterscheiden. Es braucht immer den Namen des Geräts, und sind zwei solche Boards angesteckt, spielt es nichts auf
+(Rückgabe 4, mit einer klaren Zeile), außer du nennst den Port mit `--port` (`firmware/flash.sh --list` zeigt sie). Also:
+nur das eine anstecken, aufspielen, dann das andere. Während es aufspielt, lässt ein laufendes Dream seine USB-Ports los
+(das Skript legt eine Notiz `flashing` in Dreams State-Ordner) – Dream muss nicht beendet werden und findet den Empfänger
+danach von selbst wieder.
+
+Das Skript macht alles selbst und fragt nichts: Es installiert [PlatformIO](https://platformio.org) mit
+`uv tool install platformio`, falls es fehlt, findet den Stick an seinen USB-Kennungen, baut die Firmware (jede
+Version ist in `platformio.ini` festgeschrieben), spielt sie auf, versucht es bei einem Fehler noch einmal und endet
+mit einer klaren Zeile – „Done: … has the new firmware.“ oder was schiefging. Du kannst also auch einfach Claude
+bitten: „Spiel die Firmware auf den Stick.“
+
+- `firmware/flash.sh --list` zeigt die gerade angesteckten Boards (und welche Firmware zu welchem passt).
+- `firmware/flash.sh sticks3 --port /dev/cu.usbmodem1101` nimmt diesen Port, statt zu suchen (mehrere Boards
+  angesteckt).
+- Rückgabewerte: 0 fertig · 1 Bauen oder Aufspielen gescheitert (zweimal) · 2 falscher Aufruf · 3 kein solches Board
+  gefunden · 4 mehrere gefunden (eins mit `--port` wählen) · 5 PlatformIO fehlt und ließ sich nicht installieren.
+
+Wird der Stick nicht gefunden oder scheitert das Aufspielen: seinen **Ein-/Aus-Knopf** (seitlich) etwa zwei Sekunden
+halten, bis das grüne Licht innen blinkt (Download-Modus), dann den Befehl wiederholen. Der AtomS3 Lite: seinen Knopf
+(die ganze Oberseite ist der Knopf) beim Anstecken halten. `pio device monitor` zeigt, was ein Board beim Laufen schreibt
+(beim Empfänger vorher Dream beenden: Solange Dream läuft, gehört sein Port Dream). Bei einem Funkproblem mit `PLATFORMIO_BUILD_FLAGS=-DDREAM_RADIO_LOG`
+vor dem Befehl flashen: Der Stick schreibt dann alle zwei Sekunden, was er gesendet und empfangen hat, der Empfänger eine
+Zeile `# radio …` mit dem, was bei ihm ankam (Dream übergeht diese Zeilen).
+
+### WLAN einrichten (kein WLAN-Passwort im Code)
+
+Einmal, bevor der StickS3 ins Band kommt. Der erste Start (oder ein Start mit **gehaltener Taste B**) öffnet fünf
+Minuten lang einen Einrichtungs-Hotspot – kennt der Stick sein WLAN, öffnet er ihn nie von selbst und wartet auf
+niemanden:
+
+1. Das Display zeigt den Namen des Hotspots (`Dream-StickS3-…`) und ein eben ausgedachtes **Passwort**.
+2. Mit Handy oder Mac in diesen Hotspot gehen; die Einrichtungsseite öffnet sich von selbst (sonst http://192.168.4.1).
+3. Dein WLAN wählen und sein Passwort eingeben. Das Feld **„Dream: address of the Mac“** bleibt leer – Dream wird von
+   selbst gefunden. Nur wenn das nicht klappt (ein Netz, das mDNS sperrt): die Adresse des Macs eintragen
+   (`ipconfig getifaddr en0`), mit `:Port`, falls Dreams Sensor-Port nicht 7020 ist.
+4. Speichern. Der Stick behält das WLAN in seinem eigenen Speicher und verbindet sich ab jetzt von selbst – bei jedem
+   Start und wieder, wann immer das WLAN eine Weile weg war.
+
+Dream muss mit `./dream.sh --lan` laufen (sonst hört es nur auf diesem Mac); dann kündigt es seinen Sensor-Port im
+WLAN an (mDNS `_dream-osc._udp`, mit dem Bonjour von macOS). Das Bedienfeld sagt unter **Steuerung → Getragene Geräte**,
+welcher Port das ist.
+
+### Koppeln: den Knopf des StickS3 erlauben
+
+Die Bewegung eines StickS3 zählt sofort (wie jeder Sensor im Heimnetz, als Quelle **Armband** in der Karte Bewegung).
+**Sein Knopf bewegt die Kupplung erst, wenn du es erlaubst** – so legt ein verirrtes Paket im WLAN nie deinen Tanz ein:
+
+1. StickS3 einschalten. Im Bedienfeld unter **Steuerung → Getragene Geräte** erscheint er („StickS3 E5F6 – da · 50
+   Werte/s · Akku 80 %“).
+2. **Kupplung erlauben** klicken. Dream gibt dem Stick einen eigenen Schlüssel; sein Display wechselt von „allow in
+   Dream“ zur Kupplung. Ab jetzt ist der Knopf eine Kupplung wie Taste K oder ein MIDI-Knopf – auch nach einem
+   Neustart von Dream oder Stick.
+   Sagt die Zeile, der Stick habe seinen Schlüssel nicht bekommen (er war eine halbe Minute nicht erreichbar):
+   zurücknehmen und neu erlauben.
+3. **Zurücknehmen** nimmt es zurück (jederzeit wieder erlaubbar; ein neu bespielter Stick braucht die Erlaubnis neu).
+
+### Der USB-Empfänger: Funk direkt zum Mac (AtomS3 Lite, #278)
+
+Der AtomS3 Lite am USB des Macs nimmt die Pakete des Sticks per Funk an (**ESP-NOW**: vom Handgelenk direkt zum Mac,
+kein Router, kein WLAN dazwischen) und reicht sie über seine USB-Leitung an Dream weiter. Dream findet ihn von selbst
+(keine Einstellung, kein `--lan` nötig dafür) und gibt die Pakete in denselben Weg wie übers WLAN: dieselbe Bewegung,
+dieselbe Kupplung, dieselbe Zeile im Bedienfeld. Die **Verzögerung** steht in der Zeile („per Funk · 50 Werte/s ·
+≈ 3 ms“) – Ziel ist unter 10 ms; übers WLAN sind es oft 5–50 ms, und sie springt, wenn das WLAN voll ist.
+
+**Einrichten (einmal):**
+
+1. Beide aufspielen, nacheinander (oben): `firmware/flash.sh atoms3-receiver`, dann `firmware/flash.sh sticks3`.
+2. Den AtomS3 Lite an den Mac stecken und Dream starten (oder laufen lassen). Im Bedienfeld unter **Steuerung →
+   Getragene Geräte** erscheint eine Zeile „📡 AtomS3 receiver …“, sein Licht wird **rot** (noch kein Armband).
+3. **Koppeln** – blind, am Stick nichts zu drücken: den Knopf des Empfängers **2 Sekunden** halten (sein Licht blinkt
+   weiß; oder im Bedienfeld **Armband koppeln** klicken), dann den **StickS3 einschalten**, nahe am Empfänger, innerhalb
+   von 30 Sekunden. Bei jedem Start fragt der Stick zuerst auf allen Kanälen, ob ein Empfänger auf ihn wartet (etwa
+   zwei Sekunden); der Empfänger gibt ihm einen eigenen Schlüssel und blinkt **dreimal grün**, der Stick spielt zwei
+   steigende Töne und zeigt „paired“. Seine Bewegung zählt sofort, und weil du den Knopf des Empfängers gedrückt hast –
+   das Wort des Besitzers, wie das Erlauben im Bedienfeld –, ist sein Knopf sofort die Kupplung (**Zurücknehmen** im
+   Bedienfeld nimmt das zurück wie bei jedem Stick).
+4. Fertig: Ab jetzt findet der Stick seinen Empfänger bei jedem Start von selbst.
+
+**Das Licht des Empfängers:** **grün** = ein Armband ist per Funk da und die Kupplung **eingelegt** · **blau** = da,
+Kupplung **gelöst** · **rot** = kein Armband (per Funk) · **gelb** = Dream hört nicht zu (läuft nicht) · **weiß
+blinkend** = Koppeln (30 s). Dreimal grün geblitzt: gekoppelt; dreimal rot: alle vergessen.
+
+**Der Knopf des Empfängers:** kurz gedrückt schaltet er die **Kupplung** um – wie Taste K, ein MIDI-Knopf oder das
+Handy (ein kurzes weißes Blitzen sagt, dass es bei Dream ankam; zweimal gelb: Dream hört nicht zu, nichts geändert).
+Das Bedienfeld zeigt „📡 Kupplung am Empfänger eingelegt“. 2 s gehalten: Koppeln. 10 s gehalten: **alle gekoppelten
+Armbänder werden vergessen**.
+
+**Zurück aufs WLAN:** Bekommt der Stick keine Antwort von seinem Empfänger (abgesteckt, Mac schläft, außer Reichweite),
+sucht er ihn einmal auf allen Kanälen (etwa zwei Sekunden) und geht dann wie bisher ins WLAN (wenn eins eingerichtet
+ist) – die Zeile im Bedienfeld sagt „über WLAN“. Ist der Empfänger wieder da, sagt Dream es dem Stick übers WLAN, und er
+wechselt von selbst auf Funk (ein Stick, der ihn nicht erreicht, wartet eine Minute, bevor er es wieder versucht, nach
+jedem weiteren Fehlschlag doppelt so lange – so wird er nicht immer wieder aus dem WLAN geholt); ist er eine halbe
+Minute im WLAN ohne Dream, versucht er es auch selbst wieder beim Empfänger. Ein Stick, der seinen Empfänger kennt, aber kein WLAN, sucht einfach weiter den Empfänger. Zu drücken ist
+in keinem Fall etwas.
+
+**Der Kanal:** Der Empfänger ist nie in einem WLAN, er bleibt auf einem festen Funkkanal – **1**, außer du setzt
+`DREAM_ESPNOW_CHANNEL=6` (1 … 13) in `~/.config/dream/dream.env`; Dream sagt es dem Empfänger. Ein Stick auf Funk ist
+auch nicht im WLAN (ein Funkteil, ein Kanal zur Zeit), lernt den Kanal beim Koppeln und findet einen geänderten Kanal
+von selbst. Wähle einen abseits deines WLANs (die Einstellungen des Routers zeigen es; WLAN auf 1: nimm 6 oder 11, auf
+6: nimm 1 oder 11) – der Funk geht auf jedem, aber je weniger dort los ist, desto stabiler. **WLED** (#212) und die
+Hue-Lampen sind nicht betroffen: Sie bleiben im WLAN, Dream spricht mit ihnen wie bisher.
+
+**Sicherheit:** Gehört werden nur Sticks, die mit dem Empfänger gekoppelt sind – der Empfänger führt seine eigene Liste
+(höchstens sechs; ein siebter verdrängt den am längsten gekoppelten) und verwirft jedes andere Paket, Dream prüft es noch
+einmal und dass ein Paket den Stick nennt, von dem es kam. Alles zwischen einem Stick und dem Empfänger ist
+**verschlüsselt**, mit einem eigenen Schlüssel dieses Sticks (beim Koppeln zufällig erzeugt; er geht einmal, im
+30-Sekunden-Fenster, unverschlüsselt vom Empfänger zum Stick). Die Kupplung braucht weiterhin das Token des Sticks aus
+#277. Dem Empfänger selbst wird vertraut, weil er am USB des Macs steckt, wie Taste K.
+
+**Akku:** Auf Funk hört der Empfangsteil des Sticks ständig zu (ESP-NOW kann zwischen den Paketen nicht schlafen wie das
+WLAN im Modem-Schlaf), der Akku hält deshalb womöglich **kürzer als übers WLAN** – noch nicht gemessen; das Bedienfeld
+zeigt den Akku.
+
+### Anlegen und benutzen
+
+StickS3 einschalten, ins Band an Unterarm oder Handgelenk stecken – das ist alles: Er sendet seine Bewegung, sobald er
+Dream gefunden hat, und das Bedienfeld zeigt ihn (unten). **Die Kupplung** kommt wie bisher aus dem Bedienfeld, von
+Taste K, einem MIDI-Knopf oder aus Dream Control (das Handy in der Tasche) – dafür braucht der Stick keine Hand.
+
+**Taste A** (die große vorne) ist wahlweise eine eigene Kupplung, sobald erlaubt (oben). Weil man das Display oft
+nicht sieht, **sagt** der Stick, was Dream bestätigt hat: **zwei steigende Töne** = eingelegt, **zwei fallende Töne** =
+gelöst, **ein tiefes Brummen** = Dream hat nicht bestätigt (keine Verbindung oder der Stick ist nicht erlaubt) – dann
+hat sich nichts geändert. Das Display zeigt, wo man es sieht, dasselbe: eine volle grüne Scheibe „IN“ (eingelegt),
+einen Ring „OUT“ (gelöst) und ein **„?“**, solange Dream einen Moment nicht geantwortet hat (es zeigt nie einen Zustand,
+den es nur vermutet; ein Druck, während „?“ steht, bewirkt nichts). Die Zeile unter dem Kupplungsknopf im Bedienfeld
+sagt „der Knopf am Handgelenk legt ein und löst“, und beim Drücken erscheint kurz „⌚ Kupplung am Handgelenk
+eingelegt“. **Taste B** (die kleinere – nicht der Ein-/Aus-Knopf) gibt dem [Tanz-Labor](#tanz-labor) sein Feedback:
+einmal „gut“, zweimal schnell „schlecht“.
+
+Seine Bewegung geht in den [Sensor-Eingang](#sensor-eingang-bewegung-im-dunkeln-handy-am-arm-später-armband) als
+`/sticks3/<id>/accelerometer` und `/sticks3/<id>/gyroscope` – lernbar auf Regler, Schläge, Schwung und die
+Tanz-Erkennung, genau wie ein Handy am Arm – und, mit ihren eigenen Zeitstempeln, in die Sessions des Tanz-Labors
+(unten).
+
+**Was das Bedienfeld von ihm zeigt** (Steuerung → Getragene Geräte und ein Abzeichen in der Statuszeile): ob der Stick
+da ist (Werte pro Sekunde) oder weg (seit wann), seinen Akku – ab 15 % als Warnung, Zeile und Abzeichen rot – und
+seinen letzten Druck („Zuletzt gedrückt: eingelegt, vor 12 s“).
+
+**Wenn der Stick weg ist** (Akku leer, aus dem WLAN): Dream merkt es nach drei Sekunden; das Bedienfeld zeigt ihn als
+weg, und in der Statuszeile steht ein rotes „⌚ StickS3 … weg“. **Die Kupplung bleibt, wie sie war** – dein letztes
+Wort gilt; der Kupplungsknopf im Bedienfeld, Taste K oder ein MIDI-Knopf ändern sie weiterhin. (Löste sie sich von
+selbst, spränge das Bild mitten im Stück, weil ein Akku leer ist.)
+
+**Akku:** Das Funkteil schläft zwischen den Paketen, das Display wird nach vier Sekunden ohne Änderung dunkler, ruht
+der Arm 20 Sekunden, schickt der StickS3 zehn statt 50 Werte pro Sekunde, und nach einer halben Stunde ohne Dream
+schaltet er sich selbst aus. Laden per USB-C; der Ein-/Aus-Knopf seitlich: einmal klicken an, doppelt klicken aus.
+
+### Sessions behalten die Rohdaten des Sensors (#196)
+
+Eine Session des [Tanz-Labors](#tanz-labor) behält jetzt auch die **Rohdaten des Bewegungssensors mit ihren Zeiten** –
+Beschleunigung (mit und ohne Schwerkraft), Drehrate und Ausrichtung des führenden Sensors (ein StickS3, ein Handy, das
+seine Bewegung leiht, jeder OSC-Sensor), jeden Wert, wie er kam, nicht nur einen je Bild. Eine Testdatei aus einer
+Session trägt sie mit. Das Abspielen einer Session gibt dem Traum wie bisher die aufgenommenen Merkmale; die Rohdaten
+beim Abspielen wieder in den Sensor-Eingang selbst zu speisen (damit gelernte Regler und Schläge dabei wirken), ist ein
+späterer Schritt.
+
+### Das Protokoll (für eigene Geräte)
+
+OSC über UDP an den Sensor-Port – oder per Funk über den USB-Empfänger (#278: dieselben Pakete; `receiver.py` und
+`firmware/lib/DreamRadio/src/DreamRadio.h` beschreiben die Funkrahmen und die serielle Leitung des Empfängers) –, alles
+unter `/dream/wear/` (`wearables.py` beschreibt es vollständig): Ein Gerät
+schickt `hello` einmal pro Sekunde (Kennung, Art, sein Schlüssel, Akku, Firmware), `imu` 50–100-mal pro Sekunde
+(Kennung, seine Uhr in ms, Beschleunigung in g, Drehrate in °/s) und `clutch` bei einem Druck (Kennung, Schlüssel, der
+gewünschte Zustand, eine Nummer – wiederholt, bis Dream antwortet). Dream antwortet mit `state` (Kupplung, erlaubt, die
+übernommene Nummer) an die Adresse, von der es kam, und mit `pair` (dem Schlüssel), sobald du es erlaubt hast. #278:
+Dream schickt einmal pro Sekunde `ping` (eine Nummer), das Gerät antwortet sofort `pong` (Kennung, diese Nummer) – die
+Hälfte dieses Wegs ist die Verzögerung im Bedienfeld; an einen Stick im WLAN, dessen Empfänger angesteckt ist, `radio`
+(der Kanal).
+
+### Wenn etwas nicht geht
+
+- **Der Stick erscheint nicht im Bedienfeld:** Läuft Dream mit `--lan`? Stick und Mac im selben WLAN (kein Gastnetz,
+  das Geräte trennt)? Zeigt der StickS3 lange „looking for Dream“: die Adresse des Macs in der Einrichtung eintragen
+  (beim Einschalten B halten). Eine Firewall auf dem Mac muss Dream (Python) empfangen lassen.
+- **Der StickS3 zeigt „no Wi-Fi“:** Das WLAN hat sich geändert – beim Einschalten B halten und neu einrichten.
+- **Ein tiefes Brummen nach Taste A:** Dream hat nicht bestätigt – noch nicht erlaubt (Bedienfeld: **Kupplung
+  erlauben**) oder keine Verbindung; die Kupplung hat sich nicht geändert.
+- **„?“ auf dem Display:** Dream antwortet nicht – Dream beendet, der Mac schläft, oder Dream hat eine neue Adresse
+  (der Stick sucht es nach zehn Sekunden neu).
+- **„allow in Dream“ auf dem Display, die Kupplung bewegt sich nicht:** im Bedienfeld **Kupplung erlauben** klicken
+  (die Zeile dort zählt die abgewiesenen Drücke).
+- **`flash.sh` findet keinen Stick (Rückgabe 3):** ein reines Ladekabel oder der Stick ist aus – ein Datenkabel nehmen,
+  einschalten oder in den Download-Modus bringen (oben). **Mehrere gefunden (Rückgabe 4):** die anderen abstecken oder
+  einen mit `--port` nennen.
+- **Das Aufspielen scheitert zweimal (Rückgabe 1):** Ein anderes Programm hält den USB-Port (seriellen Monitor
+  schließen), dann der Download-Modus oben.
+- **Zwei Boards angesteckt (Rückgabe 4, „the same ids“):** StickS3 und AtomS3 Lite sehen am USB gleich aus – das
+  abstecken, das nicht bespielt werden soll, oder den Port mit `--port` nennen.
+- **Der Empfänger erscheint nicht im Bedienfeld:** ein Datenkabel? Sein Licht **gelb** heißt: Dream hört ihm nicht zu –
+  Dream hört nach wenigen Sekunden zu, sobald eine Seite offen ist (sein Sensor-Teil startet mit dem ersten Bedienfeld
+  oder Dream Control); bleibt es gelb: neu anstecken. Ein anderes Programm, das seinen Port hält (ein serieller
+  Monitor), sperrt Dream aus.
+- **Das Licht des Empfängers bleibt rot, der Stick zeigt „looking for receiver“ oder läuft „über WLAN“:** nicht mit
+  diesem Empfänger gekoppelt (koppeln: Knopf 2 s halten, dann den Stick daneben einschalten), zu weit weg, oder gerade
+  wurde der Kanal geändert (der Stick findet ihn in Sekunden). Den Empfänger höher setzen (USB-Verlängerung) hilft durch
+  Körper und Wände.
+- **Die Verzögerung im Bedienfeld ist über Funk hoch** (deutlich über 10 ms): ein anderer Funk auf demselben Kanal –
+  mit `DREAM_ESPNOW_CHANNEL` einen anderen wählen.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2477,7 +2949,7 @@ gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zur�
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
 `node --test tests/js/soft.test.mjs` (#211) prüft die Anteile der weichen Wechsel (altes Eingangsbild, alter und
-neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten (`tests/test_mdns.py`). `tests/test_hue.py` und `node --test tests/js/huecard.test.mjs` (#272) prüfen die Hue-Lampen gegen eine nachgebaute Hue Bridge (ein https-Server auf 127.0.0.1 mit eigenem Zertifikat): Koppeln mit und ohne Knopfdruck, den Schlüssel (nur im Konfigurationsordner, Modus 0600, nie in einem Log oder einer Nachricht an eine Seite, nie an ein Gerät, dessen Zertifikat nicht das der Bridge ist), Räume, Zonen und Lampen, die Farbe im Farbraum jeder Lampe, höchstens eine Änderung pro Sekunde und Lampe und zehn pro Sekunde insgesamt, Master und Blackout, den vorherigen Zustand nach jeder Art von Ende, dass eine langsame oder verschwundene Bridge nichts bremst, und dass Gäste nichts davon ändern. `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
+neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, #270 das Dimmen, Aufleuchten und Lauflicht des Tanzes (einmal pro Geste, seine Richtung, unter Master und Blackout, Pakete am nachgebauten Empfänger), dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten (`tests/test_mdns.py`). `tests/test_hue.py` und `node --test tests/js/huecard.test.mjs` (#272) prüfen die Hue-Lampen gegen eine nachgebaute Hue Bridge (ein https-Server auf 127.0.0.1 mit eigenem Zertifikat): Koppeln mit und ohne Knopfdruck, den Schlüssel (nur im Konfigurationsordner, Modus 0600, nie in einem Log oder einer Nachricht an eine Seite, nie an ein Gerät, dessen Zertifikat nicht das der Bridge ist), Räume, Zonen und Lampen, die Farbe im Farbraum jeder Lampe, höchstens eine Änderung pro Sekunde und Lampe und zehn pro Sekunde insgesamt, Master und Blackout, den vorherigen Zustand nach jeder Art von Ende, dass eine langsame oder verschwundene Bridge nichts bremst, und dass Gäste nichts davon ändern. `tests/test_recording.py` und `node --test tests/js/recorder.test.mjs` (#276) prüfen das Aufnehmen der Ausgabe: die Stücke in der richtigen Reihenfolge angehängt (ein doppelt geschicktes nicht doppelt, ein fehlendes abgewiesen), das Ende nach 15 Minuten – durch die Bühne, sonst durch Dream –, eine weggefallene Bühne (die Datei bleibt und spielt), die Plattengrenze (Stopp vor dem Vollwerden, kein Start mit zu wenig Platz), Größe und Bitrate, sichere Dateinamen, die Dream selbst vergibt, dass nur die Bühne an diesem Mac Video abgibt und nur dieser Mac und Dream Control starten oder stoppen (Gäste weder starten noch davon hören), und – wenn ffmpeg da ist – ein echtes WebM und MP4, in Stücke geschnitten, zusammengesetzt und mit ffprobe geprüft, ganz und abgebrochen; die Aufnahme der Bühne mit nachgebautem MediaRecorder und nachgebautem Dream (Formatwahl, das letzte Stück beim Stopp, die 15 Minuten, Dreams Stopp, ein scheiterndes oder nachhinkendes Hochladen) und die Worte des Knopfes (ein Knopf: die Laufzeit, die letzte Minute, was gespeichert wurde; keine Einstellungen, keine Taste). `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn
@@ -2517,6 +2989,19 @@ halten muss, bevor die Art wechselt; die Belichtung (auch dass eine kurze Belich
 nicht für einen dunklen halten lässt); die eine Person, der bis an den Rand gefolgt wird, während Zuschauer dort
 ignoriert werden; und die Kalibrierung – derselbe Blick in anderem Licht ist derselbe Blick, eine gedrehte Kamera
 nicht, ein dunkler Raum behauptet nichts.
+`node --test tests/js/flowprofile.test.mjs` (#253) prüft die Profile der Personen (`static/flowprofile.js`) an
+synthetischen Personen – erfundenen Menschen mit einer eigenen Art, sich zu bewegen (`tests/js/flow-sim.mjs`; niemand
+Echtes): Ein Profil wird aus einem Auftritt gelernt und bei einem anderen derselben Person verwendet (anderer Ort im
+Bild, andere Größe, anderes Rauschen). Gemessen: Die Wirkung folgt einer großen, schnellen und einer kleinen, sanften
+Person mit ihrem Profil in mindestens 90 % der Bilder und ohne in höchstens 60 %; was gelernt wird (Geschwindigkeit,
+Drehung, Ebenen, Tempo, die Energiekurve, der Blick, ein Vorschlag fürs Prop); eine Figur, zu der die Person
+zurückkommt, wird in mindestens 90 % ihrer Bilder beantwortet, und andere Bewegung wird nicht dafür gehalten; ein
+Profil enthält nur Zahlen und den gewählten Namen; was kein Profil ist, wird abgelehnt.
+`tests/js/flowprofiles.test.mjs` prüft, was die Seite über ein Profil sagt und dass ihr Teil nur die Profile und die
+Sessions des Labors erreicht; `tests/js/flowauto.test.mjs` auch, dass eine auf eine Person abgestimmte Automatik auf
+sie wartet und ihre Art der Erkennung hält; `tests/test_flowprofiles.py`, was Dream von einem Profil speichert, wer es
+erreicht, wohin ein Export geht, dass ein gelöschtes Profil nicht mehr in Gebrauch ist und dass ein Gast die Wahl nur
+als Nummer hört, nie den Namen der Person.
 `node --test tests/js/movepage.test.mjs` (#251) prüft, was die Seiten der Modi teilen (`static/movepage.js`): Die
 Seite findet die Bühne, die sie geöffnet hat, und merkt, wenn sie neu geladen wird; wer den Schlag gibt, wenn die Uhr
 des Tanzes und die der Musik verglichen werden; und dass die Seite von Dream Dance keinen eigenen Socket und keine
@@ -2549,6 +3034,20 @@ Wiederholungen und Hysterese, die Grenzen der Toleranz und wie eine Aufnahme in 
 `node --test tests/js/moveteach.test.mjs` prüft die Teile der Anlern-Karte ohne Seite (eine Aufnahme, die Datei, die
 gespeichert wird, die Zeile der Tabelle, die Kupplung); `tests/test_dancemoves.py`, was Dream von einer Bewegung
 speichert, wer sie erreicht und dass das Löschen ihre Zeilen entfernt.
+`node --test tests/js/dancecal.test.mjs` (#266) misst den simulierten Tänzer ein (ruhig, wild, Arme zu und auf, Arme
+hoch, drehen) und prüft die Grenzen, die herauskommen, dass Ungesehenes oder zu Nahes beim Standard bleibt und dass die
+Engine den Tanz durch die Maße liest – eine sanfte Tänzerin erreicht die volle Wirkung, nur in Dream Dance, die Gruppen
+gelten weiter; `tests/test_danceprofiles.py`, was ein Profil sagen darf, eine kaputte Datei (dann gelten die
+Standard-Maße), Wählen, Behalten und Löschen, und dass nur dieser Mac und Dream Control das dürfen.
+`node --test tests/js/dancefaders.test.mjs` (#267) prüft die eigenen Grundbewegungen (`static/dancefaders.js`,
+gelesen in `static/dance.js`) an einem simulierten Körper: Ein Regler, gelernt aus zwei gezeigten Zuständen (aufrecht ↔
+tief in den Knien), wird aus den Beinen gelesen und läuft gleichmäßig zwischen ihnen – weiter weg, näher, an anderer
+Stelle im Bild; hält man einen Zustand mit dem Zittern des Posenmodells, hält der Merkmalstrom ihn still; drei Zustände
+mit Zwischenstufe (Lehnen), zwei Regler, die sich nicht ins Gehege kommen, Marker allein (die Hände), ein Regler, der
+keiner sein kann, sagt warum, ein Skelett außer Sicht ist kein Wert, eine Session spielt ihn wieder ab, und ein kaputtes
+Modell wird abgelehnt. `node --test tests/js/faderteach.test.mjs` prüft die Teile der Anlern-Karte ohne Seite und den
+Satz einer eigenen Grundbewegung; `tests/test_dancefaders.py`, was Dream davon speichert (nur Zahlen und Namen), wer es
+erreicht, eine kaputte Datei und dass das Löschen ihre Grundbewegungs-Sätze leert.
 `node --test tests/js/dancerec.test.mjs` (#243) prüft die Sessions des Tanz-Labors (`static/dancerec.js`): Ein
 aufgenommener simulierter Tanz gibt beim Abspielen genau die Merkmale wieder, aus denen er gemacht wurde, und enthält
 nichts als Zahlen; seine Eingaben, einem frischen Erkenner gefüttert, ergeben dieselben Gesten; ein Feedback behält
@@ -2595,7 +3094,40 @@ darf), den gemeinsamen Zustand (`hub.py`), die Steuerleitung (`ctl.py`), Playlis
 (`cloud.py`), das Messen (`measure.py`), Uploads und die Galerie (`media.py`), Sprache (`voice.py`) und die Seiten mit
 ihren Links (`pages.py`, `net.py`). Die Seiten liegen in `static/`; was sie teilen, steht in `static/common.js`. Die Regler des
 Bedienfelds und von Dream Control zeichnet `static/sliders.js` (aus der Einstellungstabelle: Standard, Bereich und
-`weight` einer Einstellung), ihre bewegten Zeichen und die Form des Bildcharakters `static/signs.js`.
+`weight` einer Einstellung), ihre bewegten Zeichen und die Form des Bildcharakters `static/signs.js`. Die getragenen
+Geräte (#277) sind `wearables.py` (das Protokoll, das Koppeln, die Antworten), `receiver.py` (#278: der USB-Empfänger –
+ihn finden, seine serielle Leitung, sein Licht) und `static/wearcard.js` (ihre Zeilen im
+Bedienfeld), ihre Firmware liegt in `firmware/`.
+
+**Getragene Geräte (#277):** `tests/test_wearables.py` spielt einen nachgebauten StickS3 – OSC-Pakete,
+im Test gebaut, die Antworten aufgefangen, und einmal die echte Sensor-Schleife auf einem freien Port von 127.0.0.1 mit
+dem Socket eines nachgebauten Geräts: das Hello und seine Antwort, die Rohbewegung in den Einheiten des Sensor-Eingangs
+mit dem eigenen Takt des Geräts (verspätete Pakete verworfen, ein Neustart), das Gerät als Quelle Armband, der Knopf
+abgewiesen ohne Erlaubnis, mit geratenem Schlüssel oder der Kennung eines anderen Geräts, ein Druck einmal übernommen,
+wie oft er auch wiederholt wird, Erlauben und Zurücknehmen (der Schlüssel nur im State-Ordner, Modus 0600, nie an eine
+Seite), die Kupplung bewegt wie auf jedem anderen Weg und jedes Gerät benachrichtigt, ein Gerät, das weg ist (die
+Kupplung bleibt), der Schlüssel nie an eine andere Adresse, nur das Heimnetz, und dass Gäste und Dreamy Eyes nichts
+erlauben. `tests/test_flash.py` lässt `firmware/flash.sh` gegen ein nachgebautes `pio` (und `uv`) laufen: der Stick an
+seinen USB-Kennungen zwischen anderen Ports gefunden, keiner oder mehrere (Rückgabe 3, 4), `--port`, `--list`, ein
+gescheitertes Aufspielen noch einmal versucht, falsche Aufrufe (Rückgabe 2) und PlatformIO installiert, wenn es fehlt –
+kein Gerät, kein Netz.
+`tests/test_firmware_osc.py` übersetzt das OSC der Firmware (`firmware/lib/DreamWear/src/DreamOsc.h`) für diesen
+Rechner und prüft es in beide Richtungen gegen python-osc (ohne C++-Compiler übersprungen). `node --test
+tests/js/wearcard.test.mjs` prüft die Zeilen im Bedienfeld, `tests/js/dancerec.test.mjs` und `tests/test_dancelab.py`
+die Rohdaten in den Sessions (#196).
+**Der USB-Empfänger (#278):** `tests/test_receiver.py` spielt einen nachgebauten Empfänger an einem Pty – seine Zeilen im
+Test geschrieben, Dreams Zeilen zurückgelesen: wer er ist (seltsame Zeilen abgewiesen), die Bewegung eines gekoppelten
+Sticks im einen Weg der getragenen Geräte, ungekoppelte Sticks und ein Stick, der einen anderen nennt, abgewiesen, ein
+per Knopf gekoppelter Stick bei seinem ersten Hello erlaubt (und nur dann; zurückgenommen bleibt er zurückgenommen),
+die Kupplung von seinem Knopf, das Licht grün/blau/rot und nur, solange er antwortet, der Kanal, das Koppelfenster aus
+dem Bedienfeld, die Verzögerung (die Hälfte von hin und zurück, auch übers WLAN), der Hinweis zurück auf Funk und das
+Zurückfallen aufs WLAN, ein Port, der nichts sagt, nie beschrieben, Finden und Loslassen (abgesteckt, `flash.sh` läuft,
+ein Port von einem anderen gehalten). `tests/test_firmware_radio.py` übersetzt die serielle Leitung und die
+Kopplungsliste des Empfängers (`firmware/lib/DreamRadio/src/DreamRadio.h`) für diesen Rechner und prüft sie gegen
+`receiver.py`; `tests/test_flash.py` deckt `flash.sh atoms3-receiver` und zwei angesteckte ESP32-S3-Boards ab. **Die
+Firmware** wird von Hand übersetzt, nicht in der CI (deren Minuten kosten, ein Build holt eine Toolchain): `pio run` in
+`firmware/sticks3` und in `firmware/atoms3-receiver` muss mit „SUCCESS“ enden, bevor eine Änderung an `firmware/`
+gemergt wird.
 
 <sub>[↑ Inhalt](#inhalt)</sub>
 
@@ -2625,6 +3157,7 @@ Gebrauch herunter, und jedes hat seine eigene Lizenz:
 
 Die Python-Bibliotheken (PyTorch, diffusers, transformers, FastAPI, uvicorn, Pillow, NumPy, cryptography, qrcode,
 python-osc, mido, python-rtmidi, syphon-python, mlx-whisper, psutil, …) stehen unter freizügigen Lizenzen (BSD, MIT,
-Apache 2.0, MIT-CMU, Unlicense). Diese Liste ist eine Orientierung, keine Rechtsberatung; maßgeblich sind die Modellkarten.
+Apache 2.0, MIT-CMU, Unlicense). Die Firmware der getragenen Geräte (`firmware/`, AGPL wie der Rest) baut auf dem
+Arduino-Kern für den ESP32 (LGPL 2.1) und den Bibliotheken M5Unified, M5GFX und WiFiManager (alle drei unter der MIT-Lizenz). Diese Liste ist eine Orientierung, keine Rechtsberatung; maßgeblich sind die Modellkarten.
 
 <sub>[↑ Inhalt](#inhalt)</sub>

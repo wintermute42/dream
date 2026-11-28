@@ -335,7 +335,7 @@ def test_the_wristband_moves_the_picture_without_gestures():
     assert {(r["src"], r["dst"]) for r in band.values()} == {("energy", "fx.speed"), ("spin", "fx.spin"), ("force", "fx.hue")}
     assert band["armspin"]["in"] == [-1.0, 1.0] and band["armspin"]["out"][0] < 0 < band["armspin"]["out"][1]   # it turns both ways
     flow = dance.default_tables()["flowtrack"]
-    assert [r["id"] for r in flow] == [r["id"] for r in dance.TOUCH_ROWS + dance.BAND_ROWS]
+    assert [r["id"] for r in flow] == [r["id"] for r in dance.TOUCH_ROWS + dance.BAND_ROWS + dance.PROFILE_ROWS]
     assert not any(r["src"].startswith("g.") for r in flow), "no gesture triggers"
     assert dance.clean_rows(flow) == flow
     assert not any(r["id"] in band for r in dance.default_tables()["dance"])       # the dance has its own table
@@ -441,9 +441,10 @@ def test_the_stage_gets_each_glowing_phones_motion_by_its_hand(server, monkeypat
     sens.on_osc("/device2/gyroscope", [0.0, 2.0, 0.0], "Dream Control 2", now=49.99)
     asyncio.run(server.inputs.sensor_dance())
     assert "arms" not in sent[-1][0]["sensors"]["dance"]                         # nobody glows: the sensor as ever
+    assert sent[-1][0]["sensors"]["dance"]["r"] == [[0.02, 2, 1.0, 0.0, 0.0]]     # #196: the leading phone's raw values
     glows.wish(server.hub.state, "Dream Control 2", "cyan")
     asyncio.run(server.inputs.sensor_dance())
-    assert sent[-1] == ({"sensors": {"dance": {"g": [1.0, 0.0, 0.0], "age": 0.02, "arms": {"l": {"g": [0.0, 2.0, 0.0], "age": 0.01}}}}}, "stage")
+    assert sent[-1] == ({"sensors": {"dance": {"g": [1.0, 0.0, 0.0], "age": 0.02, "r": [], "arms": {"l": {"g": [0.0, 2.0, 0.0], "age": 0.01}}}}}, "stage")
     glows.wish(server.hub.state, "Dream Control", "magenta")
     asyncio.run(server.inputs.sensor_dance())
     assert set(sent[-1][0]["sensors"]["dance"]["arms"]) == {"l", "r"}
