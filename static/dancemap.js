@@ -96,6 +96,40 @@
     return { step, of: d => (duck.has(d) ? duck.get(d) : 1), reset() { lead.clear(); since.clear(); duck.clear(); t = 0; } };
   }
 
+  // ---------- #266: a dancer's own measures ----------
+  // The base movements as one dancer moves them: their calm and their wild, measured on the page of Dream Dance
+  // (dancecal.js) and kept per person (danceprofiles.py). cal: {feature: {from: [lo, hi], to: [lo, hi]}} – the dancer's
+  // range and the standard range of the same base movement; turning goes both ways, its ranges are how far. A frame
+  // read through it has the dancer's calm where the standard calm is and their wild where the standard wild is: every
+  // row (the sentences, the beat's push, the prompt) acts on the dancer's 0 … 100 %. Only the four base movements are
+  // read so – gestures, hands, the beat stay as the stream says; null (the standard measures): the frame as it is.
+  const BASE = { energy: [0, 1], open: [0, 1], height: [0, 1], turn: [-1, 1] };   // where each base movement lives
+  function calibrate(frame, cal) {
+    if (!frame || !cal || !frame.v) return frame;
+    let v = null;
+    for (const k of Object.keys(BASE)) {
+      const c = cal[k], x = frame.v[k];
+      if (!c || !Array.isArray(c.from) || !Array.isArray(c.to) || !Number.isFinite(x)) continue;
+      const [a, b] = c.from, [p, q] = c.to;
+      if (!(b - a > 1e-6) || !Number.isFinite(p + q)) continue;
+      const y = p + (q - p) * ((k === 'turn' ? Math.abs(x) : x) - a) / (b - a);
+      v = v || { ...frame.v };
+      v[k] = k === 'turn' ? Math.sign(x) * clamp(y, 0, 1) : clamp(y, BASE[k][0], BASE[k][1]);
+    }
+    return v ? { ...frame, v } : frame;
+  }
+  // The reading for `calibrate` from a profile's bounds ({feature: [lo, hi]}) and the standard ranges (the same shape):
+  // a base movement measured as the standard is not read anew. No bounds: null.
+  function calOf(bounds, std) {
+    if (!bounds || !std) return null;
+    const out = {};
+    for (const k of Object.keys(BASE)) {
+      const f = bounds[k], t = std[k];
+      if (Array.isArray(f) && Array.isArray(t) && (f[0] !== t[0] || f[1] !== t[1])) out[k] = { from: f.slice(0, 2), to: t.slice(0, 2) };
+    }
+    return Object.keys(out).length ? out : null;
+  }
+
   function create() {
     const held = new Map();                            // row id → its smoothed value
     const rules = governor();
@@ -121,7 +155,7 @@
     return { apply, of: id => held.get(id) || 0, duck: d => rules.of(d), reset: () => { held.clear(); rules.reset(); } };
   }
 
-  const api = { create, shape, targets, kind, floored, governor, groupOf, CURVES, BIPOLAR, AI, SLOW_MIN, GROUPS, RULES };
+  const api = { create, shape, targets, kind, floored, governor, groupOf, calibrate, calOf, CURVES, BIPOLAR, AI, SLOW_MIN, GROUPS, RULES, BASE };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.DreamDanceMap = api;
 })(typeof window !== 'undefined' ? window : globalThis);

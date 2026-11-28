@@ -47,7 +47,7 @@
   const TOL_WHAT = { tight: () => T('Tight: only a clear movement counts – fewer false alarms'), normal: () => T('Normal: as Dream detects it out of the box'),
     loose: () => T('Loose: a hint of the movement counts – it comes more easily, now and then by mistake') };
   // what the dancer does, as the sentence says it ("When I … →")
-  const MOVE_PHRASE = { energy: () => T('move a lot'), open: () => T('open my arms'), turn: () => T('turn around'), height: () => T('raise my arms'),
+  const MOVE_PHRASE = { energy: () => T('move a lot'), open: () => T('open my arms'), turn: () => T('circle my hands'), height: () => T('raise my arms'),
     'g.throw': () => T('throw my arms up'), 'g.accordion': () => T('play the accordion'), 'g.push': () => T('push forward'), 'g.circle': () => T('draw a circle'), 'g.wave': () => T('make a wave') };
   // what happens in the picture: while you move (base) and for a moment (accent)
   const FX_GROW = { kaleido: () => T('the kaleidoscope unfolds'), mandala: () => T('the mandala grows'), mirror: () => T('the picture mirrors itself'), tunnel: () => T('the tunnel opens'),
@@ -175,7 +175,7 @@
   // ---------- pictograms: what the dancer does, as a small figure ----------
   // arms: [left hand, right hand] from the shoulder (-6, -10) / (6, -10); more: a sign of the movement
   const POSE = { energy: [[-16, -2], [16, -20], 'M-20 -22 l-5 -4 M20 -24 l5 -4 M-23 6 h-6 M23 6 h6'], open: [[-22, -12], [22, -12], 'M-27 -16 l-4 4 l4 4 M27 -16 l4 4 l-4 4'],
-    turn: [[-14, 2], [14, 2], 'M-16 30 a17 6 0 1 0 32 0 M13 26 l4 4 l-5 2'], height: [[-12, -28], [12, -28], 'M0 -34 v-4'],
+    turn: [[-20, -14], [20, -14], 'M-28 -20 a8 8 0 1 0 8 -2 M-22 -24 l2 2 l-3 2 M28 -20 a8 8 0 1 1 -8 -2 M22 -24 l-2 2 l3 2'],   // #266: the hands circling height: [[-12, -28], [12, -28], 'M0 -34 v-4'],
     'g.throw': [[-8, 4], [12, -30], 'M14 -38 v-6 M10 -40 l4 -4 l4 4'], 'g.accordion': [[-12, -8], [12, -8], 'M-20 -8 h-6 M20 -8 h6 M-24 -11 l-3 3 l3 3 M24 -11 l3 3 l-3 3'],
     'g.push': [[18, -10], [20, -6], 'M26 -14 h7 M30 -18 l4 4 l-4 4'], 'g.circle': [[-10, 4], [16, -14], ''], 'g.wave': [[-20, -18], [20, 0], 'M-28 -26 q4 -6 8 0 t8 0'],
     hands: [[-16, -14], [16, -14], ''], own: [[-14, -14], [16, -4], 'M18 -26 l2 4 l4 1 l-3 3 l1 4 l-4 -2 l-4 2 l1 -4 l-3 -3 l4 -1 z'] };
@@ -187,7 +187,8 @@
 
   // ---------- the page part ----------
   // opts: {bridge, fxNames, fxIcons, label(src) → short name, setLabel(name) → shown name, frame, figure,
-  //        names() → {move id: name} (#236), learn({src?, fx?, quick?}) – start teaching a movement (moveteach.js)}
+  //        names() → {move id: name} (#236), learn({src?, fx?, quick?}) – start teaching a movement (moveteach.js),
+  //        measure() – start measuring the dancer (#266, dancecal.js)}
   function mount(box, opts) {
     const { bridge } = opts, fxName = e => (opts.fxNames && opts.fxNames[e]) || e, icon = e => (opts.fxIcons && opts.fxIcons[e]) || '✦';
     const names = () => (opts.names ? opts.names() : {});
@@ -227,7 +228,10 @@
     const actions = el('div', 'ds-actions');
     const showBtn = btn(T('＋ New sentence: show it'), T('Tap what should happen, then show the movement – Dream says what it saw'), 'ds-show');
     const learnBtn = btn(T('🎓 Teach a movement …'), T('Teach Dream a movement (a built-in one more exactly, or one of your own): show it five times, dance freely, confirm each hit'), 'ds-learn');
-    actions.append(showBtn, learnBtn);
+    // #266: measuring the dancer's calm and wild per base movement (dancecal.js)
+    const measureBtn = btn(T('📏 Measure me …'), T('Measure your calm and your wild for each base movement (about 45 seconds, key M)'), 'ds-measure');
+    measureBtn.hidden = !opts.measure; measureBtn.onclick = () => opts.measure && opts.measure();
+    actions.append(showBtn, learnBtn, measureBtn);
     const wiz = el('div', 'ds-wiz'); wiz.hidden = true; wiz.setAttribute('role', 'region'); wiz.setAttribute('aria-label', T('New sentence by showing'));
 
     // ---- the lanes: the figure beside them ----

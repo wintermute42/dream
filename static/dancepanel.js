@@ -1,7 +1,7 @@
 /* Dream – the dance card (#235): what Dream sees of the dance, and the table that says what a movement does.
 
    Two parts, mounted into the panel (index.html):
-   - the display: the feature stream of dance.js as bars – energy, tempo, phase, opening, turning, height, stillness,
+   - the display: the feature stream of dance.js as bars – energy, tempo, phase, opening, hands circling, height, stillness,
      each with the source it came from and paler the less sure it is –, the recognised gesture with its confidence,
      the movement's own tempo and a dot that beats with it; with the fingers switched on, their values per hand.
    - the mapping: one row per "source → target" with its switch and its strength; rows can be added, removed, and
@@ -16,7 +16,7 @@
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   const SRC = {
     energy: () => T('Energy'), tempo: () => T('Tempo'), phase: () => T('Phase'), pulse: () => T('Own beat'), open: () => T('Opening'),
-    turn: () => T('Turning'), height: () => T('Height'), still: () => T('Stillness'), impulse: () => T('Strike (sensor)'), present: () => T('Someone is there'),
+    turn: () => T('Hands circling'), height: () => T('Height'), still: () => T('Stillness'), impulse: () => T('Strike (sensor)'), present: () => T('Someone is there'),
     spin: () => T('Arm rotation (sensor)'), force: () => T('Pull on the arm (sensor)'),
     'g.throw': () => T('Throwing up'), 'g.accordion': () => T('Accordion'), 'g.push': () => T('Pushing'), 'g.circle': () => T('Circling'), 'g.wave': () => T('Arm wave'),
     palm: () => T('fist ↔ open hand'), spread: () => T('fingers spread'), pinch: () => T('pinch'), snap: () => T('snap'),

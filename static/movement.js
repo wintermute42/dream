@@ -125,7 +125,9 @@
     // clutch (the dance's: engaged or not), dt (s)}. Returns {target: value} – what every target of the one interface
     // is at. #265: the groups, the budget and the minimum of dancemap.js apply to the dance's table (compiled from its
     // sentences), never to the tables of the mood and of flowtrack.
-    function step({ mode, tables = {}, rec = null, cam = null, remote = [], strength = 1, clutch = true, dt = 1 / 60 }) {
+    // #266: cal – the dancer's own measures (dancemap.js `calibrate`): the dance's table reads the frame through them
+    // (null: the standard measures); the mood and flowtrack read the frame as it is.
+    function step({ mode, tables = {}, rec = null, cam = null, remote = [], strength = 1, clutch = true, cal = null, dt = 1 / 60 }) {
       mode = modeOf(mode); list = remote;
       const fading = TABLES.some(m => m !== mode && gain[m] > 0);
       frame = mode === 'off' && !fading ? null : blend(rec, cam, remote, dt);
@@ -137,7 +139,7 @@
         gain[m] = started ? clamp(gain[m] + (m === mode ? dt : -dt) / FADE, 0, 1) : m === mode ? 1 : 0;
         if (gain[m] <= 0) { map[m].reset(); continue; }
         // a mode on its way out still reads the stream – its effect leaves with its gain, not in one frame
-        const got = map[m].apply(tables[m] || [], frame, dt, { rules: m === 'dance' }), k = ease(gain[m]) * (m === 'flowtrack' ? 1 : clamp(strength, 0, 3)) * (m === 'dance' ? ease(hold) : 1);
+        const got = map[m].apply(tables[m] || [], m === 'dance' && cal ? maps.calibrate(frame, cal) : frame, dt, { rules: m === 'dance' }), k = ease(gain[m]) * (m === 'flowtrack' ? 1 : clamp(strength, 0, 3)) * (m === 'dance' ? ease(hold) : 1);
         for (const dst of Object.keys(got)) out[dst] = clamp((out[dst] || 0) + k * got[dst], -1, 1);
       }
       started = true;

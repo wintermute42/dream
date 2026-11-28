@@ -9,6 +9,7 @@ import time
 
 import config
 import dance
+import danceprofiles
 import hub
 import i18n
 import midi
@@ -278,6 +279,33 @@ def dance_slots(op) -> dict:
         if hub.state.get("dance_set") != dance.slot_use:
             hub.state["dance_set"] = dance.slot_use
     return {**dance.msg(), "set": {"dance_set": dance.slot_use}}
+
+
+def _profile_chosen() -> None:
+    """#266: whose measures the dance reads with – chosen in the panel, on the page of Dream Dance or in a playlist
+    scene; every page is told. A name that is no profile changes nothing (the setting says the one in use again)."""
+    if not danceprofiles.choose(hub.state["dance_profile"]):
+        hub.state["dance_profile"] = danceprofiles.use
+    try:
+        asyncio.get_running_loop().create_task(hub.broadcast({**danceprofiles.msg(), "set": {"dance_profile": danceprofiles.use}}))
+    except RuntimeError:                           # no loop (a script, a test): the next page that connects is told
+        pass
+
+
+hub.on_change("dance_profile", _profile_chosen)
+
+
+def dance_profiles(op) -> dict:
+    """#266: this Mac or Dream Control keeps a dancer's measures: {"op": "save", "name", "bounds"} (a new profile, or
+    the same dancer measured anew – in use from now on), {"op": "delete", "name"}. The profile in use is the setting
+    dance_profile too."""
+    if isinstance(op, dict):
+        if op.get("op") == "save":
+            danceprofiles.save(op.get("name"), op.get("bounds"))
+        elif op.get("op") == "delete":
+            danceprofiles.delete(op.get("name"))
+        hub.state["dance_profile"] = danceprofiles.use
+    return {**danceprofiles.msg(), "set": {"dance_profile": danceprofiles.use}}
 
 
 def dance_map(new, mode: str) -> dict:

@@ -7,6 +7,7 @@ import os
 import time
 
 import dance
+import danceprofiles
 import movement
 import outbox
 import playlists
@@ -31,6 +32,7 @@ state["style"] = playlists.OLD_STYLES.get(state["style"], state["style"])
 state["backend"] = "local"        # #102: every start computes on this Mac; the cloud (it costs) only when chosen
 state["clutch"] = False           # #251: every start has the dance's clutch released – it is engaged only on purpose
 state["dance_set"] = dance.slot_use   # #265: the set in use is kept with the sets (dance.json; a set of an earlier version is migrated there)
+state["dance_profile"] = danceprofiles.use   # #266: the measures in use are kept with the profiles (dance-profiles.json)
 if state.get("cam_device") == "device":          # #146: a device's live camera never outlives the run it was sent in
     state["cam_device"] = ""
     if state.get("mode") == "cam":
@@ -96,11 +98,15 @@ def save_now():
 
 async def broadcast(msg: dict, exclude=None, only=None):
     """To every control client. #187: only queued (outbox.py) – a slow device never holds up the others."""
-    data = json.dumps(msg, ensure_ascii=False)
+    full = json.dumps(msg, ensure_ascii=False)
+    # #266: what a role without "names" hears (rights.scrub – the same for all of them): never a set's or a dancer's name
+    scrubbed = rights.scrub(None, msg)
+    bare = full if scrubbed == msg else json.dumps(scrubbed, ensure_ascii=False) if scrubbed else None
     for c, kind in list(clients.items()):
         if c is exclude or (only and kind != only) or rights.can(roles.get(c), "eyes_only"):   # #156: the eyes learn nothing
             continue
-        if not outbox.post(c, data):
+        data = full if rights.can(roles.get(c), "names") else bare
+        if data is not None and not outbox.post(c, data):
             clients.pop(c, None)
 
 

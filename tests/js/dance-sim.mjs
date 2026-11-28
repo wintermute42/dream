@@ -42,11 +42,18 @@ export const OWN_MOVES = {
   saw: (t, { f, k }) => { const x = (f * t) % 1, s = x < 0.75 ? x / 0.75 : (1 - x) / 0.25; return { l: [0.5 + 0.9 * k * s, 0.2 + 0.3 * k * s], r: [-0.5, -0.9] }; },
 };
 
+// #266: poses held for measuring a dancer – arms closed in front, wide open, up high
+export const POSES = {
+  closed: () => ({ l: [0.15, -0.1], r: [-0.15, -0.1] }),
+  wide: () => ({ l: [1.8, 0.3], r: [-1.8, 0.3] }),
+  up: () => ({ l: [0.5, 1.6], r: [-0.5, 1.6] }),
+};
+
 // frames for dance.js: {t, hands, body}. opts: bpm, size, fps, seconds, S (shoulder width in picture heights),
 // at ([x, y] of the body), jitter (picture heights), src, only ('l' | 'r': the other hand is not seen), noBody
 export function frames(move, opts = {}) {
   const { bpm = 110, size = 1, fps = 30, seconds = 6, S = 0.1, at = [0.5, 0.4], jitter = 0, src = 'pose', only = null, noBody = false, seed = 1, wobble = 0, from = 0 } = opts;
-  const rnd = rng(seed), fn = MOVES[move] || OWN_MOVES[move] || NOT_MOVES[move], out = [], ph = rnd() * 6;
+  const rnd = rng(seed), fn = MOVES[move] || OWN_MOVES[move] || NOT_MOVES[move] || POSES[move], out = [], ph = rnd() * 6;
   let warp = 0;
   for (let i = 0; i < seconds * fps; i++) {
     const t = from + i / fps;
