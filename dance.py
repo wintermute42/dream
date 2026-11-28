@@ -131,7 +131,8 @@ def clean_rows(rows) -> list:
 #
 # – a sentence is a movement and one effect with one of three strengths (light, medium, strong), or null: empty; an
 # accent also has its tolerance (tight, normal, loose: how sure the detection must be). Dream picks curve, ranges and
-# smoothing. An accent's movement is a built-in gesture or a move the dancer taught (#236: "g.<its id>", dancemoves.py).
+# smoothing. An accent's movement is a built-in gesture or a move the dancer taught (#236: "g.<its id>", dancemoves.py);
+# a base movement is a built-in one or one the dancer taught by showing its states (#267: "f.<its id>", dancefaders.py).
 # The groups below are the engine's (static/dancemap.js GROUPS: one effect per group acts strongly, at most three
 # groups at once, every sentence at least visibly – tests/js/dancemap.test.mjs). The built-in sets are never changed:
 # a change is a draft (kept in memory, per set, until it is saved or thrown away – the stage plays it already), and a
@@ -144,6 +145,7 @@ GROUP_OF = {e: g for g, effects in GROUPS.items() for e in effects}
 BASE_SOURCES = ("energy", "open", "turn", "height")
 ACCENT_SOURCES = ("g.throw", "g.accordion", "g.push", "g.circle", "g.wave")
 OWN_MOVE = re.compile(r"g\.m[0-9a-f]{8}")             # #236: a taught move (dancemoves.ID)
+OWN_FADER = re.compile(r"f\.f[0-9a-f]{8}")            # #267: a taught base movement (dancefaders.ID)
 HANDS = ("paint", "warp", "impulse", "light")
 BASE_SLOTS, ACCENT_SLOTS, MAX_HANDS = 2, 4, 2
 SLOT_MIN = 0.35                                      # the engine's minimum (dancemap.js RULES.MIN): "light" is still seen
@@ -152,6 +154,7 @@ TOLERANCES = ("tight", "normal", "loose")             # how sure an accent's det
 # what Dream picks for a continuous movement: from where to where it counts, its curve, its smoothing
 BASE_SHAPE = {"energy": (0.1, 0.8, "soft", 0.25), "open": (0.45, 0.95, "s", 0.3), "turn": (-1.0, 1.0, "v", 0.3),
               "height": (0.55, 1.0, "hard", 0.2)}
+FADER_SHAPE = (0.0, 1.0, "lin", 0.2)                 # #267: a taught base movement is 0 … 1 already, its states evenly
 
 
 def step_of(amt) -> float:
@@ -198,6 +201,11 @@ def _accent_source(src) -> bool:
     return src in ACCENT_SOURCES or (isinstance(src, str) and OWN_MOVE.fullmatch(src) is not None)
 
 
+def _base_source(src) -> bool:
+    """#267: a built-in base movement or one the dancer taught ("f.<its id>")."""
+    return src in BASE_SOURCES or (isinstance(src, str) and OWN_FADER.fullmatch(src) is not None)
+
+
 def clean_slots(data) -> dict | None:
     """A set as Dream keeps it, or None when it is no set. What does not fit is left empty (fail closed: a sentence
     that breaks a rule is dropped, never forced); a strength is one of the three steps, an accent's tolerance one of
@@ -205,7 +213,7 @@ def clean_slots(data) -> dict | None:
     if not isinstance(data, dict):
         return None
     out = {"base": [None] * BASE_SLOTS, "accents": [None] * ACCENT_SLOTS, "hands": []}
-    for where, n, known in (("base", BASE_SLOTS, BASE_SOURCES.__contains__), ("accents", ACCENT_SLOTS, _accent_source)):
+    for where, n, known in (("base", BASE_SLOTS, _base_source), ("accents", ACCENT_SLOTS, _accent_source)):
         got = data.get(where)
         for i, s in enumerate(got[:n] if isinstance(got, list) else ()):
             if not isinstance(s, dict) or not known(s.get("src")) or s.get("fx") not in SLOT_FX:
@@ -237,7 +245,7 @@ def compile_slots(slots: dict) -> list:
     rows = []
     for i, s in enumerate(slots["base"]):
         if s:
-            lo, hi, curve, smooth = BASE_SHAPE[s["src"]]
+            lo, hi, curve, smooth = BASE_SHAPE.get(s["src"], FADER_SHAPE)
             rows.append({**_row(f"base{i}", s["src"], "fx." + s["fx"], lo=lo, hi=hi, out=peak(s["amt"]), curve=curve, smooth=smooth), "origin": "slot"})
     for i, s in enumerate(slots["accents"]):
         if s:
@@ -332,7 +340,7 @@ def rows_to_slots(rows) -> dict | None:
             hands.append((p, r["dst"][6:]))
             continue
         fx = r["dst"][3:] if r["dst"].startswith("fx.") else None
-        where = "base" if r["src"] in BASE_SOURCES else "accents" if _accent_source(r["src"]) else None
+        where = "base" if _base_source(r["src"]) else "accents" if _accent_source(r["src"]) else None
         if fx in SLOT_FX and where:
             found.append((p, where, r["src"], fx))
     out = {"base": [None] * BASE_SLOTS, "accents": [None] * ACCENT_SLOTS, "hands": []}
@@ -537,8 +545,8 @@ def set_rows(new, mode: str) -> list:
 
 
 def drop_source(src: str) -> bool:
-    """#236: a source is gone for good (a taught move was deleted) – the rows that had it leave the tables, and the
-    accents that had it leave every own set and every draft. Whether anything changed."""
+    """#236: a source is gone for good (a taught move or, #267, base movement was deleted) – the rows that had it leave
+    the tables, and the sentences that had it leave every own set and every draft. Whether anything changed."""
     slots_changed = drop_slot_source(src)
     new_tables = {m: [r for r in tables[m] if r["src"] != src] for m in TABLE_MODES}
     if all(new_tables[m] == tables[m] for m in TABLE_MODES):
@@ -675,13 +683,15 @@ def delete_slots(name) -> bool:
 
 
 def drop_slot_source(src: str) -> bool:
-    """#236: a taught move is gone – the accents that had it are empty in every own set and every draft."""
+    """#236: a taught move is gone – the accents that had it are empty in every own set and every draft; #267: a taught
+    base movement – the same with its base sentences."""
     changed = False
     for slots in [v["slots"] for v in slot_sets.values()] + list(slot_drafts.values()):
-        for i, s in enumerate(slots["accents"]):
-            if s and s["src"] == src:
-                slots["accents"][i] = None
-                changed = True
+        for where in ("base", "accents"):
+            for i, s in enumerate(slots[where]):
+                if s and s["src"] == src:
+                    slots[where][i] = None
+                    changed = True
     if changed:
         _act()
         keep()

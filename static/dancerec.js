@@ -64,8 +64,16 @@
     const hand = h => i.h[h].map(([x, y, c, s, len, age]) => ({ x, y, c, src: SRC[s] || 'pose', len, ...(Number.isFinite(age) ? { at: frame.t - age } : {}) }));
     const fing = h => (frame.p[h] && i.f[h] ? { pts: pairs(frame.p[h], asp), c: i.f[h] } : null);
     return { t: frame.t, hands: { l: hand('l'), r: hand('r') }, body: i.b ? { x: i.b[0], y: i.b[1], s: i.b[2], c: i.b[3] } : null,
-      fingers: { l: fing('l'), r: fing('r') }, sensor: i.s ? { g: i.s, age: 0 } : null, dark: !!i.d, aspect: asp,
+      fingers: { l: fing('l'), r: fing('r') }, sensor: i.s ? { g: i.s, age: 0 } : null, dark: !!i.d, aspect: asp, pose: pose(frame),
       arms: i.m ? { l: i.m.l ? { g: i.m.l, age: 0 } : null, r: i.m.r ? { g: i.m.r, age: 0 } : null } : null };
+  }
+  // #267: the skeleton kept for the stick figure as the pose model's 33 points (those not kept: unseen) – what the base
+  // movements of one's own read
+  function pose(frame) {
+    if (!frame.p || !Array.isArray(frame.p.b)) return null;
+    const out = Array.from({ length: 33 }, () => ({ x: 0, y: 0, visibility: 0 }));
+    BODY.forEach((i, k) => { out[i] = { x: frame.p.b[2 * k], y: frame.p.b[2 * k + 1], visibility: 1 }; });
+    return out;
   }
   const body = frame => (frame.p.b ? pairs(frame.p.b) : null);
   const hand21 = (frame, h) => (frame.p[h] ? pairs(frame.p[h]) : null);

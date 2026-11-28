@@ -60,6 +60,7 @@ The whole interface is available in English and German (switch **DE | EN** at th
   - [Dream Dance: the page, the clutch, the sets](#dream-dance-the-page-the-clutch-the-sets)
   - [The sentences – what your dance does](#the-sentences--what-your-dance-does)
   - [Moves of your own – teaching a movement](#moves-of-your-own--teaching-a-movement)
+  - [Base movements of your own – a fader by showing](#base-movements-of-your-own--a-fader-by-showing)
   - [Dance lab](#dance-lab)
 - [MIDI controller](#midi-controller)
 - [Sensor input (movement in the dark: phone on the arm, later a wristband)](#sensor-input-movement-in-the-dark-phone-on-the-arm-later-a-wristband)
@@ -1816,7 +1817,9 @@ are on hover (and for screen readers).
 
 **Sentences in three lanes.** Every sentence says one thing, e.g. **“When I [throw my arms up] → [trails follow]”**:
 - **Base movement** (warm yellow, *as long as you move*) – 2 sentences. A continuous movement (moving a lot, opening
-  the arms, turning, raising the arms) sets one effect: “When I move a lot → the waves grow stronger”.
+  the arms, turning, raising the arms) or a base movement of your own (see
+  [Base movements of your own](#base-movements-of-your-own--a-fader-by-showing)) sets one effect: “When I move a lot →
+  the waves grow stronger”.
 - **Accents** (cold blue, *a short moment*) – 4 sentences. A gesture (throwing the arms up, the accordion, pushing,
   drawing a circle, a wave) or a move of your own sets off one effect: “When I draw a circle → a mandala blooms”.
 - **Hands in the picture** (green, *where your hands are*) – one sentence of switches: “My hands [paint trails of
@@ -1947,6 +1950,50 @@ sentence by showing) takes three repetitions and puts the move on an accent at o
   the mean way of the hands as the template. **Numbers only, never a camera picture.** The moves are in
   `~/.local/state/dream/dance/moves/` on this Mac; only this Mac and Dream Control can read or change them, and
   nothing of them leaves the Mac.
+
+### Base movements of your own – a fader by showing
+
+Besides the four built-in base movements (moving a lot, opening the arms, turning, raising the arms) you can teach
+Dream base movements of your own: a **fader** between states of your body that you show and name – e.g. “upright” ↔
+“deep in the knees”, or “leaning left” ↔ “leaning right”. At the bottom of the page is **🎚 Your base movements**,
+folded and marked **For the advanced** – the built-in base movements need none of it; its title opens it, and it opens
+by itself when teaching starts. Start with **＋ Teach a base movement …** there, with **＋ A base movement of your own …** in the base movements, or
+in the choice of a base sentence's movement (then it becomes that sentence's movement).
+
+1. **Name it** and name its states: the one at **0** and the one at **1**, and if you like up to three **steps in
+   between** (**＋ A step in between**; they are spread evenly, e.g. 0 · 0.5 · 1). Names: letters, digits, spaces and
+   `. + -`, at most 32 characters; no two states with the same name.
+2. **Show the states.** For each state Dream counts down three seconds (take the position), then you **hold it** for
+   two and a half seconds – swaying a little is good, Dream learns it the steadier. The chips show which states are
+   done. If Dream did not see you through a state, it says so and you show that one again.
+3. **Try it.** A **live level** follows you between the states, with the states marked on it, and a line says what
+   Dream reads the fader from (e.g. “feet ↕ 62 % · knees ↕ 36 %”). **Keep** keeps it on this Mac and makes it a base
+   sentence (with the effect of the sentence you started from, or the first effect that fits; when both base sentences
+   are taken it replaces the second one and says so – the set is “● changed”, as always). **Again** shows the states
+   once more. If the states look alike to Dream or run into each other, it is not made and Dream says why – show them
+   again, more different, or change the states.
+
+- **Learning** is a small regression, as Wekinator does it, kept small enough to be explained. What the body shows is
+  a handful of numbers measured on your own body (each point of the skeleton in shoulder widths from the middle of
+  your shoulders, how far one shoulder is above the other, and your hands) – so where you stand in the picture and how
+  near does not matter. Dream takes the values that change between the states, weights each by how steady it was while
+  you held a state (so the fader stays still while you hold still), and fits their sum so that every state comes out
+  at its own value; the fader is held to 0 … 1 and glides a little (about a tenth of a second).
+- **Detection.** Best with **Hands (AI)** and your whole body in the picture: the skeleton is what it is read from.
+  With LED markers alone a base movement is read from your hands only (e.g. “arms down” ↔ “arms up”). Teach it with
+  the detection you will dance it with. If what it is read from is out of sight (e.g. the feet leave the picture),
+  the fader is not known and its sentence rests.
+- **What it does** is a base sentence: “When I go towards “deep in the knees” → the waves grow stronger” – acting as
+  long as you are there, only while the clutch is engaged, under the same rules as every sentence (one effect per
+  group, at most three groups at once, the minimum). Its pictogram is a figure beside a fader.
+- **In the list** each base movement shows its name (a text field: saved when you leave it), its states, what it is
+  read from and a live level of what the stage reads right now. **🎓 Teach again** shows the states anew (name and
+  sentences stay); **🗑** deletes after asking once more on the button – its sentences (in your sets and in changes not
+  saved yet) are empty then. At most 12 are kept.
+- **What is kept:** the regression – per body value its middle, its weight and its share – the names of the base
+  movement and its states and where each state came out. **Numbers and names only, never a camera picture, not even
+  the frames shown.** They are in `~/.local/state/dream/dance/faders/` on this Mac; only this Mac and Dream Control can
+  read or change them, and nothing of them leaves the Mac.
 
 ### Dance lab
 
@@ -2384,6 +2431,15 @@ waving, talking hands and the like (none), the built-in gestures beside the taug
 the ends of the tolerance, and how a take is cut into its repetitions. `node --test tests/js/moveteach.test.mjs` tests
 the teaching card's parts without a page (a take, the file that is kept, the row of the table, the clutch);
 `tests/test_dancemoves.py` what Dream keeps of a move, who may reach it and that deleting one removes its rows.
+`node --test tests/js/dancefaders.test.mjs` (#267) tests the base movements of one's own (`static/dancefaders.js`,
+read in `static/dance.js`) on a simulated body: a fader learned from two shown states (upright ↔ deep in the knees) is
+read from the legs and goes evenly between them – further away, nearer, elsewhere in the picture; holding a state
+under the pose model's jitter, the stream keeps it still; three states with a step between (leaning), two faders that
+keep out of each other, markers alone (the hands), a fader that cannot be one says why, a skeleton out of sight is no
+value, a session plays it back, and a broken model is refused. `node --test tests/js/faderteach.test.mjs` tests the
+teaching card's parts without a page and the sentence of a base movement of one's own;
+`tests/test_dancefaders.py` what Dream keeps of it (numbers and names only), who may reach it, a broken file, and that
+deleting one empties its base sentences.
 `node --test tests/js/dancerec.test.mjs` (#243) tests the dance lab's sessions (`static/dancerec.js`): a recorded
 simulated dance plays back the very features it was made from and holds nothing but numbers, feeding its inputs to a
 fresh detector gives the same gestures, a feedback keeps exactly its seconds, playback (pause, slow motion, jumps, a

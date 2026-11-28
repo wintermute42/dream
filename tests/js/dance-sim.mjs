@@ -85,3 +85,36 @@ export function hand({ curl = 0, spread = 0.12, pinch = false, size = 1, turn = 
   const co = Math.cos(turn), si = Math.sin(turn);
   return pts.map(([x, y]) => [at[0] + size * 0.08 * (x * co - y * si), at[1] - size * 0.08 * (x * si + y * co)]);
 }
+
+// #267: a body in a pose – the pose model's 33 points [{x, y, visibility}] in the picture. squat: 0 upright … 1 deep in
+// the knees (the feet stay on the floor, the rest goes down); lean: -1 … 1, the upper body to the picture's left or
+// right; arms: 0 hanging … 1 above the head. S: the shoulder width in picture heights; at: where the middle of the
+// shoulders is when upright; jitter: picture heights; rnd: the random numbers for it.
+export function pose({ squat = 0, lean = 0, arms = 0 } = {}, { S = 0.1, at = [0.5, 0.35], jitter = 0, rnd = Math.random, hidden = [] } = {}) {
+  const drop = 1.4 * squat, lift = arms * 2.9;
+  // body units, u to the picture's right, v up, measured from where the middle of the shoulders is when upright
+  const P = {
+    0: [0.8 * lean, 0.6 - drop], 11: [0.5 + 0.6 * lean, 0.15 * lean - drop], 12: [-0.5 + 0.6 * lean, -0.15 * lean - drop],
+    13: [0.6 + 0.6 * lean, -0.9 + 0.9 * arms - drop], 14: [-0.6 + 0.6 * lean, -0.9 + 0.9 * arms - drop],
+    15: [0.65 + 0.6 * lean - 0.2 * arms, -1.7 + lift - drop], 16: [-0.65 + 0.6 * lean + 0.2 * arms, -1.7 + lift - drop],
+    23: [0.35 + 0.2 * lean, -2.3 - drop], 24: [-0.35 + 0.2 * lean, -2.3 - drop],
+    25: [0.35 + 0.25 * squat + 0.1 * lean, -3.5 - 0.4 * squat], 26: [-0.35 - 0.25 * squat + 0.1 * lean, -3.5 - 0.4 * squat],
+    27: [0.35, -4.7], 28: [-0.35, -4.7],
+  };
+  const g = () => jitter * Math.sqrt(-2 * Math.log(Math.max(1e-9, rnd()))) * Math.cos(2 * Math.PI * rnd());
+  return Array.from({ length: 33 }, (_, i) => {
+    const [u, v] = P[i] || P[0];
+    return { x: at[0] + (u * S) / ASPECT + g(), y: at[1] - v * S + g(), visibility: hidden.includes(i) ? 0.1 : P[i] ? 0.95 : 0.3 };
+  });
+}
+// frames for dance.js with a body in poses: {t, hands (the wrists), body, pose}. poseAt(t) → the pose's {squat, lean, arms}
+export function poseFrames(poseAt, { fps = 30, seconds = 3, from = 0, seed = 1, ...o } = {}) {
+  const rnd = rng(seed), out = [];
+  for (let i = 0; i < seconds * fps; i++) {
+    const t = from + i / fps, lm = pose(poseAt(t), { ...o, rnd });
+    const s = Math.hypot((lm[11].x - lm[12].x) * ASPECT, lm[11].y - lm[12].y);
+    const hand = j => ({ x: lm[j].x, y: lm[j].y, c: 0.9, src: 'pose' });
+    out.push({ t, hands: { l: hand(15), r: hand(16) }, body: { x: (lm[11].x + lm[12].x) / 2, y: (lm[11].y + lm[12].y) / 2, s, c: 0.9 }, pose: lm, aspect: ASPECT });
+  }
+  return out;
+}
