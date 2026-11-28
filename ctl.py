@@ -63,44 +63,44 @@ async def ctl(sock: WebSocket):
     if role == "control" and "control" in hub.roles.values():
         role = "guest"                             # #148: one Dream Control at a time; this one may take over
     kind = "stage" if sock.query_params.get("role") == "stage" and rights.can(key_role, "stage") else "remote"
-    hub.clients[sock] = kind
-    hub.roles[sock], hub.key_roles[sock] = role, key_role
-    if sock.query_params.get("as") == "eyes" and rights.can(key_role, "eyes"):   # by its key, not its turn
-        eyes.eyes_pages.add(sock)                       # #166: a Dreamy Eyes page, whatever key it came with
-    lang = i18n.from_cookie(sock.cookies.get("dream-lang"))
-    i18n.current.set(lang)
-    if kind == "stage" and lang:                   # #132: what all see (MIDI, cloud) speaks the stage's language
-        i18n.fallback["lang"] = lang
-    outbox.post(sock, json.dumps(role_msg(sock)))
-    outbox.post(sock, json.dumps(feeds_msg(sock) if not rights.can(role, "eyes_only") else {"feeds_mine": [], **eyes.aimask_msg()}))
-    if sock in eyes.eyes_pages and not rights.can(role, "eyes_only"):   # #166: a Dreamy Eyes page on a Control device gets the faces too
-        outbox.post(sock, json.dumps(eyes.aimask_msg()))
-    if sock in eyes.eyes_pages or rights.can(role, "eyes_only"):   # #230: where the painted faces have their eyes, brows, mouth
-        windows.marks_greet(sock)
-    if sock in eyes.eyes_pages or rights.can(role, "eyes"):   # #172: how often the trance may come
-        outbox.post(sock, json.dumps({"eyes_cfg": eyes.eyes_cfg, **eyes.world_msg()}))   # … and the style world (#221)
-    if rights.can(role, "control") and cloud.cloud_cache["st"]:   # #176: the cloud's latest status
-        outbox.post(sock, json.dumps({"cloud": cloud.cloud_cache["st"]}))
-    if not rights.can(role, "eyes_only"):
-        outbox.post(sock, json.dumps({"midi": {"map": inputs.midi_map}}))
-        outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
-        # #235: the dance mapping table; #243: whether the dance lab is open, records or plays
-        # #266: the sets and the dancers' measures with it – their names only for this Mac and Dream Control (rights.scrub)
-        outbox.post(sock, json.dumps(rights.scrub(role, {"dance": {**dance.msg()["dance"], **danceprofiles.msg()["dance"],
-                                                                   "lab": hub.live.get("dance_lab") or {}}}), ensure_ascii=False))
-        outbox.post(sock, json.dumps(movement.msg(hub.state)))   # #249: the register of movement sources
-        if kind == "stage" and movement.presence.calm:   # nobody in front of Dreamy Eyes: a stage that comes now is calm too
-            outbox.post(sock, json.dumps({"cmd": "calm"}))
-        outbox.post(sock, json.dumps(rights.scrub(role, {"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
-                                         "cams": hub.live.get("cams", []), "lan": config.LAN,
-                                         "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
-                                         **eyes.drift_msg(time.monotonic()), **hub.status_msg()}), ensure_ascii=False))
-    if rights.can(role, "control"):                # #212: the room light's status (after the state: the page knows the switch)
-        outbox.post(sock, json.dumps(wled.msg()))
-        outbox.post(sock, json.dumps(hue.msg(), ensure_ascii=False))   # #272: the Hue lamps' (never the bridge's key)
-    await hub.broadcast(hub.status_msg())
     bucket = [20.0, time.monotonic()]              # #175: a guest's message allowance
-    try:
+    try:                                           # #193: from the registration on – a device that leaves while it is
+        hub.clients[sock] = kind                   # greeted, or a greeting that fails, leaves nothing behind
+        hub.roles[sock], hub.key_roles[sock] = role, key_role
+        if sock.query_params.get("as") == "eyes" and rights.can(key_role, "eyes"):   # by its key, not its turn
+            eyes.eyes_pages.add(sock)                       # #166: a Dreamy Eyes page, whatever key it came with
+        lang = i18n.from_cookie(sock.cookies.get("dream-lang"))
+        i18n.current.set(lang)
+        if kind == "stage" and lang:                   # #132: what all see (MIDI, cloud) speaks the stage's language
+            i18n.fallback["lang"] = lang
+        outbox.post(sock, json.dumps(role_msg(sock)))
+        outbox.post(sock, json.dumps(feeds_msg(sock) if not rights.can(role, "eyes_only") else {"feeds_mine": [], **eyes.aimask_msg()}))
+        if sock in eyes.eyes_pages and not rights.can(role, "eyes_only"):   # #166: a Dreamy Eyes page on a Control device gets the faces too
+            outbox.post(sock, json.dumps(eyes.aimask_msg()))
+        if sock in eyes.eyes_pages or rights.can(role, "eyes_only"):   # #230: where the painted faces have their eyes, brows, mouth
+            windows.marks_greet(sock)
+        if sock in eyes.eyes_pages or rights.can(role, "eyes"):   # #172: how often the trance may come
+            outbox.post(sock, json.dumps({"eyes_cfg": eyes.eyes_cfg, **eyes.world_msg()}))   # … and the style world (#221)
+        if rights.can(role, "control") and cloud.cloud_cache["st"]:   # #176: the cloud's latest status
+            outbox.post(sock, json.dumps({"cloud": cloud.cloud_cache["st"]}))
+        if not rights.can(role, "eyes_only"):
+            outbox.post(sock, json.dumps({"midi": {"map": inputs.midi_map}}))
+            outbox.post(sock, json.dumps({"sensors": {"map": inputs.sens.mapping}}))
+            # #235: the dance mapping table; #243: whether the dance lab is open, records or plays
+            # #266: the sets and the dancers' measures with it – their names only for this Mac and Dream Control (rights.scrub)
+            outbox.post(sock, json.dumps(rights.scrub(role, {"dance": {**dance.msg()["dance"], **danceprofiles.msg()["dance"],
+                                                                       "lab": hub.live.get("dance_lab") or {}}}), ensure_ascii=False))
+            outbox.post(sock, json.dumps(movement.msg(hub.state)))   # #249: the register of movement sources
+            if kind == "stage" and movement.presence.calm:   # nobody in front of Dreamy Eyes: a stage that comes now is calm too
+                outbox.post(sock, json.dumps({"cmd": "calm"}))
+            outbox.post(sock, json.dumps(rights.scrub(role, {"state": hub.state, "playlists": scenes.playlist_names(), "gallery": media.gallery_list(),
+                                             "cams": hub.live.get("cams", []), "lan": config.LAN,
+                                             "schema": settings.page_schema(), "worlds": list(settings.WORLDS),   # #224: the band of worlds
+                                             **eyes.drift_msg(time.monotonic()), **hub.status_msg()}), ensure_ascii=False))
+        if rights.can(role, "control"):                # #212: the room light's status (after the state: the page knows the switch)
+            outbox.post(sock, json.dumps(wled.msg()))
+            outbox.post(sock, json.dumps(hue.msg(), ensure_ascii=False))   # #272: the Hue lamps' (never the bridge's key)
+        await hub.broadcast(hub.status_msg())
         while True:
             raw = await sock.receive()
             if raw.get("type") == "websocket.disconnect":
