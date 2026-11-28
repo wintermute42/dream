@@ -109,7 +109,8 @@
       // phones and wristbands are in the stream already (dance.js weighs them against the camera); the eyes join here
       for (const s of remote) if (s.kind === 'eyes' && s.active && s.used && s.conf > 0) { parts.push(s); if (!srcs.includes('eyes')) srcs.push('eyes'); }
       mixed = room(parts);
-      const only = parts.length === 1 && rec && rec.c.energy > 0;
+      // (#253: a record fitted to a performer's profile carries that person's energy – its stillness is worked out here)
+      const only = parts.length === 1 && rec && rec.c.energy > 0 && !rec.fit;
       const calm = 1 - clamp((mixed.energy - 0.03) / 0.09, 0, 1);       // as the stream's own stillness, for the room
       still = mixed.conf > 0 ? still + (calm - still) * Math.min(1, dt / (calm > still ? 0.5 : 0.08)) : 0;
       const base = rec || { t: 0, v: {}, c: {}, src: {}, bpm: 0, gesture: null, gc: 0, size: 0, g: {}, hands: { l: null, r: null }, events: [] };

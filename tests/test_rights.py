@@ -76,6 +76,12 @@ HTTP = {
     ("GET", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("POST", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
     ("DELETE", "/dance/moves/{mid}"): ("/dance/moves/m0a1b2c3d", LC),
+    # #253: Flowtrack's performers – what was learned of a person: this Mac and Dream Control only
+    ("GET", "/flow/profiles"): ("/flow/profiles", LC),
+    ("POST", "/flow/profiles"): ("/flow/profiles", LC),
+    ("POST", "/flow/profiles/{pid}"): ("/flow/profiles/p0a1b2c3d", LC),
+    ("POST", "/flow/profiles/{pid}/export"): ("/flow/profiles/p0a1b2c3d/export", LC),
+    ("DELETE", "/flow/profiles/{pid}"): ("/flow/profiles/p0a1b2c3d", LC),
 }
 # more requests that are not a route of their own: public files, unknown paths (closed to guests and the eyes)
 EXTRA = [

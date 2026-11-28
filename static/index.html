@@ -597,6 +597,9 @@
           <button type="button" class="btn clutchbtn on" id="flowautobtn" aria-pressed="true" title="The automatic sets everything for following one performer: the kind of detection, the exposure, and it ignores the audience at the edge. Off: you choose under “Camera and detection”.">Automatic: ON</button>
           <input type="checkbox" id="flow_auto" hidden aria-hidden="true" checked>
           <div class="hint" id="flowwhy" role="status" style="margin:0;min-height:2.7em"></div>
+          <!-- #253: the performer Flowtrack is fitted to (learned on the page) -->
+          <select id="flow_profile" aria-label="Performer" title="A performer’s profile: what Dream learned of one person’s way of moving. Chosen, the effects and the automatic fit that person. Learn and manage profiles on the page."><option value="">Performer: no profile</option></select>
+          <div class="hint" id="flowprofilenote" role="status" style="margin:0"></div>
         </div>
         <div class="movepart" data-for="dance">
           <div class="moveinfo" id="moveinfo-dance" role="status">–</div>
@@ -870,6 +873,7 @@
 <script src="/static/movement.js"></script>
 <script src="/static/movecard.js"></script>
 <script src="/static/flowauto.js"></script>
+<script src="/static/flowprofile.js"></script>
 <script src="/static/dancepanel.js"></script>
 <script src="/static/motion.js"></script>
 <script src="/static/beat.js"></script>
@@ -1858,8 +1862,19 @@
   const danceNow = () => dancePlay || (danceOn() && danceFrame && performance.now() - danceAt < 500 ? danceFrame : null);
   // the camera's own energy where the stream has none of it yet (someone is there, the hands not found)
   const camEnergy = () => (flowOn() && mo && mo.present && performance.now() - moAt < 500 ? { energy: mspeed(), conf: 0.5 } : null);
+  // #253: in Flowtrack with a performer's profile chosen, the record is laid into that person's ranges before the
+  // table reads it (flowprofile.js), and the table's smoothing follows their tempo – the kept table stays as it is
+  const flowFit = DreamFlowProfile.create();
+  let flowRowsOf = null, flowRowsFit = [], danceMoves = [], movesKey = null, movesReady = false;
+  const flowFitted = () => (moveMode() === 'flowtrack' ? flowFit.profile : null);
   function danceTargets(dt) {
-    danceOut = mover.step({ mode: moveMode(), tables: moveTables, rec: danceNow(), cam: camEnergy(), remote: moveRemote, strength: +$('motion_sens').value, clutch: clutchOn(), dt });
+    const fitted = flowFitted();
+    let rec = danceNow(), tables = moveTables;
+    if (fitted) {
+      if (flowRowsOf !== moveTables.flowtrack) { flowRowsOf = moveTables.flowtrack; flowRowsFit = DreamFlowProfile.rows(fitted, flowRowsOf || []); }
+      rec = flowFit.fit(rec); tables = { ...moveTables, flowtrack: flowRowsFit };
+    }
+    danceOut = mover.step({ mode: moveMode(), tables, rec, cam: camEnergy(), remote: moveRemote, strength: +$('motion_sens').value, clutch: clutchOn(), dt });
     return danceOut;
   }
   const poseOn = () => flowOn() && $('pose').checked && typeof poseBlob !== 'undefined' && poseBlob && performance.now() - poseAt < 2000;
@@ -2100,7 +2115,7 @@
     motion_sens: 'motion_sens', move_mode: 'move_mode', move_cam: 'move_cam', flow_kind: 'flow_kind', dance_kind: 'dance_kind', master: 'master', drift: 'drift', smooth: 'smooth', morph: 'morph', flow: 'flow', drift_prompt: 'drift_prompt', touch_amt: 'touch_amt', touch_mirror: 'touch_mirror', ap_words: 'ap_words', music_patterns: 'music_patterns', music_drop: 'music_drop', beat_snap: 'beat_snap', aspect: 'aspect', syphon: 'syphon', pose: 'pose', pose_scale: 'pose_scale',
     interval: 'interval', shuffle: 'shuffle',
     music_pattern: 'music_pattern', auto: 'auto', auto_level: 'auto_level', auto_media: 'auto_media', auto_cam: 'auto_cam', auto_flow: 'auto_flow',
-    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', flow_auto: 'flow_auto', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt',
+    cloud_bridge: 'cloud_bridge', fx: 'fx', fx_amt: 'fx_amt', fx_beat: 'fx_beat', cam_device: 'cam_device', flow_device: 'flow_device', flow_unproject: 'flow_unproject', fast: 'fast', edges: 'edges', edges_scale: 'edges_scale', flow_color: 'flow_color', flow_short: 'flow_short', clutch: 'clutch', dance_set: 'dance_set', flow_auto: 'flow_auto', flow_profile: 'flow_profile', flow_markers: 'flow_markers', marker_l: 'marker_l', marker_r: 'marker_r', style: 'style', style_amt: 'style_amt', style_ref: 'style_ref', style_ref_amt: 'style_ref_amt',
     wled: 'wled', wled_amt: 'wled_amt', wled_beat: 'wled_beat',   // #212 (the device's address: on "change", below)
     hue_lamps: 'hue_lamps', hue_lamps_amt: 'hue_lamps_amt' };     // #272 (the bridge and the lamps: huecard.js)
   // #224: the style worlds of Dreamy Eyes and the dream windows – the band of worlds asks, Dream says what is
@@ -2219,6 +2234,7 @@
         if (k === 'clutch') clutchSync();
         if (k === 'flow_auto') flowAutoSync();
         if (k === 'dance_set') setsSync();
+        if (k === 'flow_profile') { $('flow_profile').dataset.want = String(v || ''); profilesSync(); }
         if (k === 'dance_fb_secs') { danceFbSecs = +v; danceLab.secs(+v); }
         if (k === 'style_ref' || k === 'model') lookSync();
         if ((k === 'cam_device' || k === 'flow_device') && camList.length) camSync();
@@ -2561,7 +2577,7 @@
     $('movetable').textContent = moveMode() === 'dance' ? T('Dream Dance says what your movements do in sentences – choose and change them on its page (“Page ↗”).')
       : moveMode() === 'off' ? T('Movement is off. Mood and Flowtrack show their table here; Dream Dance has its sentences on its page.')
         : T('What a movement does in the mode “{m}”.', { m: MoveCard.name(moveMode()) });
-    tableShow(); moveLive();
+    tableShow(); moveLive(); movesApply();
     if (want === camWant) return;
     camWant = want;
     if (!on) { mo = null; touch.hands = []; }
@@ -3447,18 +3463,43 @@
   // its sentences on its page, the card shows only what Dream sees then
   const tableSend = rows => { const m = tableMode(); if (!m) return; if (Array.isArray(rows)) moveTables[m] = rows; sendCtl({ dance_map: rows, mode: m }); };
   const dancePanel = DancePanel.mount($('dancepanel'), { send: tableSend, fxNames: FX_NAMES,
-    sources: [...DreamDance.SOURCES, 'present'], targets: DreamDanceMap.targets(DreamFx.ALL) });
+    sources: [...DreamDance.SOURCES, 'present', ...DreamFlowProfile.SOURCES], targets: DreamDanceMap.targets(DreamFx.ALL) });
   tableShow = () => { dancePanel.table(!!tableMode()); dancePanel.map(tableRows()); };
   // #236: the moves the dancer taught (kept by Dream: dancemoves.py). The stream recognises them like the built-in
   // gestures; what one does is a row of the table with the source "g.<its id>", named as the dancer named it.
-  let danceMoves = [];
   function movesSet(list) {
     danceMoves = (Array.isArray(list) ? list : []).filter(m => m && typeof m.id === 'string' && typeof m.name === 'string');
-    danceDet.setMoves(danceMoves.map(m => DreamMoves.compile(m.tpl, m.id)).filter(Boolean));
-    DancePanel.setNames(danceMoves); dancePanel.renamed();
+    movesApply();
   }
+  // what the stream looks for: the taught moves and – in Flowtrack, with a performer's profile chosen (#253) – that
+  // person's own figures (first: they are few, and never cut off by the limit of moves)
+  function movesApply() {
+    if (!movesReady) return;                           // the panel's table is not there yet (the first `moveSync`)
+    const fitted = flowFitted(), figs = fitted ? fitted.figures : [];
+    const key = JSON.stringify([figs.map(f => [f.id, f.period, f.amp]), fitted && fitted.id, danceMoves]);
+    if (key === movesKey) return;
+    movesKey = key;
+    danceDet.setMoves([...figs, ...danceMoves.map(m => DreamMoves.compile(m.tpl, m.id)).filter(Boolean)]);
+    DancePanel.setNames([...danceMoves, ...figs.map((f, i) => ({ id: f.id, name: T('Figure {n} of “{p}”', { n: i + 1, p: fitted.name }) }))]); dancePanel.renamed();
+  }
+  // #253: the performers' profiles (kept by Dream: flowprofiles.py). The one chosen with the setting `flow_profile`
+  // fits Flowtrack to that person: the stream's ranges, the table's smoothing, the person's figures, the automatic.
+  let flowProfiles = [];
+  const profileWant = () => { const s = $('flow_profile'); return s.dataset.want != null ? s.dataset.want : s.value; };
+  function profilesSync() {
+    const want = profileWant(), p = flowProfiles.find(x => x.id === want), c = p ? DreamFlowProfile.compile(p, p.id) : null;
+    MoveCard.fillProfiles($('flow_profile'), flowProfiles, want);
+    flowFit.set(c); flowAuto.tune(DreamFlowProfile.auto(c)); flowRowsOf = null;
+    movesApply();
+    const note = c ? T('Fitted to “{n}” ({p}): the effects answer this person’s own range of speed, size and tempo.', { n: c.name, p: DreamFlowProfile.propName(c.prop) })
+      : want ? T('This profile is not there (any more) – Flowtrack runs without one.') : flowProfiles.length ? T('No profile: Flowtrack answers everyone alike.') : T('No profile yet – learn one on the page (“Page ↗”).');
+    if ($('flowprofilenote').textContent !== note) $('flowprofilenote').textContent = note;
+  }
+  function profilesSet(list) { flowProfiles = (Array.isArray(list) ? list : []).filter(p => p && typeof p.id === 'string' && DreamFlowProfile.usable(p)); profilesSync(); }
+  const profilesLoad = () => fetch('/flow/profiles').then(r => (r.ok ? r.json() : null)).then(d => { if (d && Array.isArray(d.profiles)) profilesSet(d.profiles); }).catch(() => { /* asked again with the next change */ });
+  $('flow_profile').addEventListener('change', () => { $('flow_profile').dataset.want = $('flow_profile').value; profilesSync(); });
   const movesLoad = () => fetch('/dance/moves').then(r => (r.ok ? r.json() : null)).then(d => { if (d && Array.isArray(d.moves)) movesSet(d.moves); }).catch(() => { /* asked again with the next change */ });
-  movesLoad();
+  movesReady = true; movesLoad(); profilesLoad();
   // … and the piece of prompt a move brings along: the row to "ai.piece" that asks for most says which move's
   function movePiece() {
     let top = null;
@@ -3562,20 +3603,24 @@
     if (!flowPage) status(T('The browser blocked the window – allow pop-ups for Dream, then “Page ↗” in the Movement card.'));
   }
   const flowChoice = (key, value, code, vars) => ({ value, why: DreamFlowAuto.why(code, vars), hand: flowHands[key] });
+  // #253: … and when the automatic's choice is what the performer's profile was learned with, it says so
+  const flowKnown = s => (s && s.known && flowFit.profile ? ' ' + T('As learned for “{n}”.', { n: flowFit.profile.name }) : '');
   window.DreamBridge.flowtrack = {
     lab: { ...labOpts, title: T('Movement patterns'),
       // drawn over the camera picture: where Dream's picture lies in it (the calibration), and the one person
       overlay: (c, w, h) => {
         const q = flowQuad(), one = flowOne();
         if (q) { c.save(); c.strokeStyle = 'rgba(199,139,255,.9)'; c.lineWidth = 2; c.setLineDash([6, 4]); c.beginPath(); q.forEach(([x, y], i) => (i ? c.lineTo(x * w, y * h) : c.moveTo(x * w, y * h))); c.closePath(); c.stroke(); c.restore(); }
-        if (one && one.centre) { const [x, y] = tracker.toCam(one.centre[0], one.centre[1]); c.save(); c.strokeStyle = 'rgba(127,227,160,.9)'; c.lineWidth = 2; c.beginPath(); c.arc(x * w, y * h, DreamFlowAuto.REACH * w, 0, 7); c.stroke(); c.restore(); }
+        if (one && one.centre) { const [x, y] = tracker.toCam(one.centre[0], one.centre[1]); c.save(); c.strokeStyle = 'rgba(127,227,160,.9)'; c.lineWidth = 2; c.beginPath(); c.arc(x * w, y * h, flowAuto.reach * w, 0, 7); c.stroke(); c.restore(); }
       } },
     ...labLink,
     state: () => {
       const s = autoSeen, auto = flowAutoOn(), who = flowWho;
       return { mode: moveMode(), camera: flowOn() ? tracker.status.code : 'off', status: tracker.status.text, lang: I18N.lang,
         auto: $('flow_auto').checked, looking: auto && !!s,
-        kind: flowChoice('kind', $('flow_kind').value, s ? s.kind.code : 'first', s && s.kind.vars),
+        kind: (c => ({ ...c, why: c.why + flowKnown(s) }))(flowChoice('kind', $('flow_kind').value, s ? s.kind.code : 'first', s && s.kind.vars)),
+        // #253: the performers' profiles and the one chosen
+        profile: profileWant(), profiles: flowProfiles,
         short: { ...flowChoice('short', $('flow_short').checked, s ? s.short.code : 'first'), supported: tracker.exposure.supported, on: !!tracker.exposure.on },
         person: { ...flowChoice('person', !flowHands.person, who ? who.code : 'noOne', who && who.vars), n: who ? who.n : 0, kept: who ? who.keep.length : 0 },
         calib: { on: !!calib, hint: flowView.hint, why: DreamFlowAuto.why(calib ? flowView.code : 'calibNone'), busy: !!calibAbort, text: $('calibstate').textContent,
@@ -3584,6 +3629,9 @@
     },
     setMode: m => { $('move_mode').value = m; $('move_mode').dispatchEvent(new Event('change', { bubbles: true })); },
     setAuto: on => { if ($('flow_auto').checked !== !!on) $('flowautobtn').click(); },
+    // #253: the page chose a performer, or learned, renamed or deleted a profile
+    setProfile: id => { const s = $('flow_profile'); s.dataset.want = String(id || ''); MoveCard.fillProfiles(s, flowProfiles, s.dataset.want); s.value = s.dataset.want; s.dispatchEvent(new Event('change', { bubbles: true })); },
+    profilesChanged: () => profilesLoad(),
     // a choice by hand – it stays the hand's until `release` gives it back to the automatic
     setKind: v => { flowHands.kind = flowAutoOn(); $('flow_kind').value = v; sendCtl({ set: { flow_kind: v } }); moveSync(); lightSync(); },
     setShort: v => { flowHands.short = flowAutoOn(); $('flow_short').checked = !!v; sendCtl({ set: { flow_short: !!v } }); lightSync(); },
@@ -4047,6 +4095,7 @@
       if (m.dance && m.dance.tables && !dancePanel.busy && !danceMapTimer) { moveTables = m.dance.tables; dancePanel.map(tableRows()); }
       if (m.dance && m.dance.slots && Array.isArray(m.dance.slots.sets)) { danceSlots = m.dance.slots; setsSync(); toleranceSync(); }   // #251, #265
       if (m.dance && Array.isArray(m.dance.moves)) movesSet(m.dance.moves);   // #236
+      if (m.dance && Array.isArray(m.dance.performers)) profilesSet(m.dance.performers);   // #253
       if (m.move && Array.isArray(m.move.sources)) moveRemote = m.move.sources;   // #249: the sources outside the stage
       if (m.sensors && m.sensors.button != null) danceLab.button();   // #243: the wristband's button: good / (twice) bad
       if (m.scene) {

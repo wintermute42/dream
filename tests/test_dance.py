@@ -92,7 +92,7 @@ def test_the_table_is_kept_in_one_file_and_comes_back(table):
     assert table.load_tables() == built_in                              # no file: the built-in tables
     assert table.set_rows([GOOD, {"id": "bad", "src": "energy", "dst": "nowhere"}], "flowtrack") == [{**GOOD, "out": [0.0, 0.8]}]
     with open(table.MAP_FILE) as f:     # #265: the dance's table is not kept – it is its set's
-        assert json.load(f) == {"version": 3, "tables": {"mood": built_in["mood"], "flowtrack": [{**GOOD, "out": [0.0, 0.8]}]}}
+        assert json.load(f) == {"version": 4, "tables": {"mood": built_in["mood"], "flowtrack": [{**GOOD, "out": [0.0, 0.8]}]}}
     assert table.load_tables()["flowtrack"] == [{**GOOD, "out": [0.0, 0.8]}]
     assert table.set_rows([], "flowtrack") == [] and table.load_tables()["flowtrack"] == []   # an empty table is a table: nothing steers
     assert table.set_rows("reset", "flowtrack") == built_in["flowtrack"] and not os.path.exists(table.MAP_FILE)
@@ -130,7 +130,7 @@ def test_the_presets_are_what_the_modes_are_for():
     touch = {"touch.paint", "touch.warp", "touch.impulse", "touch.light", "touch.shape"}
     for mode in ("flowtrack", "dance"):
         assert touch | {"ai.prompt", "ai.react"} <= {r["dst"] for r in t[mode]}
-        off = {r["dst"] for r in t[mode] if not r["on"]}
+        off = {r["dst"] for r in t[mode] if not r["on"] and r not in dance.PROFILE_ROWS}   # (#253: a profile's rows are their own)
         assert off == {"touch.light", "ai.react"} | ({"touch.impulse"} if mode == "dance" else set()), "as the old cards were set (the dance: as its set Standard)"
     assert {"g.throw", "g.push", "g.circle", "g.wave"} <= {r["src"] for r in t["dance"]}   # Standard's four accents
     assert not any(r["src"].startswith("g.") for r in t["flowtrack"] + t["mood"])

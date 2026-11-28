@@ -12,8 +12,11 @@
 // Beside them the movement clock: tempo and phase of the dancer's own repetition, next to the music's beat clock.
 //
 // A record: {t, v: {name: value}, c: {name: confidence}, src: {name: source}, bpm, gesture, gc, size, g: {gesture:
-// confidence}, hands: {l: [u, v] | null, r: …} (body units), events: [...]}. Whatever steers something reads `v`
-// through the mapping table (dancemap.js) – a gesture is the source "g.<name>" there, nothing else knows the names.
+// confidence}, hands: {l: [u, v] | null, r: …} (body units), raw: {speed, turn}, events: [...]}. Whatever steers
+// something reads `v` through the mapping table (dancemap.js) – a gesture is the source "g.<name>" there, nothing else
+// knows the names. `raw` is what `energy` and `turn` are made of before they are cut to 0 … 1 (the hands' speed in
+// shoulder widths a second, their revolutions a second): a performer's profile (#253, flowprofile.js) measures a
+// person with it whose movement is far above or below what the fixed scales expect.
 (function (root) {
   'use strict';
   // #236: moves of one's own are matched by dancemoves.js (a page that has none of them does not load it)
@@ -221,7 +224,7 @@
       st = { t: null, grid: null, tick: 0, centre: null, S: 0, reach: 0, hand: { l: null, r: null }, b: buf(),
         seen: { l: [], r: [] }, ok: { l: 0, r: 0 }, rad: { l: 0, r: 0 }, bodyAt: -1e9, still: 0, eCam: 0, eSens: 0,
         clock: { period: 0, phase: 0, c: 0, agree: 0, beatAt: -1e9, lost: 0 }, g: Object.fromEntries(names().map(g => [g, 0])),
-        active: null, below: 0, size: 0, turn: 0, impulse: 0, spin: 0, force: 0, sens: { at: -1e9, axis: 0, level: [0, 0, 0] },
+        active: null, below: 0, size: 0, turn: 0, speed: 0, rev: 0, impulse: 0, spin: 0, force: 0, sens: { at: -1e9, axis: 0, level: [0, 0, 0] },
         arm: { l: null, r: null },
         fing: Object.fromEntries(HANDS.map(h => [h, { palm: 0, spread: 0, pinch: 0, snap: 0, on: false, was: [], snapAt: -1e9, c: 0 }])) };
     }
@@ -428,6 +431,8 @@
       const camC = eN ? ec / eN : 0, camSrc = eN ? [...new Set(HANDS.map(h => st.hand[h] && fused[h] && fused[h].src).filter(Boolean))].join('+') : '';
       const eCam = eN ? clamp(Math.sqrt(e2 / eN) / 8, 0, 1) : 0;
       st.eCam += (eCam - st.eCam) * Math.min(1, dt / (eCam > st.eCam ? 0.1 : 0.4));
+      const speed = eN ? Math.sqrt(e2 / eN) : 0;       // #253: the same, uncut
+      st.speed += (speed - st.speed) * Math.min(1, dt / (speed > st.speed ? 0.1 : 0.4));
       const sC = sensFresh ? 0.9 : 0;
       let energy = 0, eC = 0, eSrc = '';
       if (camC > 0 && sC > 0) { energy = (st.eCam * camC + st.eSens * sC) / (camC + sC); eC = 1 - (1 - camC) * (1 - sC); eSrc = camSrc + '+sensor'; }
@@ -449,6 +454,8 @@
         if (Math.abs(m) > Math.abs(turn)) turn = m;
       }
       st.turn += (clamp(turn / 2, -1, 1) - st.turn) * Math.min(1, dt / 0.15);
+      st.rev += ((any ? turn : 0) - st.rev) * Math.min(1, dt / 0.15);
+      out.raw = { speed: +st.speed.toFixed(3), turn: +st.rev.toFixed(3) };
       set('turn', any ? st.turn : 0, any ? camC : 0, any ? camSrc : '');
       // the movement clock runs on between two looks at the trajectories; a beat is its phase coming round
       const ck = st.clock, locked = ck.period > 0 && ck.c >= 0.3;
