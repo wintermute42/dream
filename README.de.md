@@ -747,6 +747,30 @@ Panel → Karte **Ausgabe** → **„Raumlicht (WLED) träumt mit“**:
   aber WLED antwortet nicht unter der Adresse), „im Netz nicht zu finden“, „liegt nicht im Heimnetz“.
 - Gäste (Dream Remote) können nichts davon ändern; die Einstellung bleibt nach einem Neustart, wie sie war.
 
+### Die LEDs tanzen mit (Dream Dance)
+
+Solange das Raumlicht an ist und ein Gerät eingetragen ist, bietet Dream Dance neben den Wirkungen im Bild eine
+eigene Gruppe an, **Raumlicht** (siehe [die Sätze](#die-sätze--was-dein-tanz-bewirkt)):
+
+- **Aufleuchten** (ein Akzent): die Geste lässt die ganze Kette in der Traumfarbe voll aufblitzen, sie klingt weich ab –
+  auf dem Höhepunkt der Geste, so stark, wie der Satz sagt; solange die Geste weitergeht (immer wieder hochwerfen),
+  etwa alle 0,7 s ein weiteres, nie ein Stroboskop (höchstens vier pro Sekunde, egal was ankommt).
+- **Lauflicht** (ein Akzent): die Geste schickt einen Lichtpuls die Kette entlang. Er läuft in die Richtung, in die
+  deine Hände kurz vorher gingen – so, wie die Kamera es sieht: zur letzten LED der Kette, wenn sie im Bild nach rechts
+  gingen, zur ersten, wenn sie nach links gingen. Ein Kreis, immer wieder gezogen, schickt ein Licht nach dem anderen.
+  Läuft er für deinen Raum falsch herum, häng die Kette andersherum
+  auf.
+- **Helligkeit** (eine Grundbewegung, z. B. „Wenn ich mich viel bewege“): ruhig dimmt die Kette, wild leuchtet sie so
+  hell wie ihre Grundfarbe. Niemand erkannt: volle Grundfarbe.
+
+Stärke **leicht · mittel · stark** wie bei jedem Satz: wie hoch Aufleuchten und Lauflicht gehen, wie weit es in Ruhe
+dunkel wird. Alle drei liegen über der Farbe des Raumlichts (mit dem Takt-Puls); sie leuchten den Raum aus, nicht das
+Bild, zählen also zu keiner Gruppe der Bild-Wirkungen und nicht zu deren Budget von drei. **Lichtstärke**, **Master**
+und **Blackout** gelten auch für sie; bei **gelöster Kupplung** zeigt die Kette nur ihre Farbe. Hue-Lampen (unten)
+machen nicht mit – sie bleiben eine ruhige Stimmung. Ist das Raumlicht aus (oder kein Gerät eingetragen), sind die drei
+ausgegraut, und auf der Karte steht, warum; Sätze, die sie schon nutzen, bleiben und warten (ihre Wirkungs-Hälfte ist
+gestrichelt).
+
 ### Wenn etwas nicht geht
 
 - **Gar kein Licht:** Ist WLED eingeschaltet (Power-Knopf in der WLED-App) und im selben WLAN wie der Mac? Sagt der
@@ -1929,10 +1953,14 @@ keiner ist zu sehen. Die Worte dazu stehen beim Darüberfahren (und für Screenr
 - **Hände im Bild** (grün, *wo deine Hände sind*) – ein Satz aus Schaltern: „Meine Hände [malen Lichtspuren]
   [rühren das Bild um] [senden Impulse] [machen das Dunkel hell]“, höchstens zwei gleichzeitig.
 
+Ist das Raumlicht an, hat die Auswahl der Wirkungen auch die Gruppe **Raumlicht** (#270): **Aufleuchten** und
+**Lauflicht** für einen Akzent, **Helligkeit** für eine Grundbewegung – die LED-Kette tanzt mit, siehe
+[Raumlicht (WLED)](#die-leds-tanzen-mit-dream-dance).
+
 Die magentafarbene Hälfte eines Satzes ist deine Bewegung, die andere (in der Farbe ihrer Effekt-Gruppe umrandet) ist
 das, was im Bild passiert. **Klick auf eine Hälfte ändert sie:** Die Bewegung öffnet eine Auswahl der Bewegungen
 dieser Spur, jede mit einer kleinen Figur; die Wirkung öffnet eine Auswahl der Wirkungen nach Gruppen – was nicht passt,
-ist ausgegraut, beim Darüberfahren steht, warum (steht schon in einem anderen Satz, dieselbe Gruppe wie die andere
+ist ausgegraut, und auf der Karte steht, warum (schon in „Wenn ich …“ – welcher Satz sie hat, dieselbe Gruppe wie die andere
 Grundbewegung, dieselbe Gruppe wie eine Grundbewegung). Esc schließt ohne Änderung. **✕** entfernt einen Satz (mit
 „Rückgängig“), **＋ Satz** fügt einen hinzu, solange die Spur nicht voll ist. Jeder Satz beginnt mit einer kleinen Figur
 seiner Bewegung.
@@ -2477,7 +2505,7 @@ gleichzeitig, eine Pause – und prüft, dass sich auf der Bühne nie etwas zur�
 (#195) an synthetischer Musik (House mit Raumgeräusch, punktierte Kick bei 100 BPM, ein Halftime-Teil, ein Break über
 4 Takte mit Drop, Drum & Bass mit Tippen, Musik ohne Schlagzeug, ein 120-Hz-Bildschirm) und das Taktraster.
 `node --test tests/js/soft.test.mjs` (#211) prüft die Anteile der weichen Wechsel (altes Eingangsbild, alter und
-neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten (`tests/test_mdns.py`). `tests/test_hue.py` und `node --test tests/js/huecard.test.mjs` (#272) prüfen die Hue-Lampen gegen eine nachgebaute Hue Bridge (ein https-Server auf 127.0.0.1 mit eigenem Zertifikat): Koppeln mit und ohne Knopfdruck, den Schlüssel (nur im Konfigurationsordner, Modus 0600, nie in einem Log oder einer Nachricht an eine Seite, nie an ein Gerät, dessen Zertifikat nicht das der Bridge ist), Räume, Zonen und Lampen, die Farbe im Farbraum jeder Lampe, höchstens eine Änderung pro Sekunde und Lampe und zehn pro Sekunde insgesamt, Master und Blackout, den vorherigen Zustand nach jeder Art von Ende, dass eine langsame oder verschwundene Bridge nichts bremst, und dass Gäste nichts davon ändern. `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
+neuer Prompt, ein Wechsel während einer laufenden Überblendung). `tests/test_wled.py` und `node --test tests/js/roomlight.test.mjs` (#212) prüfen das Raumlicht gegen einen nachgebauten WLED-Empfänger (ein UDP-Socket auf 127.0.0.1): die DDP-Pakete (Kopf, Push-Flag, LED-Zahl, mehrere Pakete für eine lange Kette), die geglättete Farbe, Stärke, Master und Blackout, den Takt-Puls und das Aufblitzen, #270 das Dimmen, Aufleuchten und Lauflicht des Tanzes (einmal pro Geste, seine Richtung, unter Master und Blackout, Pakete am nachgebauten Empfänger), dass ein Gerät, das nicht antwortet, nichts bremst, dass Licht nur ins Heimnetz geht, dass Gäste nichts davon ändern, und die mDNS-Antworten (`tests/test_mdns.py`). `tests/test_hue.py` und `node --test tests/js/huecard.test.mjs` (#272) prüfen die Hue-Lampen gegen eine nachgebaute Hue Bridge (ein https-Server auf 127.0.0.1 mit eigenem Zertifikat): Koppeln mit und ohne Knopfdruck, den Schlüssel (nur im Konfigurationsordner, Modus 0600, nie in einem Log oder einer Nachricht an eine Seite, nie an ein Gerät, dessen Zertifikat nicht das der Bridge ist), Räume, Zonen und Lampen, die Farbe im Farbraum jeder Lampe, höchstens eine Änderung pro Sekunde und Lampe und zehn pro Sekunde insgesamt, Master und Blackout, den vorherigen Zustand nach jeder Art von Ende, dass eine langsame oder verschwundene Bridge nichts bremst, und dass Gäste nichts davon ändern. `node --test tests/js/gl-stage.test.mjs` (#204) öffnet `tests/js/gl-stage.html` in einem Chrome oder Chromium ohne
 Fenster (findet ihn selbst, oder `CHROME_BIN` nennt ihn; ein WebGL in Software genügt) und vergleicht Bild für Bild,
 was die WebGL-2-Kette und das Canvas-2D-Zeichnen aus jedem Effekt und jedem Schritt der Kette machen (Überblendung,
 Bewegung, Glättung, Berührungs-Ebenen, Farben, Master; #215: dass das geglättete Bild an seinem Platz bleibt, wenn

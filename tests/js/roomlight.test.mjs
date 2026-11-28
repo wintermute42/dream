@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { test } from 'node:test';
 
 const require = createRequire(import.meta.url);
-const { create, mean, SIDE, EVERY } = require('../../static/roomlight.js');
+const { create, mean, sway, SIDE, EVERY, RISE, REST, PEAK, AGAIN } = require('../../static/roomlight.js');
 
 // what the stage hands out: SIDE × SIDE RGBA pixels of one colour, the first `part` of them in another
 function picture(rgb, other, part = 0) {
@@ -52,4 +52,72 @@ test('no copy of the picture yet: nothing is sent (never a black flash)', () => 
     assert.equal(light.tick(0), false);
   }
   assert.deepEqual(sent, []);
+});
+
+// ---------- #270: the dance on the LED chain ----------
+const record = (l, r) => ({ hands: { l, r } });
+
+test('an accent sets off a flash and a running pulse at its peak – more while it goes on, anew after a rest', () => {
+  const sent = [], when = [];
+  const light = create({ send: m => { sent.push(m.led); when.push(t); }, pixels: () => picture([0, 0, 200]) });
+  light.on = true;
+  let t = 0;
+  const frame = out => light.dance(out, null, (t += 16));
+  frame({});
+  // the rise: nothing at its first moment – the peak counts (the sentence's strength), told when the rise is over
+  frame({ 'led.flash': 0.2, 'led.chase': 0.15 });
+  frame({ 'led.flash': 0.6, 'led.chase': 0.4 });
+  assert.deepEqual(sent, []);
+  frame({ 'led.flash': 0.9, 'led.chase': 0.6 });
+  frame({ 'led.flash': 0.85, 'led.chase': 0.6 });   // the flash falls: its peak; the pulse still holds
+  assert.deepEqual(sent, [{ dflash: 0.9 }]);
+  for (let i = 0; i * 16 < PEAK; i++) frame({ 'led.flash': 0.8, 'led.chase': 0.6 });   // a held one: told after PEAK ms
+  assert.deepEqual(sent, [{ dflash: 0.9 }, { chase: 0.6, dir: 1 }]);
+  // the gesture goes on (a circle drawn again and again): one more every AGAIN ms – never a stroboscope
+  const [flashAt, chaseAt] = when;
+  while (t + 16 < flashAt + AGAIN) frame({ 'led.flash': 0.8, 'led.chase': 0.6 });
+  assert.equal(sent.length, 2);
+  frame({ 'led.flash': 0.8, 'led.chase': 0.6 });
+  assert.deepEqual(sent[2], { dflash: 0.8 });
+  while (t + 16 < chaseAt + AGAIN) frame({ 'led.flash': 0.8, 'led.chase': 0.6 });
+  assert.equal(sent.length, 3);
+  frame({ 'led.flash': 0.8, 'led.chase': 0.6 });
+  assert.deepEqual(sent[3], { chase: 0.6, dir: 1 });
+  frame({ 'led.flash': RISE * 0.9, 'led.chase': RISE * 0.9 });                   // a dip that is no rest: still the same one
+  assert.equal(sent.length, 4);
+  // back at rest: the next gesture is a new one
+  frame({ 'led.flash': REST / 2, 'led.chase': 0 });
+  frame({ 'led.flash': 1, 'led.chase': 1 }); frame({ 'led.flash': 0.5, 'led.chase': 0.5 });
+  assert.deepEqual(sent.slice(4), [{ dflash: 1 }, { chase: 1, dir: 1 }]);
+  light.on = false;
+  frame({}); frame({ 'led.flash': 1 }); frame({ 'led.flash': 0.5 });
+  assert.equal(sent.length, 6, 'nothing while the light is off');
+});
+
+test('the running pulse goes the way the hands went just now', () => {
+  const s = sway();
+  let t = 0;
+  for (let i = 0; i < 20; i++) s.step(record([0.1 + i * 0.03, 0], [0.5, 0]).hands, (t += 16));    // the left hand moves right
+  assert.equal(s.dir, 1);
+  for (let i = 0; i < 20; i++) s.step(record([0.7, 0], [0.5 - i * 0.04, 0]).hands, (t += 16));   // the right hand moves left, faster
+  assert.equal(s.dir, -1);
+  for (let i = 0; i < 60; i++) s.step(record(null, [0, 0]).hands, (t += 16));                     // still: no way
+  assert.equal(s.dir, 0);
+  const sent = [], light = create({ send: m => sent.push(m.led), pixels: () => picture([0, 0, 200]) });
+  light.on = true; t = 0;
+  for (let i = 0; i < 20; i++) light.dance({}, record(null, [0.6 - i * 0.04, 0]), (t += 16));
+  for (let i = 0; i < 30; i++) light.dance({}, record(null, [-0.2, 0]), (t += 16));        // the hand has stopped by then
+  light.dance({ 'led.chase': 1 }, record(null, [-0.2, 0]), (t += 16));
+  light.dance({ 'led.chase': 0.9 }, record(null, [-0.2, 0]), (t += 16));               // past its peak: told
+  assert.deepEqual(sent, [{ chase: 1, dir: -1 }], 'the last way it went');
+});
+
+test('the brightness travels with the colour, once more as 0 when it is gone, and not at all without a dance', () => {
+  const sent = [];
+  const light = create({ send: m => sent.push(m.led), pixels: () => picture([0, 0, 200]) });
+  light.on = true;
+  light.tick(0);
+  light.dance({ 'led.level': -0.4 }, null, EVERY); light.tick(EVERY);
+  light.dance({}, null, 2 * EVERY); light.tick(2 * EVERY); light.tick(3 * EVERY);
+  assert.deepEqual(sent.map(m => m.dim), [undefined, 0.4, 0, undefined]);
 });

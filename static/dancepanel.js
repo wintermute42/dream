@@ -28,6 +28,7 @@
     'touch.light': () => T('Light in the dark'), 'touch.shape': () => T('Movement shapes the effects'),
     'ai.prompt': () => T('Content by energy (calm ↔ wild)'), 'ai.react': () => T('Movement pushes the AI sliders'), 'ai.piece': () => T('Prompt piece of the move'),
     'ai.strength': () => T('Transformation'), 'ai.mix': () => T('Dream share'), 'ai.zoom': () => T('Zoom pull'), 'ai.rot': () => T('Rotation'), 'ai.hue': () => T('Colour drift'),
+    'led.flash': () => T('Room light: flash'), 'led.chase': () => T('Room light: running light'), 'led.level': () => T('Room light: dimmed while calm'),   // #270
   };
   const HAND = { l: () => T('Left hand'), r: () => T('Right hand') };
   const FROM = { pose: () => T('camera'), marker: () => T('marker'), light: () => T('light'), sensor: () => T('sensor'), hand: () => T('hand AI'), camera: () => T('camera'), eyes: () => 'Dreamy Eyes' };

@@ -59,13 +59,67 @@ LAYERS: list = []
 
 
 def compose(base: tuple, n: int, dt: float, now: float) -> list | None:
-    """The chain of n LEDs with the base colour and the layers on top – None when no layer is hung in (one colour)."""
-    if not LAYERS:
+    """The chain of n LEDs with the base colour and the layers on top – None when no layer is hung in or acts right
+    now (one colour). A layer may say it rests (layer.idle(now)): the chain is not drawn LED by LED for nothing."""
+    if not LAYERS or all(getattr(layer, "idle", None) and layer.idle(now) for layer in LAYERS):
         return None
     buf = [list(base) for _ in range(n)]
     for layer in LAYERS:
         layer(buf, dt, now)
     return buf
+
+
+# ---------- #270: the dance on the chain ----------
+# What the dancer's sentences ask of the room light (roomlight.py keeps it, the stage tells it): the chain dimmed
+# (calm) or as bright as its base colour (wild), a flash of the whole chain in the dream's colour that fades softly, and
+# pulses that run along it – from the first LED to the last when the hands went right, the other way when they went
+# left. Under the strength, the master and the blackout (encode) like everything; the clutch released, the stage tells
+# none of it – only the base colour is left.
+DIM_FLOOR = 0.06                 # the darkest the dimming makes the chain: never quite off
+CHASE_SPEED = 1.6                # chains a second: a pulse runs the whole chain in about 0.6 s
+CHASE_WIDTH = 0.08               # of the chain, at least CHASE_MIN LEDs
+CHASE_MIN = 3
+
+
+def bright(base) -> tuple:
+    """The dream's colour at its fullest: the same hue, its strongest channel at 255 (white when it is black)."""
+    top = max(base)
+    return (255.0, 255.0, 255.0) if top < 8 else tuple(c * 255.0 / top for c in base)
+
+
+class Dance:
+    """The dance's layer of the chain (hung into LAYERS below)."""
+
+    def __init__(self, light=None):
+        self.light = light               # a roomlight.Light, or None: the one of roomlight.py
+
+    def _l(self):
+        return self.light or roomlight.light
+
+    def idle(self, now: float) -> bool:
+        return not self._l().dancing(now)
+
+    def __call__(self, buf: list, dt: float, now: float) -> None:
+        light, n = self._l(), len(buf)
+        if not n:
+            return
+        full = bright(buf[0])
+        k = max(DIM_FLOOR, 1.0 - light.dim(now))
+        if k < 1.0:
+            for px in buf:
+                px[0] *= k; px[1] *= k; px[2] *= k
+        lift = [min(1.0, light.dflash_of(now))] * n
+        width = max(CHASE_MIN, CHASE_WIDTH * n)
+        for amt, d, age in light.pulses(now):
+            head = age * CHASE_SPEED * (n + width) - width / 2         # it comes in from beyond the chain's end
+            for i in range(max(0, int(head - width)), min(n, int(head + width) + 1)):
+                near = 1.0 - abs(i - head) / width
+                if near > 0:
+                    j = i if d > 0 else n - 1 - i
+                    lift[j] = max(lift[j], amt * near * near)
+        for px, f in zip(buf, lift):
+            if f > 0:
+                px[0] += (full[0] - px[0]) * f; px[1] += (full[1] - px[1]) * f; px[2] += (full[2] - px[2]) * f
 
 
 def encode(base: tuple, buf: list | None, n: int, level: float) -> bytes:
@@ -247,5 +301,6 @@ async def find() -> list:
     return await asyncio.get_running_loop().run_in_executor(None, mdns.browse, SERVICE, 2.0)
 
 
+LAYERS.append(Dance())                    # #270
 hub.on_change("wled", sync)
 hub.on_change("wled_host", sync)

@@ -2116,7 +2116,7 @@
     send: m => {
       sendCtl(m);
       if (m.led.rgb) ledLamp(m.led.rgb);
-      else if (m.led.beat && !calmMotion.matches) $('ledlamp').animate([{ transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
+      else if ((m.led.beat || m.led.dflash || m.led.chase) && !calmMotion.matches) $('ledlamp').animate([{ transform: 'scale(1.3)' }, { transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
     },
   });
   function ledLamp(rgb) {
@@ -3539,7 +3539,9 @@
     state: () => ({ mode: moveMode(), clutch: clutchOn(), hold: mover.hold,
       move: moveClock(), music: musicClock(), strength: +$('motion_sens').value, camera: flowOn() ? tracker.status.code : 'off', lang: I18N.lang, moves: danceMoves,
       // the dance's own detection (the setting), what the camera really runs, and the cameras to choose from
-      kind: $('dance_kind').value, tracking: flowOn() ? tracker.kind : 'off', cam: $('flow_device').value, cams: [...$('flow_device').options].map(o => [o.value, o.textContent]) }),
+      kind: $('dance_kind').value, tracking: flowOn() ? tracker.kind : 'off', cam: $('flow_device').value, cams: [...$('flow_device').options].map(o => [o.value, o.textContent]),
+      // #270: whether the room light's LED chain can dance along (the setting "wled" and a device entered)
+      light: !$('wled').checked ? 'off' : $('wled_host').value.trim() ? 'on' : 'nohost' }),
     setKind: v => { if (DreamMove.DANCE_KINDS.includes(v)) { $('dance_kind').value = v; $('dance_kind').dispatchEvent(new Event('change', { bubbles: true })); } },
     setCam: v => { $('flow_device').value = v; $('flow_device').dispatchEvent(new Event('change', { bubbles: true })); },
     setMode: m => { $('move_mode').value = m; $('move_mode').dispatchEvent(new Event('change', { bubbles: true })); },
@@ -3785,6 +3787,7 @@
     // pure camera (#111): no smoothing, zoom or brightness of Dream's own – only the chosen effects
     const plain = bodyHas('pure'), tau = smoothTau();
     view.draw({ front, now, dt: dt0, tau: plain ? 0 : tau, fx: on ? p : null, k, sc: plain ? 1 : look.sc, br: plain ? 1 : look.br, sat: plain ? 1 : look.sat, master: look.master, fps: previewFps() });
+    roomLight.dance(dn, danceNow(), now);              // #270: the dance's flash, running pulse and brightness for the LEDs
     roomLight.tick(now);                               // #212: a dozen times a second, the colour for the room light
     if ((outViewers || $('syphon').checked) && outWs && outWs.readyState === 1 && now - smoothSentAt > 1000) {
       outWs.send(JSON.stringify({ smooth: +tau.toFixed(3) })); smoothSentAt = now;
